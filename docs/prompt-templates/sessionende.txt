@@ -1,0 +1,61 @@
+## SESSION-ABSCHLUSS: Kontext-Dokument generieren
+
+Wir beenden jetzt diese Arbeitssitzung am Projekt **Course Control Hub** 
+(local_coursectrl / block_coursectrl).
+
+Erstelle ein kompaktes Kontext-Dokument für die nächste Sitzung. 
+Halte dich an exakt diese Struktur:
+
+---
+
+# CCH Kontext-Dokument
+Erstellt: [Datum + Uhrzeit]
+Sitzung Nr.: [fortlaufend]
+
+## 1. Aktueller Projektstand
+- Aktuelle Phase (0–10) und ihr Ziel
+- Abgeschlossene Phasen (stichpunktartig)
+- Was in dieser Sitzung konkret erledigt wurde
+
+## 2. Finalisierte Artefakte
+Liste jeder Datei/Klasse, die in dieser oder einer früheren Sitzung 
+als **fertig** markiert wurde:
+- Pfad relativ zum Plugin-Root
+- Ein-Satz-Beschreibung ihres Zwecks
+- Etwaige bekannte Einschränkungen oder TODOs
+
+## 3. Offene Arbeitspakete (priorisiert)
+Was als nächstes zu tun ist, in Reihenfolge:
+1. [Datei/Klasse/Aufgabe] – warum, was genau
+2. …
+
+## 4. Architekturentscheidungen (verbindlich)
+Alle getroffenen Entscheidungen, die spätere Sitzungen binden:
+- Interface-Signaturen, die nicht mehr geändert werden
+- DB-Schema-Entscheidungen
+- Namenskonventionen
+- Abweichungen vom ursprünglichen Pflichtenheft (mit Begründung)
+
+## 5. Kritische Abhängigkeiten
+Welche Klassen/Interfaces hängen voneinander ab und in welcher 
+Reihenfolge müssen sie fertiggestellt werden?
+
+## 6. Bekannte Probleme und Risiken
+Offene technische Fragen, ungelöste Moodle-spezifische Probleme, 
+Stellen mit erhöhtem Risiko.
+
+## 7. GitHub-Repositorium
+URL: [vollständige URL]
+Hauptbranch: [main/develop/…]
+Relevante Branches dieser Sitzung: [falls abweichend]
+Letzte bekannte Commit-Message dieser Sitzung: [falls bekannt]
+
+## 8. Für die nächste Sitzung mitzugebende Dateien
+Welche konkreten Dateien aus dem Repo soll Claude zu Beginn der 
+nächsten Sitzung lesen, um arbeitsfähig zu sein?
+- [Pfad] – warum relevant
+
+---
+
+Fülle alle Abschnitte aus. Wo du keine Information hast, schreibe 
+explizit „unbekannt" oder „nicht besprochen". Erfinde nichts.

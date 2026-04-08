@@ -1,0 +1,68 @@
+# Patch / merge / backup files
+*.orig
+*.bak
+*.rej
+
+# Windows zone identifier files
+*Zone.Identifier
+
+# macOS / Finder
+.DS_Store
+.Trashes
+.Spotlight-V100
+.fseventsd
+._*
+__MACOS
+
+# Windows / Explorer
+desktop.ini
+Thumbs.db
+$RECYCLE.BIN
+System Volume Information
+
+# Linux / Unix filesystem extras
+.directory
+.nfs*
+
+# Editor / IDE
+.idea/
+*.iml
+.vscode/
+
+# Vim / editor swap files
+*.swp
+*.swo
+*~
+
+# Logs / temp files
+*.log
+*.tmp
+tmp/
+temp/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# PHP / QA / test caches
+.phpunit.result.cache
+.php-cs-fixer.cache
+.phpstan.cache
+.psalm-cache/
+
+# Dependencies
+/vendor/
+/node_modules/
+
+# Frontend build artifacts
+/dist/
+/build/
+/coverage/
+
+# Archives / packaged artifacts
+*.zip
+*.tar
+*.gz
+*.tgz
+*.7z

@@ -11,12 +11,12 @@
          ============================================================ -->
     <TABLE NAME="local_coursectrl_batch" COMMENT="Head record of a bulk action batch">
       <FIELDS>
-        <FIELD NAME="id"           TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="courseid"     TYPE="int"  LENGTH="10" NOTNULL="true" COMMENT="mdl_course.id"/>
-        <FIELD NAME="userid"       TYPE="int"  LENGTH="10" NOTNULL="true" COMMENT="mdl_user.id of the actor"/>
-        <FIELD NAME="action"       TYPE="char" LENGTH="64" NOTNULL="true" COMMENT="e.g. shift_dates, set_visibility"/>
-        <FIELD NAME="payloadjson"  TYPE="text"             NOTNULL="true" COMMENT="Serialised action parameters"/>
-        <FIELD NAME="status"       TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="pending"
+        <FIELD NAME="id"           TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="true"/>
+        <FIELD NAME="courseid"     TYPE="int"  LENGTH="10" NOTNULL="true"  COMMENT="mdl_course.id"/>
+        <FIELD NAME="userid"       TYPE="int"  LENGTH="10" NOTNULL="true"  COMMENT="mdl_user.id of the actor"/>
+        <FIELD NAME="action"       TYPE="char" LENGTH="64" NOTNULL="true"  COMMENT="e.g. shift_dates, set_visibility"/>
+        <FIELD NAME="payloadjson"  TYPE="text"             NOTNULL="true"  COMMENT="Serialised action parameters"/>
+        <FIELD NAME="status"       TYPE="char" LENGTH="16" NOTNULL="true"  DEFAULT="pending"
                COMMENT="pending | previewed | executed | rolled_back | failed"/>
         <FIELD NAME="timecreated"  TYPE="int"  LENGTH="10" NOTNULL="true"/>
         <FIELD NAME="timemodified" TYPE="int"  LENGTH="10" NOTNULL="true"/>
@@ -38,22 +38,22 @@
          ============================================================ -->
     <TABLE NAME="local_coursectrl_batch_item" COMMENT="Per-entity result within a batch">
       <FIELDS>
-        <FIELD NAME="id"          TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="batchid"     TYPE="int"  LENGTH="10" NOTNULL="true" COMMENT="FK → local_coursectrl_batch.id"/>
-        <FIELD NAME="entitytype"  TYPE="char" LENGTH="32" NOTNULL="true" COMMENT="cm | section | course | label | text"/>
-        <FIELD NAME="entityid"    TYPE="int"  LENGTH="10" NOTNULL="true" COMMENT="Context-specific ID"/>
-        <FIELD NAME="component"   TYPE="char" LENGTH="64" NOTNULL="false" DEFAULT="null"
+        <FIELD NAME="id"          TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="true"/>
+        <FIELD NAME="batchid"     TYPE="int"  LENGTH="10" NOTNULL="true"  COMMENT="FK local_coursectrl_batch.id"/>
+        <FIELD NAME="entitytype"  TYPE="char" LENGTH="32" NOTNULL="true"  COMMENT="cm | section | course | label | text"/>
+        <FIELD NAME="entityid"    TYPE="int"  LENGTH="10" NOTNULL="true"  COMMENT="Context-specific ID"/>
+        <FIELD NAME="component"   TYPE="char" LENGTH="64" NOTNULL="false"
                COMMENT="Moodle component for cm items, e.g. mod_assign"/>
-        <FIELD NAME="status"      TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="pending"
+        <FIELD NAME="status"      TYPE="char" LENGTH="16" NOTNULL="true"  DEFAULT="pending"
                COMMENT="pending | skipped | success | error"/>
-        <FIELD NAME="previewjson" TYPE="text"             NOTNULL="false" DEFAULT="null"
+        <FIELD NAME="previewjson" TYPE="text"             NOTNULL="false"
                COMMENT="Serialised preview_change DTO"/>
-        <FIELD NAME="resultjson"  TYPE="text"             NOTNULL="false" DEFAULT="null"
+        <FIELD NAME="resultjson"  TYPE="text"             NOTNULL="false"
                COMMENT="Serialised execution_result DTO"/>
       </FIELDS>
       <KEYS>
-        <KEY NAME="primary"          TYPE="primary" FIELDS="id"/>
-        <KEY NAME="fk_batch"         TYPE="foreign" FIELDS="batchid"
+        <KEY NAME="primary"  TYPE="primary" FIELDS="id"/>
+        <KEY NAME="fk_batch" TYPE="foreign" FIELDS="batchid"
              REFTABLE="local_coursectrl_batch" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
@@ -68,12 +68,13 @@
          ============================================================ -->
     <TABLE NAME="local_coursectrl_snapshot" COMMENT="Pre-action state snapshot for rollback">
       <FIELDS>
-        <FIELD NAME="id"          TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="batchid"     TYPE="int"  LENGTH="10" NOTNULL="true" COMMENT="FK → local_coursectrl_batch.id"/>
+        <FIELD NAME="id"          TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="true"/>
+        <FIELD NAME="batchid"     TYPE="int"  LENGTH="10" NOTNULL="true"  COMMENT="FK local_coursectrl_batch.id"/>
         <FIELD NAME="entitytype"  TYPE="char" LENGTH="32" NOTNULL="true"/>
         <FIELD NAME="entityid"    TYPE="int"  LENGTH="10" NOTNULL="true"/>
-        <FIELD NAME="component"   TYPE="char" LENGTH="64" NOTNULL="false" DEFAULT="null"/>
-        <FIELD NAME="statejson"   TYPE="text"             NOTNULL="true" COMMENT="Full serialised entity state"/>
+        <FIELD NAME="component"   TYPE="char" LENGTH="64" NOTNULL="false"
+               COMMENT="Moodle component, nullable for non-cm entities"/>
+        <FIELD NAME="statejson"   TYPE="text"             NOTNULL="true"  COMMENT="Full serialised entity state"/>
         <FIELD NAME="timecreated" TYPE="int"  LENGTH="10" NOTNULL="true"/>
       </FIELDS>
       <KEYS>
@@ -93,18 +94,19 @@
          ============================================================ -->
     <TABLE NAME="local_coursectrl_preset" COMMENT="Saved action presets">
       <FIELDS>
-        <FIELD NAME="id"          TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="userid"      TYPE="int"  LENGTH="10" NOTNULL="true"/>
-        <FIELD NAME="courseid"    TYPE="int"  LENGTH="10" NOTNULL="false" DEFAULT="null"
+        <FIELD NAME="id"           TYPE="int"  LENGTH="10"  NOTNULL="true"  SEQUENCE="true"/>
+        <FIELD NAME="userid"       TYPE="int"  LENGTH="10"  NOTNULL="true"/>
+        <FIELD NAME="courseid"     TYPE="int"  LENGTH="10"  NOTNULL="false"
                COMMENT="NULL = site-wide preset"/>
-        <FIELD NAME="name"        TYPE="char" LENGTH="255" NOTNULL="true"/>
-        <FIELD NAME="description" TYPE="text"              NOTNULL="false" DEFAULT="null"/>
-        <FIELD NAME="action"      TYPE="char" LENGTH="64"  NOTNULL="true"/>
-        <FIELD NAME="configjson"  TYPE="text"              NOTNULL="true"/>
-        <FIELD NAME="scope"       TYPE="char" LENGTH="16"  NOTNULL="true" DEFAULT="private"
+        <FIELD NAME="name"         TYPE="char" LENGTH="255" NOTNULL="true"/>
+        <FIELD NAME="description"  TYPE="text"              NOTNULL="false"
+               COMMENT="Optional human-readable description"/>
+        <FIELD NAME="action"       TYPE="char" LENGTH="64"  NOTNULL="true"/>
+        <FIELD NAME="configjson"   TYPE="text"              NOTNULL="true"/>
+        <FIELD NAME="scope"        TYPE="char" LENGTH="16"  NOTNULL="true"  DEFAULT="private"
                COMMENT="private | course | site"/>
-        <FIELD NAME="timecreated"  TYPE="int" LENGTH="10"  NOTNULL="true"/>
-        <FIELD NAME="timemodified" TYPE="int" LENGTH="10"  NOTNULL="true"/>
+        <FIELD NAME="timecreated"  TYPE="int"  LENGTH="10"  NOTNULL="true"/>
+        <FIELD NAME="timemodified" TYPE="int"  LENGTH="10"  NOTNULL="true"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -122,12 +124,13 @@
          ============================================================ -->
     <TABLE NAME="local_coursectrl_report" COMMENT="Stored analysis and check reports">
       <FIELDS>
-        <FIELD NAME="id"          TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="id"          TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="true"/>
         <FIELD NAME="courseid"    TYPE="int"  LENGTH="10" NOTNULL="true"/>
         <FIELD NAME="userid"      TYPE="int"  LENGTH="10" NOTNULL="true"/>
         <FIELD NAME="reporttype"  TYPE="char" LENGTH="64" NOTNULL="true"
                COMMENT="timeline | graph | risk | simulation | consistency"/>
-        <FIELD NAME="configjson"  TYPE="text"             NOTNULL="false" DEFAULT="null"/>
+        <FIELD NAME="configjson"  TYPE="text"             NOTNULL="false"
+               COMMENT="Optional report configuration"/>
         <FIELD NAME="resultjson"  TYPE="text"             NOTNULL="true"/>
         <FIELD NAME="timecreated" TYPE="int"  LENGTH="10" NOTNULL="true"/>
       </FIELDS>
@@ -148,7 +151,7 @@
          ============================================================ -->
     <TABLE NAME="local_coursectrl_text_hit" COMMENT="Detected date/time references in free-text fields">
       <FIELDS>
-        <FIELD NAME="id"              TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="id"              TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="true"/>
         <FIELD NAME="courseid"        TYPE="int"  LENGTH="10" NOTNULL="true"/>
         <FIELD NAME="entitytype"      TYPE="char" LENGTH="32" NOTNULL="true"/>
         <FIELD NAME="entityid"        TYPE="int"  LENGTH="10" NOTNULL="true"/>
@@ -156,11 +159,11 @@
                COMMENT="DB field name where the hit was found"/>
         <FIELD NAME="matchedtext"     TYPE="text"             NOTNULL="true"
                COMMENT="Raw string as found in the text"/>
-        <FIELD NAME="normalizedvalue" TYPE="char" LENGTH="32" NOTNULL="false" DEFAULT="null"
+        <FIELD NAME="normalizedvalue" TYPE="char" LENGTH="32" NOTNULL="false"
                COMMENT="ISO 8601 date or datetime if parseable"/>
         <FIELD NAME="confidence"      TYPE="char" LENGTH="16" NOTNULL="true"
                COMMENT="safe | ambiguous | informational"/>
-        <FIELD NAME="contextjson"     TYPE="text"             NOTNULL="false" DEFAULT="null"
+        <FIELD NAME="contextjson"     TYPE="text"             NOTNULL="false"
                COMMENT="Surrounding text excerpt and offset information"/>
         <FIELD NAME="timecreated"     TYPE="int"  LENGTH="10" NOTNULL="true"/>
       </FIELDS>
@@ -168,9 +171,9 @@
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
       </KEYS>
       <INDEXES>
-        <INDEX NAME="idx_hit_course"      UNIQUE="false" FIELDS="courseid"/>
-        <INDEX NAME="idx_hit_entity"      UNIQUE="false" FIELDS="entitytype, entityid"/>
-        <INDEX NAME="idx_hit_confidence"  UNIQUE="false" FIELDS="confidence"/>
+        <INDEX NAME="idx_hit_course"     UNIQUE="false" FIELDS="courseid"/>
+        <INDEX NAME="idx_hit_entity"     UNIQUE="false" FIELDS="entitytype, entityid"/>
+        <INDEX NAME="idx_hit_confidence" UNIQUE="false" FIELDS="confidence"/>
       </INDEXES>
     </TABLE>
 
@@ -180,7 +183,7 @@
          ============================================================ -->
     <TABLE NAME="local_coursectrl_risk" COMMENT="Risk findings from consistency and dead-end analysis">
       <FIELDS>
-        <FIELD NAME="id"          TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="id"          TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="true"/>
         <FIELD NAME="courseid"    TYPE="int"  LENGTH="10" NOTNULL="true"/>
         <FIELD NAME="risktype"    TYPE="char" LENGTH="64" NOTNULL="true"
                COMMENT="dead_end | circular_lock | unresolvable_condition | temporal_conflict | missing_next_step"/>
@@ -195,10 +198,10 @@
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
       </KEYS>
       <INDEXES>
-        <INDEX NAME="idx_risk_course"    UNIQUE="false" FIELDS="courseid"/>
-        <INDEX NAME="idx_risk_type"      UNIQUE="false" FIELDS="risktype"/>
-        <INDEX NAME="idx_risk_severity"  UNIQUE="false" FIELDS="severity"/>
-        <INDEX NAME="idx_risk_entity"    UNIQUE="false" FIELDS="entitytype, entityid"/>
+        <INDEX NAME="idx_risk_course"   UNIQUE="false" FIELDS="courseid"/>
+        <INDEX NAME="idx_risk_type"     UNIQUE="false" FIELDS="risktype"/>
+        <INDEX NAME="idx_risk_severity" UNIQUE="false" FIELDS="severity"/>
+        <INDEX NAME="idx_risk_entity"   UNIQUE="false" FIELDS="entitytype, entityid"/>
       </INDEXES>
     </TABLE>
 

@@ -2,27 +2,18 @@
 # GitHub Actions CI – local_coursectrl (Course Control Hub)
 #
 # Matrix:
-#   Moodle:  4.5, 5.0, 5.1, 5.2*
+#   Moodle:  4.5, 5.0, 5.1
 #   PHP:     8.2, 8.3, 8.4  (8.4 excluded for Moodle < 5.1)
 #   DB:      MariaDB 10.11  |  PostgreSQL 16
 #
-# * MOODLE_502_STABLE: branch expected ~May 2026; CI will fail on that
-#   combination until the branch is published – all other jobs unaffected.
+# Moodle 5.2 (MOODLE_502_STABLE) wird ergänzt, sobald der Branch
+# im moodle/moodle-Repository verfügbar ist (~Mai 2026).
 #
-# Job dependency / parallelism:
+# Job-Parallelität:
 #   lint-php ──┐
-#              ├──► phpunit  (MariaDB + PostgreSQL matrix)
+#              ├──► phpunit  (MariaDB + PostgreSQL)
 #   lint-js  ──┘
-#              └──► behat    (MariaDB only, runs PARALLEL to phpunit)
-#
-# Notes:
-#   - en_AU.UTF-8 locale required by Moodle's PHPUnit/Behat bootstrap.
-#   - moodle-plugin-ci install --plugin registers the plugin once;
-#     subsequent phpunit/behat/grunt calls need NO --plugin argument.
-#   - MariaDB uses driver "mariadb" (not "mysqli") as of Moodle 4.5.
-#   - MariaDB service without MYSQL_DATABASE → moodle-plugin-ci creates DB.
-#   - PostgreSQL service with POSTGRES_DB=postgres → "moodle" DB not
-#     pre-created; moodle-plugin-ci handles creation.
+#              └──► behat    (MariaDB only, parallel zu phpunit)
 ##############################################################################
 
 name: Moodle Plugin CI
@@ -176,13 +167,12 @@ jobs:
           - MOODLE_405_STABLE
           - MOODLE_500_STABLE
           - MOODLE_501_STABLE
-          - MOODLE_502_STABLE   # Expected ~May 2026; will fail until branch is published.
         php: ['8.2', '8.3', '8.4']
         db:
           - { engine: mariadb, type: mariadb, port: 3306, user: root,   pass: root   }
           - { engine: pgsql,   type: pgsql,   port: 5432, user: moodle, pass: moodle }
         exclude:
-          # PHP 8.4 not supported on Moodle < 5.1.
+          # PHP 8.4 not officially supported on Moodle < 5.1.
           - { moodle: MOODLE_405_STABLE, php: '8.4' }
           - { moodle: MOODLE_500_STABLE, php: '8.4' }
 
@@ -251,16 +241,15 @@ jobs:
             --db-name  moodle \
             --branch   ${{ matrix.moodle }}
 
-      # Plugin already registered by install – no --plugin argument here.
       - name: PHPUnit – all tests
         run: moodle-plugin-ci phpunit
 
   # ── 3. Behat ─────────────────────────────────────────────────────────────
-  # Runs PARALLEL to phpunit (both depend on lint only).
+  # Läuft PARALLEL zu phpunit (beide brauchen nur lint als Voraussetzung).
   behat:
     name: "Behat (${{ matrix.moodle }} / PHP 8.2 / Chrome)"
     runs-on: ubuntu-24.04
-    needs: [lint-php, lint-js]   # parallel to phpunit – NOT needs: [phpunit]
+    needs: [lint-php, lint-js]
     strategy:
       fail-fast: false
       matrix:
@@ -268,7 +257,6 @@ jobs:
           - MOODLE_405_STABLE
           - MOODLE_500_STABLE
           - MOODLE_501_STABLE
-          - MOODLE_502_STABLE   # Expected ~May 2026.
 
     services:
       selenium:
@@ -330,7 +318,6 @@ jobs:
             --db-name  moodle \
             --branch   ${{ matrix.moodle }}
 
-      # Plugin already registered by install – no --plugin argument here.
       - name: Behat – all plugin scenarios
         run: |
           moodle-plugin-ci behat \

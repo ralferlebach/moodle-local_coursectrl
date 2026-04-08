@@ -16,6 +16,7 @@
 
 /**
  * Admin settings for local_coursectrl.
+ * Settings will be populated in Phase 2 (Inventory and Selection).
  *
  * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
@@ -24,17 +25,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-// Admin settings will be configured in Phase 2 (Inventory & Selection).
-// Placeholder keeps the settings page registered without errors.
 if ($hassiteconfig) {
     $settings = new admin_settingpage(
         'local_coursectrl',
         get_string('pluginname', 'local_coursectrl')
     );
-
-    if ($ADMIN->fulltree) {
-        // No settings defined yet.
-    }
-
     $ADMIN->add('localplugins', $settings);
 }

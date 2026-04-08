@@ -26,13 +26,10 @@
 
 namespace local_coursectrl;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Smoke test suite for the local_coursectrl plugin skeleton.
  */
 class stub_test extends \advanced_testcase {
-
     /**
      * Verify the plugin version is recorded in the database after installation.
      */
@@ -53,7 +50,6 @@ class stub_test extends \advanced_testcase {
             'local/coursectrl:managepresets',
             'local/coursectrl:simulate',
         ];
-
         foreach ($caps as $cap) {
             $this->assertTrue(
                 get_capability_info($cap) !== false,
@@ -67,7 +63,6 @@ class stub_test extends \advanced_testcase {
      */
     public function test_database_tables_exist(): void {
         global $DB;
-
         $tables = [
             'local_coursectrl_batch',
             'local_coursectrl_batch_item',
@@ -77,7 +72,6 @@ class stub_test extends \advanced_testcase {
             'local_coursectrl_text_hit',
             'local_coursectrl_risk',
         ];
-
         foreach ($tables as $table) {
             $this->assertTrue(
                 $DB->get_manager()->table_exists($table),
@@ -96,11 +90,9 @@ class stub_test extends \advanced_testcase {
             'error_no_course',
             'error_no_capability',
         ];
-
         foreach ($strings as $key) {
             $str = get_string($key, 'local_coursectrl');
             $this->assertNotEmpty($str, "Language string '{$key}' must not be empty.");
-            // A missing string would return [[key]] – detect that too.
             $this->assertStringNotContainsString('[[', $str, "Language string '{$key}' is missing.");
         }
     }

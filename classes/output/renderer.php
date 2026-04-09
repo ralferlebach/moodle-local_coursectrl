@@ -15,17 +15,29 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for local_coursectrl.
+ * Plugin renderer for local_coursectrl.
  *
  * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+namespace local_coursectrl\output;
 
-$plugin->component = 'local_coursectrl';
-$plugin->version   = 2026040907;
-$plugin->requires  = 2024042200; // Moodle 4.5.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.7';
+use plugin_renderer_base;
+
+/**
+ * Renders Course Control Hub pages from renderable templates.
+ */
+class renderer extends plugin_renderer_base {
+    /**
+     * Render the course dashboard page.
+     *
+     * @param dashboard_page $page The dashboard renderable.
+     * @return string HTML.
+     */
+    public function render_dashboard_page(dashboard_page $page): string {
+        $data = $page->export_for_template($this);
+        return $this->render_from_template('local_coursectrl/dashboard', $data);
+    }
+}

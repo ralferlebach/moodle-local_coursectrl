@@ -31,6 +31,6 @@ $functions = [
         'description'  => 'Returns the normalised inventory snapshot for a course.',
         'type'         => 'read',
         'ajax'         => true,
-        'capabilities' => 'moodle/course:view',
+        'capabilities' => 'local/coursectrl:view',
     ],
 ];

@@ -15,8 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Entry point for local_coursectrl.
- * Will be replaced with the full dashboard in Phase 2.
+ * Course Control Hub dashboard entry point.
  *
  * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
@@ -29,25 +28,41 @@ require_login();
 
 $courseid = optional_param('courseid', 0, PARAM_INT);
 
-if ($courseid) {
-    $course  = get_course($courseid);
-    $context = context_course::instance($courseid);
-    require_capability('local/coursectrl:view', $context);
-
-    $PAGE->set_course($course);
-    $PAGE->set_context($context);
-} else {
+if (!$courseid) {
     $context = context_system::instance();
     $PAGE->set_context($context);
+    $PAGE->set_url(new moodle_url('/local/coursectrl/index.php'));
+    $PAGE->set_title(get_string('pluginname', 'local_coursectrl'));
+    $PAGE->set_heading(get_string('pluginname', 'local_coursectrl'));
+
+    echo $OUTPUT->header();
+    echo $OUTPUT->notification(
+        get_string('error_no_course', 'local_coursectrl'),
+        \core\output\notification::NOTIFY_WARNING
+    );
+    echo $OUTPUT->footer();
+    exit;
 }
 
+$course = get_course($courseid);
+$context = context_course::instance($courseid);
+require_capability('local/coursectrl:view', $context);
+
+$PAGE->set_course($course);
+$PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/local/coursectrl/index.php', ['courseid' => $courseid]));
-$PAGE->set_title(get_string('pluginname', 'local_coursectrl'));
-$PAGE->set_heading(get_string('pluginname', 'local_coursectrl'));
+$PAGE->set_title(format_string($course->fullname) . ' - ' . get_string('pluginname', 'local_coursectrl'));
+$PAGE->set_heading(format_string($course->fullname));
+$PAGE->set_pagelayout('incourse');
+
+$service = new \local_coursectrl\local\inventory\inventory_service();
+$snapshot = $service->build_for_course((int) $courseid);
+
+$renderable = new \local_coursectrl\output\dashboard_page($snapshot);
+/** @var \local_coursectrl\output\renderer $renderer */
+$renderer = $PAGE->get_renderer('local_coursectrl');
 
 echo $OUTPUT->header();
-echo $OUTPUT->notification(
-    get_string('stub_placeholder', 'local_coursectrl'),
-    \core\output\notification::NOTIFY_INFO
-);
+echo $OUTPUT->heading(get_string('nav_dashboard', 'local_coursectrl'), 2);
+echo $renderer->render_dashboard_page($renderable);
 echo $OUTPUT->footer();

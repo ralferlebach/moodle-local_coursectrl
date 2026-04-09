@@ -37,13 +37,29 @@ $string['coursectrl:managepresets'] = 'Aktions-Presets erstellen und verwalten';
 $string['coursectrl:simulate']      = 'Lernenden-Simulationen ausführen';
 
 // Navigation.
-$string['nav_dashboard']   = 'Dashboard';
-$string['nav_bulk']        = 'Massenaktionen';
-$string['nav_timeline']    = 'Zeitachse';
-$string['nav_graph']       = 'Abhängigkeitsgraph';
-$string['nav_simulation']  = 'Simulation';
-$string['nav_risks']       = 'Risiken';
-$string['nav_history']     = 'Verlauf';
+$string['nav_dashboard']  = 'Dashboard';
+$string['nav_bulk']       = 'Massenaktionen';
+$string['nav_timeline']   = 'Zeitachse';
+$string['nav_graph']      = 'Abhängigkeitsgraph';
+$string['nav_simulation'] = 'Simulation';
+$string['nav_risks']      = 'Risiken';
+$string['nav_history']    = 'Verlauf';
+
+// Dashboard.
+$string['dashboard_startdate']        = 'Startdatum';
+$string['dashboard_enddate']          = 'Enddatum';
+$string['dashboard_visibility']       = 'Sichtbarkeit';
+$string['dashboard_visible']          = 'Sichtbar';
+$string['dashboard_hidden']           = 'Verborgen';
+$string['dashboard_sections']         = 'Abschnitte';
+$string['dashboard_activities']       = 'Aktivitäten';
+$string['dashboard_activities_short'] = 'Aktivitäten';
+$string['dashboard_texts']            = 'Editierbare Texte';
+$string['dashboard_inventory']        = 'Kursinventar';
+$string['dashboard_section']          = 'Abschnitt';
+$string['dashboard_completion']       = 'Abschluss';
+$string['dashboard_availability']     = 'Eingeschränkt';
+$string['dashboard_empty']            = 'Dieser Kurs hat noch keine inventarisierten Abschnitte.';
 
 // Stub / Platzhalter.
 $string['stub_placeholder'] = 'Kursablauf-Zentrale – Phase-1-Stub. Die vollständige Oberfläche folgt in Phase 2.';

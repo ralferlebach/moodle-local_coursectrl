@@ -67,7 +67,7 @@ class get_inventory extends external_api {
 
         $context = \context_course::instance($params['courseid']);
         self::validate_context($context);
-        require_capability('moodle/course:view', $context);
+        require_capability('local/coursectrl:view', $context);
 
         $service = new inventory_service();
         $snapshot = $service->build_for_course((int) $params['courseid']);

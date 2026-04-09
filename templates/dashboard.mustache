@@ -1,0 +1,170 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_coursectrl/dashboard
+
+    Course Control Hub dashboard for a single course.
+
+    Renders a stats summary and a per-section breakdown of course modules.
+
+    Context variables required for this template:
+    * courseid - int
+    * coursefullname - string
+    * courseshortname - string
+    * coursestartdate - int (unix timestamp)
+    * courseenddate - int|null (unix timestamp)
+    * hasenddate - bool
+    * coursevisible - bool
+    * sectioncount - int
+    * cmcount - int
+    * textcount - int
+    * hassections - bool
+    * sections - array of section objects with id, sectionnum, name, hasname,
+                 visible, hassummary, cms (array of cm objects), cmcount
+
+    Example context (json):
+    {
+        "courseid": 2,
+        "coursefullname": "Demo course",
+        "courseshortname": "DEMO",
+        "coursestartdate": 1700000000,
+        "courseenddate": 0,
+        "hasenddate": false,
+        "coursevisible": true,
+        "sectioncount": 3,
+        "cmcount": 5,
+        "textcount": 2,
+        "hassections": true,
+        "sections": [
+            {
+                "id": 1,
+                "sectionnum": 0,
+                "name": "General",
+                "hasname": true,
+                "visible": true,
+                "hassummary": false,
+                "cmcount": 1,
+                "cms": [
+                    {
+                        "cmid": 10,
+                        "name": "Welcome",
+                        "modname": "label",
+                        "component": "mod_label",
+                        "visible": true,
+                        "hascompletion": false,
+                        "hasavailability": false
+                    }
+                ]
+            }
+        ]
+    }
+}}
+<div class="local-coursectrl-dashboard" data-region="local_coursectrl-dashboard" data-courseid="{{courseid}}">
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="card-title h4 mb-1">{{coursefullname}}</h2>
+            <p class="text-muted small mb-3">{{courseshortname}}</p>
+            <dl class="row mb-0 small">
+                <dt class="col-sm-3">{{#str}}dashboard_startdate, local_coursectrl{{/str}}</dt>
+                <dd class="col-sm-9">
+                    {{#userdate}}{{coursestartdate}}, {{#str}}strftimedaydate, core_langconfig{{/str}}{{/userdate}}
+                </dd>
+                {{#hasenddate}}
+                    <dt class="col-sm-3">{{#str}}dashboard_enddate, local_coursectrl{{/str}}</dt>
+                    <dd class="col-sm-9">
+                        {{#userdate}}{{courseenddate}}, {{#str}}strftimedaydate, core_langconfig{{/str}}{{/userdate}}
+                    </dd>
+                {{/hasenddate}}
+                <dt class="col-sm-3">{{#str}}dashboard_visibility, local_coursectrl{{/str}}</dt>
+                <dd class="col-sm-9">
+                    {{#coursevisible}}
+                        <span class="badge badge-success">{{#str}}dashboard_visible, local_coursectrl{{/str}}</span>
+                    {{/coursevisible}}
+                    {{^coursevisible}}
+                        <span class="badge badge-secondary">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>
+                    {{/coursevisible}}
+                </dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="display-4">{{sectioncount}}</div>
+                    <div class="text-muted small">{{#str}}dashboard_sections, local_coursectrl{{/str}}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="display-4">{{cmcount}}</div>
+                    <div class="text-muted small">{{#str}}dashboard_activities, local_coursectrl{{/str}}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="display-4">{{textcount}}</div>
+                    <div class="text-muted small">{{#str}}dashboard_texts, local_coursectrl{{/str}}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="h5 mb-3">{{#str}}dashboard_inventory, local_coursectrl{{/str}}</h3>
+
+    {{#hassections}}
+        {{#sections}}
+            <div class="card mb-3">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span>
+                        <strong>{{#str}}dashboard_section, local_coursectrl{{/str}} {{sectionnum}}</strong>
+                        {{#hasname}}<span class="text-muted ml-2">{{name}}</span>{{/hasname}}
+                    </span>
+                    <span>
+                        {{^visible}}<span class="badge badge-secondary mr-2">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>{{/visible}}
+                        <span class="badge badge-light">{{cmcount}} {{#str}}dashboard_activities_short, local_coursectrl{{/str}}</span>
+                    </span>
+                </div>
+                {{#cmcount}}
+                    <ul class="list-group list-group-flush">
+                        {{#cms}}
+                            <li class="list-group-item d-flex align-items-center justify-content-between">
+                                <span>
+                                    <code class="text-muted small mr-2">{{modname}}</code>
+                                    {{name}}
+                                </span>
+                                <span>
+                                    {{^visible}}<span class="badge badge-secondary mr-1">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>{{/visible}}
+                                    {{#hascompletion}}<span class="badge badge-info mr-1">{{#str}}dashboard_completion, local_coursectrl{{/str}}</span>{{/hascompletion}}
+                                    {{#hasavailability}}<span class="badge badge-warning">{{#str}}dashboard_availability, local_coursectrl{{/str}}</span>{{/hasavailability}}
+                                </span>
+                            </li>
+                        {{/cms}}
+                    </ul>
+                {{/cmcount}}
+            </div>
+        {{/sections}}
+    {{/hassections}}
+    {{^hassections}}
+        <div class="alert alert-info">{{#str}}dashboard_empty, local_coursectrl{{/str}}</div>
+    {{/hassections}}
+</div>

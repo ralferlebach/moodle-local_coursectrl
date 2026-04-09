@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for local_coursectrl.
+ * External function declarations for local_coursectrl.
  *
  * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
@@ -24,8 +24,13 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_coursectrl';
-$plugin->version   = 2026040906;
-$plugin->requires  = 2024042200; // Moodle 4.5.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.6';
+$functions = [
+    'local_coursectrl_get_inventory' => [
+        'classname'    => 'local_coursectrl\external\get_inventory',
+        'methodname'   => 'execute',
+        'description'  => 'Returns the normalised inventory snapshot for a course.',
+        'type'         => 'read',
+        'ajax'         => true,
+        'capabilities' => 'moodle/course:view',
+    ],
+];

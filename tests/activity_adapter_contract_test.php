@@ -35,7 +35,6 @@ namespace local_coursectrl;
  * @coversNothing
  */
 final class activity_adapter_contract_test extends \advanced_testcase {
-
     /** Fully qualified interface name. */
     private const IFACE = 'local_coursectrl\\local\\contract\\activity_adapter';
 
@@ -68,19 +67,19 @@ final class activity_adapter_contract_test extends \advanced_testcase {
      */
     public function test_interface_method_signatures(): void {
         $expected = [
-            'component'                => ['params' => 0, 'return' => 'string', 'static' => true],
-            'is_available'             => ['params' => 0, 'return' => 'bool',   'static' => false],
-            'get_supported_actions'    => ['params' => 0, 'return' => 'array',  'static' => false],
-            'get_supported_fields'     => ['params' => 0, 'return' => 'array',  'static' => false],
-            'get_instances_for_course' => ['params' => 2, 'return' => 'array',  'static' => false],
-            'describe_instance'        => ['params' => 1, 'return' => 'array',  'static' => false],
-            'validate_action'          => ['params' => 3, 'return' => 'array',  'static' => false],
-            'preview_action'           => ['params' => 3, 'return' => 'array',  'static' => false],
-            'execute_action'           => ['params' => 4, 'return' => 'array',  'static' => false],
-            'export_state'             => ['params' => 1, 'return' => 'array',  'static' => false],
-            'restore_state'            => ['params' => 1, 'return' => 'array',  'static' => false],
-            'run_checks'               => ['params' => 2, 'return' => 'array',  'static' => false],
-            'get_dependency_hints'     => ['params' => 1, 'return' => 'array',  'static' => false],
+            'component' => ['params' => 0, 'return' => 'string', 'static' => true],
+            'is_available' => ['params' => 0, 'return' => 'bool', 'static' => false],
+            'get_supported_actions' => ['params' => 0, 'return' => 'array', 'static' => false],
+            'get_supported_fields' => ['params' => 0, 'return' => 'array', 'static' => false],
+            'get_instances_for_course' => ['params' => 2, 'return' => 'array', 'static' => false],
+            'describe_instance' => ['params' => 1, 'return' => 'array', 'static' => false],
+            'validate_action' => ['params' => 3, 'return' => 'array', 'static' => false],
+            'preview_action' => ['params' => 3, 'return' => 'array', 'static' => false],
+            'execute_action' => ['params' => 4, 'return' => 'array', 'static' => false],
+            'export_state' => ['params' => 1, 'return' => 'array', 'static' => false],
+            'restore_state' => ['params' => 1, 'return' => 'array', 'static' => false],
+            'run_checks' => ['params' => 2, 'return' => 'array', 'static' => false],
+            'get_dependency_hints' => ['params' => 1, 'return' => 'array', 'static' => false],
         ];
 
         $ref = new \ReflectionClass(self::IFACE);

@@ -48,7 +48,6 @@ namespace local_coursectrl\local\contract;
  * local/coursectrl/db/subplugins.json).
  */
 interface activity_adapter {
-
     /**
      * Return the Moodle component name this adapter targets.
      *

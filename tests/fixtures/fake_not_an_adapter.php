@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for local_coursectrl.
+ * Test fixture: class that does not implement activity_adapter.
  *
  * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
@@ -24,8 +24,16 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_coursectrl';
-$plugin->version   = 2026040904;
-$plugin->requires  = 2024042200; // Moodle 4.5.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.4';
+/**
+ * Class that does NOT implement activity_adapter; must be rejected by the registry.
+ */
+class local_coursectrl_fake_not_an_adapter {
+    /**
+     * Decoy component name; never reached because interface check fails first.
+     *
+     * @return string
+     */
+    public static function component(): string {
+        return 'mod_bogus';
+    }
+}

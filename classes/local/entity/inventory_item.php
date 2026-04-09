@@ -36,7 +36,6 @@ namespace local_coursectrl\local\entity;
  * that the inventory, bulk, visualisation and simulation engines deal with.
  */
 abstract class inventory_item implements \JsonSerializable {
-
     /**
      * Return the short type discriminator for this entity kind.
      *

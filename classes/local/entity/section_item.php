@@ -28,7 +28,6 @@ namespace local_coursectrl\local\entity;
  * Immutable DTO carrying the section-level fields the hub cares about.
  */
 final class section_item extends inventory_item {
-
     /**
      * Constructor.
      *

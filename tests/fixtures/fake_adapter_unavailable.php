@@ -15,17 +15,35 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for local_coursectrl.
+ * Test fixture: fake adapter that reports itself as unavailable.
  *
  * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_coursectrl';
-$plugin->version   = 2026040904;
-$plugin->requires  = 2024042200; // Moodle 4.5.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.4';
+require_once(__DIR__ . '/fake_adapter_base.php');
+
+/**
+ * Fake adapter that reports itself as unavailable and must be skipped by the registry.
+ */
+class local_coursectrl_fake_adapter_unavailable extends local_coursectrl_fake_adapter_base {
+    /**
+     * Returns the target component name.
+     *
+     * @return string
+     */
+    public static function component(): string {
+        return 'mod_disabled';
+    }
+
+    /**
+     * Marks this adapter as unavailable.
+     *
+     * @return bool always false.
+     */
+    public function is_available(): bool {
+        return false;
+    }
+}

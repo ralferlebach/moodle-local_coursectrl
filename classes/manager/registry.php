@@ -37,7 +37,6 @@ use local_coursectrl\local\contract\activity_adapter;
  * request scope. Discovery is lazy and cached inside the instance.
  */
 class registry {
-
     /** @var activity_adapter[] Keyed by frankenstyle component name (e.g. 'mod_assign'). */
     private array $adapters = [];
 

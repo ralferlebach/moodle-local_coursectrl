@@ -28,7 +28,6 @@ namespace local_coursectrl\local\entity;
  * Immutable DTO carrying the course-module-level fields the hub cares about.
  */
 final class cm_item extends inventory_item {
-
     /**
      * Constructor.
      *

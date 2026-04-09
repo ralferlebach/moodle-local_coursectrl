@@ -36,7 +36,6 @@ namespace local_coursectrl\local\entity;
  * fieldname).
  */
 final class text_item extends inventory_item {
-
     /** Owner entity is a course. */
     public const OWNER_COURSE = 'course';
     /** Owner entity is a course section. */

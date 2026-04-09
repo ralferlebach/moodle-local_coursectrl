@@ -28,13 +28,19 @@ use local_coursectrl\manager\registry;
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once(__DIR__ . '/fixtures/fake_adapters.php');
+require_once(__DIR__ . '/fixtures/fake_adapter_base.php');
+require_once(__DIR__ . '/fixtures/fake_adapter_assign.php');
+require_once(__DIR__ . '/fixtures/fake_adapter_quiz.php');
+require_once(__DIR__ . '/fixtures/fake_adapter_unavailable.php');
+require_once(__DIR__ . '/fixtures/fake_adapter_empty_component.php');
+require_once(__DIR__ . '/fixtures/fake_not_an_adapter.php');
 
 /**
+ * Unit tests for the activity adapter registry.
+ *
  * @coversDefaultClass \local_coursectrl\manager\registry
  */
 final class registry_test extends \advanced_testcase {
-
     /**
      * A registry constructed with an empty override must load cleanly and
      * report zero adapters.

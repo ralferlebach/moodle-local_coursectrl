@@ -29,11 +29,18 @@ use core_external\external_api;
 /**
  * Integration tests for the get_inventory external function.
  *
+ * Covers two distinct rejection layers:
+ * - Layer 1: validate_context() calls require_login() which throws
+ *   require_login_exception for users not enrolled in the course.
+ * - Layer 2: require_capability('local/coursectrl:view', ...) which throws
+ *   required_capability_exception for enrolled users that lack the cap
+ *   (e.g. students).
+ *
  * @coversDefaultClass \local_coursectrl\external\get_inventory
  */
 final class get_inventory_test extends \advanced_testcase {
     /**
-     * An enrolled teacher must receive a structurally valid snapshot.
+     * An enrolled editing teacher must receive a structurally valid snapshot.
      */
     public function test_execute_returns_snapshot_for_enrolled_teacher(): void {
         $this->resetAfterTest();
@@ -66,17 +73,35 @@ final class get_inventory_test extends \advanced_testcase {
     }
 
     /**
-     * Anonymous users with no read access must be rejected before any
-     * inventory work runs.
+     * Layer 1: an unenrolled user must be rejected by validate_context()
+     * before any inventory or capability work runs. The exception thrown
+     * is require_login_exception, not required_capability_exception.
      */
-    public function test_execute_rejects_unprivileged_user(): void {
+    public function test_execute_rejects_unenrolled_user(): void {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course();
         $stranger = $this->getDataGenerator()->create_user();
         $this->setUser($stranger);
 
-        $this->expectException(\required_capability_exception::class);
+        $this->expectException(\core\exception\require_login_exception::class);
+        get_inventory::execute((int) $course->id);
+    }
+
+    /**
+     * Layer 2: an enrolled student passes validate_context() but lacks the
+     * local/coursectrl:view capability and must be rejected by
+     * require_capability with required_capability_exception.
+     */
+    public function test_execute_rejects_enrolled_student(): void {
+        $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course();
+        $student = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($student->id, $course->id, 'student');
+        $this->setUser($student);
+
+        $this->expectException(\core\exception\required_capability_exception::class);
         get_inventory::execute((int) $course->id);
     }
 

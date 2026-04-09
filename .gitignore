@@ -6,6 +6,9 @@
 # Windows zone identifier files
 *Zone.Identifier
 
+# Office working temp files
+~$*
+
 # macOS / Finder
 .DS_Store
 .Trashes

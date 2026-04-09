@@ -1,24 +1,23 @@
 # Kursablauf-Zentrale / Course Control Hub  
 ## Pflicht- und Lastenheft mit technischem Blueprint und Arbeitspaketen
 
+(komplette konsolidierte Version, Subplugin-Typ: coursectrlmod)
+
 ---
 
 # 1. Projekttitel
-
 Deutsch: Kursablauf-Zentrale  
 Englisch: Course Control Hub  
 
 ---
 
 # 2. Technische Plugin-Namen
-
 - Core-Plugin: `local_coursectrl`
 - Block-Plugin: `block_coursectrl`
-- Subplugin-Typ im Core: `coursectrlmod`
+- Subplugin-Typ: `coursectrlmod`
 - Subplugin-Verzeichnis: `mod`
 
 ## Beispiel-Subplugins
-
 - `coursectrlmod_assign`
 - `coursectrlmod_quiz`
 - `coursectrlmod_lesson`
@@ -31,133 +30,78 @@ Englisch: Course Control Hub
 ---
 
 # 3. Ziel des Systems
-
 Die Kursablauf-Zentrale ist ein Moodle-Werkzeug für Lehrende zur:
 
 - kursweiten Analyse von Aktivitäts-, Termin-, Sichtbarkeits- und Freigabelogik
 - sicheren Durchführung von Bulk-Änderungen
 - Erkennung und optionalen Mitbearbeitung von Datums-/Zeitangaben in Freitexten
 - grafischen Darstellung von Zeitachsen, Abhängigkeiten und Bearbeitungspfaden
-- Simulation von Sichtbarkeit und Zugänglichkeit aus Sicht definierter Lernenden-Konstellationen
-- Erkennung von Sackgassen, Edge Cases und nicht auflösbaren Bearbeitungswegen
+- Simulation von Sichtbarkeit und Zugänglichkeit
+- Erkennung von Sackgassen und Edge Cases
 - revisionssicheren Protokollierung und Rücknahme von Änderungen
 
 ---
 
 # 4. Systemkontext
-
-Das System besteht aus:
-
-- `local_coursectrl` als Core
-- `block_coursectrl` als UI-Einstieg
-- mehreren Subplugins `coursectrlmod_*`
+- Core: `local_coursectrl`
+- Block: `block_coursectrl`
+- Subplugins: `coursectrlmod_*`
 
 ---
 
 # 5. Zielgruppen
-
 - Lehrende
 - Kursverantwortliche
-- Studiengangskoordination / E-Learning-Support
-- Moodle-Administrator*innen
-- Qualitätsmanagement
+- Admins
+- QM
 
 ---
 
 # 6. Muss-Anforderungen
+## Bulk
+- Module, Sections, Labels, Texte
 
-## 6.1 Bulk-Verarbeitung
-
-- Kursmodule
-- Kursabschnitte
-- Kursbeschreibung
-- Section-Namen
-- Section-Beschreibungen
-- Labels
-- relevante Einstellungen
-
-## 6.2 Vorschaupflicht
-
-- alte Werte
-- neue Werte
+## Vorschau
+- alt/neu
 - Konflikte
-- Warnungen
 
-## 6.3 Terminlogik
+## Termine
+- shift / set
 
-- relativ verschieben
-- absolut setzen
-- mehrere Felder
-- Wochenenden optional
-- Feiertage optional
+## Freitext
+- Erkennung + Klassifikation
 
-## 6.4 Freitext-Erkennung
+## Visualisierung
+- Timeline, Gantt, Graph
 
-Unterstützt:
+## Simulation
+- Zustandssimulation
 
-- Aktivitätsbeschreibungen
-- Labels
-- Sections
-- Kursbeschreibung
+## Sackgassenprüfung
+- Dead ends
 
-Klassifikation:
+## Audit
+- Logging + Rollback
 
-- sicher
-- unsicher
-- informativ
-
-## 6.5 Grafische Analyse
-
-- Timeline
-- Gantt
-- Abhängigkeitsgraph
-- Vorgänger/Nachfolger
-
-## 6.6 Simulation
-
-Parameter:
-
-- Zeit
-- Gruppe
-- Completion
-
-## 6.7 Sackgassenprüfung
-
-- unerreichbare Aktivitäten
-- Zyklen
-- fehlende nächste Schritte
-
-## 6.8 Protokollierung
-
-- Logging
-- Rollback
-
-## 6.9 Erweiterbarkeit
-
-- Subplugin-basierte Architektur
+## Erweiterbarkeit
+- Subplugins
 
 ---
 
 # 7. Kann-Anforderungen
-
 - Presets
 - Reports
-- KI-Unterstützung
-- Simulationsprofile
+- KI optional
 
 ---
 
 # 8. Nicht-Ziele
-
-- automatische Freitextänderung ohne Review
-- KI als alleinige Entscheidungsinstanz
+- blindes Text-Rewriting
 - vollständige Modulabdeckung im MVP
 
 ---
 
 # 9. Qualitätsanforderungen
-
-- nachvollziehbar
 - testbar
 - erweiterbar
 - performant
@@ -165,51 +109,40 @@ Parameter:
 ---
 
 # 10. Datenschutz
-
 - rollenbasiert
-- minimaler Datenbestand
-- sichere Logs
+- minimal
 
 ---
 
-# Fachliche Funktionsblöcke
-
-## A. Kursinventar  
-## B. Bulk-Engine  
-## C. Text-Datetime  
-## D. Visualisierung  
-## E. Simulation  
-## F. Risikoanalyse  
-## G. Audit / Rollback  
+# Fachliche Blöcke
+- Inventar
+- Bulk
+- Text
+- Visualisierung
+- Simulation
+- Risiko
+- Audit
 
 ---
 
 # Technischer Blueprint
 
-## Architektur
-
-- Core: `local_coursectrl`
-- Block: `block_coursectrl`
-- Adapter: `coursectrlmod_*`
-
-## Prinzip
-
-- Modullogik in Subplugins
-- Kurslogik im Core
+## Prinzipien
+- Core first
+- Adapter je Modul
+- deterministisch
 
 ---
 
-# Verzeichnisbaum (gekürzt)
+# Verzeichnisstruktur
 
 ```text
 local/coursectrl/
-
   classes/
   db/
   templates/
   amd/
   lang/
-
   mod/
     assign/
     quiz/
@@ -219,3 +152,92 @@ local/coursectrl/
     forum/
     workshop/
     h5pactivity/
+```
+
+---
+
+# Adapter-Interface
+
+```php
+interface activity_adapter {
+    public static function component(): string;
+    public function preview_action(...);
+    public function execute_action(...);
+}
+```
+
+---
+
+# Datenmodell
+- batch
+- batch_item
+- snapshot
+- preset
+- report
+- text_hit
+- risk
+
+---
+
+# Funktionen
+F1 Inventar  
+F2 Auswahl  
+F3 Vorschau  
+F4 Termine  
+F5 Text  
+F6 Visualisierung  
+F7 Simulation  
+F8 Risiko  
+F9 Rollback  
+
+---
+
+# Arbeitsplan
+
+## Phase 1
+Skeleton
+
+## Phase 2
+Inventar
+
+## Phase 3
+Adapter
+
+## Phase 4
+Bulk
+
+## Phase 5
+Text
+
+## Phase 6
+Visualisierung
+
+## Phase 7
+Simulation
+
+## Phase 8
+Risiko
+
+## Phase 9
+Audit
+
+## Phase 10
+Härtung
+
+---
+
+# MVP
+
+## MVP1
+- Bulk Dates
+
+## MVP2
+- Text + Timeline
+
+## MVP3
+- Simulation
+
+---
+
+# Fazit
+System = Bulk + Analyse + Simulation + QA

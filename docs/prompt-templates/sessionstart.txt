@@ -45,6 +45,7 @@ Wir knüpfen an die Arbeiten, die im aktuellen Kontext-Dokument und in der angeh
 - diese ZIP-Dateien erhalten jeweils einen neuen (durchnummerierten) Namen
 - die Version in der version.php orientiert sich am aktuellen Datum und wird mit jeder größeren Iteration hochgezählt
 - zu jeder Änderung gibt es in Englischer Sprache eine einzeilige Kurzbeschreibung des Commits sowie bis zu 5 Stichpunkte zu den vorgenommenen Änderungen. Die Stichpunkte bitte als md-Code zum Kopieren einbinden.
+- bei der Code-Generierung immer die Moodle-Coding-Standards (boiler plate, comments, classes and methods declatation, list/array-short notations, keine Leerzeilen nach öffnenden {, multiline arguments jeweils einzeln pro Zeile etc.). Author: Ralf Erlebach, year: 2026, license: GPL 3, source control siehe Punkt C.
 - bei Unklarheiten und auftretenden Fehlern: SHELL-Skripte, SQL-Abfragen und JS-Skripte für die Konsole mitgeliefert, um das Debugging zielführend zu gestalten. Diagnose-Skripte werden grundsätzlich nur im Chat-Fenster ausgeliefert, nie als Download!
 
 Bevor du beginnst:

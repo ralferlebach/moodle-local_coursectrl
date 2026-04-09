@@ -1,9 +1,13 @@
-# Subplugin directory – coursectrl_mod_*
-#
-# This directory will contain activity-type adapter subplugins.
-# Each subdirectory follows the naming scheme: coursectrl_mod_{modname}
-#
-# First adapters scheduled for Phase 3:
-#   - coursectrl_mod_assign
-#   - coursectrl_mod_quiz
-#   - coursectrl_mod_feedback
+# Subplugin directory – coursectrlmod_*
+
+This directory contains activity-type adapter subplugins.
+Each subdirectory follows the naming scheme: `coursectrlmod_{modname}`
+
+The subplugin type is registered as `coursectrlmod` (no underscore)
+in `db/subplugins.json`. Moodle requires subplugin type names to be
+lowercase alphanumeric without underscores.
+
+First adapters scheduled for Phase 3:
+- `coursectrlmod_assign`
+- `coursectrlmod_quiz`
+- `coursectrlmod_feedback`

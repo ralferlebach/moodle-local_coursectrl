@@ -1,5 +1,5 @@
 {
     "plugintypes": {
-        "coursectrl_mod": "local/coursectrl/mod"
+        "coursectrlmod": "local/coursectrl/mod"
     }
 }

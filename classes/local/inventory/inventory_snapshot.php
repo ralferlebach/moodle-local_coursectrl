@@ -37,20 +37,31 @@ use local_coursectrl\local\entity\text_item;
  * simulation engine.
  */
 final class inventory_snapshot implements \JsonSerializable {
+    /** @var course_item The normalised course entity. */
+    public readonly course_item $course;
+
+    /** @var array<int,section_item> Sections keyed by section id. */
+    public readonly array $sections;
+
+    /** @var array<int,cm_item> Course modules keyed by cmid. */
+    public readonly array $cms;
+
+    /** @var array<string,text_item> Editable texts keyed by text_item::get_key(). */
+    public readonly array $texts;
+
     /**
      * Constructor.
      *
-     * @param course_item             $course   the normalised course entity.
-     * @param array<int,section_item> $sections sections keyed by section id.
-     * @param array<int,cm_item>      $cms      course modules keyed by cmid.
-     * @param array<string,text_item> $texts    editable texts keyed by text_item::get_key().
+     * @param course_item             $course   The normalised course entity.
+     * @param array<int,section_item> $sections Sections keyed by section id.
+     * @param array<int,cm_item>      $cms      Course modules keyed by cmid.
+     * @param array<string,text_item> $texts    Editable texts keyed by text_item::get_key().
      */
-    public function __construct(
-        public readonly course_item $course,
-        public readonly array $sections,
-        public readonly array $cms,
-        public readonly array $texts,
-    ) {
+    public function __construct(course_item $course, array $sections, array $cms, array $texts) {
+        $this->course = $course;
+        $this->sections = $sections;
+        $this->cms = $cms;
+        $this->texts = $texts;
     }
 
     /**
@@ -87,10 +98,10 @@ final class inventory_snapshot implements \JsonSerializable {
      */
     public function to_array(): array {
         return [
-            'course'   => $this->course->to_array(),
+            'course' => $this->course->to_array(),
             'sections' => array_values(array_map(fn($s) => $s->to_array(), $this->sections)),
-            'cms'      => array_values(array_map(fn($c) => $c->to_array(), $this->cms)),
-            'texts'    => array_values(array_map(fn($t) => $t->to_array(), $this->texts)),
+            'cms' => array_values(array_map(fn($c) => $c->to_array(), $this->cms)),
+            'texts' => array_values(array_map(fn($t) => $t->to_array(), $this->texts)),
         ];
     }
 

@@ -28,6 +28,33 @@ namespace local_coursectrl\local\entity;
  * Immutable DTO carrying the course-module-level fields the hub cares about.
  */
 final class cm_item extends inventory_item {
+    /** @var int Moodle course_modules.id (cmid). */
+    public readonly int $id;
+
+    /** @var int Parent course id. */
+    public readonly int $courseid;
+
+    /** @var int Parent course_sections.id. */
+    public readonly int $sectionid;
+
+    /** @var string Module short name, e.g. 'assign', 'quiz'. */
+    public readonly string $modname;
+
+    /** @var int Row id inside the module-specific table. */
+    public readonly int $instance;
+
+    /** @var string Activity name as shown to users. */
+    public readonly string $name;
+
+    /** @var bool Current visibility flag. */
+    public readonly bool $visible;
+
+    /** @var string|null JSON availability tree, or null. */
+    public readonly ?string $availability;
+
+    /** @var int COMPLETION_TRACKING_* constant. */
+    public readonly int $completion;
+
     /**
      * Constructor.
      *
@@ -42,18 +69,32 @@ final class cm_item extends inventory_item {
      * @param int         $completion   COMPLETION_TRACKING_* constant.
      */
     public function __construct(
-        public readonly int $id,
-        public readonly int $courseid,
-        public readonly int $sectionid,
-        public readonly string $modname,
-        public readonly int $instance,
-        public readonly string $name,
-        public readonly bool $visible,
-        public readonly ?string $availability,
-        public readonly int $completion,
+        int $id,
+        int $courseid,
+        int $sectionid,
+        string $modname,
+        int $instance,
+        string $name,
+        bool $visible,
+        ?string $availability,
+        int $completion
     ) {
+        $this->id = $id;
+        $this->courseid = $courseid;
+        $this->sectionid = $sectionid;
+        $this->modname = $modname;
+        $this->instance = $instance;
+        $this->name = $name;
+        $this->visible = $visible;
+        $this->availability = $availability;
+        $this->completion = $completion;
     }
 
+    /**
+     * Return the type discriminator.
+     *
+     * @return string always 'cm'.
+     */
     public function get_type(): string {
         return 'cm';
     }
@@ -69,33 +110,45 @@ final class cm_item extends inventory_item {
         return 'mod_' . $this->modname;
     }
 
+    /**
+     * Return a plain array representation suitable for serialisation.
+     *
+     * @return array<string,mixed>
+     */
     public function to_array(): array {
         return [
-            'type'         => $this->get_type(),
-            'id'           => $this->id,
-            'courseid'     => $this->courseid,
-            'sectionid'    => $this->sectionid,
-            'modname'      => $this->modname,
-            'instance'     => $this->instance,
-            'name'         => $this->name,
-            'visible'      => $this->visible,
+            'type' => $this->get_type(),
+            'id' => $this->id,
+            'courseid' => $this->courseid,
+            'sectionid' => $this->sectionid,
+            'modname' => $this->modname,
+            'instance' => $this->instance,
+            'name' => $this->name,
+            'visible' => $this->visible,
             'availability' => $this->availability,
-            'completion'   => $this->completion,
+            'completion' => $this->completion,
         ];
     }
 
+    /**
+     * Reconstruct a cm_item from its array representation.
+     *
+     * @param array<string,mixed> $data serialised entity.
+     * @return static
+     * @throws \coding_exception when a required key is missing.
+     */
     public static function from_array(array $data): static {
         $cls = static::class;
         return new self(
-            id:           (int)    self::require_key($data, 'id', $cls),
-            courseid:     (int)    self::require_key($data, 'courseid', $cls),
-            sectionid:    (int)    self::require_key($data, 'sectionid', $cls),
-            modname:      (string) self::require_key($data, 'modname', $cls),
-            instance:     (int)    self::require_key($data, 'instance', $cls),
-            name:         (string) self::require_key($data, 'name', $cls),
-            visible:      (bool)   ($data['visible'] ?? true),
-            availability: isset($data['availability']) ? (string)$data['availability'] : null,
-            completion:   (int)    ($data['completion'] ?? 0),
+            (int) self::require_key($data, 'id', $cls),
+            (int) self::require_key($data, 'courseid', $cls),
+            (int) self::require_key($data, 'sectionid', $cls),
+            (string) self::require_key($data, 'modname', $cls),
+            (int) self::require_key($data, 'instance', $cls),
+            (string) self::require_key($data, 'name', $cls),
+            (bool) ($data['visible'] ?? true),
+            isset($data['availability']) ? (string) $data['availability'] : null,
+            (int) ($data['completion'] ?? 0)
         );
     }
 }

@@ -31,8 +31,6 @@ use local_coursectrl\local\entity\text_item;
 use local_coursectrl\local\inventory\inventory_service;
 use local_coursectrl\local\inventory\inventory_snapshot;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Unit tests for local_coursectrl\local\inventory\inventory_service.
  *

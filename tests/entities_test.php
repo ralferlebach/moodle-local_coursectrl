@@ -30,28 +30,25 @@ use local_coursectrl\local\entity\inventory_item;
 use local_coursectrl\local\entity\section_item;
 use local_coursectrl\local\entity\text_item;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Covers the four Phase 2 entity DTOs.
  *
  * @coversNothing
  */
 final class entities_test extends \advanced_testcase {
-
     /**
-     * course_item: round-trip and type.
+     * The course_item must round-trip through to_array()/from_array() losslessly.
      */
     public function test_course_item_roundtrip(): void {
         $item = new course_item(
-            id: 42,
-            fullname: 'Intro to Testing',
-            shortname: 'TEST101',
-            summary: '<p>Course summary</p>',
-            summaryformat: 1,
-            startdate: 1700000000,
-            enddate: 1710000000,
-            visible: true,
+            42,
+            'Intro to Testing',
+            'TEST101',
+            '<p>Course summary</p>',
+            1,
+            1700000000,
+            1710000000,
+            true
         );
         $this->assertSame('course', $item->get_type());
         $this->assertInstanceOf(inventory_item::class, $item);
@@ -65,13 +62,10 @@ final class entities_test extends \advanced_testcase {
     }
 
     /**
-     * course_item: enddate may be null and must survive serialisation.
+     * A course_item with a null enddate must keep the null through serialisation.
      */
     public function test_course_item_nullable_enddate(): void {
-        $item = new course_item(
-            id: 1, fullname: 'A', shortname: 'A', summary: '',
-            summaryformat: 1, startdate: 0, enddate: null, visible: false,
-        );
+        $item = new course_item(1, 'A', 'A', '', 1, 0, null, false);
         $this->assertNull($item->enddate);
         $rebuilt = course_item::from_array($item->to_array());
         $this->assertNull($rebuilt->enddate);
@@ -79,7 +73,7 @@ final class entities_test extends \advanced_testcase {
     }
 
     /**
-     * course_item: from_array must throw on missing required keys.
+     * The course_item factory must throw when required keys are missing.
      */
     public function test_course_item_missing_key_throws(): void {
         $this->expectException(\coding_exception::class);
@@ -87,13 +81,10 @@ final class entities_test extends \advanced_testcase {
     }
 
     /**
-     * section_item: round-trip with nullable name.
+     * The section_item must round-trip with a null name.
      */
     public function test_section_item_roundtrip_with_null_name(): void {
-        $item = new section_item(
-            id: 7, courseid: 42, sectionnum: 3, name: null,
-            summary: 'Week 3', summaryformat: 1, visible: true,
-        );
+        $item = new section_item(7, 42, 3, null, 'Week 3', 1, true);
         $this->assertSame('section', $item->get_type());
         $rebuilt = section_item::from_array($item->to_array());
         $this->assertNull($rebuilt->name);
@@ -102,26 +93,29 @@ final class entities_test extends \advanced_testcase {
     }
 
     /**
-     * section_item: round-trip with explicit name.
+     * The section_item must round-trip with an explicit name.
      */
     public function test_section_item_roundtrip_with_name(): void {
-        $item = new section_item(
-            id: 8, courseid: 42, sectionnum: 4, name: 'Week 4 - Midterm',
-            summary: '', summaryformat: 1, visible: false,
-        );
+        $item = new section_item(8, 42, 4, 'Week 4 - Midterm', '', 1, false);
         $rebuilt = section_item::from_array($item->to_array());
         $this->assertSame('Week 4 - Midterm', $rebuilt->name);
         $this->assertFalse($rebuilt->visible);
     }
 
     /**
-     * cm_item: round-trip and component helper.
+     * The cm_item must round-trip and expose a correct component helper.
      */
     public function test_cm_item_roundtrip_and_component(): void {
         $item = new cm_item(
-            id: 101, courseid: 42, sectionid: 8, modname: 'assign',
-            instance: 55, name: 'Homework 1', visible: true,
-            availability: '{"op":"&","c":[]}', completion: 2,
+            101,
+            42,
+            8,
+            'assign',
+            55,
+            'Homework 1',
+            true,
+            '{"op":"&","c":[]}',
+            2
         );
         $this->assertSame('cm', $item->get_type());
         $this->assertSame('mod_assign', $item->get_component());
@@ -132,41 +126,40 @@ final class entities_test extends \advanced_testcase {
     }
 
     /**
-     * cm_item: availability may be null.
+     * A cm_item may carry a null availability string.
      */
     public function test_cm_item_null_availability(): void {
-        $item = new cm_item(
-            id: 102, courseid: 42, sectionid: 8, modname: 'quiz',
-            instance: 9, name: 'Quiz 1', visible: true,
-            availability: null, completion: 0,
-        );
+        $item = new cm_item(102, 42, 8, 'quiz', 9, 'Quiz 1', true, null, 0);
         $this->assertNull($item->availability);
         $rebuilt = cm_item::from_array($item->to_array());
         $this->assertNull($rebuilt->availability);
     }
 
     /**
-     * cm_item: missing required keys throw.
+     * The cm_item factory must throw when required keys are missing.
      */
     public function test_cm_item_missing_key_throws(): void {
         $this->expectException(\coding_exception::class);
+        // Key 'name' is intentionally missing from the payload.
         cm_item::from_array([
-            'id' => 1, 'courseid' => 2, 'sectionid' => 3,
-            'modname' => 'assign', 'instance' => 4,
-            // 'name' is missing.
+            'id' => 1,
+            'courseid' => 2,
+            'sectionid' => 3,
+            'modname' => 'assign',
+            'instance' => 4,
         ]);
     }
 
     /**
-     * text_item: round-trip, composite key, owner constants.
+     * The text_item must round-trip and expose its canonical composite key.
      */
     public function test_text_item_roundtrip_and_key(): void {
         $item = new text_item(
-            entitytype: text_item::OWNER_SECTION,
-            entityid: 8,
-            fieldname: 'summary',
-            content: 'Deadline is next Friday.',
-            format: 1,
+            text_item::OWNER_SECTION,
+            8,
+            'summary',
+            'Deadline is next Friday.',
+            1
         );
         $this->assertSame('text', $item->get_type());
         $this->assertSame('section:8:summary', $item->get_key());
@@ -177,7 +170,7 @@ final class entities_test extends \advanced_testcase {
     }
 
     /**
-     * text_item: all four owner constants must be distinct strings.
+     * All four text_item owner constants must be distinct strings.
      */
     public function test_text_item_owner_constants_are_distinct(): void {
         $owners = [
@@ -191,7 +184,7 @@ final class entities_test extends \advanced_testcase {
     }
 
     /**
-     * Every entity must be JSON-encodable via JsonSerializable.
+     * Every entity must be encodable via json_encode through JsonSerializable.
      */
     public function test_entities_are_json_serializable(): void {
         $entities = [

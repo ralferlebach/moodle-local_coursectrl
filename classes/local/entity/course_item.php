@@ -28,59 +28,108 @@ namespace local_coursectrl\local\entity;
  * Immutable DTO carrying the course-level fields the hub cares about.
  */
 final class course_item extends inventory_item {
+    /** @var int Moodle course id. */
+    public readonly int $id;
+
+    /** @var string Course full name. */
+    public readonly string $fullname;
+
+    /** @var string Course short name. */
+    public readonly string $shortname;
+
+    /** @var string Course summary HTML or text. */
+    public readonly string $summary;
+
+    /** @var int FORMAT_* constant describing the summary. */
+    public readonly int $summaryformat;
+
+    /** @var int Unix timestamp of the course start. */
+    public readonly int $startdate;
+
+    /** @var int|null Unix timestamp of the course end, or null. */
+    public readonly ?int $enddate;
+
+    /** @var bool Whether the course is visible to students. */
+    public readonly bool $visible;
+
     /**
      * Constructor.
      *
      * @param int      $id            Moodle course id.
      * @param string   $fullname      Course full name.
      * @param string   $shortname     Course short name.
-     * @param string   $summary       Course summary HTML / text.
+     * @param string   $summary       Course summary HTML or text.
      * @param int      $summaryformat FORMAT_* constant for the summary.
      * @param int      $startdate     Unix timestamp of the course start.
      * @param int|null $enddate       Unix timestamp of the course end, or null.
      * @param bool     $visible       Whether the course is visible to students.
      */
     public function __construct(
-        public readonly int $id,
-        public readonly string $fullname,
-        public readonly string $shortname,
-        public readonly string $summary,
-        public readonly int $summaryformat,
-        public readonly int $startdate,
-        public readonly ?int $enddate,
-        public readonly bool $visible,
+        int $id,
+        string $fullname,
+        string $shortname,
+        string $summary,
+        int $summaryformat,
+        int $startdate,
+        ?int $enddate,
+        bool $visible
     ) {
+        $this->id = $id;
+        $this->fullname = $fullname;
+        $this->shortname = $shortname;
+        $this->summary = $summary;
+        $this->summaryformat = $summaryformat;
+        $this->startdate = $startdate;
+        $this->enddate = $enddate;
+        $this->visible = $visible;
     }
 
+    /**
+     * Return the type discriminator.
+     *
+     * @return string always 'course'.
+     */
     public function get_type(): string {
         return 'course';
     }
 
+    /**
+     * Return a plain array representation suitable for serialisation.
+     *
+     * @return array<string,mixed>
+     */
     public function to_array(): array {
         return [
-            'type'          => $this->get_type(),
-            'id'            => $this->id,
-            'fullname'      => $this->fullname,
-            'shortname'     => $this->shortname,
-            'summary'       => $this->summary,
+            'type' => $this->get_type(),
+            'id' => $this->id,
+            'fullname' => $this->fullname,
+            'shortname' => $this->shortname,
+            'summary' => $this->summary,
             'summaryformat' => $this->summaryformat,
-            'startdate'     => $this->startdate,
-            'enddate'       => $this->enddate,
-            'visible'       => $this->visible,
+            'startdate' => $this->startdate,
+            'enddate' => $this->enddate,
+            'visible' => $this->visible,
         ];
     }
 
+    /**
+     * Reconstruct a course_item from its array representation.
+     *
+     * @param array<string,mixed> $data serialised entity.
+     * @return static
+     * @throws \coding_exception when a required key is missing.
+     */
     public static function from_array(array $data): static {
         $cls = static::class;
         return new self(
-            id:            (int)    self::require_key($data, 'id', $cls),
-            fullname:      (string) self::require_key($data, 'fullname', $cls),
-            shortname:     (string) self::require_key($data, 'shortname', $cls),
-            summary:       (string) ($data['summary'] ?? ''),
-            summaryformat: (int)    ($data['summaryformat'] ?? 1),
-            startdate:     (int)    self::require_key($data, 'startdate', $cls),
-            enddate:       isset($data['enddate']) ? (int)$data['enddate'] : null,
-            visible:       (bool)   ($data['visible'] ?? true),
+            (int) self::require_key($data, 'id', $cls),
+            (string) self::require_key($data, 'fullname', $cls),
+            (string) self::require_key($data, 'shortname', $cls),
+            (string) ($data['summary'] ?? ''),
+            (int) ($data['summaryformat'] ?? 1),
+            (int) self::require_key($data, 'startdate', $cls),
+            isset($data['enddate']) ? (int) $data['enddate'] : null,
+            (bool) ($data['visible'] ?? true)
         );
     }
 }

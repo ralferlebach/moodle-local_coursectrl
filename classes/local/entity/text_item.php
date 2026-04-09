@@ -38,39 +38,65 @@ namespace local_coursectrl\local\entity;
 final class text_item extends inventory_item {
     /** Owner entity is a course. */
     public const OWNER_COURSE = 'course';
+
     /** Owner entity is a course section. */
     public const OWNER_SECTION = 'section';
+
     /** Owner entity is a course module. */
     public const OWNER_CM = 'cm';
-    /** Owner entity is a label activity (treated separately for text workflows). */
+
+    /** Owner entity is a label activity. */
     public const OWNER_LABEL = 'label';
+
+    /** @var string Owner entity type, one of the OWNER_* constants. */
+    public readonly string $entitytype;
+
+    /** @var int Moodle id of the owning entity. */
+    public readonly int $entityid;
+
+    /** @var string Name of the field this text belongs to, e.g. 'summary', 'intro'. */
+    public readonly string $fieldname;
+
+    /** @var string Raw content of the field. */
+    public readonly string $content;
+
+    /** @var int FORMAT_* constant describing the content. */
+    public readonly int $format;
 
     /**
      * Constructor.
      *
      * @param string $entitytype Owner entity type, one of the OWNER_* constants.
      * @param int    $entityid   Moodle id of the owning entity.
-     * @param string $fieldname  Name of the field this text belongs to, e.g. 'summary', 'intro'.
+     * @param string $fieldname  Name of the field this text belongs to.
      * @param string $content    Raw content of the field.
-     * @param int    $format     FORMAT_* constant describing $content.
+     * @param int    $format     FORMAT_* constant describing the content.
      */
     public function __construct(
-        public readonly string $entitytype,
-        public readonly int $entityid,
-        public readonly string $fieldname,
-        public readonly string $content,
-        public readonly int $format,
+        string $entitytype,
+        int $entityid,
+        string $fieldname,
+        string $content,
+        int $format
     ) {
+        $this->entitytype = $entitytype;
+        $this->entityid = $entityid;
+        $this->fieldname = $fieldname;
+        $this->content = $content;
+        $this->format = $format;
     }
 
+    /**
+     * Return the type discriminator.
+     *
+     * @return string always 'text'.
+     */
     public function get_type(): string {
         return 'text';
     }
 
     /**
-     * Stable composite key for this text item.
-     *
-     * Suitable as an array key or cache identifier.
+     * Return a stable composite key for this text item.
      *
      * @return string composite key in the form "{entitytype}:{entityid}:{fieldname}".
      */
@@ -78,25 +104,37 @@ final class text_item extends inventory_item {
         return $this->entitytype . ':' . $this->entityid . ':' . $this->fieldname;
     }
 
+    /**
+     * Return a plain array representation suitable for serialisation.
+     *
+     * @return array<string,mixed>
+     */
     public function to_array(): array {
         return [
-            'type'       => $this->get_type(),
+            'type' => $this->get_type(),
             'entitytype' => $this->entitytype,
-            'entityid'   => $this->entityid,
-            'fieldname'  => $this->fieldname,
-            'content'    => $this->content,
-            'format'     => $this->format,
+            'entityid' => $this->entityid,
+            'fieldname' => $this->fieldname,
+            'content' => $this->content,
+            'format' => $this->format,
         ];
     }
 
+    /**
+     * Reconstruct a text_item from its array representation.
+     *
+     * @param array<string,mixed> $data serialised entity.
+     * @return static
+     * @throws \coding_exception when a required key is missing.
+     */
     public static function from_array(array $data): static {
         $cls = static::class;
         return new self(
-            entitytype: (string) self::require_key($data, 'entitytype', $cls),
-            entityid:   (int)    self::require_key($data, 'entityid', $cls),
-            fieldname:  (string) self::require_key($data, 'fieldname', $cls),
-            content:    (string) ($data['content'] ?? ''),
-            format:     (int)    ($data['format'] ?? 1),
+            (string) self::require_key($data, 'entitytype', $cls),
+            (int) self::require_key($data, 'entityid', $cls),
+            (string) self::require_key($data, 'fieldname', $cls),
+            (string) ($data['content'] ?? ''),
+            (int) ($data['format'] ?? 1)
         );
     }
 }

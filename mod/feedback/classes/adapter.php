@@ -17,11 +17,8 @@
 /**
  * Course Control Hub adapter for mod_feedback.
  *
- * Refactored in patch-025 to delegate the validate / preview / execute /
- * export / restore pipeline to the shift_dates_executor trait. The cross-
- * component snapshot rejection that protects against quiz/feedback field
- * name collisions is handled by static::component() inside the trait's
- * restore_state implementation.
+ * Patch-026: adds refresh_calendar_for_cmids() override that delegates
+ * to feedback_refresh_events().
  *
  * @package    coursectrlmod_feedback
  * @copyright  2026 Ralf Erlebach
@@ -124,6 +121,31 @@ class adapter extends abstract_activity_adapter {
             'visible'    => (bool)$cm->visible,
             'dates'      => $this->read_dates_from_record($feedback),
         ];
+    }
+
+    /**
+     * Refresh feedback calendar events for the affected course modules.
+     *
+     * Delegates to feedback_refresh_events() once per course.
+     *
+     * @param int[] $cmids course module ids.
+     * @return void
+     */
+    public function refresh_calendar_for_cmids(array $cmids): void {
+        global $CFG;
+        require_once($CFG->dirroot . '/mod/feedback/lib.php');
+        $courseids = [];
+        foreach ($cmids as $cmid) {
+            try {
+                $cm = get_coursemodule_from_id('feedback', (int)$cmid, 0, false, MUST_EXIST);
+                $courseids[(int)$cm->course] = true;
+            } catch (\Throwable $e) {
+                continue;
+            }
+        }
+        foreach (array_keys($courseids) as $courseid) {
+            feedback_refresh_events($courseid);
+        }
     }
 
     /**

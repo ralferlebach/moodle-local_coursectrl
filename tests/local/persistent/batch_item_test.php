@@ -36,12 +36,13 @@ final class batch_item_test extends \advanced_testcase {
      * @return int
      */
     private function make_parent_batch(): int {
-        $batch = (new batch(0, (object)[
+        $data = (object)[
             'courseid'    => 5,
             'userid'      => 5,
             'action'      => 'shift_dates',
             'payloadjson' => '{}',
-        ]))->create();
+        ];
+        $batch = (new batch(0, $data))->create();
         return (int)$batch->get('id');
     }
 
@@ -51,14 +52,15 @@ final class batch_item_test extends \advanced_testcase {
     public function test_create_and_reload(): void {
         $this->resetAfterTest();
         $batchid = $this->make_parent_batch();
-        $item = (new batch_item(0, (object)[
+        $data = (object)[
             'batchid'     => $batchid,
             'entitytype'  => 'cm',
             'entityid'    => 123,
             'component'   => 'mod_assign',
             'previewjson' => '{"old":1,"new":2}',
             'resultjson'  => '{"status":"ok"}',
-        ]))->create();
+        ];
+        $item = (new batch_item(0, $data))->create();
         $reloaded = new batch_item($item->get('id'));
         $this->assertSame($batchid, $reloaded->get('batchid'));
         $this->assertSame('cm', $reloaded->get('entitytype'));
@@ -75,11 +77,12 @@ final class batch_item_test extends \advanced_testcase {
     public function test_nullable_columns(): void {
         $this->resetAfterTest();
         $batchid = $this->make_parent_batch();
-        $item = (new batch_item(0, (object)[
+        $data = (object)[
             'batchid'    => $batchid,
             'entitytype' => 'section',
             'entityid'   => 1,
-        ]))->create();
+        ];
+        $item = (new batch_item(0, $data))->create();
         $reloaded = new batch_item($item->get('id'));
         $this->assertNull($reloaded->get('component'));
         $this->assertNull($reloaded->get('previewjson'));
@@ -99,12 +102,13 @@ final class batch_item_test extends \advanced_testcase {
             batch_item::STATUS_SUCCESS,
             batch_item::STATUS_ERROR,
         ] as $status) {
-            $item = (new batch_item(0, (object)[
+            $data = (object)[
                 'batchid'    => $batchid,
                 'entitytype' => 'cm',
                 'entityid'   => 1,
                 'status'     => $status,
-            ]))->create();
+            ];
+            $item = (new batch_item(0, $data))->create();
             $this->assertSame($status, $item->get('status'));
         }
     }

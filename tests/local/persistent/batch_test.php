@@ -35,12 +35,13 @@ final class batch_test extends \advanced_testcase {
      */
     public function test_create_and_reload(): void {
         $this->resetAfterTest();
-        $record = (new batch(0, (object)[
+        $data = (object)[
             'courseid'    => 42,
             'userid'      => 7,
             'action'      => 'shift_dates',
             'payloadjson' => '{"delta":86400}',
-        ]))->create();
+        ];
+        $record = (new batch(0, $data))->create();
         $this->assertGreaterThan(0, $record->get('id'));
         $reloaded = new batch($record->get('id'));
         $this->assertSame(42, $reloaded->get('courseid'));
@@ -55,12 +56,13 @@ final class batch_test extends \advanced_testcase {
      */
     public function test_default_status_is_pending(): void {
         $this->resetAfterTest();
-        $record = (new batch(0, (object)[
+        $data = (object)[
             'courseid'    => 1,
             'userid'      => 1,
             'action'      => 'shift_dates',
             'payloadjson' => '{}',
-        ]))->create();
+        ];
+        $record = (new batch(0, $data))->create();
         $this->assertSame(batch::STATUS_PENDING, $record->get('status'));
     }
 
@@ -69,12 +71,13 @@ final class batch_test extends \advanced_testcase {
      */
     public function test_status_transitions(): void {
         $this->resetAfterTest();
-        $record = (new batch(0, (object)[
+        $data = (object)[
             'courseid'    => 1,
             'userid'      => 1,
             'action'      => 'shift_dates',
             'payloadjson' => '{}',
-        ]))->create();
+        ];
+        $record = (new batch(0, $data))->create();
         foreach ([
             batch::STATUS_PREVIEWED,
             batch::STATUS_EXECUTED,
@@ -94,12 +97,13 @@ final class batch_test extends \advanced_testcase {
      */
     public function test_unknown_status_is_rejected(): void {
         $this->resetAfterTest();
-        $record = (new batch(0, (object)[
+        $data = (object)[
             'courseid'    => 1,
             'userid'      => 1,
             'action'      => 'shift_dates',
             'payloadjson' => '{}',
-        ]))->create();
+        ];
+        $record = (new batch(0, $data))->create();
         $record->set('status', 'bogus');
         $this->expectException(\core\invalid_persistent_exception::class);
         $record->update();

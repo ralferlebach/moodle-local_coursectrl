@@ -40,6 +40,9 @@ $string['coursectrl:rollback']      = 'Roll back executed batch actions';
 $string['coursectrl:managepresets'] = 'Create and manage action presets';
 $string['coursectrl:simulate']      = 'Run learner-state simulations';
 
+// Events.
+$string['event_batch_executed'] = 'Bulk action batch executed';
+
 // Navigation.
 $string['nav_dashboard']  = 'Dashboard';
 $string['nav_bulk']       = 'Bulk Actions';

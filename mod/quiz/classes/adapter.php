@@ -17,8 +17,8 @@
 /**
  * Course Control Hub adapter for mod_quiz.
  *
- * Refactored in patch-025 to delegate the validate / preview / execute /
- * export / restore pipeline to the shift_dates_executor trait.
+ * Patch-026: adds refresh_calendar_for_cmids() override that delegates
+ * to quiz_refresh_events().
  *
  * @package    coursectrlmod_quiz
  * @copyright  2026 Ralf Erlebach
@@ -121,6 +121,31 @@ class adapter extends abstract_activity_adapter {
             'visible'    => (bool)$cm->visible,
             'dates'      => $this->read_dates_from_record($quiz),
         ];
+    }
+
+    /**
+     * Refresh quiz calendar events for the affected course modules.
+     *
+     * Delegates to quiz_refresh_events() once per course.
+     *
+     * @param int[] $cmids course module ids.
+     * @return void
+     */
+    public function refresh_calendar_for_cmids(array $cmids): void {
+        global $CFG;
+        require_once($CFG->dirroot . '/mod/quiz/lib.php');
+        $courseids = [];
+        foreach ($cmids as $cmid) {
+            try {
+                $cm = get_coursemodule_from_id('quiz', (int)$cmid, 0, false, MUST_EXIST);
+                $courseids[(int)$cm->course] = true;
+            } catch (\Throwable $e) {
+                continue;
+            }
+        }
+        foreach (array_keys($courseids) as $courseid) {
+            quiz_refresh_events($courseid);
+        }
     }
 
     /**

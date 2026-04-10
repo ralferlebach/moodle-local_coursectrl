@@ -17,14 +17,9 @@
 /**
  * Course Control Hub adapter for mod_assign.
  *
- * Refactored in patch-025 to delegate the validate / preview / execute /
- * export / restore pipeline to the shift_dates_executor trait. Only
- * module-specific code remains here: the four shift_dates_executor hooks
- * plus is_available, get_instances_for_course and describe_instance.
- *
- * Capability gating remains the responsibility of the bulk engine in
- * Phase 4. Calendar event refresh is also a Phase-4 concern and lives in
- * the central batch_manager rather than per-adapter.
+ * Patch-026: adds refresh_calendar_for_cmids() override that delegates
+ * to assign_refresh_events() so the bulk engine keeps mod_assign calendar
+ * entries in sync after a successful execute_action call.
  *
  * @package    coursectrlmod_assign
  * @copyright  2026 Ralf Erlebach
@@ -130,6 +125,24 @@ class adapter extends abstract_activity_adapter {
     }
 
     /**
+     * Refresh assign calendar events for the affected course modules.
+     *
+     * Delegates to assign_refresh_events() once per course (assign_refresh_events
+     * is course-scoped, not cmid-scoped). Idempotent and safe to call repeatedly.
+     *
+     * @param int[] $cmids course module ids.
+     * @return void
+     */
+    public function refresh_calendar_for_cmids(array $cmids): void {
+        global $CFG;
+        require_once($CFG->dirroot . '/mod/assign/lib.php');
+        $courseids = $this->collect_courseids_for_cmids($cmids, 'assign');
+        foreach ($courseids as $courseid) {
+            assign_refresh_events($courseid);
+        }
+    }
+
+    /**
      * Returns the database table name for the trait.
      *
      * @return string
@@ -169,5 +182,26 @@ class adapter extends abstract_activity_adapter {
             'cutoffdate'               => (int)$record->cutoffdate,
             'gradingduedate'           => (int)$record->gradingduedate,
         ];
+    }
+
+    /**
+     * Resolve the distinct course ids that contain the given cmids of the
+     * specified module type.
+     *
+     * @param int[]  $cmids   course module ids.
+     * @param string $modname module name (e.g. 'assign').
+     * @return int[]
+     */
+    private function collect_courseids_for_cmids(array $cmids, string $modname): array {
+        $result = [];
+        foreach ($cmids as $cmid) {
+            try {
+                $cm = get_coursemodule_from_id($modname, (int)$cmid, 0, false, MUST_EXIST);
+                $result[(int)$cm->course] = true;
+            } catch (\Throwable $e) {
+                continue;
+            }
+        }
+        return array_keys($result);
     }
 }

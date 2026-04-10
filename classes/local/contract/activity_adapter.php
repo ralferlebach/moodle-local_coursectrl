@@ -18,9 +18,11 @@
  * Standardised adapter contract for coursectrlmod_* subplugins.
  *
  * Every activity adapter shipped under local/coursectrl/mod/* must implement
- * this interface. The signatures defined here are binding and frozen for the
- * lifetime of the 0.x series; additive changes require a version bump and a
- * migration note in docs/sessions/.
+ * this interface. The signatures defined here are binding for the lifetime
+ * of the 0.x series; additive changes (such as the patch-026 addition of
+ * refresh_calendar_for_cmids) are allowed and require a default no-op
+ * implementation in abstract_activity_adapter so existing subplugins
+ * continue to work without modification.
  *
  * The interface is derived from the Pflichtenheft / Lastenheft, section
  * "Standardisierte Adapter-Schnittstelle", and backs the following functional
@@ -34,7 +36,7 @@
  *   F10 Audit / Rollback            -> export_state, restore_state
  *
  * @package    local_coursectrl
- * @copyright  2026 Course Control Hub Contributors
+ * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -193,4 +195,23 @@ interface activity_adapter {
      * @return array dependency hint list.
      */
     public function get_dependency_hints(array $cmids): array;
+
+    /**
+     * Refresh calendar events for the affected course modules.
+     *
+     * Called by the bulk engine after a successful execute_action() call
+     * to keep Moodle calendar entries in sync with the mutated date fields.
+     * The default implementation in abstract_activity_adapter is a no-op,
+     * so existing subplugins continue to work without modification.
+     *
+     * Adapters that perform direct $DB->update_record() writes (rather
+     * than going through the wrapped module's high-level API) MUST
+     * override this method and delegate to the module's calendar refresh
+     * function (e.g. assign_refresh_events, quiz_refresh_events).
+     *
+     * @param int[] $cmids course module ids whose calendar events should
+     *                     be refreshed.
+     * @return void
+     */
+    public function refresh_calendar_for_cmids(array $cmids): void;
 }

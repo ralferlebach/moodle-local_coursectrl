@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Skeleton tests for batch_manager.
+ * Behaviour tests for the productive batch_manager.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -24,15 +24,62 @@
 
 namespace local_coursectrl\manager;
 
+use local_coursectrl\local\persistent\batch;
+use local_coursectrl\local\persistent\batch_item;
+use local_coursectrl\local\persistent\snapshot;
+
 /**
- * Verifies the patch-023 batch_manager skeleton: registry-based DI works
- * and execute() throws coding_exception until patch-025 implements the body.
+ * Verifies the patch-026 batch_manager pipeline against real adapters
+ * and real DB writes: persistents, snapshots, status transitions and
+ * the batch_executed event.
  *
  * @covers \local_coursectrl\manager\batch_manager
  */
 final class batch_manager_test extends \advanced_testcase {
+    /** @var int Reference timestamp used by all date-bearing fixtures. */
+    private const BASE_TIME = 1700000000;
+
+    /** @var int One-day delta in seconds. */
+    private const ONE_DAY = 86400;
+
     /**
-     * The constructor accepts an injected registry and exposes it.
+     * Helper that creates a course with one assign, one quiz and one
+     * feedback instance.
+     *
+     * @return array{courseid: int, assign_cmid: int, quiz_cmid: int, feedback_cmid: int, assign_iid: int, quiz_iid: int, feedback_iid: int}
+     */
+    private function create_mixed_course(): array {
+        $course = $this->getDataGenerator()->create_course();
+        $assign = $this->getDataGenerator()->get_plugin_generator('mod_assign')->create_instance([
+            'course'   => $course->id,
+            'name'     => 'A1',
+            'duedate'  => self::BASE_TIME,
+        ]);
+        $quiz = $this->getDataGenerator()->get_plugin_generator('mod_quiz')->create_instance([
+            'course'    => $course->id,
+            'name'      => 'Q1',
+            'timeopen'  => self::BASE_TIME,
+            'timeclose' => self::BASE_TIME + self::ONE_DAY,
+        ]);
+        $feedback = $this->getDataGenerator()->get_plugin_generator('mod_feedback')->create_instance([
+            'course'    => $course->id,
+            'name'      => 'F1',
+            'timeopen'  => self::BASE_TIME,
+            'timeclose' => self::BASE_TIME + self::ONE_DAY,
+        ]);
+        return [
+            'courseid'      => (int)$course->id,
+            'assign_cmid'   => (int)$assign->cmid,
+            'quiz_cmid'     => (int)$quiz->cmid,
+            'feedback_cmid' => (int)$feedback->cmid,
+            'assign_iid'    => (int)$assign->id,
+            'quiz_iid'      => (int)$quiz->id,
+            'feedback_iid'  => (int)$feedback->id,
+        ];
+    }
+
+    /**
+     * The constructor still accepts an injected registry.
      */
     public function test_constructor_accepts_injected_registry(): void {
         $registry = new registry([]);
@@ -41,11 +88,294 @@ final class batch_manager_test extends \advanced_testcase {
     }
 
     /**
-     * Calling execute() throws a coding_exception in patch-023.
+     * A successful single-adapter execute persists a batch row in
+     * 'executed' status and returns its id.
      */
-    public function test_execute_throws_until_implemented(): void {
-        $manager = new batch_manager(new registry([]));
-        $this->expectException(\coding_exception::class);
-        $manager->execute(1, 'shift_dates', ['delta' => 86400], [], 0);
+    public function test_execute_single_adapter_persists_batch(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $manager = new batch_manager();
+        $batchid = $manager->execute(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [$fixture['assign_cmid']],
+            0
+        );
+        $this->assertGreaterThan(0, $batchid);
+        $reloaded = new batch($batchid);
+        $this->assertSame(batch::STATUS_EXECUTED, $reloaded->get('status'));
+        $this->assertSame($fixture['courseid'], $reloaded->get('courseid'));
+        $this->assertSame('shift_dates', $reloaded->get('action'));
+    }
+
+    /**
+     * The execute call writes the shifted dates back to the underlying
+     * mod_* tables for every routed cmid.
+     */
+    public function test_execute_writes_dates_to_db(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $manager = new batch_manager();
+        $manager->execute(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [
+                $fixture['assign_cmid'],
+                $fixture['quiz_cmid'],
+                $fixture['feedback_cmid'],
+            ],
+            0
+        );
+        $assignrec = $DB->get_record('assign', ['id' => $fixture['assign_iid']]);
+        $quizrec = $DB->get_record('quiz', ['id' => $fixture['quiz_iid']]);
+        $feedbackrec = $DB->get_record('feedback', ['id' => $fixture['feedback_iid']]);
+        $this->assertSame(self::BASE_TIME + self::ONE_DAY, (int)$assignrec->duedate);
+        $this->assertSame(self::BASE_TIME + self::ONE_DAY, (int)$quizrec->timeopen);
+        $this->assertSame(self::BASE_TIME + self::ONE_DAY, (int)$feedbackrec->timeopen);
+    }
+
+    /**
+     * One snapshot row is persisted per successfully processed cmid.
+     */
+    public function test_execute_persists_snapshots_per_cmid(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $manager = new batch_manager();
+        $batchid = $manager->execute(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [
+                $fixture['assign_cmid'],
+                $fixture['quiz_cmid'],
+                $fixture['feedback_cmid'],
+            ],
+            0
+        );
+        $snapshots = snapshot::get_records(['batchid' => $batchid]);
+        $this->assertCount(3, $snapshots);
+        $cmids = array_map(fn($s) => (int)$s->get('entityid'), $snapshots);
+        $this->assertContains($fixture['assign_cmid'], $cmids);
+        $this->assertContains($fixture['quiz_cmid'], $cmids);
+        $this->assertContains($fixture['feedback_cmid'], $cmids);
+    }
+
+    /**
+     * The persisted snapshot statejson contains the pre-mutation date
+     * values, not the post-mutation ones.
+     */
+    public function test_snapshot_carries_pre_mutation_state(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $manager = new batch_manager();
+        $batchid = $manager->execute(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => 7 * self::ONE_DAY],
+            [$fixture['assign_cmid']],
+            0
+        );
+        $snapshots = snapshot::get_records(['batchid' => $batchid, 'entityid' => $fixture['assign_cmid']]);
+        $this->assertCount(1, $snapshots);
+        $state = json_decode(reset($snapshots)->get('statejson'), true);
+        $this->assertSame('mod_assign', $state['component']);
+        $this->assertSame(self::BASE_TIME, (int)$state['fields']['duedate']);
+    }
+
+    /**
+     * One batch_item row is persisted per cmid with the correct status
+     * and the result JSON.
+     */
+    public function test_execute_persists_batch_items(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $manager = new batch_manager();
+        $batchid = $manager->execute(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [
+                $fixture['assign_cmid'],
+                $fixture['quiz_cmid'],
+            ],
+            0
+        );
+        $items = batch_item::get_records(['batchid' => $batchid]);
+        $this->assertCount(2, $items);
+        foreach ($items as $item) {
+            $this->assertSame(batch_item::STATUS_SUCCESS, $item->get('status'));
+            $this->assertNotEmpty($item->get('resultjson'));
+            $result = json_decode($item->get('resultjson'), true);
+            $this->assertSame('ok', $result['status']);
+        }
+    }
+
+    /**
+     * cmids without a registered adapter (e.g. labels) are persisted as
+     * batch_items with status 'skipped' and reason 'no_adapter'.
+     */
+    public function test_execute_persists_skipped_items(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $label = $this->getDataGenerator()->create_module('label', [
+            'course' => $fixture['courseid'],
+            'name'   => 'L1',
+        ]);
+        $manager = new batch_manager();
+        $batchid = $manager->execute(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [(int)$label->cmid],
+            0
+        );
+        $items = batch_item::get_records(['batchid' => $batchid]);
+        $this->assertCount(1, $items);
+        $item = reset($items);
+        $this->assertSame(batch_item::STATUS_SKIPPED, $item->get('status'));
+        $result = json_decode($item->get('resultjson'), true);
+        $this->assertSame('no_adapter', $result['reason']);
+    }
+
+    /**
+     * Empty cmids list defaults to "all CMs of all supported components".
+     */
+    public function test_execute_empty_cmids_processes_whole_course(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $manager = new batch_manager();
+        $batchid = $manager->execute(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [],
+            0
+        );
+        $items = batch_item::get_records(['batchid' => $batchid]);
+        $successful = array_filter(
+            $items,
+            fn($i) => $i->get('status') === batch_item::STATUS_SUCCESS
+        );
+        $this->assertCount(3, $successful);
+    }
+
+    /**
+     * delta=0 results in noop items that still produce a SUCCESS status
+     * (no error), do NOT touch the DB and DO produce snapshots.
+     */
+    public function test_execute_noop_delta_zero(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $before = $DB->get_record('assign', ['id' => $fixture['assign_iid']]);
+        $manager = new batch_manager();
+        $batchid = $manager->execute(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => 0],
+            [$fixture['assign_cmid']],
+            0
+        );
+        $reloaded = new batch($batchid);
+        $this->assertSame(batch::STATUS_EXECUTED, $reloaded->get('status'));
+        $items = batch_item::get_records(['batchid' => $batchid]);
+        $item = reset($items);
+        $this->assertSame(batch_item::STATUS_SUCCESS, $item->get('status'));
+        $result = json_decode($item->get('resultjson'), true);
+        $this->assertSame('noop', $result['status']);
+        $after = $DB->get_record('assign', ['id' => $fixture['assign_iid']]);
+        $this->assertSame((int)$before->duedate, (int)$after->duedate);
+    }
+
+    /**
+     * Cross-component routing in one batch: assign + quiz + feedback are
+     * each routed to their respective adapter and produce three correct
+     * batch_item rows with their per-component identifiers.
+     */
+    public function test_execute_cross_component_routing(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $manager = new batch_manager();
+        $batchid = $manager->execute(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [
+                $fixture['assign_cmid'],
+                $fixture['quiz_cmid'],
+                $fixture['feedback_cmid'],
+            ],
+            0
+        );
+        $items = batch_item::get_records(['batchid' => $batchid]);
+        $this->assertCount(3, $items);
+        $components = array_map(fn($i) => $i->get('component'), $items);
+        $this->assertContains('mod_assign', $components);
+        $this->assertContains('mod_quiz', $components);
+        $this->assertContains('mod_feedback', $components);
+    }
+
+    /**
+     * The batch_executed event is fired after a successful execute call
+     * and carries the batch id, course id, action and summary in 'other'.
+     */
+    public function test_execute_triggers_batch_executed_event(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $manager = new batch_manager();
+        $sink = $this->redirectEvents();
+        $batchid = $manager->execute(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [$fixture['assign_cmid']],
+            0
+        );
+        $events = $sink->get_events();
+        $batchevents = array_values(array_filter(
+            $events,
+            fn($e) => $e instanceof \local_coursectrl\event\batch_executed
+        ));
+        $this->assertCount(1, $batchevents);
+        $event = $batchevents[0];
+        $this->assertSame($batchid, (int)$event->objectid);
+        $this->assertSame($fixture['courseid'], (int)$event->courseid);
+        $this->assertSame('shift_dates', $event->other['action']);
+        $this->assertSame(1, $event->other['summary']['success']);
+    }
+
+    /**
+     * A round-trip: execute then read back the batch, items and snapshots
+     * via the persistents and verify they reference each other consistently.
+     */
+    public function test_round_trip_through_persistents(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $manager = new batch_manager();
+        $batchid = $manager->execute(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [$fixture['assign_cmid'], $fixture['quiz_cmid']],
+            0
+        );
+
+        $batchrec = new batch($batchid);
+        $this->assertSame(batch::STATUS_EXECUTED, $batchrec->get('status'));
+
+        $items = batch_item::get_records(['batchid' => $batchid]);
+        $snapshots = snapshot::get_records(['batchid' => $batchid]);
+        $this->assertCount(2, $items);
+        $this->assertCount(2, $snapshots);
+
+        foreach ($items as $item) {
+            $this->assertSame($batchid, (int)$item->get('batchid'));
+        }
+        foreach ($snapshots as $snap) {
+            $this->assertSame($batchid, (int)$snap->get('batchid'));
+        }
     }
 }

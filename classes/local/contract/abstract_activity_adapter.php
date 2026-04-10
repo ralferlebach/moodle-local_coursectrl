@@ -18,22 +18,15 @@
  * Default base implementation of the activity_adapter contract.
  *
  * Concrete coursectrlmod_* subplugins extend this class and override only
- * the methods that carry module-specific behaviour. The frozen 13-method
- * contract from local_coursectrl\local\contract\activity_adapter is fully
- * satisfied here with safe no-op defaults; only component() remains abstract
- * because it identifies the target Moodle module and has no sensible default.
+ * the methods that carry module-specific behaviour. The 14-method contract
+ * from local_coursectrl\local\contract\activity_adapter is fully satisfied
+ * here with safe no-op defaults; only component() remains abstract because
+ * it identifies the target Moodle module and has no sensible default.
  *
  * Default semantics:
- *   - is_available()           returns true (subplugin is loaded, so by
- *                              default the adapter is usable; concrete
- *                              adapters override this if they need to gate
- *                              on the presence of the wrapped module).
- *   - All other methods        return an empty array. The bulk engine,
- *                              preview manager and risk analyzer treat an
- *                              empty array as "no contribution" / "nothing
- *                              to do" rather than as an error, which makes
- *                              this base class safe to plug in for any
- *                              partially implemented adapter.
+ *   - is_available()             returns true.
+ *   - All array-returning methods return an empty array.
+ *   - refresh_calendar_for_cmids does nothing (added in patch-026).
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -44,15 +37,10 @@ namespace local_coursectrl\local\contract;
 
 /**
  * No-op base implementation of activity_adapter for coursectrlmod_* adapters.
- *
- * See class-level docblock for the default semantics of each method.
  */
 abstract class abstract_activity_adapter implements activity_adapter {
     /**
      * Return the Moodle component name this adapter targets.
-     *
-     * Concrete subclasses must implement this method and return a frankenstyle
-     * component name such as 'mod_assign'.
      *
      * @return string
      */
@@ -60,9 +48,6 @@ abstract class abstract_activity_adapter implements activity_adapter {
 
     /**
      * Whether this adapter is currently usable on the running site.
-     *
-     * Default: true. Override in subclasses that need to verify the presence
-     * of the wrapped activity module or other site preconditions.
      *
      * @return bool
      */
@@ -73,10 +58,6 @@ abstract class abstract_activity_adapter implements activity_adapter {
     /**
      * List of action identifiers this adapter can handle.
      *
-     * Default: empty list. Override to expose actions from the canonical
-     * vocabulary (shift_dates, set_dates, set_visibility, set_completion,
-     * set_availability, copy_settings_from_reference, run_checks).
-     *
      * @return string[]
      */
     public function get_supported_actions(): array {
@@ -86,9 +67,6 @@ abstract class abstract_activity_adapter implements activity_adapter {
     /**
      * Field-level metadata for adapter-specific bulk-editable fields.
      *
-     * Default: empty list. Override to expose a stable field descriptor
-     * map consumed by the UI and the bulk validation pipeline.
-     *
      * @return array
      */
     public function get_supported_fields(): array {
@@ -97,9 +75,6 @@ abstract class abstract_activity_adapter implements activity_adapter {
 
     /**
      * Return the course module instances of this component in a course.
-     *
-     * Default: empty list. Override in concrete adapters to enumerate
-     * instances via the wrapped module's API.
      *
      * @param int   $courseid target course id.
      * @param array $filters  optional filter map.
@@ -112,8 +87,6 @@ abstract class abstract_activity_adapter implements activity_adapter {
     /**
      * Return a normalised description of a single course module instance.
      *
-     * Default: empty array. Override to expose a normalised descriptor.
-     *
      * @param int $cmid course module id.
      * @return array
      */
@@ -123,10 +96,6 @@ abstract class abstract_activity_adapter implements activity_adapter {
 
     /**
      * Validate an action payload against a set of course modules.
-     *
-     * Default: empty result (no errors, no warnings, no per-cmid verdicts).
-     * Override in adapters that support actions, since the default would
-     * silently accept any payload.
      *
      * @param string $action  action identifier.
      * @param array  $payload action-specific parameters.
@@ -140,9 +109,6 @@ abstract class abstract_activity_adapter implements activity_adapter {
     /**
      * Produce a preview of an action without applying it.
      *
-     * Default: empty preview. Override to compute old/new values, conflicts
-     * and warnings without writing to the database.
-     *
      * @param string $action  action identifier.
      * @param array  $payload action-specific parameters.
      * @param int[]  $cmids   target course module ids.
@@ -154,10 +120,6 @@ abstract class abstract_activity_adapter implements activity_adapter {
 
     /**
      * Execute an action against the given course modules.
-     *
-     * Default: empty result. The default implementation does NOT mutate
-     * any state. Override in adapters that support actions and capture a
-     * snapshot via export_state() before mutating.
      *
      * @param string $action  action identifier.
      * @param array  $payload action-specific parameters.
@@ -172,9 +134,6 @@ abstract class abstract_activity_adapter implements activity_adapter {
     /**
      * Capture the rollback-relevant state of one instance.
      *
-     * Default: empty snapshot. Override to capture the fields touched by
-     * supported actions so that restore_state() can recreate them.
-     *
      * @param int $cmid course module id.
      * @return array
      */
@@ -185,9 +144,6 @@ abstract class abstract_activity_adapter implements activity_adapter {
     /**
      * Restore an instance from a previously exported snapshot.
      *
-     * Default: empty result. Override to apply the snapshot back to the
-     * wrapped module instance.
-     *
      * @param array $state snapshot payload.
      * @return array
      */
@@ -197,9 +153,6 @@ abstract class abstract_activity_adapter implements activity_adapter {
 
     /**
      * Run module-specific consistency and sanity checks.
-     *
-     * Default: empty result. Override to add module-specific findings to
-     * the risk and dead-end analyzer's output.
      *
      * @param int[] $cmids   target course module ids.
      * @param array $profile optional check profile.
@@ -212,13 +165,25 @@ abstract class abstract_activity_adapter implements activity_adapter {
     /**
      * Return module-internal dependency hints for graph building.
      *
-     * Default: empty list. Override to expose module-specific edges that
-     * complement Moodle's availability tree (e.g. lesson branches).
-     *
      * @param int[] $cmids target course module ids.
      * @return array
      */
     public function get_dependency_hints(array $cmids): array {
         return [];
+    }
+
+    /**
+     * Refresh calendar events for the affected course modules.
+     *
+     * Default: no-op. Adapters that perform direct DB writes must override
+     * this method and delegate to the wrapped module's calendar refresh
+     * function (e.g. assign_refresh_events, quiz_refresh_events).
+     *
+     * @param int[] $cmids course module ids.
+     * @return void
+     */
+    public function refresh_calendar_for_cmids(array $cmids): void {
+        // No-op by default; adapters that mutate state via direct DB writes
+        // override this method.
     }
 }

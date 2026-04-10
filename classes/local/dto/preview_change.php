@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -28,6 +27,7 @@
  * template; the batch_manager (patch-025) serialises the chosen subset
  * into batch_item.previewjson.
  *
+ * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -37,8 +37,7 @@ namespace local_coursectrl\local\dto;
 /**
  * Immutable DTO for one previewed bulk-action change.
  */
-final class preview_change
-{
+final class preview_change {
     /** @var int Course module id this change targets. */
     private int $cmid;
 
@@ -54,13 +53,12 @@ final class preview_change
     /**
      * Constructor.
      *
-     * @param int    $cmid      course module id
-     * @param string $component frankenstyle component name
-     * @param string $name      display name of the instance
-     * @param array  $fields    per-field preview descriptors
+     * @param int    $cmid      course module id.
+     * @param string $component frankenstyle component name.
+     * @param string $name      display name of the instance.
+     * @param array  $fields    per-field preview descriptors.
      */
-    public function __construct(int $cmid, string $component, string $name, array $fields)
-    {
+    public function __construct(int $cmid, string $component, string $name, array $fields) {
         $this->cmid = $cmid;
         $this->component = $component;
         $this->name = $name;
@@ -69,61 +67,66 @@ final class preview_change
 
     /**
      * Returns the course module id.
+     *
+     * @return int
      */
-    public function get_cmid(): int
-    {
+    public function get_cmid(): int {
         return $this->cmid;
     }
 
     /**
      * Returns the frankenstyle component name.
+     *
+     * @return string
      */
-    public function get_component(): string
-    {
+    public function get_component(): string {
         return $this->component;
     }
 
     /**
      * Returns the display name of the affected instance.
+     *
+     * @return string
      */
-    public function get_name(): string
-    {
+    public function get_name(): string {
         return $this->name;
     }
 
     /**
      * Returns the per-field preview descriptors.
+     *
+     * @return array
      */
-    public function get_fields(): array
-    {
+    public function get_fields(): array {
         return $this->fields;
     }
 
     /**
      * Returns true if at least one field would actually change.
+     *
+     * @return bool
      */
-    public function has_changes(): bool
-    {
+    public function has_changes(): bool {
         foreach ($this->fields as $descriptor) {
             if (!empty($descriptor['shifted'])) {
                 return true;
             }
         }
-
         return false;
     }
 
     /**
      * Render this DTO as a plain array suitable for JSON encoding into the
      * batch_item.previewjson column.
+     *
+     * @return array
      */
-    public function to_array(): array
-    {
+    public function to_array(): array {
         return [
-            'cmid' => $this->cmid,
+            'cmid'      => $this->cmid,
             'component' => $this->component,
-            'name' => $this->name,
-            'fields' => $this->fields,
+            'name'      => $this->name,
+            'fields'    => $this->fields,
         ];
     }
 }

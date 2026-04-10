@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -23,6 +22,7 @@
  * per-entity results live in local_coursectrl_batch_item, the rollback-
  * relevant pre-action state lives in local_coursectrl_snapshot.
  *
+ * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -34,31 +34,31 @@ use core\persistent;
 /**
  * Persistent wrapping a single bulk action batch row.
  */
-class batch extends persistent
-{
+class batch extends persistent {
     /** @var string Database table name. */
-    public const TABLE = 'local_coursectrl_batch';
+    const TABLE = 'local_coursectrl_batch';
 
     /** @var string Initial status: created but not yet previewed. */
-    public const STATUS_PENDING = 'pending';
+    const STATUS_PENDING = 'pending';
 
     /** @var string Status after a successful preview build. */
-    public const STATUS_PREVIEWED = 'previewed';
+    const STATUS_PREVIEWED = 'previewed';
 
     /** @var string Status after successful execute. */
-    public const STATUS_EXECUTED = 'executed';
+    const STATUS_EXECUTED = 'executed';
 
     /** @var string Status after a successful rollback. */
-    public const STATUS_ROLLED_BACK = 'rolled_back';
+    const STATUS_ROLLED_BACK = 'rolled_back';
 
     /** @var string Status after a failed execute. */
-    public const STATUS_FAILED = 'failed';
+    const STATUS_FAILED = 'failed';
 
     /**
      * Property definitions matching the install.xml schema.
+     *
+     * @return array
      */
-    protected static function define_properties(): array
-    {
+    protected static function define_properties(): array {
         return [
             'courseid' => [
                 'type' => PARAM_INT,
@@ -70,11 +70,11 @@ class batch extends persistent
                 'type' => PARAM_ALPHANUMEXT,
             ],
             'payloadjson' => [
-                'type' => PARAM_RAW,
+                'type'    => PARAM_RAW,
                 'default' => '',
             ],
             'status' => [
-                'type' => PARAM_ALPHANUMEXT,
+                'type'    => PARAM_ALPHANUMEXT,
                 'default' => self::STATUS_PENDING,
                 'choices' => [
                     self::STATUS_PENDING,

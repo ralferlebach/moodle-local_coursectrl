@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -18,31 +17,28 @@
 /**
  * Unit tests for the batch persistent.
  *
+ * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace local_coursectrl\local\persistent;
 
-use core\invalid_persistent_exception;
-
 /**
  * Tests creation, retrieval and status transitions of batch records.
  *
  * @covers \local_coursectrl\local\persistent\batch
  */
-final class batch_test extends \advanced_testcase
-{
+final class batch_test extends \advanced_testcase {
     /**
      * A persisted batch can be reloaded by id and round-trips its fields.
      */
-    public function test_create_and_reload(): void
-    {
+    public function test_create_and_reload(): void {
         $this->resetAfterTest();
-        $record = (new batch(0, (object) [
-            'courseid' => 42,
-            'userid' => 7,
-            'action' => 'shift_dates',
+        $record = (new batch(0, (object)[
+            'courseid'    => 42,
+            'userid'      => 7,
+            'action'      => 'shift_dates',
             'payloadjson' => '{"delta":86400}',
         ]))->create();
         $this->assertGreaterThan(0, $record->get('id'));
@@ -57,13 +53,12 @@ final class batch_test extends \advanced_testcase
     /**
      * The default status of a freshly created batch is 'pending'.
      */
-    public function test_default_status_is_pending(): void
-    {
+    public function test_default_status_is_pending(): void {
         $this->resetAfterTest();
-        $record = (new batch(0, (object) [
-            'courseid' => 1,
-            'userid' => 1,
-            'action' => 'shift_dates',
+        $record = (new batch(0, (object)[
+            'courseid'    => 1,
+            'userid'      => 1,
+            'action'      => 'shift_dates',
             'payloadjson' => '{}',
         ]))->create();
         $this->assertSame(batch::STATUS_PENDING, $record->get('status'));
@@ -72,13 +67,12 @@ final class batch_test extends \advanced_testcase
     /**
      * Status transitions through all five legal values.
      */
-    public function test_status_transitions(): void
-    {
+    public function test_status_transitions(): void {
         $this->resetAfterTest();
-        $record = (new batch(0, (object) [
-            'courseid' => 1,
-            'userid' => 1,
-            'action' => 'shift_dates',
+        $record = (new batch(0, (object)[
+            'courseid'    => 1,
+            'userid'      => 1,
+            'action'      => 'shift_dates',
             'payloadjson' => '{}',
         ]))->create();
         foreach ([
@@ -98,17 +92,16 @@ final class batch_test extends \advanced_testcase
      * Setting an unknown status value must be rejected by the persistent's
      * choices validator.
      */
-    public function test_unknown_status_is_rejected(): void
-    {
+    public function test_unknown_status_is_rejected(): void {
         $this->resetAfterTest();
-        $record = (new batch(0, (object) [
-            'courseid' => 1,
-            'userid' => 1,
-            'action' => 'shift_dates',
+        $record = (new batch(0, (object)[
+            'courseid'    => 1,
+            'userid'      => 1,
+            'action'      => 'shift_dates',
             'payloadjson' => '{}',
         ]))->create();
         $record->set('status', 'bogus');
-        $this->expectException(invalid_persistent_exception::class);
+        $this->expectException(\core\invalid_persistent_exception::class);
         $record->update();
     }
 }

@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -27,6 +26,7 @@
  * Calling execute() in patch-023 throws a coding_exception so accidental
  * production calls fail loudly rather than silently doing nothing.
  *
+ * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -36,28 +36,27 @@ namespace local_coursectrl\manager;
 /**
  * Orchestrates course-wide bulk execute calls and rollback persistence.
  */
-class batch_manager
-{
+class batch_manager {
     /** @var registry Adapter registry used to look up activity adapters. */
     private registry $registry;
 
     /**
      * Constructor.
      *
-     * @param null|registry $registry optional registry instance, mainly for
+     * @param registry|null $registry optional registry instance, mainly for
      *                                tests. When null, a fresh registry with
      *                                live discovery is created.
      */
-    public function __construct(?registry $registry = null)
-    {
+    public function __construct(?registry $registry = null) {
         $this->registry = $registry ?? new registry();
     }
 
     /**
      * Returns the registry instance backing this manager.
+     *
+     * @return registry
      */
-    public function get_registry(): registry
-    {
+    public function get_registry(): registry {
         return $this->registry;
     }
 
@@ -68,15 +67,13 @@ class batch_manager
      * to allow downstream code (external functions, UI) to declare types
      * against it without waiting for the body.
      *
-     * @param int    $courseid target course id
+     * @param int    $courseid target course id.
      * @param string $action   canonical action identifier, e.g. 'shift_dates'.
-     * @param array  $payload  action-specific parameters
-     * @param int[]  $cmids    target course module ids; empty means "all"
-     * @param int    $userid   acting user id for audit purposes
-     *
-     * @return int batch id of the persisted batch row
-     *
-     * @throws \coding_exception always, until patch-025 lands
+     * @param array  $payload  action-specific parameters.
+     * @param int[]  $cmids    target course module ids; empty means "all".
+     * @param int    $userid   acting user id for audit purposes.
+     * @return int batch id of the persisted batch row.
+     * @throws \coding_exception always, until patch-025 lands.
      */
     public function execute(
         int $courseid,

@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -18,6 +17,7 @@
 /**
  * Unit tests for the batch_item persistent.
  *
+ * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -29,22 +29,35 @@ namespace local_coursectrl\local\persistent;
  *
  * @covers \local_coursectrl\local\persistent\batch_item
  */
-final class batch_item_test extends \advanced_testcase
-{
+final class batch_item_test extends \advanced_testcase {
+    /**
+     * Helper that creates a parent batch and returns its id.
+     *
+     * @return int
+     */
+    private function make_parent_batch(): int {
+        $batch = (new batch(0, (object)[
+            'courseid'    => 5,
+            'userid'      => 5,
+            'action'      => 'shift_dates',
+            'payloadjson' => '{}',
+        ]))->create();
+        return (int)$batch->get('id');
+    }
+
     /**
      * A persisted batch_item can be reloaded by id.
      */
-    public function test_create_and_reload(): void
-    {
+    public function test_create_and_reload(): void {
         $this->resetAfterTest();
         $batchid = $this->make_parent_batch();
-        $item = (new batch_item(0, (object) [
-            'batchid' => $batchid,
-            'entitytype' => 'cm',
-            'entityid' => 123,
-            'component' => 'mod_assign',
+        $item = (new batch_item(0, (object)[
+            'batchid'     => $batchid,
+            'entitytype'  => 'cm',
+            'entityid'    => 123,
+            'component'   => 'mod_assign',
             'previewjson' => '{"old":1,"new":2}',
-            'resultjson' => '{"status":"ok"}',
+            'resultjson'  => '{"status":"ok"}',
         ]))->create();
         $reloaded = new batch_item($item->get('id'));
         $this->assertSame($batchid, $reloaded->get('batchid'));
@@ -59,14 +72,13 @@ final class batch_item_test extends \advanced_testcase
      * component, previewjson and resultjson are nullable in the schema and
      * can be omitted on creation.
      */
-    public function test_nullable_columns(): void
-    {
+    public function test_nullable_columns(): void {
         $this->resetAfterTest();
         $batchid = $this->make_parent_batch();
-        $item = (new batch_item(0, (object) [
-            'batchid' => $batchid,
+        $item = (new batch_item(0, (object)[
+            'batchid'    => $batchid,
             'entitytype' => 'section',
-            'entityid' => 1,
+            'entityid'   => 1,
         ]))->create();
         $reloaded = new batch_item($item->get('id'));
         $this->assertNull($reloaded->get('component'));
@@ -78,8 +90,7 @@ final class batch_item_test extends \advanced_testcase
     /**
      * The four legal item statuses are accepted.
      */
-    public function test_legal_statuses(): void
-    {
+    public function test_legal_statuses(): void {
         $this->resetAfterTest();
         $batchid = $this->make_parent_batch();
         foreach ([
@@ -88,28 +99,13 @@ final class batch_item_test extends \advanced_testcase
             batch_item::STATUS_SUCCESS,
             batch_item::STATUS_ERROR,
         ] as $status) {
-            $item = (new batch_item(0, (object) [
-                'batchid' => $batchid,
+            $item = (new batch_item(0, (object)[
+                'batchid'    => $batchid,
                 'entitytype' => 'cm',
-                'entityid' => 1,
-                'status' => $status,
+                'entityid'   => 1,
+                'status'     => $status,
             ]))->create();
             $this->assertSame($status, $item->get('status'));
         }
-    }
-
-    /**
-     * Helper that creates a parent batch and returns its id.
-     */
-    private function make_parent_batch(): int
-    {
-        $batch = (new batch(0, (object) [
-            'courseid' => 5,
-            'userid' => 5,
-            'action' => 'shift_dates',
-            'payloadjson' => '{}',
-        ]))->create();
-
-        return (int) $batch->get('id');
     }
 }

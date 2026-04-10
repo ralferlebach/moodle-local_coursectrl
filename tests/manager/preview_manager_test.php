@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -18,6 +17,7 @@
 /**
  * Behaviour tests for the productive preview_manager.
  *
+ * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -34,8 +34,7 @@ use local_coursectrl\local\dto\preview_change;
  *
  * @covers \local_coursectrl\manager\preview_manager
  */
-final class preview_manager_test extends \advanced_testcase
-{
+final class preview_manager_test extends \advanced_testcase {
     /** @var int Reference timestamp used by all date-bearing fixtures. */
     private const BASE_TIME = 1700000000;
 
@@ -43,11 +42,43 @@ final class preview_manager_test extends \advanced_testcase
     private const ONE_DAY = 86400;
 
     /**
+     * Helper that creates a course with one assign, one quiz and one
+     * feedback instance, all with valid timeopen / due dates set.
+     *
+     * @return array{courseid: int, assign_cmid: int, quiz_cmid: int, feedback_cmid: int}
+     */
+    private function create_mixed_course(): array {
+        $course = $this->getDataGenerator()->create_course();
+        $assign = $this->getDataGenerator()->get_plugin_generator('mod_assign')->create_instance([
+            'course'   => $course->id,
+            'name'     => 'A1',
+            'duedate'  => self::BASE_TIME,
+        ]);
+        $quiz = $this->getDataGenerator()->get_plugin_generator('mod_quiz')->create_instance([
+            'course'    => $course->id,
+            'name'      => 'Q1',
+            'timeopen'  => self::BASE_TIME,
+            'timeclose' => self::BASE_TIME + self::ONE_DAY,
+        ]);
+        $feedback = $this->getDataGenerator()->get_plugin_generator('mod_feedback')->create_instance([
+            'course'    => $course->id,
+            'name'      => 'F1',
+            'timeopen'  => self::BASE_TIME,
+            'timeclose' => self::BASE_TIME + self::ONE_DAY,
+        ]);
+        return [
+            'courseid'      => (int)$course->id,
+            'assign_cmid'   => (int)$assign->cmid,
+            'quiz_cmid'     => (int)$quiz->cmid,
+            'feedback_cmid' => (int)$feedback->cmid,
+        ];
+    }
+
+    /**
      * Single-adapter call: build with one assign cmid produces a single
      * preview_change with the four assign date fields.
      */
-    public function test_single_adapter_assign(): void
-    {
+    public function test_single_adapter_assign(): void {
         $this->resetAfterTest();
         $fixture = $this->create_mixed_course();
         $manager = new preview_manager();
@@ -71,8 +102,7 @@ final class preview_manager_test extends \advanced_testcase
      * Multi-adapter routing: build with one assign + one quiz + one
      * feedback cmid produces three correctly typed preview_changes.
      */
-    public function test_multi_adapter_routing(): void
-    {
+    public function test_multi_adapter_routing(): void {
         $this->resetAfterTest();
         $fixture = $this->create_mixed_course();
         $manager = new preview_manager();
@@ -102,8 +132,7 @@ final class preview_manager_test extends \advanced_testcase
      * Empty cmids defaults to "all CMs of all supported components" in
      * the course.
      */
-    public function test_empty_cmids_means_whole_course(): void
-    {
+    public function test_empty_cmids_means_whole_course(): void {
         $this->resetAfterTest();
         $fixture = $this->create_mixed_course();
         $manager = new preview_manager();
@@ -122,25 +151,24 @@ final class preview_manager_test extends \advanced_testcase
      * cmids that have no registered adapter are reported as skipped with
      * reason 'no_adapter', not as errors.
      */
-    public function test_cmid_without_adapter_is_skipped(): void
-    {
+    public function test_cmid_without_adapter_is_skipped(): void {
         $this->resetAfterTest();
         $course = $this->getDataGenerator()->create_course();
         $label = $this->getDataGenerator()->create_module('label', [
             'course' => $course->id,
-            'name' => 'L1',
+            'name'   => 'L1',
         ]);
         $manager = new preview_manager();
         $result = $manager->build(
-            (int) $course->id,
+            (int)$course->id,
             'shift_dates',
             ['delta' => self::ONE_DAY],
-            [(int) $label->cmid]
+            [(int)$label->cmid]
         );
         $this->assertSame([], $result['changes']);
         $this->assertSame([], $result['errors']);
         $this->assertCount(1, $result['skipped']);
-        $this->assertSame((int) $label->cmid, $result['skipped'][0]['cmid']);
+        $this->assertSame((int)$label->cmid, $result['skipped'][0]['cmid']);
         $this->assertSame('no_adapter', $result['skipped'][0]['reason']);
     }
 
@@ -148,8 +176,7 @@ final class preview_manager_test extends \advanced_testcase
      * cmids whose adapter does not advertise the requested action are
      * reported as skipped with reason 'unsupported_action'.
      */
-    public function test_cmid_with_unsupported_action_is_skipped(): void
-    {
+    public function test_cmid_with_unsupported_action_is_skipped(): void {
         $this->resetAfterTest();
         $fixture = $this->create_mixed_course();
         $manager = new preview_manager();
@@ -170,8 +197,7 @@ final class preview_manager_test extends \advanced_testcase
      * Validation errors from the adapter end up in 'errors', not in
      * 'changes', and the changes list is empty.
      */
-    public function test_validation_errors_are_reported(): void
-    {
+    public function test_validation_errors_are_reported(): void {
         $this->resetAfterTest();
         $fixture = $this->create_mixed_course();
         $manager = new preview_manager();
@@ -192,13 +218,12 @@ final class preview_manager_test extends \advanced_testcase
      * The summary block reflects the correct counts for changes, skipped
      * and errors after a mixed run.
      */
-    public function test_summary_counts(): void
-    {
+    public function test_summary_counts(): void {
         $this->resetAfterTest();
         $fixture = $this->create_mixed_course();
         $label = $this->getDataGenerator()->create_module('label', [
             'course' => $fixture['courseid'],
-            'name' => 'L1',
+            'name'   => 'L1',
         ]);
         $manager = new preview_manager();
         $result = $manager->build(
@@ -208,7 +233,7 @@ final class preview_manager_test extends \advanced_testcase
             [
                 $fixture['assign_cmid'],
                 $fixture['quiz_cmid'],
-                (int) $label->cmid,
+                (int)$label->cmid,
             ]
         );
         $this->assertSame(3, $result['summary']['total']);
@@ -222,8 +247,7 @@ final class preview_manager_test extends \advanced_testcase
      * call are dispatched to the correct adapter and produce per-component
      * preview_changes whose fields match each adapter's field map.
      */
-    public function test_cross_component_routing_uses_correct_field_maps(): void
-    {
+    public function test_cross_component_routing_uses_correct_field_maps(): void {
         $this->resetAfterTest();
         $fixture = $this->create_mixed_course();
         $manager = new preview_manager();
@@ -246,8 +270,7 @@ final class preview_manager_test extends \advanced_testcase
      * consumers (UI, batch_manager) that need to bind a preview to its
      * intended execute call.
      */
-    public function test_result_carries_action_and_payload(): void
-    {
+    public function test_result_carries_action_and_payload(): void {
         $this->resetAfterTest();
         $fixture = $this->create_mixed_course();
         $manager = new preview_manager();
@@ -259,40 +282,5 @@ final class preview_manager_test extends \advanced_testcase
         );
         $this->assertSame('shift_dates', $result['action']);
         $this->assertSame(['delta' => 12345], $result['payload']);
-    }
-
-    /**
-     * Helper that creates a course with one assign, one quiz and one
-     * feedback instance, all with valid timeopen / due dates set.
-     *
-     * @return array{courseid: int, assign_cmid: int, quiz_cmid: int, feedback_cmid: int}
-     */
-    private function create_mixed_course(): array
-    {
-        $course = $this->getDataGenerator()->create_course();
-        $assign = $this->getDataGenerator()->get_plugin_generator('mod_assign')->create_instance([
-            'course' => $course->id,
-            'name' => 'A1',
-            'duedate' => self::BASE_TIME,
-        ]);
-        $quiz = $this->getDataGenerator()->get_plugin_generator('mod_quiz')->create_instance([
-            'course' => $course->id,
-            'name' => 'Q1',
-            'timeopen' => self::BASE_TIME,
-            'timeclose' => self::BASE_TIME + self::ONE_DAY,
-        ]);
-        $feedback = $this->getDataGenerator()->get_plugin_generator('mod_feedback')->create_instance([
-            'course' => $course->id,
-            'name' => 'F1',
-            'timeopen' => self::BASE_TIME,
-            'timeclose' => self::BASE_TIME + self::ONE_DAY,
-        ]);
-
-        return [
-            'courseid' => (int) $course->id,
-            'assign_cmid' => (int) $assign->cmid,
-            'quiz_cmid' => (int) $quiz->cmid,
-            'feedback_cmid' => (int) $feedback->cmid,
-        ];
     }
 }

@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -40,6 +39,7 @@
  * their DB reads. The aggregation then maps the adapter's per-item array
  * into preview_change instances keyed by cmid.
  *
+ * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -53,28 +53,27 @@ use local_coursectrl\local\dto\validation_result;
 /**
  * Aggregates adapter previews for a course-wide bulk action.
  */
-class preview_manager
-{
+class preview_manager {
     /** @var registry Adapter registry used to look up activity adapters. */
     private registry $registry;
 
     /**
      * Constructor.
      *
-     * @param null|registry $registry optional registry instance, mainly for
+     * @param registry|null $registry optional registry instance, mainly for
      *                                tests. When null, a fresh registry with
      *                                live discovery is created.
      */
-    public function __construct(?registry $registry = null)
-    {
+    public function __construct(?registry $registry = null) {
         $this->registry = $registry ?? new registry();
     }
 
     /**
      * Returns the registry instance backing this manager.
+     *
+     * @return registry
      */
-    public function get_registry(): registry
-    {
+    public function get_registry(): registry {
         return $this->registry;
     }
 
@@ -91,25 +90,25 @@ class preview_manager
      *     'summary' => array                 // counts: 'total', 'changes', 'skipped', 'errors'
      *   ]
      *
-     * @param int    $courseid target course id
+     * @param int    $courseid target course id.
      * @param string $action   canonical action identifier, e.g. 'shift_dates'.
-     * @param array  $payload  action-specific parameters
+     * @param array  $payload  action-specific parameters.
      * @param int[]  $cmids    target course module ids; empty means "all
      *                         CMs of all components for which an adapter
-     *                         is registered"
+     *                         is registered".
+     * @return array
      */
-    public function build(int $courseid, string $action, array $payload, array $cmids = []): array
-    {
+    public function build(int $courseid, string $action, array $payload, array $cmids = []): array {
         if (empty($cmids)) {
             $cmids = $this->collect_supported_cmids_for_course($courseid);
         }
         $byadapter = $this->group_cmids_by_adapter($cmids, $action);
         $changes = [];
-        $errors = $byadapter['errors'];
+        $errors  = $byadapter['errors'];
         $skipped = $byadapter['skipped'];
         foreach ($byadapter['routed'] as $component => $entry) {
             /** @var activity_adapter $adapter */
-            $adapter = $entry['adapter'];
+            $adapter      = $entry['adapter'];
             $adaptercmids = $entry['cmids'];
             $validation = validation_result::from_adapter_array(
                 $adapter->validate_action($action, $payload, $adaptercmids)
@@ -118,61 +117,57 @@ class preview_manager
                 foreach ($adaptercmids as $cmid) {
                     foreach ($validation->get_errors() as $error) {
                         $errors[] = [
-                            'cmid' => $cmid,
+                            'cmid'      => $cmid,
                             'component' => $component,
-                            'code' => $error['code'] ?? 'invalid_payload',
-                            'details' => $error,
+                            'code'      => $error['code'] ?? 'invalid_payload',
+                            'details'   => $error,
                         ];
                     }
                 }
-
                 continue;
             }
-
             try {
                 $preview = $adapter->preview_action($action, $payload, $adaptercmids);
             } catch (\Throwable $e) {
                 foreach ($adaptercmids as $cmid) {
                     $errors[] = [
-                        'cmid' => $cmid,
+                        'cmid'      => $cmid,
                         'component' => $component,
-                        'code' => 'preview_failed',
-                        'message' => $e->getMessage(),
+                        'code'      => 'preview_failed',
+                        'message'   => $e->getMessage(),
                     ];
                 }
-
                 continue;
             }
             foreach ($preview['items'] ?? [] as $item) {
-                $cmid = (int) $item['cmid'];
+                $cmid = (int)$item['cmid'];
                 $changes[$cmid] = new preview_change(
                     $cmid,
                     $component,
-                    (string) ($item['name'] ?? ''),
+                    (string)($item['name'] ?? ''),
                     $item['fields'] ?? []
                 );
             }
             foreach ($preview['errors'] ?? [] as $error) {
                 $errors[] = [
-                    'cmid' => (int) ($error['cmid'] ?? 0),
+                    'cmid'      => (int)($error['cmid'] ?? 0),
                     'component' => $component,
-                    'code' => $error['code'] ?? 'preview_failed',
-                    'message' => $error['message'] ?? '',
+                    'code'      => $error['code'] ?? 'preview_failed',
+                    'message'   => $error['message'] ?? '',
                 ];
             }
         }
-
         return [
-            'action' => $action,
+            'action'  => $action,
             'payload' => $payload,
             'changes' => $changes,
             'skipped' => $skipped,
-            'errors' => $errors,
+            'errors'  => $errors,
             'summary' => [
-                'total' => count($cmids),
+                'total'   => count($cmids),
                 'changes' => count($changes),
                 'skipped' => count($skipped),
-                'errors' => count($errors),
+                'errors'  => count($errors),
             ],
         ];
     }
@@ -181,50 +176,45 @@ class preview_manager
      * Group the input cmids by responsible adapter, separating out cmids
      * without an adapter or whose adapter does not support the action.
      *
-     * @param int[]  $cmids  input cmid list
-     * @param string $action canonical action identifier
-     *
+     * @param int[]  $cmids  input cmid list.
+     * @param string $action canonical action identifier.
      * @return array{routed: array<string, array{adapter: activity_adapter, cmids: int[]}>, skipped: array, errors: array}
      */
-    private function group_cmids_by_adapter(array $cmids, string $action): array
-    {
-        $routed = [];
+    private function group_cmids_by_adapter(array $cmids, string $action): array {
+        $routed  = [];
         $skipped = [];
-        $errors = [];
+        $errors  = [];
         foreach ($cmids as $rawcmid) {
-            $cmid = (int) $rawcmid;
+            $cmid = (int)$rawcmid;
             $adapter = $this->registry->get_for_cmid($cmid);
-            if (null === $adapter) {
+            if ($adapter === null) {
                 $skipped[] = [
-                    'cmid' => $cmid,
+                    'cmid'   => $cmid,
                     'reason' => 'no_adapter',
                 ];
-
                 continue;
             }
             if (!in_array($action, $adapter->get_supported_actions(), true)) {
                 $skipped[] = [
-                    'cmid' => $cmid,
+                    'cmid'      => $cmid,
                     'component' => $adapter::component(),
-                    'reason' => 'unsupported_action',
+                    'reason'    => 'unsupported_action',
                 ];
-
                 continue;
             }
             $component = $adapter::component();
             if (!isset($routed[$component])) {
                 $routed[$component] = [
                     'adapter' => $adapter,
-                    'cmids' => [],
+                    'cmids'   => [],
                 ];
             }
             $routed[$component]['cmids'][] = $cmid;
         }
-
         return [
-            'routed' => $routed,
+            'routed'  => $routed,
             'skipped' => $skipped,
-            'errors' => $errors,
+            'errors'  => $errors,
         ];
     }
 
@@ -233,21 +223,18 @@ class preview_manager
      * adapter. Used as the default target set when build() is called with
      * an empty cmids list.
      *
-     * @param int $courseid target course id
-     *
+     * @param int $courseid target course id.
      * @return int[]
      */
-    private function collect_supported_cmids_for_course(int $courseid): array
-    {
+    private function collect_supported_cmids_for_course(int $courseid): array {
         $result = [];
         foreach ($this->registry->get_all() as $component => $adapter) {
             $instances = $adapter->get_instances_for_course($courseid);
             foreach ($instances as $entry) {
-                $result[] = (int) $entry['cmid'];
+                $result[] = (int)$entry['cmid'];
             }
         }
         sort($result, SORT_NUMERIC);
-
         return $result;
     }
 }

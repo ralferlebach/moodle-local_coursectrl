@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -18,6 +17,7 @@
 /**
  * Normalised course module entity for the Course Control Hub inventory.
  *
+ * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -27,8 +27,7 @@ namespace local_coursectrl\local\entity;
 /**
  * Immutable DTO carrying the course-module-level fields the hub cares about.
  */
-final class cm_item extends inventory_item
-{
+final class cm_item extends inventory_item {
     /** @var int Moodle course_modules.id (cmid). */
     public readonly int $id;
 
@@ -50,7 +49,7 @@ final class cm_item extends inventory_item
     /** @var bool Current visibility flag. */
     public readonly bool $visible;
 
-    /** @var null|string JSON availability tree, or null. */
+    /** @var string|null JSON availability tree, or null. */
     public readonly ?string $availability;
 
     /** @var int COMPLETION_TRACKING_* constant. */
@@ -60,14 +59,14 @@ final class cm_item extends inventory_item
      * Constructor.
      *
      * @param int         $id           Moodle course_modules.id (cmid).
-     * @param int         $courseid     parent course id
+     * @param int         $courseid     Parent course id.
      * @param int         $sectionid    Parent course_sections.id.
      * @param string      $modname      Module short name, e.g. 'assign', 'quiz'.
-     * @param int         $instance     row id inside the module-specific table
-     * @param string      $name         activity name as shown to users
-     * @param bool        $visible      current visibility flag
-     * @param null|string $availability JSON availability tree, or null
-     * @param int         $completion   COMPLETION_TRACKING_* constant
+     * @param int         $instance     Row id inside the module-specific table.
+     * @param string      $name         Activity name as shown to users.
+     * @param bool        $visible      Current visibility flag.
+     * @param string|null $availability JSON availability tree, or null.
+     * @param int         $completion   COMPLETION_TRACKING_* constant.
      */
     public function __construct(
         int $id,
@@ -94,10 +93,9 @@ final class cm_item extends inventory_item
     /**
      * Return the type discriminator.
      *
-     * @return string always 'cm'
+     * @return string always 'cm'.
      */
-    public function get_type(): string
-    {
+    public function get_type(): string {
         return 'cm';
     }
 
@@ -105,10 +103,11 @@ final class cm_item extends inventory_item
      * Return the frankenstyle component name, e.g. 'mod_assign'.
      *
      * Convenience accessor used by the registry and the bulk engine.
+     *
+     * @return string
      */
-    public function get_component(): string
-    {
-        return 'mod_'.$this->modname;
+    public function get_component(): string {
+        return 'mod_' . $this->modname;
     }
 
     /**
@@ -116,8 +115,7 @@ final class cm_item extends inventory_item
      *
      * @return array<string,mixed>
      */
-    public function to_array(): array
-    {
+    public function to_array(): array {
         return [
             'type' => $this->get_type(),
             'id' => $this->id,
@@ -135,14 +133,12 @@ final class cm_item extends inventory_item
     /**
      * Reconstruct a cm_item from its array representation.
      *
-     * @param array<string,mixed> $data serialised entity
-     *
-     * @throws \coding_exception when a required key is missing
+     * @param array<string,mixed> $data serialised entity.
+     * @return static
+     * @throws \coding_exception when a required key is missing.
      */
-    public static function from_array(array $data): static
-    {
-        $cls = self::class;
-
+    public static function from_array(array $data): static {
+        $cls = static::class;
         return new self(
             (int) self::require_key($data, 'id', $cls),
             (int) self::require_key($data, 'courseid', $cls),

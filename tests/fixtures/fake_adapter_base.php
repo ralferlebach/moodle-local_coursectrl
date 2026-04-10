@@ -1,7 +1,4 @@
 <?php
-
-use local_coursectrl\local\contract\abstract_activity_adapter;
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -27,6 +24,7 @@ use local_coursectrl\local\contract\abstract_activity_adapter;
  * non-namespaced classes loaded via require_once and need a common parent
  * they can extend without triggering the registry's component-name discovery.
  *
+ * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -37,4 +35,5 @@ use local_coursectrl\local\contract\abstract_activity_adapter;
  * and need only override component() (and any methods relevant to a given
  * test scenario).
  */
-abstract class local_coursectrl_fake_adapter_base extends abstract_activity_adapter {}
+abstract class local_coursectrl_fake_adapter_base extends \local_coursectrl\local\contract\abstract_activity_adapter {
+}

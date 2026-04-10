@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -15,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/*
+/**
  * English strings for coursectrlmod_quiz.
  *
  * @package    coursectrlmod_quiz
@@ -23,10 +22,10 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || exit;
+defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname'] = 'Course Control Hub: Quiz adapter';
+$string['pluginname']         = 'Course Control Hub: Quiz adapter';
 $string['action_shift_dates'] = 'Shift dates';
-$string['field_timeopen'] = 'Open the quiz';
-$string['field_timeclose'] = 'Close the quiz';
-$string['privacy:metadata'] = 'The Course Control Hub quiz adapter does not store any personal data. It operates on quiz configuration on behalf of the local_coursectrl plugin and delegates all persistence to it.';
+$string['field_timeopen']     = 'Open the quiz';
+$string['field_timeclose']    = 'Close the quiz';
+$string['privacy:metadata']   = 'The Course Control Hub quiz adapter does not store any personal data. It operates on quiz configuration on behalf of the local_coursectrl plugin and delegates all persistence to it.';

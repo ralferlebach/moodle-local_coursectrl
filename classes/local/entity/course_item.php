@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -18,6 +17,7 @@
 /**
  * Normalised course entity for the Course Control Hub inventory.
  *
+ * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -27,8 +27,7 @@ namespace local_coursectrl\local\entity;
 /**
  * Immutable DTO carrying the course-level fields the hub cares about.
  */
-final class course_item extends inventory_item
-{
+final class course_item extends inventory_item {
     /** @var int Moodle course id. */
     public readonly int $id;
 
@@ -47,7 +46,7 @@ final class course_item extends inventory_item
     /** @var int Unix timestamp of the course start. */
     public readonly int $startdate;
 
-    /** @var null|int Unix timestamp of the course end, or null. */
+    /** @var int|null Unix timestamp of the course end, or null. */
     public readonly ?int $enddate;
 
     /** @var bool Whether the course is visible to students. */
@@ -56,14 +55,14 @@ final class course_item extends inventory_item
     /**
      * Constructor.
      *
-     * @param int      $id            moodle course id
-     * @param string   $fullname      course full name
-     * @param string   $shortname     course short name
-     * @param string   $summary       course summary HTML or text
-     * @param int      $summaryformat FORMAT_* constant for the summary
-     * @param int      $startdate     unix timestamp of the course start
-     * @param null|int $enddate       unix timestamp of the course end, or null
-     * @param bool     $visible       whether the course is visible to students
+     * @param int      $id            Moodle course id.
+     * @param string   $fullname      Course full name.
+     * @param string   $shortname     Course short name.
+     * @param string   $summary       Course summary HTML or text.
+     * @param int      $summaryformat FORMAT_* constant for the summary.
+     * @param int      $startdate     Unix timestamp of the course start.
+     * @param int|null $enddate       Unix timestamp of the course end, or null.
+     * @param bool     $visible       Whether the course is visible to students.
      */
     public function __construct(
         int $id,
@@ -88,10 +87,9 @@ final class course_item extends inventory_item
     /**
      * Return the type discriminator.
      *
-     * @return string always 'course'
+     * @return string always 'course'.
      */
-    public function get_type(): string
-    {
+    public function get_type(): string {
         return 'course';
     }
 
@@ -100,8 +98,7 @@ final class course_item extends inventory_item
      *
      * @return array<string,mixed>
      */
-    public function to_array(): array
-    {
+    public function to_array(): array {
         return [
             'type' => $this->get_type(),
             'id' => $this->id,
@@ -118,14 +115,12 @@ final class course_item extends inventory_item
     /**
      * Reconstruct a course_item from its array representation.
      *
-     * @param array<string,mixed> $data serialised entity
-     *
-     * @throws \coding_exception when a required key is missing
+     * @param array<string,mixed> $data serialised entity.
+     * @return static
+     * @throws \coding_exception when a required key is missing.
      */
-    public static function from_array(array $data): static
-    {
-        $cls = self::class;
-
+    public static function from_array(array $data): static {
+        $cls = static::class;
         return new self(
             (int) self::require_key($data, 'id', $cls),
             (string) self::require_key($data, 'fullname', $cls),

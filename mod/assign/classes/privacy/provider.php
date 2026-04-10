@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -23,24 +22,23 @@
  * local_coursectrl plugin (snapshots, batch records) and is covered by its
  * privacy provider.
  *
+ * @package    coursectrlmod_assign
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace coursectrlmod_assign\privacy;
 
-use core_privacy\local\metadata\null_provider;
-
 /**
  * Null provider declaring that this subplugin stores no personal data.
  */
-class provider implements null_provider
-{
+class provider implements \core_privacy\local\metadata\null_provider {
     /**
      * Returns the language string explaining why no data is stored.
+     *
+     * @return string
      */
-    public static function get_reason(): string
-    {
+    public static function get_reason(): string {
         return 'privacy:metadata';
     }
 }

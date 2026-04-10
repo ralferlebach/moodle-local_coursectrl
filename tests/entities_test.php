@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -18,6 +17,7 @@
 /**
  * Unit tests for the inventory entity DTOs.
  *
+ * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -35,13 +35,11 @@ use local_coursectrl\local\entity\text_item;
  *
  * @coversNothing
  */
-final class entities_test extends \advanced_testcase
-{
+final class entities_test extends \advanced_testcase {
     /**
      * The course_item must round-trip through to_array()/from_array() losslessly.
      */
-    public function test_course_item_roundtrip(): void
-    {
+    public function test_course_item_roundtrip(): void {
         $item = new course_item(
             42,
             'Intro to Testing',
@@ -66,8 +64,7 @@ final class entities_test extends \advanced_testcase
     /**
      * A course_item with a null enddate must keep the null through serialisation.
      */
-    public function test_course_item_nullable_enddate(): void
-    {
+    public function test_course_item_nullable_enddate(): void {
         $item = new course_item(1, 'A', 'A', '', 1, 0, null, false);
         $this->assertNull($item->enddate);
         $rebuilt = course_item::from_array($item->to_array());
@@ -78,8 +75,7 @@ final class entities_test extends \advanced_testcase
     /**
      * The course_item factory must throw when required keys are missing.
      */
-    public function test_course_item_missing_key_throws(): void
-    {
+    public function test_course_item_missing_key_throws(): void {
         $this->expectException(\coding_exception::class);
         course_item::from_array(['id' => 1]);
     }
@@ -87,8 +83,7 @@ final class entities_test extends \advanced_testcase
     /**
      * The section_item must round-trip with a null name.
      */
-    public function test_section_item_roundtrip_with_null_name(): void
-    {
+    public function test_section_item_roundtrip_with_null_name(): void {
         $item = new section_item(7, 42, 3, null, 'Week 3', 1, true);
         $this->assertSame('section', $item->get_type());
         $rebuilt = section_item::from_array($item->to_array());
@@ -100,8 +95,7 @@ final class entities_test extends \advanced_testcase
     /**
      * The section_item must round-trip with an explicit name.
      */
-    public function test_section_item_roundtrip_with_name(): void
-    {
+    public function test_section_item_roundtrip_with_name(): void {
         $item = new section_item(8, 42, 4, 'Week 4 - Midterm', '', 1, false);
         $rebuilt = section_item::from_array($item->to_array());
         $this->assertSame('Week 4 - Midterm', $rebuilt->name);
@@ -111,8 +105,7 @@ final class entities_test extends \advanced_testcase
     /**
      * The cm_item must round-trip and expose a correct component helper.
      */
-    public function test_cm_item_roundtrip_and_component(): void
-    {
+    public function test_cm_item_roundtrip_and_component(): void {
         $item = new cm_item(
             101,
             42,
@@ -135,8 +128,7 @@ final class entities_test extends \advanced_testcase
     /**
      * A cm_item may carry a null availability string.
      */
-    public function test_cm_item_null_availability(): void
-    {
+    public function test_cm_item_null_availability(): void {
         $item = new cm_item(102, 42, 8, 'quiz', 9, 'Quiz 1', true, null, 0);
         $this->assertNull($item->availability);
         $rebuilt = cm_item::from_array($item->to_array());
@@ -146,8 +138,7 @@ final class entities_test extends \advanced_testcase
     /**
      * The cm_item factory must throw when required keys are missing.
      */
-    public function test_cm_item_missing_key_throws(): void
-    {
+    public function test_cm_item_missing_key_throws(): void {
         $this->expectException(\coding_exception::class);
         // Key 'name' is intentionally missing from the payload.
         cm_item::from_array([
@@ -162,8 +153,7 @@ final class entities_test extends \advanced_testcase
     /**
      * The text_item must round-trip and expose its canonical composite key.
      */
-    public function test_text_item_roundtrip_and_key(): void
-    {
+    public function test_text_item_roundtrip_and_key(): void {
         $item = new text_item(
             text_item::OWNER_SECTION,
             8,
@@ -182,8 +172,7 @@ final class entities_test extends \advanced_testcase
     /**
      * All four text_item owner constants must be distinct strings.
      */
-    public function test_text_item_owner_constants_are_distinct(): void
-    {
+    public function test_text_item_owner_constants_are_distinct(): void {
         $owners = [
             text_item::OWNER_COURSE,
             text_item::OWNER_SECTION,
@@ -197,8 +186,7 @@ final class entities_test extends \advanced_testcase
     /**
      * Every entity must be encodable via json_encode through JsonSerializable.
      */
-    public function test_entities_are_json_serializable(): void
-    {
+    public function test_entities_are_json_serializable(): void {
         $entities = [
             new course_item(1, 'f', 's', '', 1, 0, null, true),
             new section_item(2, 1, 0, 'General', '', 1, true),

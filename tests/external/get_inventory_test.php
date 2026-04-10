@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -18,14 +17,13 @@
 /**
  * Tests for the local_coursectrl_get_inventory external function.
  *
+ * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace local_coursectrl\external;
 
-use core\exception\require_login_exception;
-use core\exception\required_capability_exception;
 use core_external\external_api;
 
 /**
@@ -40,13 +38,11 @@ use core_external\external_api;
  *
  * @coversDefaultClass \local_coursectrl\external\get_inventory
  */
-final class get_inventory_test extends \advanced_testcase
-{
+final class get_inventory_test extends \advanced_testcase {
     /**
      * An enrolled editing teacher must receive a structurally valid snapshot.
      */
-    public function test_execute_returns_snapshot_for_enrolled_teacher(): void
-    {
+    public function test_execute_returns_snapshot_for_enrolled_teacher(): void {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course([
@@ -81,15 +77,14 @@ final class get_inventory_test extends \advanced_testcase
      * before any inventory or capability work runs. The exception thrown
      * is require_login_exception, not required_capability_exception.
      */
-    public function test_execute_rejects_unenrolled_user(): void
-    {
+    public function test_execute_rejects_unenrolled_user(): void {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course();
         $stranger = $this->getDataGenerator()->create_user();
         $this->setUser($stranger);
 
-        $this->expectException(require_login_exception::class);
+        $this->expectException(\core\exception\require_login_exception::class);
         get_inventory::execute((int) $course->id);
     }
 
@@ -98,8 +93,7 @@ final class get_inventory_test extends \advanced_testcase
      * local/coursectrl:view capability and must be rejected by
      * require_capability with required_capability_exception.
      */
-    public function test_execute_rejects_enrolled_student(): void
-    {
+    public function test_execute_rejects_enrolled_student(): void {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course();
@@ -107,15 +101,14 @@ final class get_inventory_test extends \advanced_testcase
         $this->getDataGenerator()->enrol_user($student->id, $course->id, 'student');
         $this->setUser($student);
 
-        $this->expectException(required_capability_exception::class);
+        $this->expectException(\core\exception\required_capability_exception::class);
         get_inventory::execute((int) $course->id);
     }
 
     /**
      * A request for a non-existent course must surface as a context error.
      */
-    public function test_execute_rejects_missing_course(): void
-    {
+    public function test_execute_rejects_missing_course(): void {
         $this->resetAfterTest();
 
         $teacher = $this->getDataGenerator()->create_user();
@@ -128,8 +121,7 @@ final class get_inventory_test extends \advanced_testcase
     /**
      * A nullable enddate must round-trip cleanly through the schema.
      */
-    public function test_execute_handles_null_enddate(): void
-    {
+    public function test_execute_handles_null_enddate(): void {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course(['enddate' => 0]);

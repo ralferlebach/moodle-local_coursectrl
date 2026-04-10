@@ -18,7 +18,7 @@
  * External function declarations for local_coursectrl.
  *
  * @package    local_coursectrl
- * @copyright  2026 Course Control Hub Contributors
+ * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -26,11 +26,27 @@ defined('MOODLE_INTERNAL') || die();
 
 $functions = [
     'local_coursectrl_get_inventory' => [
-        'classname'    => 'local_coursectrl\external\get_inventory',
+        'classname'    => 'local_coursectrl\\external\\get_inventory',
         'methodname'   => 'execute',
         'description'  => 'Returns the normalised inventory snapshot for a course.',
         'type'         => 'read',
         'ajax'         => true,
         'capabilities' => 'local/coursectrl:view',
+    ],
+    'local_coursectrl_preview_bulk_action' => [
+        'classname'    => 'local_coursectrl\\external\\preview_bulk_action',
+        'methodname'   => 'execute',
+        'description'  => 'Returns a course-wide preview of a bulk action without mutating state.',
+        'type'         => 'read',
+        'ajax'         => true,
+        'capabilities' => 'local/coursectrl:view',
+    ],
+    'local_coursectrl_execute_bulk_action' => [
+        'classname'    => 'local_coursectrl\\external\\execute_bulk_action',
+        'methodname'   => 'execute',
+        'description'  => 'Executes a course-wide bulk action and returns the batch id with summary.',
+        'type'         => 'write',
+        'ajax'         => true,
+        'capabilities' => 'local/coursectrl:bulkaction',
     ],
 ];

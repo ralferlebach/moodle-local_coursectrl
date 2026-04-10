@@ -15,20 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for coursectrlmod_assign.
+ * German strings for coursectrlmod_feedback.
  *
- * @package    coursectrlmod_assign
+ * @package    coursectrlmod_feedback
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component    = 'coursectrlmod_assign';
-$plugin->version      = 2026041011;
-$plugin->requires     = 2024042200; // Moodle 4.5.
-$plugin->dependencies = [
-    'local_coursectrl' => 2026041011,
-];
-$plugin->maturity = MATURITY_ALPHA;
-$plugin->release  = '0.1.19';
+$string['action_shift_dates'] = 'Termine verschieben';
+$string['field_timeclose']    = 'Antworten möglich bis';
+$string['field_timeopen']     = 'Antworten möglich ab';
+$string['pluginname']         = 'Kursablauf-Zentrale: Feedback-Adapter';
+$string['privacy:metadata']   = 'Der Feedback-Adapter der Kursablauf-Zentrale speichert keine personenbezogenen Daten. Er arbeitet im Auftrag des Plugins local_coursectrl auf den Konfigurationsdaten von Feedbacks und überlässt diesem die gesamte Persistenz.';

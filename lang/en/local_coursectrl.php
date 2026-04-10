@@ -24,53 +24,38 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-// Core.
-$string['pluginname']      = 'Course Control Hub';
-$string['pluginname_desc'] = 'Course-wide analysis, bulk editing, timeline visualisation, learner simulation, and risk detection for Moodle courses.';
-
-// Subplugin types.
-$string['subplugintype_coursectrlmod']        = 'Activity adapter';
-$string['subplugintype_coursectrlmod_plural'] = 'Activity adapters';
-
-// Capabilities.
-$string['coursectrl:view']          = 'View the Course Control Hub';
-$string['coursectrl:bulkaction']    = 'Execute bulk actions';
-$string['coursectrl:viewreports']   = 'View reports and risk analyses';
-$string['coursectrl:rollback']      = 'Roll back executed batch actions';
-$string['coursectrl:managepresets'] = 'Create and manage action presets';
-$string['coursectrl:simulate']      = 'Run learner-state simulations';
-
-// Events.
-$string['event_batch_executed'] = 'Bulk action batch executed';
-
-// Navigation.
-$string['nav_dashboard']  = 'Dashboard';
-$string['nav_bulk']       = 'Bulk Actions';
-$string['nav_timeline']   = 'Timeline';
-$string['nav_graph']      = 'Dependency Graph';
-$string['nav_simulation'] = 'Simulation';
-$string['nav_risks']      = 'Risks';
-$string['nav_history']    = 'History';
-
-// Dashboard.
-$string['dashboard_startdate']        = 'Start date';
-$string['dashboard_enddate']          = 'End date';
-$string['dashboard_visibility']       = 'Visibility';
-$string['dashboard_visible']          = 'Visible';
-$string['dashboard_hidden']           = 'Hidden';
-$string['dashboard_sections']         = 'Sections';
-$string['dashboard_activities']       = 'Activities';
-$string['dashboard_activities_short'] = 'activities';
-$string['dashboard_texts']            = 'Editable texts';
-$string['dashboard_inventory']        = 'Course inventory';
-$string['dashboard_section']          = 'Section';
-$string['dashboard_completion']       = 'Completion';
-$string['dashboard_availability']     = 'Restricted';
-$string['dashboard_empty']            = 'This course has no inventoried sections yet.';
-
-// Stub / placeholder.
-$string['stub_placeholder'] = 'Course Control Hub – Phase 1 stub. Full interface coming in Phase 2.';
-
-// Errors.
-$string['error_no_course']     = 'No valid course context found.';
-$string['error_no_capability'] = 'You do not have permission to use the Course Control Hub in this course.';
+$string['coursectrl:bulkaction']               = 'Execute bulk actions';
+$string['coursectrl:managepresets']            = 'Create and manage action presets';
+$string['coursectrl:rollback']                 = 'Roll back executed batch actions';
+$string['coursectrl:simulate']                 = 'Run learner-state simulations';
+$string['coursectrl:view']                     = 'View the Course Control Hub';
+$string['coursectrl:viewreports']              = 'View reports and risk analyses';
+$string['dashboard_activities']                = 'Activities';
+$string['dashboard_activities_short']          = 'activities';
+$string['dashboard_availability']              = 'Restricted';
+$string['dashboard_completion']                = 'Completion';
+$string['dashboard_empty']                     = 'This course has no inventoried sections yet.';
+$string['dashboard_enddate']                   = 'End date';
+$string['dashboard_hidden']                    = 'Hidden';
+$string['dashboard_inventory']                 = 'Course inventory';
+$string['dashboard_section']                   = 'Section';
+$string['dashboard_sections']                  = 'Sections';
+$string['dashboard_startdate']                 = 'Start date';
+$string['dashboard_texts']                     = 'Editable texts';
+$string['dashboard_visibility']                = 'Visibility';
+$string['dashboard_visible']                   = 'Visible';
+$string['error_no_capability']                 = 'You do not have permission to use the Course Control Hub in this course.';
+$string['error_no_course']                     = 'No valid course context found.';
+$string['event_batch_executed']                = 'Bulk action batch executed';
+$string['nav_bulk']                            = 'Bulk Actions';
+$string['nav_dashboard']                       = 'Dashboard';
+$string['nav_graph']                           = 'Dependency Graph';
+$string['nav_history']                         = 'History';
+$string['nav_risks']                           = 'Risks';
+$string['nav_simulation']                      = 'Simulation';
+$string['nav_timeline']                        = 'Timeline';
+$string['pluginname']                          = 'Course Control Hub';
+$string['pluginname_desc']                     = 'Course-wide analysis, bulk editing, timeline visualisation, learner simulation, and risk detection for Moodle courses.';
+$string['stub_placeholder']                    = 'Course Control Hub – Phase 1 stub. Full interface coming in Phase 2.';
+$string['subplugintype_coursectrlmod']         = 'Activity adapter';
+$string['subplugintype_coursectrlmod_plural']  = 'Activity adapters';

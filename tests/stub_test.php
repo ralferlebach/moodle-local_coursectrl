@@ -21,15 +21,16 @@
  * @category   test
  * @copyright  2026 Course Control Hub Contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers     \local_coursectrl
  */
 
 namespace local_coursectrl;
 
 /**
  * Smoke test suite for the local_coursectrl plugin skeleton.
+ *
+ * @coversNothing
  */
-class stub_test extends \advanced_testcase {
+final class stub_test extends \advanced_testcase {
     /**
      * Verify the plugin version is recorded in the database after installation.
      */

@@ -38,7 +38,7 @@ require_once(__DIR__ . '/fixtures/fake_not_an_adapter.php');
 /**
  * Unit tests for the activity adapter registry.
  *
- * @coversDefaultClass \local_coursectrl\manager\registry
+ * @covers \local_coursectrl\manager\registry
  */
 final class registry_test extends \advanced_testcase {
     /**

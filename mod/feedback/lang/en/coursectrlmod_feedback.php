@@ -15,20 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for coursectrlmod_assign.
+ * English strings for coursectrlmod_feedback.
  *
- * @package    coursectrlmod_assign
+ * @package    coursectrlmod_feedback
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component    = 'coursectrlmod_assign';
-$plugin->version      = 2026041011;
-$plugin->requires     = 2024042200; // Moodle 4.5.
-$plugin->dependencies = [
-    'local_coursectrl' => 2026041011,
-];
-$plugin->maturity = MATURITY_ALPHA;
-$plugin->release  = '0.1.19';
+$string['action_shift_dates'] = 'Shift dates';
+$string['field_timeclose']    = 'Allow answers until';
+$string['field_timeopen']     = 'Allow answers from';
+$string['pluginname']         = 'Course Control Hub: Feedback adapter';
+$string['privacy:metadata']   = 'The Course Control Hub feedback adapter does not store any personal data. It operates on feedback configuration on behalf of the local_coursectrl plugin and delegates all persistence to it.';

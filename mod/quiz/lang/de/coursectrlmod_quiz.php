@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname']         = 'Kursablauf-Zentrale: Test-Adapter';
 $string['action_shift_dates'] = 'Termine verschieben';
-$string['field_timeopen']     = 'Test öffnen';
 $string['field_timeclose']    = 'Test schließen';
+$string['field_timeopen']     = 'Test öffnen';
+$string['pluginname']         = 'Kursablauf-Zentrale: Test-Adapter';
 $string['privacy:metadata']   = 'Der Test-Adapter der Kursablauf-Zentrale speichert keine personenbezogenen Daten. Er arbeitet im Auftrag des Plugins local_coursectrl auf den Konfigurationsdaten von Tests und überlässt diesem die gesamte Persistenz.';

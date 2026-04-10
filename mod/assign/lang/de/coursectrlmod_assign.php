@@ -24,10 +24,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname']                          = 'Kursablauf-Zentrale: Aufgabe-Adapter';
 $string['action_shift_dates']                  = 'Termine verschieben';
-$string['field_duedate']                       = 'Fälligkeitsdatum';
 $string['field_allowsubmissionsfromdate']      = 'Abgabe möglich ab';
 $string['field_cutoffdate']                    = 'Letzte Abgabemöglichkeit';
+$string['field_duedate']                       = 'Fälligkeitsdatum';
 $string['field_gradingduedate']                = 'Bewertung fällig bis';
+$string['pluginname']                          = 'Kursablauf-Zentrale: Aufgabe-Adapter';
 $string['privacy:metadata']                    = 'Der Aufgabe-Adapter der Kursablauf-Zentrale speichert keine personenbezogenen Daten. Er arbeitet im Auftrag des Plugins local_coursectrl auf den Konfigurationsdaten von Aufgaben und überlässt diesem die gesamte Persistenz.';

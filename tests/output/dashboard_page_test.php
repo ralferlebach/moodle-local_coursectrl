@@ -32,7 +32,7 @@ use local_coursectrl\local\inventory\inventory_snapshot;
 /**
  * Unit tests for dashboard_page::export_for_template().
  *
- * @coversDefaultClass \local_coursectrl\output\dashboard_page
+ * @covers \local_coursectrl\output\dashboard_page
  */
 final class dashboard_page_test extends \advanced_testcase {
     /**

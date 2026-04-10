@@ -34,7 +34,7 @@ use local_coursectrl\local\inventory\inventory_snapshot;
 /**
  * Unit tests for local_coursectrl\local\inventory\inventory_service.
  *
- * @coversDefaultClass \local_coursectrl\local\inventory\inventory_service
+ * @covers \local_coursectrl\local\inventory\inventory_service
  */
 final class inventory_service_test extends \advanced_testcase {
     /**

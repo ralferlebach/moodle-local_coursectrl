@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component    = 'coursectrlmod_quiz';
-$plugin->version      = 2026041010;
+$plugin->version      = 2026041011;
 $plugin->requires     = 2024042200; // Moodle 4.5.
 $plugin->dependencies = [
-    'local_coursectrl' => 2026041010,
+    'local_coursectrl' => 2026041011,
 ];
 $plugin->maturity = MATURITY_ALPHA;
-$plugin->release  = '0.1.18';
+$plugin->release  = '0.1.19';

@@ -15,17 +15,19 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for local_coursectrl.
+ * German strings for coursectrlmod_assign.
  *
- * @package    local_coursectrl
+ * @package    coursectrlmod_assign
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_coursectrl';
-$plugin->version   = 2026041002;
-$plugin->requires  = 2024042200; // Moodle 4.5.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.10';
+$string['pluginname']                          = 'Kursablauf-Zentrale: Aufgabe-Adapter';
+$string['action_shift_dates']                  = 'Termine verschieben';
+$string['field_duedate']                       = 'Fälligkeitsdatum';
+$string['field_allowsubmissionsfromdate']      = 'Abgabe möglich ab';
+$string['field_cutoffdate']                    = 'Letzte Abgabemöglichkeit';
+$string['field_gradingduedate']                = 'Bewertung fällig bis';
+$string['privacy:metadata']                    = 'Der Aufgabe-Adapter der Kursablauf-Zentrale speichert keine personenbezogenen Daten. Er arbeitet im Auftrag des Plugins local_coursectrl auf den Konfigurationsdaten von Aufgaben und überlässt diesem die gesamte Persistenz.';

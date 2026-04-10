@@ -15,17 +15,32 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for local_coursectrl.
+ * Privacy provider for coursectrlmod_assign.
  *
- * @package    local_coursectrl
+ * The assign adapter is a stateless wrapper around mod_assign and stores no
+ * personal data of its own. All persistent state lives in the parent
+ * local_coursectrl plugin (snapshots, batch records) and is covered by its
+ * privacy provider.
+ *
+ * @package    coursectrlmod_assign
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+namespace coursectrlmod_assign\privacy;
+
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_coursectrl';
-$plugin->version   = 2026041002;
-$plugin->requires  = 2024042200; // Moodle 4.5.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.10';
+/**
+ * Null provider declaring that this subplugin stores no personal data.
+ */
+class provider implements \core_privacy\local\metadata\null_provider {
+    /**
+     * Returns the language string explaining why no data is stored.
+     *
+     * @return string
+     */
+    public static function get_reason(): string {
+        return 'privacy:metadata';
+    }
+}

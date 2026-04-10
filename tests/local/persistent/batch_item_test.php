@@ -96,12 +96,13 @@ final class batch_item_test extends \advanced_testcase {
     public function test_legal_statuses(): void {
         $this->resetAfterTest();
         $batchid = $this->make_parent_batch();
-        foreach ([
+        $statuses = [
             batch_item::STATUS_PENDING,
             batch_item::STATUS_SKIPPED,
             batch_item::STATUS_SUCCESS,
             batch_item::STATUS_ERROR,
-        ] as $status) {
+        ];
+        foreach ($statuses as $status) {
             $data = (object)[
                 'batchid'    => $batchid,
                 'entitytype' => 'cm',

@@ -46,7 +46,7 @@ final class batch_manager_test extends \advanced_testcase {
      * Helper that creates a course with one assign, one quiz and one
      * feedback instance.
      *
-     * @return array{courseid: int, assign_cmid: int, quiz_cmid: int, feedback_cmid: int, assign_iid: int, quiz_iid: int, feedback_iid: int}
+     * @return array
      */
     private function create_mixed_course(): array {
         $course = $this->getDataGenerator()->create_course();

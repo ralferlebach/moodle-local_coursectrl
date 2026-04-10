@@ -78,12 +78,13 @@ final class batch_test extends \advanced_testcase {
             'payloadjson' => '{}',
         ];
         $record = (new batch(0, $data))->create();
-        foreach ([
+        $statuses = [
             batch::STATUS_PREVIEWED,
             batch::STATUS_EXECUTED,
             batch::STATUS_ROLLED_BACK,
             batch::STATUS_FAILED,
-        ] as $status) {
+        ];
+        foreach ($statuses as $status) {
             $record->set('status', $status);
             $record->update();
             $reloaded = new batch($record->get('id'));

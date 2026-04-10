@@ -15,24 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for coursectrlmod_assign.
+ * English strings for coursectrlmod_quiz.
  *
- * First production activity adapter for the Course Control Hub. Wraps
- * mod_assign and exposes its date fields (duedate, allowsubmissionsfromdate,
- * cutoffdate, gradingduedate) to the bulk preview and execute pipeline.
- *
- * @package    coursectrlmod_assign
+ * @package    coursectrlmod_quiz
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component    = 'coursectrlmod_assign';
-$plugin->version      = 2026041005;
-$plugin->requires     = 2024042200; // Moodle 4.5.
-$plugin->dependencies = [
-    'local_coursectrl' => 2026041005,
-];
-$plugin->maturity = MATURITY_ALPHA;
-$plugin->release  = '0.1.13';
+$string['pluginname']         = 'Course Control Hub: Quiz adapter';
+$string['action_shift_dates'] = 'Shift dates';
+$string['field_timeopen']     = 'Open the quiz';
+$string['field_timeclose']    = 'Close the quiz';
+$string['privacy:metadata']   = 'The Course Control Hub quiz adapter does not store any personal data. It operates on quiz configuration on behalf of the local_coursectrl plugin and delegates all persistence to it.';

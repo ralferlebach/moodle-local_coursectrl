@@ -15,24 +15,29 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for coursectrlmod_assign.
+ * Privacy provider for coursectrlmod_quiz.
  *
- * First production activity adapter for the Course Control Hub. Wraps
- * mod_assign and exposes its date fields (duedate, allowsubmissionsfromdate,
- * cutoffdate, gradingduedate) to the bulk preview and execute pipeline.
+ * The quiz adapter is a stateless wrapper around mod_quiz and stores no
+ * personal data of its own. All persistent state lives in the parent
+ * local_coursectrl plugin and is covered by its privacy provider.
  *
- * @package    coursectrlmod_assign
+ * @package    coursectrlmod_quiz
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+namespace coursectrlmod_quiz\privacy;
 
-$plugin->component    = 'coursectrlmod_assign';
-$plugin->version      = 2026041005;
-$plugin->requires     = 2024042200; // Moodle 4.5.
-$plugin->dependencies = [
-    'local_coursectrl' => 2026041005,
-];
-$plugin->maturity = MATURITY_ALPHA;
-$plugin->release  = '0.1.13';
+/**
+ * Null provider declaring that this subplugin stores no personal data.
+ */
+class provider implements \core_privacy\local\metadata\null_provider {
+    /**
+     * Returns the language string explaining why no data is stored.
+     *
+     * @return string
+     */
+    public static function get_reason(): string {
+        return 'privacy:metadata';
+    }
+}

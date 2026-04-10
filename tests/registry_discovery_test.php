@@ -48,6 +48,20 @@ final class registry_discovery_test extends \advanced_testcase {
     }
 
     /**
+     * Live discovery must register the coursectrlmod_quiz subplugin.
+     */
+    public function test_auto_discovery_finds_quiz_subplugin(): void {
+        $registry = new registry();
+        $this->assertTrue(
+            $registry->has('mod_quiz'),
+            'Live registry must discover coursectrlmod_quiz and register it under mod_quiz.'
+        );
+        $adapter = $registry->get_for_component('mod_quiz');
+        $this->assertNotNull($adapter);
+        $this->assertSame('mod_quiz', $adapter::component());
+    }
+
+    /**
      * The live registry must contain at least the assign adapter.
      */
     public function test_auto_discovery_count_at_least_one(): void {

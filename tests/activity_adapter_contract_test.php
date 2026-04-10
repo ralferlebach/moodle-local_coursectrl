@@ -19,11 +19,11 @@
  *
  * These tests freeze the shape of the adapter contract so that any
  * accidental renaming, removal or signature change of a method is caught
- * by CI before it can land on main. The Pflichtenheft lists exactly 13
- * methods on this interface; the test enforces that number.
+ * by CI before it can land on main. The Pflichtenheft lists 13 original
+ * methods; patch-026 added refresh_calendar_for_cmids as the 14th.
  *
  * @package    local_coursectrl
- * @copyright  2026 Course Control Hub Contributors
+ * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -49,21 +49,21 @@ final class activity_adapter_contract_test extends \advanced_testcase {
     }
 
     /**
-     * The interface must define exactly the 13 methods specified in the
-     * Pflichtenheft. Both under- and over-definition fail the build.
+     * The interface must define exactly 14 methods (13 from the original
+     * Pflichtenheft plus refresh_calendar_for_cmids added in patch-026).
      */
     public function test_interface_method_count(): void {
         $ref = new \ReflectionClass(self::IFACE);
         $this->assertCount(
-            13,
+            14,
             $ref->getMethods(),
-            'activity_adapter must expose exactly 13 methods per the Pflichtenheft.'
+            'activity_adapter must expose exactly 14 methods.'
         );
     }
 
     /**
-     * Every method named in the Pflichtenheft must be present with the
-     * correct name, parameter count and return type. Signatures are frozen.
+     * Every method named in the contract must be present with the correct
+     * name, parameter count and return type. Signatures are frozen.
      */
     public function test_interface_method_signatures(): void {
         $expected = [
@@ -80,6 +80,7 @@ final class activity_adapter_contract_test extends \advanced_testcase {
             'restore_state' => ['params' => 1, 'return' => 'array', 'static' => false],
             'run_checks' => ['params' => 2, 'return' => 'array', 'static' => false],
             'get_dependency_hints' => ['params' => 1, 'return' => 'array', 'static' => false],
+            'refresh_calendar_for_cmids' => ['params' => 1, 'return' => 'void', 'static' => false],
         ];
 
         $ref = new \ReflectionClass(self::IFACE);

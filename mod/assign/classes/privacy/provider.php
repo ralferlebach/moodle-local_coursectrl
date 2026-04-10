@@ -29,8 +29,6 @@
 
 namespace coursectrlmod_assign\privacy;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Null provider declaring that this subplugin stores no personal data.
  */

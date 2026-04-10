@@ -17,10 +17,6 @@
 /**
  * Unit tests for abstract_activity_adapter.
  *
- * Verifies that the production base class implements the frozen contract,
- * keeps component() abstract and supplies the agreed no-op defaults for
- * the remaining 12 methods.
- *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -31,28 +27,34 @@ namespace local_coursectrl;
 use local_coursectrl\local\contract\abstract_activity_adapter;
 use local_coursectrl\local\contract\activity_adapter;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
- * Concrete in-test subclass of abstract_activity_adapter used to instantiate
- * the otherwise abstract base. Only the abstract component() method is
- * implemented; every other method should fall through to the base defaults.
- */
-class abstract_activity_adapter_test_concrete extends abstract_activity_adapter {
-    /**
-     * Returns a fixed component name.
-     *
-     * @return string
-     */
-    public static function component(): string {
-        return 'mod_assign';
-    }
-}
-
-/**
+ * Tests that the production base class implements the frozen contract,
+ * keeps component() abstract and supplies the agreed no-op defaults for
+ * the remaining 12 methods.
+ *
  * @covers \local_coursectrl\local\contract\abstract_activity_adapter
  */
 final class abstract_activity_adapter_test extends \advanced_testcase {
+    /**
+     * Build a minimal concrete subclass of the abstract base via an
+     * anonymous class. Only component() is implemented; every other
+     * method falls through to the no-op defaults under test.
+     *
+     * @return abstract_activity_adapter
+     */
+    private function make_concrete_adapter(): abstract_activity_adapter {
+        return new class extends abstract_activity_adapter {
+            /**
+             * Returns a fixed component name for the in-test subclass.
+             *
+             * @return string
+             */
+            public static function component(): string {
+                return 'mod_assign';
+            }
+        };
+    }
+
     /**
      * The base class must implement the frozen activity_adapter interface.
      */
@@ -78,7 +80,7 @@ final class abstract_activity_adapter_test extends \advanced_testcase {
      * Default is_available() returns true.
      */
     public function test_default_is_available_returns_true(): void {
-        $adapter = new abstract_activity_adapter_test_concrete();
+        $adapter = $this->make_concrete_adapter();
         $this->assertTrue($adapter->is_available());
     }
 
@@ -86,7 +88,7 @@ final class abstract_activity_adapter_test extends \advanced_testcase {
      * All array-returning default methods must return an empty array.
      */
     public function test_all_default_methods_return_empty_arrays(): void {
-        $adapter = new abstract_activity_adapter_test_concrete();
+        $adapter = $this->make_concrete_adapter();
         $this->assertSame([], $adapter->get_supported_actions());
         $this->assertSame([], $adapter->get_supported_fields());
         $this->assertSame([], $adapter->get_instances_for_course(42));
@@ -106,7 +108,8 @@ final class abstract_activity_adapter_test extends \advanced_testcase {
      * The concrete subclass returns its declared component name.
      */
     public function test_concrete_subclass_returns_component(): void {
-        $this->assertSame('mod_assign', abstract_activity_adapter_test_concrete::component());
+        $adapter = $this->make_concrete_adapter();
+        $this->assertSame('mod_assign', $adapter::component());
     }
 
     /**

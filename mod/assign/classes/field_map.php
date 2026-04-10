@@ -35,8 +35,6 @@
 
 namespace coursectrlmod_assign;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Static field descriptor source for mod_assign.
  */

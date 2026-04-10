@@ -32,8 +32,6 @@ namespace coursectrlmod_assign;
 
 use local_coursectrl\local\contract\abstract_activity_adapter;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Activity adapter wrapping mod_assign.
  */

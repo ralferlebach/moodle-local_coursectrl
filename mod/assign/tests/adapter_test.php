@@ -17,11 +17,6 @@
 /**
  * Unit tests for the coursectrlmod_assign adapter.
  *
- * Verifies the patch-018 surface: contract integration, supported actions
- * and fields, instance enumeration, normalised description, snapshot
- * capture, validation, shift_dates preview semantics including the
- * unset-zero-date special case.
- *
  * @package    coursectrlmod_assign
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -32,9 +27,12 @@ namespace coursectrlmod_assign;
 use local_coursectrl\local\contract\abstract_activity_adapter;
 use local_coursectrl\local\contract\activity_adapter;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
+ * Verifies the patch-018 surface of the adapter: contract integration,
+ * supported actions and fields, instance enumeration, normalised
+ * description, snapshot capture, validation and shift_dates preview
+ * including the unset-zero-date special case.
+ *
  * @covers \coursectrlmod_assign\adapter
  */
 final class adapter_test extends \advanced_testcase {
@@ -48,7 +46,7 @@ final class adapter_test extends \advanced_testcase {
      * Create a course with a single assign instance with all four date
      * fields set, and return the cmid plus the original date values.
      *
-     * @return array{cmid: int, courseid: int, dates: array}
+     * @return array
      */
     private function create_assign_with_dates(): array {
         $course = $this->getDataGenerator()->create_course();

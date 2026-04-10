@@ -29,8 +29,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Non-namespaced fixture base. Inherits all 12 no-op defaults from the
  * production abstract base class. Concrete fake adapters extend this class

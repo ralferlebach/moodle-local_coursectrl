@@ -17,10 +17,6 @@
 /**
  * Plugin version definition for coursectrlmod_quiz.
  *
- * Second production activity adapter for the Course Control Hub. Wraps
- * mod_quiz and exposes its date fields (timeopen, timeclose) to the bulk
- * preview and execute pipeline.
- *
  * @package    coursectrlmod_quiz
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -29,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component    = 'coursectrlmod_quiz';
-$plugin->version      = 2026041005;
+$plugin->version      = 2026041007;
 $plugin->requires     = 2024042200; // Moodle 4.5.
 $plugin->dependencies = [
-    'local_coursectrl' => 2026041005,
+    'local_coursectrl' => 2026041007,
 ];
 $plugin->maturity = MATURITY_ALPHA;
-$plugin->release  = '0.1.13';
+$plugin->release  = '0.1.15';

@@ -15,16 +15,16 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for coursectrlmod_assign.
+ * Plugin version definition for coursectrlmod_feedback.
  *
- * @package    coursectrlmod_assign
+ * @package    coursectrlmod_feedback
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component    = 'coursectrlmod_assign';
+$plugin->component    = 'coursectrlmod_feedback';
 $plugin->version      = 2026041007;
 $plugin->requires     = 2024042200; // Moodle 4.5.
 $plugin->dependencies = [

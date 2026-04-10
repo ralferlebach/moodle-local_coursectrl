@@ -40,7 +40,6 @@ use local_coursectrl\manager\batch_manager;
 /**
  * AJAX-callable wrapper around batch_manager::execute().
  *
- * @covers \local_coursectrl\manager\batch_manager
  */
 class execute_bulk_action extends external_api {
     /**

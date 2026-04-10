@@ -38,7 +38,6 @@ use local_coursectrl\manager\preview_manager;
 /**
  * AJAX-callable wrapper around preview_manager::build().
  *
- * @covers \local_coursectrl\manager\preview_manager
  */
 class preview_bulk_action extends external_api {
     /**

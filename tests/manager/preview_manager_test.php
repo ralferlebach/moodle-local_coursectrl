@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Skeleton tests for preview_manager.
+ * Behaviour tests for the productive preview_manager.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -24,28 +24,263 @@
 
 namespace local_coursectrl\manager;
 
+use local_coursectrl\local\dto\preview_change;
+
 /**
- * Verifies the patch-023 preview_manager skeleton: registry-based DI works
- * and build() throws coding_exception until patch-024 implements the body.
+ * Verifies course-wide preview aggregation across the three productive
+ * adapters (assign, quiz, feedback) introduced in patches 018-022. Uses
+ * live registry discovery, not DI override, so any breakage of the
+ * subplugin discovery chain surfaces here as well.
  *
  * @covers \local_coursectrl\manager\preview_manager
  */
 final class preview_manager_test extends \advanced_testcase {
+    /** @var int Reference timestamp used by all date-bearing fixtures. */
+    private const BASE_TIME = 1700000000;
+
+    /** @var int One-day delta in seconds. */
+    private const ONE_DAY = 86400;
+
     /**
-     * The constructor accepts an injected registry and exposes it.
+     * Helper that creates a course with one assign, one quiz and one
+     * feedback instance, all with valid timeopen / due dates set.
+     *
+     * @return array{courseid: int, assign_cmid: int, quiz_cmid: int, feedback_cmid: int}
      */
-    public function test_constructor_accepts_injected_registry(): void {
-        $registry = new registry([]);
-        $manager = new preview_manager($registry);
-        $this->assertSame($registry, $manager->get_registry());
+    private function create_mixed_course(): array {
+        $course = $this->getDataGenerator()->create_course();
+        $assign = $this->getDataGenerator()->get_plugin_generator('mod_assign')->create_instance([
+            'course'   => $course->id,
+            'name'     => 'A1',
+            'duedate'  => self::BASE_TIME,
+        ]);
+        $quiz = $this->getDataGenerator()->get_plugin_generator('mod_quiz')->create_instance([
+            'course'    => $course->id,
+            'name'      => 'Q1',
+            'timeopen'  => self::BASE_TIME,
+            'timeclose' => self::BASE_TIME + self::ONE_DAY,
+        ]);
+        $feedback = $this->getDataGenerator()->get_plugin_generator('mod_feedback')->create_instance([
+            'course'    => $course->id,
+            'name'      => 'F1',
+            'timeopen'  => self::BASE_TIME,
+            'timeclose' => self::BASE_TIME + self::ONE_DAY,
+        ]);
+        return [
+            'courseid'      => (int)$course->id,
+            'assign_cmid'   => (int)$assign->cmid,
+            'quiz_cmid'     => (int)$quiz->cmid,
+            'feedback_cmid' => (int)$feedback->cmid,
+        ];
     }
 
     /**
-     * Calling build() throws a coding_exception in patch-023.
+     * Single-adapter call: build with one assign cmid produces a single
+     * preview_change with the four assign date fields.
      */
-    public function test_build_throws_until_implemented(): void {
-        $manager = new preview_manager(new registry([]));
-        $this->expectException(\coding_exception::class);
-        $manager->build(1, 'shift_dates', ['delta' => 86400], []);
+    public function test_single_adapter_assign(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $manager = new preview_manager();
+        $result = $manager->build(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [$fixture['assign_cmid']]
+        );
+        $this->assertCount(1, $result['changes']);
+        $this->assertSame([], $result['skipped']);
+        $this->assertSame([], $result['errors']);
+        $change = $result['changes'][$fixture['assign_cmid']];
+        $this->assertInstanceOf(preview_change::class, $change);
+        $this->assertSame('mod_assign', $change->get_component());
+        $this->assertSame('A1', $change->get_name());
+        $this->assertArrayHasKey('duedate', $change->get_fields());
+    }
+
+    /**
+     * Multi-adapter routing: build with one assign + one quiz + one
+     * feedback cmid produces three correctly typed preview_changes.
+     */
+    public function test_multi_adapter_routing(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $manager = new preview_manager();
+        $result = $manager->build(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [$fixture['assign_cmid'], $fixture['quiz_cmid'], $fixture['feedback_cmid']]
+        );
+        $this->assertCount(3, $result['changes']);
+        $this->assertSame([], $result['errors']);
+        $this->assertSame(
+            'mod_assign',
+            $result['changes'][$fixture['assign_cmid']]->get_component()
+        );
+        $this->assertSame(
+            'mod_quiz',
+            $result['changes'][$fixture['quiz_cmid']]->get_component()
+        );
+        $this->assertSame(
+            'mod_feedback',
+            $result['changes'][$fixture['feedback_cmid']]->get_component()
+        );
+    }
+
+    /**
+     * Empty cmids defaults to "all CMs of all supported components" in
+     * the course.
+     */
+    public function test_empty_cmids_means_whole_course(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $manager = new preview_manager();
+        $result = $manager->build(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => self::ONE_DAY]
+        );
+        $this->assertCount(3, $result['changes']);
+        $this->assertArrayHasKey($fixture['assign_cmid'], $result['changes']);
+        $this->assertArrayHasKey($fixture['quiz_cmid'], $result['changes']);
+        $this->assertArrayHasKey($fixture['feedback_cmid'], $result['changes']);
+    }
+
+    /**
+     * cmids that have no registered adapter are reported as skipped with
+     * reason 'no_adapter', not as errors.
+     */
+    public function test_cmid_without_adapter_is_skipped(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $label = $this->getDataGenerator()->create_module('label', [
+            'course' => $course->id,
+            'name'   => 'L1',
+        ]);
+        $manager = new preview_manager();
+        $result = $manager->build(
+            (int)$course->id,
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [(int)$label->cmid]
+        );
+        $this->assertSame([], $result['changes']);
+        $this->assertSame([], $result['errors']);
+        $this->assertCount(1, $result['skipped']);
+        $this->assertSame((int)$label->cmid, $result['skipped'][0]['cmid']);
+        $this->assertSame('no_adapter', $result['skipped'][0]['reason']);
+    }
+
+    /**
+     * cmids whose adapter does not advertise the requested action are
+     * reported as skipped with reason 'unsupported_action'.
+     */
+    public function test_cmid_with_unsupported_action_is_skipped(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $manager = new preview_manager();
+        $result = $manager->build(
+            $fixture['courseid'],
+            'set_visibility',
+            ['visible' => 1],
+            [$fixture['assign_cmid']]
+        );
+        $this->assertSame([], $result['changes']);
+        $this->assertSame([], $result['errors']);
+        $this->assertCount(1, $result['skipped']);
+        $this->assertSame($fixture['assign_cmid'], $result['skipped'][0]['cmid']);
+        $this->assertSame('unsupported_action', $result['skipped'][0]['reason']);
+    }
+
+    /**
+     * Validation errors from the adapter end up in 'errors', not in
+     * 'changes', and the changes list is empty.
+     */
+    public function test_validation_errors_are_reported(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $manager = new preview_manager();
+        $result = $manager->build(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => 'tomorrow'],
+            [$fixture['assign_cmid']]
+        );
+        $this->assertSame([], $result['changes']);
+        $this->assertNotEmpty($result['errors']);
+        $this->assertSame($fixture['assign_cmid'], $result['errors'][0]['cmid']);
+        $this->assertSame('mod_assign', $result['errors'][0]['component']);
+        $this->assertSame('invalid_delta', $result['errors'][0]['code']);
+    }
+
+    /**
+     * The summary block reflects the correct counts for changes, skipped
+     * and errors after a mixed run.
+     */
+    public function test_summary_counts(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $label = $this->getDataGenerator()->create_module('label', [
+            'course' => $fixture['courseid'],
+            'name'   => 'L1',
+        ]);
+        $manager = new preview_manager();
+        $result = $manager->build(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [
+                $fixture['assign_cmid'],
+                $fixture['quiz_cmid'],
+                (int)$label->cmid,
+            ]
+        );
+        $this->assertSame(3, $result['summary']['total']);
+        $this->assertSame(2, $result['summary']['changes']);
+        $this->assertSame(1, $result['summary']['skipped']);
+        $this->assertSame(0, $result['summary']['errors']);
+    }
+
+    /**
+     * Cross-component routing: cmids from different adapters in the same
+     * call are dispatched to the correct adapter and produce per-component
+     * preview_changes whose fields match each adapter's field map.
+     */
+    public function test_cross_component_routing_uses_correct_field_maps(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $manager = new preview_manager();
+        $result = $manager->build(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [$fixture['assign_cmid'], $fixture['quiz_cmid']]
+        );
+        $assignchange = $result['changes'][$fixture['assign_cmid']];
+        $quizchange = $result['changes'][$fixture['quiz_cmid']];
+        $this->assertArrayHasKey('duedate', $assignchange->get_fields());
+        $this->assertArrayNotHasKey('timeopen', $assignchange->get_fields());
+        $this->assertArrayHasKey('timeopen', $quizchange->get_fields());
+        $this->assertArrayNotHasKey('duedate', $quizchange->get_fields());
+    }
+
+    /**
+     * The preview result echoes back action and payload for downstream
+     * consumers (UI, batch_manager) that need to bind a preview to its
+     * intended execute call.
+     */
+    public function test_result_carries_action_and_payload(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $manager = new preview_manager();
+        $result = $manager->build(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => 12345],
+            [$fixture['assign_cmid']]
+        );
+        $this->assertSame('shift_dates', $result['action']);
+        $this->assertSame(['delta' => 12345], $result['payload']);
     }
 }

@@ -18,7 +18,7 @@
  * English language strings for local_coursectrl.
  *
  * @package    local_coursectrl
- * @copyright  2026 Course Control Hub Contributors
+ * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -27,6 +27,10 @@ defined('MOODLE_INTERNAL') || die();
 // Core.
 $string['pluginname']      = 'Course Control Hub';
 $string['pluginname_desc'] = 'Course-wide analysis, bulk editing, timeline visualisation, learner simulation, and risk detection for Moodle courses.';
+
+// Subplugin types.
+$string['subplugintype_coursectrlmod']        = 'Activity adapter';
+$string['subplugintype_coursectrlmod_plural'] = 'Activity adapters';
 
 // Capabilities.
 $string['coursectrl:view']          = 'View the Course Control Hub';

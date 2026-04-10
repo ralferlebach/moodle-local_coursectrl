@@ -28,10 +28,11 @@ use local_coursectrl\local\contract\abstract_activity_adapter;
 use local_coursectrl\local\contract\activity_adapter;
 
 /**
- * Verifies the patch-018 surface of the adapter: contract integration,
- * supported actions and fields, instance enumeration, normalised
- * description, snapshot capture, validation and shift_dates preview
- * including the unset-zero-date special case.
+ * Verifies the patch-018 / patch-020 surface of the adapter: contract
+ * integration, supported actions and fields, instance enumeration,
+ * normalised description, snapshot capture, validation, shift_dates
+ * preview including the unset-zero-date special case, and the patch-020
+ * write side: execute_action and restore_state with real database writes.
  *
  * @covers \coursectrlmod_assign\adapter
  */
@@ -60,9 +61,10 @@ final class adapter_test extends \advanced_testcase {
             'gradingduedate'           => self::BASE_TIME + (2 * self::ONE_DAY),
         ]);
         return [
-            'cmid'     => (int)$instance->cmid,
-            'courseid' => (int)$course->id,
-            'dates'    => [
+            'cmid'       => (int)$instance->cmid,
+            'instanceid' => (int)$instance->id,
+            'courseid'   => (int)$course->id,
+            'dates'      => [
                 'duedate'                  => self::BASE_TIME,
                 'allowsubmissionsfromdate' => self::BASE_TIME - self::ONE_DAY,
                 'cutoffdate'               => self::BASE_TIME + self::ONE_DAY,
@@ -200,9 +202,6 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * preview_action must NOT shift fields whose stored value is 0.
-     *
-     * This is the "unset" special case: mod_assign uses 0 to mean "not set"
-     * and a blind delta would yield epoch + delta.
      */
     public function test_preview_skips_unset_zero_dates(): void {
         $this->resetAfterTest();
@@ -236,7 +235,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * preview_action must return an empty result for any non-supported
-     * action identifier (defensive default, no exception).
+     * action identifier.
      */
     public function test_preview_returns_empty_for_unsupported_action(): void {
         $adapter = new adapter();
@@ -244,18 +243,243 @@ final class adapter_test extends \advanced_testcase {
     }
 
     /**
-     * execute_action and restore_state are intentionally inherited as
-     * no-ops in patch-018 and must therefore return an empty array.
+     * execute_action must shift the four date fields in the database.
      */
-    public function test_mutating_methods_are_still_noops(): void {
+    public function test_execute_shifts_dates_in_db(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $fixture = $this->create_assign_with_dates();
+        $adapter = new adapter();
+        $result = $adapter->execute_action(
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [$fixture['cmid']],
+            0
+        );
+        $this->assertSame('shift_dates', $result['action']);
+        $this->assertSame([], $result['errors']);
+        $this->assertCount(1, $result['items']);
+        $item = $result['items'][0];
+        $this->assertSame('ok', $item['status']);
+        $this->assertSame(
+            ['duedate', 'allowsubmissionsfromdate', 'cutoffdate', 'gradingduedate'],
+            $item['changed']
+        );
+        $record = $DB->get_record('assign', ['id' => $fixture['instanceid']]);
+        $this->assertSame(self::BASE_TIME + self::ONE_DAY, (int)$record->duedate);
+        $this->assertSame(
+            self::BASE_TIME - self::ONE_DAY + self::ONE_DAY,
+            (int)$record->allowsubmissionsfromdate
+        );
+        $this->assertSame(
+            self::BASE_TIME + self::ONE_DAY + self::ONE_DAY,
+            (int)$record->cutoffdate
+        );
+        $this->assertSame(
+            self::BASE_TIME + (2 * self::ONE_DAY) + self::ONE_DAY,
+            (int)$record->gradingduedate
+        );
+    }
+
+    /**
+     * The snapshot returned in each execute_action item must contain the
+     * pre-mutation values, captured before the DB write.
+     */
+    public function test_execute_returns_snapshot_with_old_values(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_assign_with_dates();
+        $adapter = new adapter();
+        $result = $adapter->execute_action(
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [$fixture['cmid']],
+            0
+        );
+        $snapshot = $result['items'][0]['snapshot'];
+        $this->assertSame('mod_assign', $snapshot['component']);
+        $this->assertSame($fixture['cmid'], $snapshot['cmid']);
+        $this->assertSame($fixture['instanceid'], $snapshot['instanceid']);
+        $this->assertSame($fixture['dates'], $snapshot['fields']);
+        $this->assertSame(1, $snapshot['version']);
+    }
+
+    /**
+     * execute_action must skip unset (zero) date fields just like preview.
+     */
+    public function test_execute_skips_unset_zero_dates(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_assign');
+        $instance = $generator->create_instance([
+            'course'                   => $course->id,
+            'name'                     => 'Sparse Assign',
+            'duedate'                  => self::BASE_TIME,
+            'allowsubmissionsfromdate' => 0,
+            'cutoffdate'               => 0,
+            'gradingduedate'           => 0,
+        ]);
+        $adapter = new adapter();
+        $result = $adapter->execute_action(
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [(int)$instance->cmid],
+            0
+        );
+        $item = $result['items'][0];
+        $this->assertSame('ok', $item['status']);
+        $this->assertSame(['duedate'], $item['changed']);
+        $record = $DB->get_record('assign', ['id' => $instance->id]);
+        $this->assertSame(self::BASE_TIME + self::ONE_DAY, (int)$record->duedate);
+        $this->assertSame(0, (int)$record->allowsubmissionsfromdate);
+        $this->assertSame(0, (int)$record->cutoffdate);
+        $this->assertSame(0, (int)$record->gradingduedate);
+    }
+
+    /**
+     * execute_action with delta=0 must not write to the DB and must return
+     * status 'noop' for the affected cmid.
+     */
+    public function test_execute_noop_when_delta_is_zero(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $fixture = $this->create_assign_with_dates();
+        $adapter = new adapter();
+        $before = $DB->get_record('assign', ['id' => $fixture['instanceid']]);
+        $result = $adapter->execute_action(
+            'shift_dates',
+            ['delta' => 0],
+            [$fixture['cmid']],
+            0
+        );
+        $item = $result['items'][0];
+        $this->assertSame('noop', $item['status']);
+        $this->assertSame([], $item['changed']);
+        $after = $DB->get_record('assign', ['id' => $fixture['instanceid']]);
+        $this->assertSame((int)$before->duedate, (int)$after->duedate);
+        $this->assertSame((int)$before->timemodified, (int)$after->timemodified);
+    }
+
+    /**
+     * execute_action must reject invalid payloads via validate_action and
+     * return the validation errors without touching the database.
+     */
+    public function test_execute_validates_payload_first(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $fixture = $this->create_assign_with_dates();
+        $adapter = new adapter();
+        $before = $DB->get_record('assign', ['id' => $fixture['instanceid']]);
+        $result = $adapter->execute_action(
+            'shift_dates',
+            ['delta' => 'next monday'],
+            [$fixture['cmid']],
+            0
+        );
+        $this->assertSame([], $result['items']);
+        $this->assertNotEmpty($result['errors']);
+        $this->assertSame('invalid_delta', $result['errors'][0]['code']);
+        $after = $DB->get_record('assign', ['id' => $fixture['instanceid']]);
+        $this->assertSame((int)$before->duedate, (int)$after->duedate);
+    }
+
+    /**
+     * execute_action must return an empty result for unsupported actions.
+     */
+    public function test_execute_returns_empty_for_unsupported_action(): void {
         $adapter = new adapter();
         $this->assertSame(
             [],
-            $adapter->execute_action('shift_dates', ['delta' => self::ONE_DAY], [1], 7)
+            $adapter->execute_action('set_visibility', ['visible' => 1], [1], 0)
         );
+    }
+
+    /**
+     * Round-trip: execute then restore must restore the original DB state.
+     */
+    public function test_restore_state_round_trip(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $fixture = $this->create_assign_with_dates();
+        $adapter = new adapter();
+        $exec = $adapter->execute_action(
+            'shift_dates',
+            ['delta' => 7 * self::ONE_DAY],
+            [$fixture['cmid']],
+            0
+        );
+        $snapshot = $exec['items'][0]['snapshot'];
+        $shifted = $DB->get_record('assign', ['id' => $fixture['instanceid']]);
+        $this->assertNotSame((int)$shifted->duedate, $fixture['dates']['duedate']);
+
+        $restore = $adapter->restore_state($snapshot);
+        $this->assertSame('ok', $restore['status']);
+        $this->assertSame($fixture['cmid'], $restore['cmid']);
+        $this->assertSame($fixture['dates'], $restore['restored']);
+
+        $restored = $DB->get_record('assign', ['id' => $fixture['instanceid']]);
+        $this->assertSame($fixture['dates']['duedate'], (int)$restored->duedate);
         $this->assertSame(
-            [],
-            $adapter->restore_state(['component' => 'mod_assign', 'cmid' => 1, 'fields' => []])
+            $fixture['dates']['allowsubmissionsfromdate'],
+            (int)$restored->allowsubmissionsfromdate
         );
+        $this->assertSame($fixture['dates']['cutoffdate'], (int)$restored->cutoffdate);
+        $this->assertSame($fixture['dates']['gradingduedate'], (int)$restored->gradingduedate);
+    }
+
+    /**
+     * restore_state must reject snapshots whose component does not match.
+     */
+    public function test_restore_state_rejects_invalid_component(): void {
+        $adapter = new adapter();
+        $result = $adapter->restore_state([
+            'component' => 'mod_quiz',
+            'cmid'      => 1,
+            'fields'    => ['duedate' => 1700000000],
+        ]);
+        $this->assertSame('failed', $result['status']);
+        $this->assertSame('invalid_component', $result['code']);
+    }
+
+    /**
+     * restore_state must reject snapshots without a fields array.
+     */
+    public function test_restore_state_rejects_missing_fields(): void {
+        $adapter = new adapter();
+        $result = $adapter->restore_state([
+            'component' => 'mod_assign',
+            'cmid'      => 1,
+        ]);
+        $this->assertSame('failed', $result['status']);
+        $this->assertSame('invalid_snapshot', $result['code']);
+    }
+
+    /**
+     * restore_state must directly write a hand-built snapshot to the DB
+     * without requiring a prior execute_action call.
+     */
+    public function test_restore_state_writes_directly_to_db(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $fixture = $this->create_assign_with_dates();
+        $adapter = new adapter();
+        $result = $adapter->restore_state([
+            'component'  => 'mod_assign',
+            'cmid'       => $fixture['cmid'],
+            'instanceid' => $fixture['instanceid'],
+            'fields'     => [
+                'duedate'                  => 1234500000,
+                'allowsubmissionsfromdate' => 1234400000,
+                'cutoffdate'               => 1234600000,
+                'gradingduedate'           => 1234700000,
+            ],
+            'version'    => 1,
+        ]);
+        $this->assertSame('ok', $result['status']);
+        $record = $DB->get_record('assign', ['id' => $fixture['instanceid']]);
+        $this->assertSame(1234500000, (int)$record->duedate);
+        $this->assertSame(1234400000, (int)$record->allowsubmissionsfromdate);
+        $this->assertSame(1234600000, (int)$record->cutoffdate);
+        $this->assertSame(1234700000, (int)$record->gradingduedate);
     }
 }

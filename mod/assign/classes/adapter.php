@@ -17,11 +17,20 @@
 /**
  * Course Control Hub adapter for mod_assign.
  *
- * Patch-018 scope: read-only inventory plus preview for shift_dates and
- * snapshot capture via export_state. The mutating methods execute_action()
- * and restore_state() are intentionally inherited as no-ops from
- * abstract_activity_adapter and will be implemented in a follow-up patch
- * once the bulk engine in Phase 4 lands.
+ * Patch-018 introduced read-only inventory plus preview for shift_dates and
+ * snapshot capture via export_state. Patch-020 adds the write side:
+ * execute_action() for shift_dates and restore_state() — both perform direct
+ * $DB->update_record('assign', ...) writes.
+ *
+ * Capability gating is intentionally NOT performed inside the adapter; it
+ * lives one layer up in the bulk engine / external function (Phase 4) which
+ * will check 'local/coursectrl:bulkaction' before invoking execute_action()
+ * or restore_state(). The adapter trusts its caller.
+ *
+ * Known limitation (Phase-4 follow-up): direct DB updates do NOT trigger
+ * mod_assign's calendar event refresh. The bulk engine in Phase 4 must call
+ * the appropriate calendar API after a successful execute_action() to keep
+ * due-date calendar entries in sync.
  *
  * @package    coursectrlmod_assign
  * @copyright  2026 Ralf Erlebach
@@ -57,9 +66,6 @@ class adapter extends abstract_activity_adapter {
 
     /**
      * Actions this adapter handles.
-     *
-     * Patch-018 exposes shift_dates as previewable. execute_action remains
-     * a no-op until the bulk engine ships.
      *
      * @return string[]
      */
@@ -134,9 +140,6 @@ class adapter extends abstract_activity_adapter {
     /**
      * Validate a shift_dates payload.
      *
-     * Other actions are reported as unsupported. The bulk engine in Phase 4
-     * is expected to call this before preview / execute.
-     *
      * @param string $action  action identifier.
      * @param array  $payload action-specific parameters.
      * @param int[]  $cmids   target course module ids.
@@ -164,10 +167,6 @@ class adapter extends abstract_activity_adapter {
 
     /**
      * Build a deterministic preview for shift_dates.
-     *
-     * Per-field semantics: a stored date value of 0 means "unset" in
-     * mod_assign and is left untouched (reason: 'unset'). All other values
-     * are reported with old / new / shifted flags.
      *
      * @param string $action  action identifier.
      * @param array  $payload action-specific parameters.
@@ -226,10 +225,125 @@ class adapter extends abstract_activity_adapter {
     }
 
     /**
-     * Capture the rollback-relevant state of one assign instance.
+     * Execute shift_dates against the given assign course modules.
      *
-     * Returns a flat snapshot of the four shiftable date fields plus the
-     * cmid and instanceid needed by a future restore_state implementation.
+     * Algorithm per cmid:
+     *   1. Resolve the instance and capture a snapshot of its current dates.
+     *   2. Compute new values for every shiftable field whose stored value
+     *      is non-zero (zero means "unset" in mod_assign and is preserved).
+     *   3. If no field would change, return status='noop' WITHOUT writing.
+     *   4. Otherwise issue a single $DB->update_record('assign', ...) and
+     *      bump timemodified.
+     *
+     * The snapshot in each item is captured BEFORE the write and is the
+     * value the bulk engine should persist into local_coursectrl_snapshot
+     * for rollback.
+     *
+     * @param string $action  action identifier.
+     * @param array  $payload action-specific parameters; requires 'delta'.
+     * @param int[]  $cmids   target course module ids.
+     * @param int    $userid  acting user id (currently unused inside the
+     *                        adapter; the bulk engine logs it via events).
+     * @return array
+     */
+    public function execute_action(string $action, array $payload, array $cmids, int $userid): array {
+        if ($action !== 'shift_dates') {
+            return [];
+        }
+        $validation = $this->validate_action($action, $payload, $cmids);
+        if (empty($validation['valid'])) {
+            return [
+                'action'  => $action,
+                'payload' => $payload,
+                'items'   => [],
+                'errors'  => $validation['errors'],
+            ];
+        }
+        global $DB;
+        $delta  = (int)$payload['delta'];
+        $items  = [];
+        $errors = [];
+        foreach ($cmids as $rawcmid) {
+            $cmid = (int)$rawcmid;
+            try {
+                $description = $this->describe_instance($cmid);
+            } catch (\Throwable $e) {
+                $errors[] = [
+                    'cmid'    => $cmid,
+                    'code'    => 'describe_failed',
+                    'message' => $e->getMessage(),
+                ];
+                $items[] = [
+                    'cmid'    => $cmid,
+                    'status'  => 'failed',
+                    'message' => $e->getMessage(),
+                ];
+                continue;
+            }
+            $snapshot = [
+                'component'  => 'mod_assign',
+                'cmid'       => $cmid,
+                'instanceid' => $description['instanceid'],
+                'fields'     => $description['dates'],
+                'version'    => 1,
+            ];
+            $update = new \stdClass();
+            $update->id = $description['instanceid'];
+            $changed = [];
+            foreach ($description['dates'] as $name => $oldvalue) {
+                if ($oldvalue === 0) {
+                    continue;
+                }
+                $newvalue = $oldvalue + $delta;
+                if ($newvalue === $oldvalue) {
+                    continue;
+                }
+                $update->$name = $newvalue;
+                $changed[] = $name;
+            }
+            if (empty($changed)) {
+                $items[] = [
+                    'cmid'     => $cmid,
+                    'status'   => 'noop',
+                    'snapshot' => $snapshot,
+                    'changed'  => [],
+                ];
+                continue;
+            }
+            $update->timemodified = time();
+            try {
+                $DB->update_record('assign', $update);
+            } catch (\Throwable $e) {
+                $errors[] = [
+                    'cmid'    => $cmid,
+                    'code'    => 'db_write_failed',
+                    'message' => $e->getMessage(),
+                ];
+                $items[] = [
+                    'cmid'     => $cmid,
+                    'status'   => 'failed',
+                    'snapshot' => $snapshot,
+                    'message'  => $e->getMessage(),
+                ];
+                continue;
+            }
+            $items[] = [
+                'cmid'     => $cmid,
+                'status'   => 'ok',
+                'snapshot' => $snapshot,
+                'changed'  => $changed,
+            ];
+        }
+        return [
+            'action'  => 'shift_dates',
+            'payload' => ['delta' => $delta],
+            'items'   => $items,
+            'errors'  => $errors,
+        ];
+    }
+
+    /**
+     * Capture the rollback-relevant state of one assign instance.
      *
      * @param int $cmid course module id.
      * @return array
@@ -242,6 +356,82 @@ class adapter extends abstract_activity_adapter {
             'instanceid' => $description['instanceid'],
             'fields'     => $description['dates'],
             'version'    => 1,
+        ];
+    }
+
+    /**
+     * Restore an assign instance from a previously exported snapshot.
+     *
+     * Validation steps:
+     *   - component must be 'mod_assign'
+     *   - cmid must be set
+     *   - fields must be a non-empty array containing at least one of the
+     *     four shiftable date fields known to field_map
+     *
+     * The instance id is taken from the snapshot when present; otherwise
+     * it is resolved by re-reading the course module from the cmid.
+     *
+     * @param array $state snapshot payload.
+     * @return array
+     */
+    public function restore_state(array $state): array {
+        if (($state['component'] ?? null) !== 'mod_assign') {
+            return [
+                'status' => 'failed',
+                'code'   => 'invalid_component',
+            ];
+        }
+        if (empty($state['cmid']) || !isset($state['fields']) || !is_array($state['fields'])) {
+            return [
+                'status' => 'failed',
+                'code'   => 'invalid_snapshot',
+            ];
+        }
+        $update = new \stdClass();
+        if (!empty($state['instanceid'])) {
+            $update->id = (int)$state['instanceid'];
+        } else {
+            try {
+                $cm = get_coursemodule_from_id('assign', (int)$state['cmid'], 0, false, MUST_EXIST);
+                $update->id = (int)$cm->instance;
+            } catch (\Throwable $e) {
+                return [
+                    'status'  => 'failed',
+                    'code'    => 'cmid_unresolved',
+                    'message' => $e->getMessage(),
+                ];
+            }
+        }
+        $allowed = field_map::get_shiftable_field_names();
+        $restored = [];
+        foreach ($state['fields'] as $name => $value) {
+            if (!in_array($name, $allowed, true)) {
+                continue;
+            }
+            $update->$name = (int)$value;
+            $restored[$name] = (int)$value;
+        }
+        if (empty($restored)) {
+            return [
+                'status' => 'failed',
+                'code'   => 'no_restorable_fields',
+            ];
+        }
+        $update->timemodified = time();
+        global $DB;
+        try {
+            $DB->update_record('assign', $update);
+        } catch (\Throwable $e) {
+            return [
+                'status'  => 'failed',
+                'code'    => 'db_write_failed',
+                'message' => $e->getMessage(),
+            ];
+        }
+        return [
+            'status'   => 'ok',
+            'cmid'     => (int)$state['cmid'],
+            'restored' => $restored,
         ];
     }
 }

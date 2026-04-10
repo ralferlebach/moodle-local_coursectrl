@@ -19,7 +19,7 @@
  *
  * First production activity adapter for the Course Control Hub. Wraps
  * mod_assign and exposes its date fields (duedate, allowsubmissionsfromdate,
- * cutoffdate, gradingduedate) to the bulk preview pipeline.
+ * cutoffdate, gradingduedate) to the bulk preview and execute pipeline.
  *
  * @package    coursectrlmod_assign
  * @copyright  2026 Ralf Erlebach
@@ -29,10 +29,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component    = 'coursectrlmod_assign';
-$plugin->version      = 2026041003;
+$plugin->version      = 2026041004;
 $plugin->requires     = 2024042200; // Moodle 4.5.
 $plugin->dependencies = [
-    'local_coursectrl' => 2026041003,
+    'local_coursectrl' => 2026041004,
 ];
 $plugin->maturity = MATURITY_ALPHA;
-$plugin->release  = '0.1.11';
+$plugin->release  = '0.1.12';

@@ -15,29 +15,26 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Course Control Hub adapter for mod_assign.
+ * Course Control Hub adapter for mod_feedback.
  *
  * Refactored in patch-025 to delegate the validate / preview / execute /
- * export / restore pipeline to the shift_dates_executor trait. Only
- * module-specific code remains here: the four shift_dates_executor hooks
- * plus is_available, get_instances_for_course and describe_instance.
+ * export / restore pipeline to the shift_dates_executor trait. The cross-
+ * component snapshot rejection that protects against quiz/feedback field
+ * name collisions is handled by static::component() inside the trait's
+ * restore_state implementation.
  *
- * Capability gating remains the responsibility of the bulk engine in
- * Phase 4. Calendar event refresh is also a Phase-4 concern and lives in
- * the central batch_manager rather than per-adapter.
- *
- * @package    coursectrlmod_assign
+ * @package    coursectrlmod_feedback
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace coursectrlmod_assign;
+namespace coursectrlmod_feedback;
 
 use local_coursectrl\local\contract\abstract_activity_adapter;
 use local_coursectrl\local\contract\shift_dates_executor;
 
 /**
- * Activity adapter wrapping mod_assign.
+ * Activity adapter wrapping mod_feedback.
  */
 class adapter extends abstract_activity_adapter {
     use shift_dates_executor;
@@ -48,17 +45,17 @@ class adapter extends abstract_activity_adapter {
      * @return string
      */
     public static function component(): string {
-        return 'mod_assign';
+        return 'mod_feedback';
     }
 
     /**
-     * Whether mod_assign is installed and usable on this site.
+     * Whether mod_feedback is installed and usable on this site.
      *
      * @return bool
      */
     public function is_available(): bool {
         $modules = \core_component::get_plugin_list('mod');
-        return is_array($modules) && array_key_exists('assign', $modules);
+        return is_array($modules) && array_key_exists('feedback', $modules);
     }
 
     /**
@@ -71,7 +68,7 @@ class adapter extends abstract_activity_adapter {
     }
 
     /**
-     * Field descriptors for bulk-editable assign fields.
+     * Field descriptors for bulk-editable feedback fields.
      *
      * @return array
      */
@@ -80,7 +77,7 @@ class adapter extends abstract_activity_adapter {
     }
 
     /**
-     * Enumerate all assign instances in a course.
+     * Enumerate all feedback instances in a course.
      *
      * @param int   $courseid target course id.
      * @param array $filters  reserved for future use, currently ignored.
@@ -88,7 +85,7 @@ class adapter extends abstract_activity_adapter {
      */
     public function get_instances_for_course(int $courseid, array $filters = []): array {
         $result = [];
-        $cms = get_coursemodules_in_course('assign', $courseid);
+        $cms = get_coursemodules_in_course('feedback', $courseid);
         if (!is_array($cms)) {
             return $result;
         }
@@ -105,27 +102,27 @@ class adapter extends abstract_activity_adapter {
     }
 
     /**
-     * Return a normalised description of a single assign course module.
+     * Return a normalised description of a single feedback course module.
      *
      * @param int $cmid course module id.
      * @return array
      */
     public function describe_instance(int $cmid): array {
         global $DB;
-        $cm = get_coursemodule_from_id('assign', $cmid, 0, false, MUST_EXIST);
-        $assign = $DB->get_record(
-            'assign',
+        $cm = get_coursemodule_from_id('feedback', $cmid, 0, false, MUST_EXIST);
+        $feedback = $DB->get_record(
+            'feedback',
             ['id' => $cm->instance],
             $this->get_record_select_fields(),
             MUST_EXIST
         );
         return [
             'cmid'       => (int)$cmid,
-            'component'  => 'mod_assign',
+            'component'  => 'mod_feedback',
             'instanceid' => (int)$cm->instance,
-            'name'       => (string)$assign->name,
+            'name'       => (string)$feedback->name,
             'visible'    => (bool)$cm->visible,
-            'dates'      => $this->read_dates_from_record($assign),
+            'dates'      => $this->read_dates_from_record($feedback),
         ];
     }
 
@@ -135,7 +132,7 @@ class adapter extends abstract_activity_adapter {
      * @return string
      */
     protected function get_table_name(): string {
-        return 'assign';
+        return 'feedback';
     }
 
     /**
@@ -153,21 +150,19 @@ class adapter extends abstract_activity_adapter {
      * @return string
      */
     protected function get_record_select_fields(): string {
-        return 'id, name, duedate, allowsubmissionsfromdate, cutoffdate, gradingduedate';
+        return 'id, name, timeopen, timeclose';
     }
 
     /**
-     * Maps a {assign} record to the four assign date fields.
+     * Maps a {feedback} record to the two feedback date fields.
      *
-     * @param \stdClass $record raw {assign} record.
+     * @param \stdClass $record raw {feedback} record.
      * @return array<string, int>
      */
     protected function read_dates_from_record(\stdClass $record): array {
         return [
-            'duedate'                  => (int)$record->duedate,
-            'allowsubmissionsfromdate' => (int)$record->allowsubmissionsfromdate,
-            'cutoffdate'               => (int)$record->cutoffdate,
-            'gradingduedate'           => (int)$record->gradingduedate,
+            'timeopen'  => (int)$record->timeopen,
+            'timeclose' => (int)$record->timeclose,
         ];
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -14,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/**
+/*
  * Test fixture: available fake adapter targeting mod_assign.
  *
  * @package    local_coursectrl
@@ -22,20 +23,20 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+defined('MOODLE_INTERNAL') || exit;
 
-require_once(__DIR__ . '/fake_adapter_base.php');
+require_once __DIR__.'/fake_adapter_base.php';
 
 /**
  * Available fake adapter targeting mod_assign.
  */
-class local_coursectrl_fake_adapter_assign extends local_coursectrl_fake_adapter_base {
+class local_coursectrl_fake_adapter_assign extends local_coursectrl_fake_adapter_base
+{
     /**
      * Returns the target component name.
-     *
-     * @return string
      */
-    public static function component(): string {
+    public static function component(): string
+    {
         return 'mod_assign';
     }
 }

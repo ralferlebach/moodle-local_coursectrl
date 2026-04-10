@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -14,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/**
+/*
  * German strings for coursectrlmod_quiz.
  *
  * @package    coursectrlmod_quiz
@@ -22,10 +23,10 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+defined('MOODLE_INTERNAL') || exit;
 
-$string['pluginname']         = 'Kursablauf-Zentrale: Test-Adapter';
+$string['pluginname'] = 'Kursablauf-Zentrale: Test-Adapter';
 $string['action_shift_dates'] = 'Termine verschieben';
-$string['field_timeopen']     = 'Test öffnen';
-$string['field_timeclose']    = 'Test schließen';
-$string['privacy:metadata']   = 'Der Test-Adapter der Kursablauf-Zentrale speichert keine personenbezogenen Daten. Er arbeitet im Auftrag des Plugins local_coursectrl auf den Konfigurationsdaten von Tests und überlässt diesem die gesamte Persistenz.';
+$string['field_timeopen'] = 'Test öffnen';
+$string['field_timeclose'] = 'Test schließen';
+$string['privacy:metadata'] = 'Der Test-Adapter der Kursablauf-Zentrale speichert keine personenbezogenen Daten. Er arbeitet im Auftrag des Plugins local_coursectrl auf den Konfigurationsdaten von Tests und überlässt diesem die gesamte Persistenz.';

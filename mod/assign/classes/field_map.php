@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -28,7 +29,6 @@
  *                   NOT be shifted by a delta (would yield epoch + delta).
  *   sql_column    - the column name in the {assign} table.
  *
- * @package    coursectrlmod_assign
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -38,42 +38,42 @@ namespace coursectrlmod_assign;
 /**
  * Static field descriptor source for mod_assign.
  */
-final class field_map {
+final class field_map
+{
     /**
      * Return the date field descriptors handled by this adapter.
      *
      * Keys are the canonical field names; values are descriptor arrays.
-     *
-     * @return array
      */
-    public static function get_date_fields(): array {
+    public static function get_date_fields(): array
+    {
         return [
             'duedate' => [
-                'name'          => 'duedate',
-                'label_key'     => 'field_duedate',
-                'sql_column'    => 'duedate',
-                'shiftable'     => true,
+                'name' => 'duedate',
+                'label_key' => 'field_duedate',
+                'sql_column' => 'duedate',
+                'shiftable' => true,
                 'nullable_zero' => true,
             ],
             'allowsubmissionsfromdate' => [
-                'name'          => 'allowsubmissionsfromdate',
-                'label_key'     => 'field_allowsubmissionsfromdate',
-                'sql_column'    => 'allowsubmissionsfromdate',
-                'shiftable'     => true,
+                'name' => 'allowsubmissionsfromdate',
+                'label_key' => 'field_allowsubmissionsfromdate',
+                'sql_column' => 'allowsubmissionsfromdate',
+                'shiftable' => true,
                 'nullable_zero' => true,
             ],
             'cutoffdate' => [
-                'name'          => 'cutoffdate',
-                'label_key'     => 'field_cutoffdate',
-                'sql_column'    => 'cutoffdate',
-                'shiftable'     => true,
+                'name' => 'cutoffdate',
+                'label_key' => 'field_cutoffdate',
+                'sql_column' => 'cutoffdate',
+                'shiftable' => true,
                 'nullable_zero' => true,
             ],
             'gradingduedate' => [
-                'name'          => 'gradingduedate',
-                'label_key'     => 'field_gradingduedate',
-                'sql_column'    => 'gradingduedate',
-                'shiftable'     => true,
+                'name' => 'gradingduedate',
+                'label_key' => 'field_gradingduedate',
+                'sql_column' => 'gradingduedate',
+                'shiftable' => true,
                 'nullable_zero' => true,
             ],
         ];
@@ -84,13 +84,15 @@ final class field_map {
      *
      * @return string[]
      */
-    public static function get_shiftable_field_names(): array {
+    public static function get_shiftable_field_names(): array
+    {
         $result = [];
         foreach (self::get_date_fields() as $name => $descriptor) {
             if (!empty($descriptor['shiftable'])) {
                 $result[] = $name;
             }
         }
+
         return $result;
     }
 }

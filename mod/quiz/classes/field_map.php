@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -29,7 +30,6 @@
  *                   NOT be shifted by a delta (would yield epoch + delta).
  *   sql_column    - the column name in the {quiz} table.
  *
- * @package    coursectrlmod_quiz
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -39,26 +39,26 @@ namespace coursectrlmod_quiz;
 /**
  * Static field descriptor source for mod_quiz.
  */
-final class field_map {
+final class field_map
+{
     /**
      * Return the date field descriptors handled by this adapter.
-     *
-     * @return array
      */
-    public static function get_date_fields(): array {
+    public static function get_date_fields(): array
+    {
         return [
             'timeopen' => [
-                'name'          => 'timeopen',
-                'label_key'     => 'field_timeopen',
-                'sql_column'    => 'timeopen',
-                'shiftable'     => true,
+                'name' => 'timeopen',
+                'label_key' => 'field_timeopen',
+                'sql_column' => 'timeopen',
+                'shiftable' => true,
                 'nullable_zero' => true,
             ],
             'timeclose' => [
-                'name'          => 'timeclose',
-                'label_key'     => 'field_timeclose',
-                'sql_column'    => 'timeclose',
-                'shiftable'     => true,
+                'name' => 'timeclose',
+                'label_key' => 'field_timeclose',
+                'sql_column' => 'timeclose',
+                'shiftable' => true,
                 'nullable_zero' => true,
             ],
         ];
@@ -69,13 +69,15 @@ final class field_map {
      *
      * @return string[]
      */
-    public static function get_shiftable_field_names(): array {
+    public static function get_shiftable_field_names(): array
+    {
         $result = [];
         foreach (self::get_date_fields() as $name => $descriptor) {
             if (!empty($descriptor['shiftable'])) {
                 $result[] = $name;
             }
         }
+
         return $result;
     }
 }

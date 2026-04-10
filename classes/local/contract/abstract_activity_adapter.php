@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -35,7 +36,6 @@
  *                              this base class safe to plug in for any
  *                              partially implemented adapter.
  *
- * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -47,14 +47,13 @@ namespace local_coursectrl\local\contract;
  *
  * See class-level docblock for the default semantics of each method.
  */
-abstract class abstract_activity_adapter implements activity_adapter {
+abstract class abstract_activity_adapter implements activity_adapter
+{
     /**
      * Return the Moodle component name this adapter targets.
      *
      * Concrete subclasses must implement this method and return a frankenstyle
      * component name such as 'mod_assign'.
-     *
-     * @return string
      */
     abstract public static function component(): string;
 
@@ -63,10 +62,9 @@ abstract class abstract_activity_adapter implements activity_adapter {
      *
      * Default: true. Override in subclasses that need to verify the presence
      * of the wrapped activity module or other site preconditions.
-     *
-     * @return bool
      */
-    public function is_available(): bool {
+    public function is_available(): bool
+    {
         return true;
     }
 
@@ -79,7 +77,8 @@ abstract class abstract_activity_adapter implements activity_adapter {
      *
      * @return string[]
      */
-    public function get_supported_actions(): array {
+    public function get_supported_actions(): array
+    {
         return [];
     }
 
@@ -88,10 +87,9 @@ abstract class abstract_activity_adapter implements activity_adapter {
      *
      * Default: empty list. Override to expose a stable field descriptor
      * map consumed by the UI and the bulk validation pipeline.
-     *
-     * @return array
      */
-    public function get_supported_fields(): array {
+    public function get_supported_fields(): array
+    {
         return [];
     }
 
@@ -101,11 +99,11 @@ abstract class abstract_activity_adapter implements activity_adapter {
      * Default: empty list. Override in concrete adapters to enumerate
      * instances via the wrapped module's API.
      *
-     * @param int   $courseid target course id.
-     * @param array $filters  optional filter map.
-     * @return array
+     * @param int   $courseid target course id
+     * @param array $filters  optional filter map
      */
-    public function get_instances_for_course(int $courseid, array $filters = []): array {
+    public function get_instances_for_course(int $courseid, array $filters = []): array
+    {
         return [];
     }
 
@@ -114,10 +112,10 @@ abstract class abstract_activity_adapter implements activity_adapter {
      *
      * Default: empty array. Override to expose a normalised descriptor.
      *
-     * @param int $cmid course module id.
-     * @return array
+     * @param int $cmid course module id
      */
-    public function describe_instance(int $cmid): array {
+    public function describe_instance(int $cmid): array
+    {
         return [];
     }
 
@@ -128,12 +126,12 @@ abstract class abstract_activity_adapter implements activity_adapter {
      * Override in adapters that support actions, since the default would
      * silently accept any payload.
      *
-     * @param string $action  action identifier.
-     * @param array  $payload action-specific parameters.
-     * @param int[]  $cmids   target course module ids.
-     * @return array
+     * @param string $action  action identifier
+     * @param array  $payload action-specific parameters
+     * @param int[]  $cmids   target course module ids
      */
-    public function validate_action(string $action, array $payload, array $cmids): array {
+    public function validate_action(string $action, array $payload, array $cmids): array
+    {
         return [];
     }
 
@@ -143,12 +141,12 @@ abstract class abstract_activity_adapter implements activity_adapter {
      * Default: empty preview. Override to compute old/new values, conflicts
      * and warnings without writing to the database.
      *
-     * @param string $action  action identifier.
-     * @param array  $payload action-specific parameters.
-     * @param int[]  $cmids   target course module ids.
-     * @return array
+     * @param string $action  action identifier
+     * @param array  $payload action-specific parameters
+     * @param int[]  $cmids   target course module ids
      */
-    public function preview_action(string $action, array $payload, array $cmids): array {
+    public function preview_action(string $action, array $payload, array $cmids): array
+    {
         return [];
     }
 
@@ -159,13 +157,13 @@ abstract class abstract_activity_adapter implements activity_adapter {
      * any state. Override in adapters that support actions and capture a
      * snapshot via export_state() before mutating.
      *
-     * @param string $action  action identifier.
-     * @param array  $payload action-specific parameters.
-     * @param int[]  $cmids   target course module ids.
-     * @param int    $userid  acting user id.
-     * @return array
+     * @param string $action  action identifier
+     * @param array  $payload action-specific parameters
+     * @param int[]  $cmids   target course module ids
+     * @param int    $userid  acting user id
      */
-    public function execute_action(string $action, array $payload, array $cmids, int $userid): array {
+    public function execute_action(string $action, array $payload, array $cmids, int $userid): array
+    {
         return [];
     }
 
@@ -175,10 +173,10 @@ abstract class abstract_activity_adapter implements activity_adapter {
      * Default: empty snapshot. Override to capture the fields touched by
      * supported actions so that restore_state() can recreate them.
      *
-     * @param int $cmid course module id.
-     * @return array
+     * @param int $cmid course module id
      */
-    public function export_state(int $cmid): array {
+    public function export_state(int $cmid): array
+    {
         return [];
     }
 
@@ -188,10 +186,10 @@ abstract class abstract_activity_adapter implements activity_adapter {
      * Default: empty result. Override to apply the snapshot back to the
      * wrapped module instance.
      *
-     * @param array $state snapshot payload.
-     * @return array
+     * @param array $state snapshot payload
      */
-    public function restore_state(array $state): array {
+    public function restore_state(array $state): array
+    {
         return [];
     }
 
@@ -201,11 +199,11 @@ abstract class abstract_activity_adapter implements activity_adapter {
      * Default: empty result. Override to add module-specific findings to
      * the risk and dead-end analyzer's output.
      *
-     * @param int[] $cmids   target course module ids.
-     * @param array $profile optional check profile.
-     * @return array
+     * @param int[] $cmids   target course module ids
+     * @param array $profile optional check profile
      */
-    public function run_checks(array $cmids, array $profile = []): array {
+    public function run_checks(array $cmids, array $profile = []): array
+    {
         return [];
     }
 
@@ -215,10 +213,10 @@ abstract class abstract_activity_adapter implements activity_adapter {
      * Default: empty list. Override to expose module-specific edges that
      * complement Moodle's availability tree (e.g. lesson branches).
      *
-     * @param int[] $cmids target course module ids.
-     * @return array
+     * @param int[] $cmids target course module ids
      */
-    public function get_dependency_hints(array $cmids): array {
+    public function get_dependency_hints(array $cmids): array
+    {
         return [];
     }
 }

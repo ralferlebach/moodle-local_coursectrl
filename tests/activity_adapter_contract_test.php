@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -22,7 +23,6 @@
  * by CI before it can land on main. The Pflichtenheft lists exactly 13
  * methods on this interface; the test enforces that number.
  *
- * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -34,17 +34,19 @@ namespace local_coursectrl;
  *
  * @coversNothing
  */
-final class activity_adapter_contract_test extends \advanced_testcase {
+final class activity_adapter_contract_test extends \advanced_testcase
+{
     /** Fully qualified interface name. */
-    private const IFACE = 'local_coursectrl\\local\\contract\\activity_adapter';
+    private const IFACE = 'local_coursectrl\local\contract\activity_adapter';
 
     /**
      * The interface file and class must be present and loadable.
      */
-    public function test_interface_exists(): void {
+    public function test_interface_exists(): void
+    {
         $this->assertTrue(
             interface_exists(self::IFACE),
-            'Interface local_coursectrl\\local\\contract\\activity_adapter must exist.'
+            'Interface local_coursectrl\local\contract\activity_adapter must exist.'
         );
     }
 
@@ -52,7 +54,8 @@ final class activity_adapter_contract_test extends \advanced_testcase {
      * The interface must define exactly the 13 methods specified in the
      * Pflichtenheft. Both under- and over-definition fail the build.
      */
-    public function test_interface_method_count(): void {
+    public function test_interface_method_count(): void
+    {
         $ref = new \ReflectionClass(self::IFACE);
         $this->assertCount(
             13,
@@ -65,7 +68,8 @@ final class activity_adapter_contract_test extends \advanced_testcase {
      * Every method named in the Pflichtenheft must be present with the
      * correct name, parameter count and return type. Signatures are frozen.
      */
-    public function test_interface_method_signatures(): void {
+    public function test_interface_method_signatures(): void
+    {
         $expected = [
             'component' => ['params' => 0, 'return' => 'string', 'static' => true],
             'is_available' => ['params' => 0, 'return' => 'bool', 'static' => false],
@@ -106,7 +110,7 @@ final class activity_adapter_contract_test extends \advanced_testcase {
             );
             $this->assertSame(
                 $spec['return'],
-                (string)$returntype,
+                (string) $returntype,
                 "Method {$name}() has unexpected return type."
             );
         }

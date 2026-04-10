@@ -1,4 +1,10 @@
 <?php
+
+use core\output\notification;
+use local_coursectrl\local\inventory\inventory_service;
+use local_coursectrl\output\dashboard_page;
+use local_coursectrl\output\renderer;
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -17,12 +23,11 @@
 /**
  * Course Control Hub dashboard entry point.
  *
- * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require_once(__DIR__ . '/../../config.php');
+require_once __DIR__.'/../../config.php';
 
 require_login();
 
@@ -38,9 +43,10 @@ if (!$courseid) {
     echo $OUTPUT->header();
     echo $OUTPUT->notification(
         get_string('error_no_course', 'local_coursectrl'),
-        \core\output\notification::NOTIFY_WARNING
+        notification::NOTIFY_WARNING
     );
     echo $OUTPUT->footer();
+
     exit;
 }
 
@@ -51,15 +57,16 @@ require_capability('local/coursectrl:view', $context);
 $PAGE->set_course($course);
 $PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/local/coursectrl/index.php', ['courseid' => $courseid]));
-$PAGE->set_title(format_string($course->fullname) . ' - ' . get_string('pluginname', 'local_coursectrl'));
+$PAGE->set_title(format_string($course->fullname).' - '.get_string('pluginname', 'local_coursectrl'));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_pagelayout('incourse');
 
-$service = new \local_coursectrl\local\inventory\inventory_service();
+$service = new inventory_service();
 $snapshot = $service->build_for_course((int) $courseid);
 
-$renderable = new \local_coursectrl\output\dashboard_page($snapshot);
-/** @var \local_coursectrl\output\renderer $renderer */
+$renderable = new dashboard_page($snapshot);
+
+/** @var renderer $renderer */
 $renderer = $PAGE->get_renderer('local_coursectrl');
 
 echo $OUTPUT->header();

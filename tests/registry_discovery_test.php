@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -17,7 +18,6 @@
 /**
  * Integration tests for registry auto-discovery.
  *
- * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -32,11 +32,13 @@ namespace local_coursectrl\manager;
  *
  * @covers \local_coursectrl\manager\registry
  */
-final class registry_discovery_test extends \advanced_testcase {
+final class registry_discovery_test extends \advanced_testcase
+{
     /**
      * Live discovery must register the coursectrlmod_assign subplugin.
      */
-    public function test_auto_discovery_finds_assign_subplugin(): void {
+    public function test_auto_discovery_finds_assign_subplugin(): void
+    {
         $registry = new registry();
         $this->assertTrue(
             $registry->has('mod_assign'),
@@ -50,7 +52,8 @@ final class registry_discovery_test extends \advanced_testcase {
     /**
      * Live discovery must register the coursectrlmod_quiz subplugin.
      */
-    public function test_auto_discovery_finds_quiz_subplugin(): void {
+    public function test_auto_discovery_finds_quiz_subplugin(): void
+    {
         $registry = new registry();
         $this->assertTrue(
             $registry->has('mod_quiz'),
@@ -64,7 +67,8 @@ final class registry_discovery_test extends \advanced_testcase {
     /**
      * The live registry must contain at least the assign adapter.
      */
-    public function test_auto_discovery_count_at_least_one(): void {
+    public function test_auto_discovery_count_at_least_one(): void
+    {
         $registry = new registry();
         $this->assertGreaterThanOrEqual(1, $registry->count());
     }

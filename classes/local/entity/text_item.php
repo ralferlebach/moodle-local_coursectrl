@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -21,7 +22,6 @@
  * entity (course summary, section summary, activity intro, label content,
  * ...). It is the unit of work for the text-datetime engine (Phase 5).
  *
- * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -35,7 +35,8 @@ namespace local_coursectrl\local\entity;
  * id of its own. It is identified by the triple (entitytype, entityid,
  * fieldname).
  */
-final class text_item extends inventory_item {
+final class text_item extends inventory_item
+{
     /** Owner entity is a course. */
     public const OWNER_COURSE = 'course';
 
@@ -66,11 +67,11 @@ final class text_item extends inventory_item {
     /**
      * Constructor.
      *
-     * @param string $entitytype Owner entity type, one of the OWNER_* constants.
-     * @param int    $entityid   Moodle id of the owning entity.
-     * @param string $fieldname  Name of the field this text belongs to.
-     * @param string $content    Raw content of the field.
-     * @param int    $format     FORMAT_* constant describing the content.
+     * @param string $entitytype owner entity type, one of the OWNER_* constants
+     * @param int    $entityid   moodle id of the owning entity
+     * @param string $fieldname  name of the field this text belongs to
+     * @param string $content    raw content of the field
+     * @param int    $format     FORMAT_* constant describing the content
      */
     public function __construct(
         string $entitytype,
@@ -89,19 +90,21 @@ final class text_item extends inventory_item {
     /**
      * Return the type discriminator.
      *
-     * @return string always 'text'.
+     * @return string always 'text'
      */
-    public function get_type(): string {
+    public function get_type(): string
+    {
         return 'text';
     }
 
     /**
      * Return a stable composite key for this text item.
      *
-     * @return string composite key in the form "{entitytype}:{entityid}:{fieldname}".
+     * @return string composite key in the form "{entitytype}:{entityid}:{fieldname}"
      */
-    public function get_key(): string {
-        return $this->entitytype . ':' . $this->entityid . ':' . $this->fieldname;
+    public function get_key(): string
+    {
+        return $this->entitytype.':'.$this->entityid.':'.$this->fieldname;
     }
 
     /**
@@ -109,7 +112,8 @@ final class text_item extends inventory_item {
      *
      * @return array<string,mixed>
      */
-    public function to_array(): array {
+    public function to_array(): array
+    {
         return [
             'type' => $this->get_type(),
             'entitytype' => $this->entitytype,
@@ -123,12 +127,14 @@ final class text_item extends inventory_item {
     /**
      * Reconstruct a text_item from its array representation.
      *
-     * @param array<string,mixed> $data serialised entity.
-     * @return static
-     * @throws \coding_exception when a required key is missing.
+     * @param array<string,mixed> $data serialised entity
+     *
+     * @throws \coding_exception when a required key is missing
      */
-    public static function from_array(array $data): static {
-        $cls = static::class;
+    public static function from_array(array $data): static
+    {
+        $cls = self::class;
+
         return new self(
             (string) self::require_key($data, 'entitytype', $cls),
             (int) self::require_key($data, 'entityid', $cls),

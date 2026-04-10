@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -14,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/**
+/*
  * Capability definitions for local_coursectrl.
  *
  * @package    local_coursectrl
@@ -22,66 +23,65 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+defined('MOODLE_INTERNAL') || exit;
 
 $capabilities = [
-
     // View the Course Control Hub dashboard for a course.
     'local/coursectrl:view' => [
-        'captype'      => 'read',
+        'captype' => 'read',
         'contextlevel' => CONTEXT_COURSE,
-        'archetypes'   => [
+        'archetypes' => [
             'editingteacher' => CAP_ALLOW,
-            'manager'        => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
         ],
     ],
 
     // Perform bulk actions (shift dates, set visibility, etc.).
     'local/coursectrl:bulkaction' => [
-        'captype'      => 'write',
+        'captype' => 'write',
         'contextlevel' => CONTEXT_COURSE,
-        'archetypes'   => [
+        'archetypes' => [
             'editingteacher' => CAP_ALLOW,
-            'manager'        => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
         ],
     ],
 
     // View generated reports and risk analyses.
     'local/coursectrl:viewreports' => [
-        'captype'      => 'read',
+        'captype' => 'read',
         'contextlevel' => CONTEXT_COURSE,
-        'archetypes'   => [
+        'archetypes' => [
             'editingteacher' => CAP_ALLOW,
-            'manager'        => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
         ],
     ],
 
     // Roll back executed batch actions.
     'local/coursectrl:rollback' => [
-        'captype'      => 'write',
+        'captype' => 'write',
         'contextlevel' => CONTEXT_COURSE,
-        'archetypes'   => [
+        'archetypes' => [
             'manager' => CAP_ALLOW,
         ],
     ],
 
     // Manage plugin-level presets (create, edit, delete shared presets).
     'local/coursectrl:managepresets' => [
-        'captype'      => 'write',
+        'captype' => 'write',
         'contextlevel' => CONTEXT_COURSE,
-        'archetypes'   => [
+        'archetypes' => [
             'editingteacher' => CAP_ALLOW,
-            'manager'        => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
         ],
     ],
 
     // Run learner-state simulations.
     'local/coursectrl:simulate' => [
-        'captype'      => 'read',
+        'captype' => 'read',
         'contextlevel' => CONTEXT_COURSE,
-        'archetypes'   => [
+        'archetypes' => [
             'editingteacher' => CAP_ALLOW,
-            'manager'        => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
         ],
     ],
 ];

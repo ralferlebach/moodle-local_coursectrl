@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -17,10 +18,11 @@
 /**
  * Smoke tests – verify that local_coursectrl installs and loads cleanly.
  *
- * @package    local_coursectrl
  * @category   test
+ *
  * @copyright  2026 Course Control Hub Contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ *
  * @covers     \local_coursectrl
  */
 
@@ -29,11 +31,13 @@ namespace local_coursectrl;
 /**
  * Smoke test suite for the local_coursectrl plugin skeleton.
  */
-class stub_test extends \advanced_testcase {
+class stub_test extends \advanced_testcase
+{
     /**
      * Verify the plugin version is recorded in the database after installation.
      */
-    public function test_plugin_version_is_set(): void {
+    public function test_plugin_version_is_set(): void
+    {
         $version = get_config('local_coursectrl', 'version');
         $this->assertNotEmpty($version, 'Plugin version must be stored after installation.');
     }
@@ -41,7 +45,8 @@ class stub_test extends \advanced_testcase {
     /**
      * Verify that all required capabilities are defined.
      */
-    public function test_capabilities_exist(): void {
+    public function test_capabilities_exist(): void
+    {
         $caps = [
             'local/coursectrl:view',
             'local/coursectrl:bulkaction',
@@ -52,7 +57,7 @@ class stub_test extends \advanced_testcase {
         ];
         foreach ($caps as $cap) {
             $this->assertTrue(
-                get_capability_info($cap) !== false,
+                false !== get_capability_info($cap),
                 "Capability '{$cap}' must be registered."
             );
         }
@@ -61,7 +66,8 @@ class stub_test extends \advanced_testcase {
     /**
      * Verify that all core database tables exist.
      */
-    public function test_database_tables_exist(): void {
+    public function test_database_tables_exist(): void
+    {
         global $DB;
         $tables = [
             'local_coursectrl_batch',
@@ -83,7 +89,8 @@ class stub_test extends \advanced_testcase {
     /**
      * Verify that required language strings are present.
      */
-    public function test_language_strings_en(): void {
+    public function test_language_strings_en(): void
+    {
         $strings = [
             'pluginname',
             'stub_placeholder',

@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -28,12 +29,13 @@
  *   Class name: coursectrlmod
  *   File path:  local/coursectrl/classes/plugininfo/coursectrlmod.php
  *
- * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace local_coursectrl\plugininfo;
+
+use core\plugininfo\base;
 
 /**
  * Plugininfo for the coursectrlmod subplugin type.
@@ -42,7 +44,8 @@ namespace local_coursectrl\plugininfo;
  * load_settings) will be added in later phases when the adapter registry and
  * settings UI are built.
  */
-class coursectrlmod extends \core\plugininfo\base {
+class coursectrlmod extends base
+{
     // Intentionally empty for Phase 1.
     // Moodle's base implementation covers all required lifecycle methods.
 }

@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -14,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/**
+/*
  * External function declarations for local_coursectrl.
  *
  * @package    local_coursectrl
@@ -22,15 +23,15 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+defined('MOODLE_INTERNAL') || exit;
 
 $functions = [
     'local_coursectrl_get_inventory' => [
-        'classname'    => 'local_coursectrl\external\get_inventory',
-        'methodname'   => 'execute',
-        'description'  => 'Returns the normalised inventory snapshot for a course.',
-        'type'         => 'read',
-        'ajax'         => true,
+        'classname' => 'local_coursectrl\external\get_inventory',
+        'methodname' => 'execute',
+        'description' => 'Returns the normalised inventory snapshot for a course.',
+        'type' => 'read',
+        'ajax' => true,
         'capabilities' => 'local/coursectrl:view',
     ],
 ];

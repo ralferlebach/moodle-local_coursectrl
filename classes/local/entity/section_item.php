@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -17,7 +18,6 @@
 /**
  * Normalised course section entity for the Course Control Hub inventory.
  *
- * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -27,7 +27,8 @@ namespace local_coursectrl\local\entity;
 /**
  * Immutable DTO carrying the section-level fields the hub cares about.
  */
-final class section_item extends inventory_item {
+final class section_item extends inventory_item
+{
     /** @var int Moodle course_sections.id. */
     public readonly int $id;
 
@@ -37,7 +38,7 @@ final class section_item extends inventory_item {
     /** @var int 0-based section number within the course. */
     public readonly int $sectionnum;
 
-    /** @var string|null Explicit section name, or null if auto-generated. */
+    /** @var null|string Explicit section name, or null if auto-generated. */
     public readonly ?string $name;
 
     /** @var string Section summary HTML or text. */
@@ -53,12 +54,12 @@ final class section_item extends inventory_item {
      * Constructor.
      *
      * @param int         $id            Moodle course_sections.id.
-     * @param int         $courseid      Parent course id.
-     * @param int         $sectionnum    0-based section number within the course.
-     * @param string|null $name          Explicit section name, or null.
-     * @param string      $summary       Section summary HTML or text.
-     * @param int         $summaryformat FORMAT_* constant for the summary.
-     * @param bool        $visible       Section visibility flag.
+     * @param int         $courseid      parent course id
+     * @param int         $sectionnum    0-based section number within the course
+     * @param null|string $name          explicit section name, or null
+     * @param string      $summary       section summary HTML or text
+     * @param int         $summaryformat FORMAT_* constant for the summary
+     * @param bool        $visible       section visibility flag
      */
     public function __construct(
         int $id,
@@ -81,9 +82,10 @@ final class section_item extends inventory_item {
     /**
      * Return the type discriminator.
      *
-     * @return string always 'section'.
+     * @return string always 'section'
      */
-    public function get_type(): string {
+    public function get_type(): string
+    {
         return 'section';
     }
 
@@ -92,7 +94,8 @@ final class section_item extends inventory_item {
      *
      * @return array<string,mixed>
      */
-    public function to_array(): array {
+    public function to_array(): array
+    {
         return [
             'type' => $this->get_type(),
             'id' => $this->id,
@@ -108,12 +111,14 @@ final class section_item extends inventory_item {
     /**
      * Reconstruct a section_item from its array representation.
      *
-     * @param array<string,mixed> $data serialised entity.
-     * @return static
-     * @throws \coding_exception when a required key is missing.
+     * @param array<string,mixed> $data serialised entity
+     *
+     * @throws \coding_exception when a required key is missing
      */
-    public static function from_array(array $data): static {
-        $cls = static::class;
+    public static function from_array(array $data): static
+    {
+        $cls = self::class;
+
         return new self(
             (int) self::require_key($data, 'id', $cls),
             (int) self::require_key($data, 'courseid', $cls),

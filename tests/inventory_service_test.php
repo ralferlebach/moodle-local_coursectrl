@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -17,7 +18,6 @@
 /**
  * Integration tests for the inventory service.
  *
- * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -36,27 +36,29 @@ use local_coursectrl\local\inventory\inventory_snapshot;
  *
  * @coversDefaultClass \local_coursectrl\local\inventory\inventory_service
  */
-final class inventory_service_test extends \advanced_testcase {
+final class inventory_service_test extends \advanced_testcase
+{
     /**
      * A minimal course must be inventoried with correct course metadata.
      */
-    public function test_build_for_course_returns_course_item(): void {
+    public function test_build_for_course_returns_course_item(): void
+    {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course([
-            'fullname'      => 'Inventory Service Test Course',
-            'shortname'     => 'INV-TEST-1',
-            'summary'       => '<p>Welcome to the test course.</p>',
+            'fullname' => 'Inventory Service Test Course',
+            'shortname' => 'INV-TEST-1',
+            'summary' => '<p>Welcome to the test course.</p>',
             'summaryformat' => FORMAT_HTML,
-            'startdate'     => 1700000000,
+            'startdate' => 1700000000,
         ]);
 
-        $service  = new inventory_service();
-        $snapshot = $service->build_for_course((int)$course->id);
+        $service = new inventory_service();
+        $snapshot = $service->build_for_course((int) $course->id);
 
         $this->assertInstanceOf(inventory_snapshot::class, $snapshot);
         $this->assertInstanceOf(course_item::class, $snapshot->course);
-        $this->assertSame((int)$course->id, $snapshot->course->id);
+        $this->assertSame((int) $course->id, $snapshot->course->id);
         $this->assertSame('Inventory Service Test Course', $snapshot->course->fullname);
         $this->assertSame('INV-TEST-1', $snapshot->course->shortname);
         $this->assertStringContainsString('Welcome', $snapshot->course->summary);
@@ -68,35 +70,36 @@ final class inventory_service_test extends \advanced_testcase {
      * A course with activities must report each course module as a cm_item
      * keyed by cmid, with the correct component resolution.
      */
-    public function test_build_for_course_returns_cm_items(): void {
+    public function test_build_for_course_returns_cm_items(): void
+    {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course();
         $assign = $this->getDataGenerator()->create_module('assign', [
             'course' => $course->id,
-            'name'   => 'Homework 1',
+            'name' => 'Homework 1',
         ]);
         $quiz = $this->getDataGenerator()->create_module('quiz', [
             'course' => $course->id,
-            'name'   => 'Quiz 1',
+            'name' => 'Quiz 1',
         ]);
 
-        $service  = new inventory_service();
-        $snapshot = $service->build_for_course((int)$course->id);
+        $service = new inventory_service();
+        $snapshot = $service->build_for_course((int) $course->id);
 
         $this->assertSame(2, $snapshot->count_cms());
-        $this->assertArrayHasKey((int)$assign->cmid, $snapshot->cms);
-        $this->assertArrayHasKey((int)$quiz->cmid, $snapshot->cms);
+        $this->assertArrayHasKey((int) $assign->cmid, $snapshot->cms);
+        $this->assertArrayHasKey((int) $quiz->cmid, $snapshot->cms);
 
         /** @var cm_item $assigncm */
-        $assigncm = $snapshot->cms[(int)$assign->cmid];
+        $assigncm = $snapshot->cms[(int) $assign->cmid];
         $this->assertSame('assign', $assigncm->modname);
         $this->assertSame('mod_assign', $assigncm->get_component());
         $this->assertSame('Homework 1', $assigncm->name);
-        $this->assertSame((int)$course->id, $assigncm->courseid);
+        $this->assertSame((int) $course->id, $assigncm->courseid);
 
         /** @var cm_item $quizcm */
-        $quizcm = $snapshot->cms[(int)$quiz->cmid];
+        $quizcm = $snapshot->cms[(int) $quiz->cmid];
         $this->assertSame('mod_quiz', $quizcm->get_component());
     }
 
@@ -104,19 +107,20 @@ final class inventory_service_test extends \advanced_testcase {
      * Every course has at least the implicit section 0; the service must
      * report sections keyed by their row id and ordered by section number.
      */
-    public function test_build_for_course_returns_sections(): void {
+    public function test_build_for_course_returns_sections(): void
+    {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course(['numsections' => 3]);
 
-        $service  = new inventory_service();
-        $snapshot = $service->build_for_course((int)$course->id);
+        $service = new inventory_service();
+        $snapshot = $service->build_for_course((int) $course->id);
 
         $this->assertGreaterThanOrEqual(1, $snapshot->count_sections());
         foreach ($snapshot->sections as $sectionid => $section) {
             $this->assertInstanceOf(section_item::class, $section);
             $this->assertSame($sectionid, $section->id);
-            $this->assertSame((int)$course->id, $section->courseid);
+            $this->assertSame((int) $course->id, $section->courseid);
         }
     }
 
@@ -124,18 +128,19 @@ final class inventory_service_test extends \advanced_testcase {
      * The course summary must be collected as a text_item under its
      * canonical composite key.
      */
-    public function test_build_for_course_collects_course_summary_text(): void {
+    public function test_build_for_course_collects_course_summary_text(): void
+    {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course([
-            'summary'       => 'Deadline: next Friday.',
+            'summary' => 'Deadline: next Friday.',
             'summaryformat' => FORMAT_PLAIN,
         ]);
 
-        $service  = new inventory_service();
-        $snapshot = $service->build_for_course((int)$course->id);
+        $service = new inventory_service();
+        $snapshot = $service->build_for_course((int) $course->id);
 
-        $key = text_item::OWNER_COURSE . ':' . (int)$course->id . ':summary';
+        $key = text_item::OWNER_COURSE.':'.(int) $course->id.':summary';
         $this->assertArrayHasKey($key, $snapshot->texts);
 
         $text = $snapshot->texts[$key];
@@ -147,7 +152,8 @@ final class inventory_service_test extends \advanced_testcase {
     /**
      * Non-existent courses must raise a Moodle DB exception.
      */
-    public function test_build_for_course_throws_on_missing_course(): void {
+    public function test_build_for_course_throws_on_missing_course(): void
+    {
         $this->resetAfterTest();
 
         $service = new inventory_service();
@@ -158,14 +164,15 @@ final class inventory_service_test extends \advanced_testcase {
     /**
      * The snapshot must round-trip through JSON serialisation.
      */
-    public function test_snapshot_is_json_serializable(): void {
+    public function test_snapshot_is_json_serializable(): void
+    {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course(['summary' => 'x']);
         $this->getDataGenerator()->create_module('assign', ['course' => $course->id]);
 
-        $service  = new inventory_service();
-        $snapshot = $service->build_for_course((int)$course->id);
+        $service = new inventory_service();
+        $snapshot = $service->build_for_course((int) $course->id);
 
         $json = json_encode($snapshot);
         $this->assertIsString($json);

@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -21,7 +22,6 @@
  * typed, immutable shape. preview_manager and batch_manager use it to
  * decide whether to proceed with a preview build or an execute call.
  *
- * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -31,7 +31,8 @@ namespace local_coursectrl\local\dto;
 /**
  * Immutable DTO for an action validation outcome.
  */
-final class validation_result {
+final class validation_result
+{
     /** @var bool Whether the validation passed. */
     private bool $valid;
 
@@ -44,11 +45,12 @@ final class validation_result {
     /**
      * Constructor.
      *
-     * @param bool  $valid  whether the validation passed.
-     * @param array $errors list of structured error descriptors.
-     * @param int[] $cmids  cmids confirmed valid by the adapter.
+     * @param bool  $valid  whether the validation passed
+     * @param array $errors list of structured error descriptors
+     * @param int[] $cmids  cmids confirmed valid by the adapter
      */
-    public function __construct(bool $valid, array $errors = [], array $cmids = []) {
+    public function __construct(bool $valid, array $errors = [], array $cmids = [])
+    {
         $this->valid = $valid;
         $this->errors = $errors;
         $this->cmids = array_values(array_map('intval', $cmids));
@@ -58,12 +60,12 @@ final class validation_result {
      * Construct a validation_result from the array shape returned by
      * activity_adapter::validate_action().
      *
-     * @param array $raw raw adapter validation result.
-     * @return self
+     * @param array $raw raw adapter validation result
      */
-    public static function from_adapter_array(array $raw): self {
+    public static function from_adapter_array(array $raw): self
+    {
         return new self(
-            (bool)($raw['valid'] ?? false),
+            (bool) ($raw['valid'] ?? false),
             $raw['errors'] ?? [],
             $raw['cmids'] ?? []
         );
@@ -71,19 +73,17 @@ final class validation_result {
 
     /**
      * Whether the validation passed.
-     *
-     * @return bool
      */
-    public function is_valid(): bool {
+    public function is_valid(): bool
+    {
         return $this->valid;
     }
 
     /**
      * Returns the list of structured error descriptors.
-     *
-     * @return array
      */
-    public function get_errors(): array {
+    public function get_errors(): array
+    {
         return $this->errors;
     }
 
@@ -92,7 +92,8 @@ final class validation_result {
      *
      * @return int[]
      */
-    public function get_cmids(): array {
+    public function get_cmids(): array
+    {
         return $this->cmids;
     }
 }

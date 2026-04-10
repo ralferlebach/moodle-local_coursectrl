@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -21,7 +22,6 @@
  * schema defined in db/install.xml. previewjson and resultjson hold the
  * serialised preview_change and execution_result DTOs respectively.
  *
- * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -33,28 +33,28 @@ use core\persistent;
 /**
  * Persistent wrapping a single batch_item row.
  */
-class batch_item extends persistent {
+class batch_item extends persistent
+{
     /** @var string Database table name. */
-    const TABLE = 'local_coursectrl_batch_item';
+    public const TABLE = 'local_coursectrl_batch_item';
 
     /** @var string Initial item status. */
-    const STATUS_PENDING = 'pending';
+    public const STATUS_PENDING = 'pending';
 
     /** @var string Item was deliberately not processed. */
-    const STATUS_SKIPPED = 'skipped';
+    public const STATUS_SKIPPED = 'skipped';
 
     /** @var string Item was processed successfully. */
-    const STATUS_SUCCESS = 'success';
+    public const STATUS_SUCCESS = 'success';
 
     /** @var string Item processing failed. */
-    const STATUS_ERROR = 'error';
+    public const STATUS_ERROR = 'error';
 
     /**
      * Property definitions matching the install.xml schema.
-     *
-     * @return array
      */
-    protected static function define_properties(): array {
+    protected static function define_properties(): array
+    {
         return [
             'batchid' => [
                 'type' => PARAM_INT,
@@ -66,12 +66,12 @@ class batch_item extends persistent {
                 'type' => PARAM_INT,
             ],
             'component' => [
-                'type'    => PARAM_COMPONENT,
-                'null'    => NULL_ALLOWED,
+                'type' => PARAM_COMPONENT,
+                'null' => NULL_ALLOWED,
                 'default' => null,
             ],
             'status' => [
-                'type'    => PARAM_ALPHANUMEXT,
+                'type' => PARAM_ALPHANUMEXT,
                 'default' => self::STATUS_PENDING,
                 'choices' => [
                     self::STATUS_PENDING,
@@ -81,13 +81,13 @@ class batch_item extends persistent {
                 ],
             ],
             'previewjson' => [
-                'type'    => PARAM_RAW,
-                'null'    => NULL_ALLOWED,
+                'type' => PARAM_RAW,
+                'null' => NULL_ALLOWED,
                 'default' => null,
             ],
             'resultjson' => [
-                'type'    => PARAM_RAW,
-                'null'    => NULL_ALLOWED,
+                'type' => PARAM_RAW,
+                'null' => NULL_ALLOWED,
                 'default' => null,
             ],
         ];

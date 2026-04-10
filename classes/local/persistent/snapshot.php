@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -22,7 +23,6 @@
  * text field) as captured by the corresponding adapter's export_state()
  * call before the bulk action mutated it.
  *
- * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -34,16 +34,16 @@ use core\persistent;
 /**
  * Persistent wrapping a single snapshot row.
  */
-class snapshot extends persistent {
+class snapshot extends persistent
+{
     /** @var string Database table name. */
-    const TABLE = 'local_coursectrl_snapshot';
+    public const TABLE = 'local_coursectrl_snapshot';
 
     /**
      * Property definitions matching the install.xml schema.
-     *
-     * @return array
      */
-    protected static function define_properties(): array {
+    protected static function define_properties(): array
+    {
         return [
             'batchid' => [
                 'type' => PARAM_INT,
@@ -55,8 +55,8 @@ class snapshot extends persistent {
                 'type' => PARAM_INT,
             ],
             'component' => [
-                'type'    => PARAM_COMPONENT,
-                'null'    => NULL_ALLOWED,
+                'type' => PARAM_COMPONENT,
+                'null' => NULL_ALLOWED,
                 'default' => null,
             ],
             'statejson' => [

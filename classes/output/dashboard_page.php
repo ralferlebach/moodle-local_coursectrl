@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -17,7 +18,6 @@
 /**
  * Renderable for the Course Control Hub course dashboard.
  *
- * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -25,9 +25,6 @@
 namespace local_coursectrl\output;
 
 use local_coursectrl\local\inventory\inventory_snapshot;
-use renderable;
-use renderer_base;
-use templatable;
 
 /**
  * Pure transformer from inventory_snapshot to mustache template context.
@@ -36,26 +33,30 @@ use templatable;
  * instantiate it with a hand-built snapshot and assert the export shape
  * without booting a full page.
  */
-class dashboard_page implements renderable, templatable {
+class dashboard_page implements \renderable, \templatable
+{
     /** @var inventory_snapshot The snapshot to render. */
     protected inventory_snapshot $snapshot;
 
     /**
      * Constructor.
      *
-     * @param inventory_snapshot $snapshot The snapshot to render.
+     * @param inventory_snapshot $snapshot the snapshot to render
      */
-    public function __construct(inventory_snapshot $snapshot) {
+    public function __construct(inventory_snapshot $snapshot)
+    {
         $this->snapshot = $snapshot;
     }
 
     /**
      * Build the template context for templates/dashboard.mustache.
      *
-     * @param renderer_base $output Renderer for any nested components.
+     * @param \renderer_base $output renderer for any nested components
+     *
      * @return array<string,mixed>
      */
-    public function export_for_template(renderer_base $output): array {
+    public function export_for_template(\renderer_base $output): array
+    {
         $course = $this->snapshot->course;
 
         $cmsbysection = [];
@@ -67,7 +68,7 @@ class dashboard_page implements renderable, templatable {
                 'component' => $cm->get_component(),
                 'visible' => $cm->visible,
                 'hascompletion' => $cm->completion > 0,
-                'hasavailability' => $cm->availability !== null && $cm->availability !== '',
+                'hasavailability' => null !== $cm->availability && '' !== $cm->availability,
             ];
         }
 
@@ -77,9 +78,9 @@ class dashboard_page implements renderable, templatable {
                 'id' => $section->id,
                 'sectionnum' => $section->sectionnum,
                 'name' => $section->name ?? '',
-                'hasname' => $section->name !== null && $section->name !== '',
+                'hasname' => null !== $section->name && '' !== $section->name,
                 'visible' => $section->visible,
-                'hassummary' => $section->summary !== '',
+                'hassummary' => '' !== $section->summary,
                 'cms' => $cmsbysection[$section->id] ?? [],
                 'cmcount' => count($cmsbysection[$section->id] ?? []),
             ];
@@ -91,7 +92,7 @@ class dashboard_page implements renderable, templatable {
             'courseshortname' => $course->shortname,
             'coursestartdate' => $course->startdate,
             'courseenddate' => $course->enddate,
-            'hasenddate' => $course->enddate !== null && $course->enddate > 0,
+            'hasenddate' => null !== $course->enddate && $course->enddate > 0,
             'coursevisible' => $course->visible,
             'sectioncount' => $this->snapshot->count_sections(),
             'cmcount' => $this->snapshot->count_cms(),

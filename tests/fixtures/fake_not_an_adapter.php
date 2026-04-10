@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -17,7 +18,6 @@
 /**
  * Test fixture: class that does not implement activity_adapter.
  *
- * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -25,13 +25,13 @@
 /**
  * Class that does NOT implement activity_adapter; must be rejected by the registry.
  */
-class local_coursectrl_fake_not_an_adapter {
+class local_coursectrl_fake_not_an_adapter
+{
     /**
      * Decoy component name; never reached because interface check fails first.
-     *
-     * @return string
      */
-    public static function component(): string {
+    public static function component(): string
+    {
         return 'mod_bogus';
     }
 }

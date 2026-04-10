@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -17,7 +18,6 @@
 /**
  * Tests for the dashboard_page renderable.
  *
- * @package    local_coursectrl
  * @copyright  2026 Course Control Hub Contributors
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -34,39 +34,13 @@ use local_coursectrl\local\inventory\inventory_snapshot;
  *
  * @coversDefaultClass \local_coursectrl\output\dashboard_page
  */
-final class dashboard_page_test extends \advanced_testcase {
-    /**
-     * Build a small in-memory snapshot for tests.
-     *
-     * @return inventory_snapshot
-     */
-    private function build_snapshot(): inventory_snapshot {
-        $course = new course_item(
-            1,
-            'Demo Course',
-            'DEMO',
-            '',
-            1,
-            1700000000,
-            null,
-            true
-        );
-        $sections = [
-            10 => new section_item(10, 1, 0, 'General', '', 1, true),
-            11 => new section_item(11, 1, 1, null, 'Week 1', 1, true),
-        ];
-        $cms = [
-            100 => new cm_item(100, 1, 10, 'label', 1, 'Welcome', true, null, 0),
-            101 => new cm_item(101, 1, 11, 'assign', 1, 'Homework 1', true, '{"op":"&","c":[]}', 2),
-            102 => new cm_item(102, 1, 11, 'quiz', 1, 'Quiz 1', false, null, 1),
-        ];
-        return new inventory_snapshot($course, $sections, $cms, []);
-    }
-
+final class dashboard_page_test extends \advanced_testcase
+{
     /**
      * The exported template context must carry course-level scalar fields.
      */
-    public function test_export_includes_course_scalars(): void {
+    public function test_export_includes_course_scalars(): void
+    {
         $this->resetAfterTest();
         global $PAGE;
 
@@ -85,7 +59,8 @@ final class dashboard_page_test extends \advanced_testcase {
     /**
      * Stat counters must reflect the snapshot collection sizes.
      */
-    public function test_export_includes_counts(): void {
+    public function test_export_includes_counts(): void
+    {
         $this->resetAfterTest();
         global $PAGE;
 
@@ -101,7 +76,8 @@ final class dashboard_page_test extends \advanced_testcase {
     /**
      * Course modules must be grouped under the section they belong to.
      */
-    public function test_export_groups_cms_under_sections(): void {
+    public function test_export_groups_cms_under_sections(): void
+    {
         $this->resetAfterTest();
         global $PAGE;
 
@@ -129,7 +105,8 @@ final class dashboard_page_test extends \advanced_testcase {
     /**
      * Per-cm flags (visible, completion, availability) must be exposed.
      */
-    public function test_export_exposes_cm_flags(): void {
+    public function test_export_exposes_cm_flags(): void
+    {
         $this->resetAfterTest();
         global $PAGE;
 
@@ -153,7 +130,8 @@ final class dashboard_page_test extends \advanced_testcase {
      * An empty snapshot must report hassections=false so the empty-state
      * branch in the template fires.
      */
-    public function test_export_handles_empty_snapshot(): void {
+    public function test_export_handles_empty_snapshot(): void
+    {
         $this->resetAfterTest();
         global $PAGE;
 
@@ -166,5 +144,33 @@ final class dashboard_page_test extends \advanced_testcase {
         $this->assertFalse($data['hassections']);
         $this->assertSame(0, $data['sectioncount']);
         $this->assertSame(0, $data['cmcount']);
+    }
+
+    /**
+     * Build a small in-memory snapshot for tests.
+     */
+    private function build_snapshot(): inventory_snapshot
+    {
+        $course = new course_item(
+            1,
+            'Demo Course',
+            'DEMO',
+            '',
+            1,
+            1700000000,
+            null,
+            true
+        );
+        $sections = [
+            10 => new section_item(10, 1, 0, 'General', '', 1, true),
+            11 => new section_item(11, 1, 1, null, 'Week 1', 1, true),
+        ];
+        $cms = [
+            100 => new cm_item(100, 1, 10, 'label', 1, 'Welcome', true, null, 0),
+            101 => new cm_item(101, 1, 11, 'assign', 1, 'Homework 1', true, '{"op":"&","c":[]}', 2),
+            102 => new cm_item(102, 1, 11, 'quiz', 1, 'Quiz 1', false, null, 1),
+        ];
+
+        return new inventory_snapshot($course, $sections, $cms, []);
     }
 }

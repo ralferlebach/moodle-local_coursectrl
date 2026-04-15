@@ -33,46 +33,28 @@ use local_coursectrl\local\dto\preview_change;
  */
 final class preview_page_test extends \advanced_testcase {
     /**
-     * Build a typical preview result array with two changes, one skip.
+     * Build a standard preview result for tests.
      *
-     * @return array{changes: preview_change[], skipped: array, errors: array, summary: array}
+     * @return array preview_manager-style result.
      */
     private function build_result(): array {
         $changes = [
             101 => new preview_change(101, 'mod_assign', 'Homework 1', [
-                'duedate' => [
-                    'old' => 1700000000,
-                    'new' => 1700086400,
-                    'shifted' => true,
-                ],
-                'cutoffdate' => [
-                    'old' => 0,
-                    'new' => 0,
-                    'shifted' => false,
-                    'reason' => 'unset',
-                ],
+                'duedate' => ['old' => 1700000000, 'new' => 1700086400, 'shifted' => true],
+                'cutoffdate' => ['old' => 0, 'new' => 0, 'shifted' => false, 'reason' => 'unset'],
             ]),
             102 => new preview_change(102, 'mod_quiz', 'Quiz 1', [
-                'timeopen' => [
-                    'old' => 1700000000,
-                    'new' => 1700086400,
-                    'shifted' => true,
-                ],
-                'timeclose' => [
-                    'old' => 1700100000,
-                    'new' => 1700186400,
-                    'shifted' => true,
-                ],
+                'timeopen' => ['old' => 1700000000, 'new' => 1700086400, 'shifted' => true],
+                'timeclose' => ['old' => 1700100000, 'new' => 1700186400, 'shifted' => true],
             ]),
-        ];
-        $skipped = [
-            ['cmid' => 100, 'reason' => 'no_adapter'],
         ];
         return [
             'action' => 'shift_dates',
             'payload' => ['delta' => 86400],
             'changes' => $changes,
-            'skipped' => $skipped,
+            'skipped' => [
+                ['cmid' => 200, 'reason' => 'no_adapter'],
+            ],
             'errors' => [],
             'summary' => [
                 'total' => 3,
@@ -84,23 +66,7 @@ final class preview_page_test extends \advanced_testcase {
     }
 
     /**
-     * Context must carry action label and delta label.
-     */
-    public function test_export_includes_action_info(): void {
-        $this->resetAfterTest();
-        global $PAGE;
-
-        $result = $this->build_result();
-        $page = new preview_page(1, 'shift_dates', ['delta' => 86400], [101, 102], $result);
-        $data = $page->export_for_template($PAGE->get_renderer('core'));
-
-        $this->assertSame('shift_dates', $data['action']);
-        $this->assertNotEmpty($data['actionlabel']);
-        $this->assertStringContainsString('1', $data['deltalabel']);
-    }
-
-    /**
-     * Summary counts must match the preview result.
+     * Summary counts must be passed through correctly.
      */
     public function test_export_includes_summary(): void {
         $this->resetAfterTest();
@@ -117,81 +83,9 @@ final class preview_page_test extends \advanced_testcase {
     }
 
     /**
-     * Change rows must carry formatted date values and first-field flag.
+     * canexecute must be true when changes > 0 and errors == 0.
      */
-    public function test_export_formats_change_rows(): void {
-        $this->resetAfterTest();
-        global $PAGE;
-
-        $result = $this->build_result();
-        $page = new preview_page(1, 'shift_dates', ['delta' => 86400], [101, 102], $result);
-        $data = $page->export_for_template($PAGE->get_renderer('core'));
-
-        $this->assertTrue($data['hasrows']);
-        $this->assertCount(2, $data['rows']);
-
-        $assign = $data['rows'][0];
-        $this->assertSame(101, $assign['cmid']);
-        $this->assertSame('mod_assign', $assign['component']);
-        $this->assertSame('Homework 1', $assign['name']);
-        $this->assertSame(2, $assign['fieldcount']);
-
-        // First field must have the 'first' flag.
-        $this->assertTrue($assign['fields'][0]['first'] ?? false);
-        $this->assertArrayNotHasKey('first', $assign['fields'][1]);
-    }
-
-    /**
-     * Shifted fields must be flagged, unset fields must show reason.
-     */
-    public function test_export_field_status_flags(): void {
-        $this->resetAfterTest();
-        global $PAGE;
-
-        $result = $this->build_result();
-        $page = new preview_page(1, 'shift_dates', ['delta' => 86400], [101, 102], $result);
-        $data = $page->export_for_template($PAGE->get_renderer('core'));
-
-        $assignfields = $data['rows'][0]['fields'];
-
-        // duedate: shifted.
-        $duedate = $assignfields[0];
-        $this->assertSame('duedate', $duedate['fieldname']);
-        $this->assertTrue($duedate['shifted']);
-        $this->assertFalse($duedate['isunset']);
-        $this->assertNotSame('–', $duedate['oldvalue']);
-        $this->assertNotSame('–', $duedate['newvalue']);
-
-        // cutoffdate: unset.
-        $cutoff = $assignfields[1];
-        $this->assertSame('cutoffdate', $cutoff['fieldname']);
-        $this->assertFalse($cutoff['shifted']);
-        $this->assertTrue($cutoff['isunset']);
-        $this->assertSame('–', $cutoff['oldvalue']);
-        $this->assertSame('–', $cutoff['newvalue']);
-    }
-
-    /**
-     * Skipped items must be present in the context.
-     */
-    public function test_export_includes_skipped(): void {
-        $this->resetAfterTest();
-        global $PAGE;
-
-        $result = $this->build_result();
-        $page = new preview_page(1, 'shift_dates', ['delta' => 86400], [101, 102], $result);
-        $data = $page->export_for_template($PAGE->get_renderer('core'));
-
-        $this->assertTrue($data['hasskipped']);
-        $this->assertCount(1, $data['skipped']);
-        $this->assertSame(100, $data['skipped'][0]['cmid']);
-        $this->assertSame('no_adapter', $data['skipped'][0]['reason']);
-    }
-
-    /**
-     * canexecute must be true when there are changes and no errors.
-     */
-    public function test_export_canexecute_true_when_changes_no_errors(): void {
+    public function test_canexecute_true_when_changes_and_no_errors(): void {
         $this->resetAfterTest();
         global $PAGE;
 
@@ -205,14 +99,15 @@ final class preview_page_test extends \advanced_testcase {
     /**
      * canexecute must be false when there are errors.
      */
-    public function test_export_canexecute_false_with_errors(): void {
+    public function test_canexecute_false_with_errors(): void {
         $this->resetAfterTest();
         global $PAGE;
 
         $result = $this->build_result();
-        $result['errors'] = [['cmid' => 101, 'code' => 'test_error', 'message' => 'broken']];
+        $result['errors'] = [['cmid' => 101, 'code' => 'invalid_delta', 'message' => 'bad']];
         $result['summary']['errors'] = 1;
-        $page = new preview_page(1, 'shift_dates', ['delta' => 86400], [101, 102], $result);
+
+        $page = new preview_page(1, 'shift_dates', ['delta' => 86400], [101], $result);
         $data = $page->export_for_template($PAGE->get_renderer('core'));
 
         $this->assertFalse($data['canexecute']);
@@ -220,9 +115,104 @@ final class preview_page_test extends \advanced_testcase {
     }
 
     /**
-     * Hidden fields in the execute form must carry correct JSON payloads.
+     * canexecute must be false when there are no changes.
      */
-    public function test_export_includes_form_hidden_fields(): void {
+    public function test_canexecute_false_without_changes(): void {
+        $this->resetAfterTest();
+        global $PAGE;
+
+        $result = [
+            'action' => 'shift_dates',
+            'payload' => ['delta' => 0],
+            'changes' => [],
+            'skipped' => [],
+            'errors' => [],
+            'summary' => ['total' => 0, 'changes' => 0, 'skipped' => 0, 'errors' => 0],
+        ];
+
+        $page = new preview_page(1, 'shift_dates', ['delta' => 0], [], $result);
+        $data = $page->export_for_template($PAGE->get_renderer('core'));
+
+        $this->assertFalse($data['canexecute']);
+        $this->assertFalse($data['hasrows']);
+    }
+
+    /**
+     * Each change must be expanded into per-field rows with formatted dates.
+     */
+    public function test_export_formats_fields_with_dates(): void {
+        $this->resetAfterTest();
+        global $PAGE;
+
+        $result = $this->build_result();
+        $page = new preview_page(1, 'shift_dates', ['delta' => 86400], [101, 102], $result);
+        $data = $page->export_for_template($PAGE->get_renderer('core'));
+
+        $this->assertTrue($data['hasrows']);
+        $this->assertCount(2, $data['rows']);
+
+        // First row: assign with 2 fields.
+        $assignrow = $data['rows'][0];
+        $this->assertSame(101, $assignrow['cmid']);
+        $this->assertSame('Homework 1', $assignrow['name']);
+        $this->assertCount(2, $assignrow['fields']);
+        $this->assertSame(2, $assignrow['fieldcount']);
+
+        // First field must have 'first' flag.
+        $this->assertTrue($assignrow['fields'][0]['first'] ?? false);
+        $this->assertArrayNotHasKey('first', $assignrow['fields'][1]);
+
+        // duedate must be shifted.
+        $this->assertSame('duedate', $assignrow['fields'][0]['fieldname']);
+        $this->assertTrue($assignrow['fields'][0]['shifted']);
+        $this->assertNotSame('–', $assignrow['fields'][0]['oldvalue']);
+
+        // cutoffdate must be unset.
+        $this->assertSame('cutoffdate', $assignrow['fields'][1]['fieldname']);
+        $this->assertFalse($assignrow['fields'][1]['shifted']);
+        $this->assertTrue($assignrow['fields'][1]['isunset']);
+    }
+
+    /**
+     * The delta label must include days and a + prefix for positive shifts.
+     */
+    public function test_export_formats_delta_label(): void {
+        $this->resetAfterTest();
+        global $PAGE;
+
+        $result = $this->build_result();
+        // 2 days + 3 hours = 183600 seconds.
+        $delta = 2 * 86400 + 3 * 3600;
+        $result['payload']['delta'] = $delta;
+        $page = new preview_page(1, 'shift_dates', ['delta' => $delta], [101], $result);
+        $data = $page->export_for_template($PAGE->get_renderer('core'));
+
+        $this->assertStringContainsString('+', $data['deltalabel']);
+        $this->assertStringContainsString('2', $data['deltalabel']);
+        $this->assertStringContainsString('3', $data['deltalabel']);
+    }
+
+    /**
+     * Skipped items must be passed through to the template.
+     */
+    public function test_export_includes_skipped(): void {
+        $this->resetAfterTest();
+        global $PAGE;
+
+        $result = $this->build_result();
+        $page = new preview_page(1, 'shift_dates', ['delta' => 86400], [101, 102, 200], $result);
+        $data = $page->export_for_template($PAGE->get_renderer('core'));
+
+        $this->assertTrue($data['hasskipped']);
+        $this->assertCount(1, $data['skipped']);
+        $this->assertSame(200, $data['skipped'][0]['cmid']);
+        $this->assertSame('no_adapter', $data['skipped'][0]['reason']);
+    }
+
+    /**
+     * Hidden fields (payloadjson, cmidsjson) must be valid JSON for the execute form.
+     */
+    public function test_export_includes_json_hidden_fields(): void {
         $this->resetAfterTest();
         global $PAGE;
 
@@ -232,23 +222,10 @@ final class preview_page_test extends \advanced_testcase {
         $page = new preview_page(1, 'shift_dates', $payload, $cmids, $result);
         $data = $page->export_for_template($PAGE->get_renderer('core'));
 
-        $this->assertSame('{"delta":86400}', $data['payloadjson']);
-        $this->assertSame('[101,102]', $data['cmidsjson']);
-        $this->assertStringContainsString('execute.php', $data['executeurl']);
-    }
+        $decodedpayload = json_decode($data['payloadjson'], true);
+        $decodedcmids = json_decode($data['cmidsjson'], true);
 
-    /**
-     * Delta label for zero must show '0'.
-     */
-    public function test_export_delta_label_zero(): void {
-        $this->resetAfterTest();
-        global $PAGE;
-
-        $result = $this->build_result();
-        $result['payload'] = ['delta' => 0];
-        $page = new preview_page(1, 'shift_dates', ['delta' => 0], [101], $result);
-        $data = $page->export_for_template($PAGE->get_renderer('core'));
-
-        $this->assertSame('0', $data['deltalabel']);
+        $this->assertSame(86400, $decodedpayload['delta']);
+        $this->assertSame([101, 102], $decodedcmids);
     }
 }

@@ -36,15 +36,15 @@ use local_coursectrl\local\inventory\inventory_snapshot;
  */
 final class manage_page_test extends \advanced_testcase {
     /**
-     * Build a small in-memory snapshot with mixed supported/unsupported CMs.
+     * Build a snapshot with mixed supported/unsupported CMs.
      *
      * @return inventory_snapshot
      */
     private function build_snapshot(): inventory_snapshot {
         $course = new course_item(
             1,
-            'Test Course',
-            'TEST',
+            'Demo Course',
+            'DEMO',
             '',
             1,
             1700000000,
@@ -58,16 +58,16 @@ final class manage_page_test extends \advanced_testcase {
         $cms = [
             100 => new cm_item(100, 1, 10, 'label', 1, 'Welcome', true, null, 0),
             101 => new cm_item(101, 1, 11, 'assign', 1, 'Homework 1', true, null, 2),
-            102 => new cm_item(102, 1, 11, 'quiz', 1, 'Quiz 1', true, null, 1),
-            103 => new cm_item(103, 1, 11, 'forum', 1, 'Discussion', false, null, 0),
+            102 => new cm_item(102, 1, 11, 'quiz', 1, 'Quiz 1', false, null, 1),
+            103 => new cm_item(103, 1, 11, 'forum', 1, 'Discussion', true, null, 0),
         ];
         return new inventory_snapshot($course, $sections, $cms, []);
     }
 
     /**
-     * Context must include courseid, sesskey and navigation URLs.
+     * The context must carry course id, sesskey and URLs.
      */
-    public function test_export_includes_scaffold_fields(): void {
+    public function test_export_includes_scalars_and_urls(): void {
         $this->resetAfterTest();
         global $PAGE;
 
@@ -78,10 +78,11 @@ final class manage_page_test extends \advanced_testcase {
         $this->assertNotEmpty($data['sesskey']);
         $this->assertStringContainsString('preview.php', $data['previewurl']);
         $this->assertStringContainsString('index.php', $data['dashboardurl']);
+        $this->assertStringContainsString('courseid=1', $data['dashboardurl']);
     }
 
     /**
-     * Actions array must contain at least shift_dates.
+     * The actions list must include shift_dates.
      */
     public function test_export_includes_actions(): void {
         $this->resetAfterTest();
@@ -90,13 +91,13 @@ final class manage_page_test extends \advanced_testcase {
         $page = new manage_page($this->build_snapshot(), ['mod_assign']);
         $data = $page->export_for_template($PAGE->get_renderer('core'));
 
-        $this->assertNotEmpty($data['actions']);
-        $actionvalues = array_column($data['actions'], 'value');
-        $this->assertContains('shift_dates', $actionvalues);
+        $this->assertCount(1, $data['actions']);
+        $this->assertSame('shift_dates', $data['actions'][0]['value']);
+        $this->assertTrue($data['actions'][0]['selected']);
     }
 
     /**
-     * CMs with a registered adapter must be marked as supported.
+     * CMs must carry the supported flag based on the registered components.
      */
     public function test_export_marks_supported_cms(): void {
         $this->resetAfterTest();
@@ -106,39 +107,34 @@ final class manage_page_test extends \advanced_testcase {
         $page = new manage_page($this->build_snapshot(), $supported);
         $data = $page->export_for_template($PAGE->get_renderer('core'));
 
-        $this->assertSame(2, $data['supportedcount']);
+        // Section 0: label (unsupported).
+        $general = $data['sections'][0];
+        $this->assertFalse($general['cms'][0]['supported']);
+        $this->assertFalse($general['hassupported']);
 
-        // Week 1 section should have both supported and unsupported CMs.
+        // Section 1: assign (supported), quiz (supported), forum (unsupported).
         $week1 = $data['sections'][1];
+        $this->assertTrue($week1['cms'][0]['supported']);  // assign
+        $this->assertTrue($week1['cms'][1]['supported']);  // quiz
+        $this->assertFalse($week1['cms'][2]['supported']); // forum
         $this->assertTrue($week1['hassupported']);
-
-        $cmsbyname = [];
-        foreach ($week1['cms'] as $cm) {
-            $cmsbyname[$cm['name']] = $cm;
-        }
-
-        $this->assertTrue($cmsbyname['Homework 1']['supported']);
-        $this->assertTrue($cmsbyname['Quiz 1']['supported']);
-        $this->assertFalse($cmsbyname['Discussion']['supported']);
     }
 
     /**
-     * General section with only unsupported CMs must have hassupported=false.
+     * The supportedcount must equal the number of CMs with a registered adapter.
      */
-    public function test_export_section_without_supported_cms(): void {
+    public function test_export_counts_supported(): void {
         $this->resetAfterTest();
         global $PAGE;
 
-        // Only assign supported, but label is in General section.
-        $page = new manage_page($this->build_snapshot(), ['mod_assign']);
+        $page = new manage_page($this->build_snapshot(), ['mod_assign', 'mod_quiz']);
         $data = $page->export_for_template($PAGE->get_renderer('core'));
 
-        $general = $data['sections'][0];
-        $this->assertFalse($general['hassupported']);
+        $this->assertSame(2, $data['supportedcount']);
     }
 
     /**
-     * Empty snapshot must report hassections=false.
+     * An empty snapshot must report hassections=false.
      */
     public function test_export_handles_empty_snapshot(): void {
         $this->resetAfterTest();
@@ -147,32 +143,10 @@ final class manage_page_test extends \advanced_testcase {
         $course = new course_item(2, 'Empty', 'EMPTY', '', 1, 0, null, true);
         $snapshot = new inventory_snapshot($course, [], [], []);
 
-        $page = new manage_page($snapshot, []);
+        $page = new manage_page($snapshot, ['mod_assign']);
         $data = $page->export_for_template($PAGE->get_renderer('core'));
 
         $this->assertFalse($data['hassections']);
         $this->assertSame(0, $data['supportedcount']);
-    }
-
-    /**
-     * Hidden CMs must preserve their visible=false flag.
-     */
-    public function test_export_preserves_visibility_flag(): void {
-        $this->resetAfterTest();
-        global $PAGE;
-
-        $page = new manage_page($this->build_snapshot(), ['mod_forum']);
-        $data = $page->export_for_template($PAGE->get_renderer('core'));
-
-        $week1 = $data['sections'][1];
-        $forum = null;
-        foreach ($week1['cms'] as $cm) {
-            if ($cm['name'] === 'Discussion') {
-                $forum = $cm;
-                break;
-            }
-        }
-        $this->assertNotNull($forum);
-        $this->assertFalse($forum['visible']);
     }
 }

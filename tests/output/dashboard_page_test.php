@@ -169,7 +169,7 @@ final class dashboard_page_test extends \advanced_testcase {
     }
 
     /**
-     * The manage URL must point to manage.php with the correct courseid.
+     * The manage URL must link to manage.php with the correct courseid.
      */
     public function test_export_includes_manage_url(): void {
         $this->resetAfterTest();

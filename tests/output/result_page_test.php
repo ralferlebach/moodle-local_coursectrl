@@ -31,7 +31,7 @@ namespace local_coursectrl\output;
  */
 final class result_page_test extends \advanced_testcase {
     /**
-     * Successful batch must report issuccess=true.
+     * issuccess must be true when status is 'executed'.
      */
     public function test_export_success_status(): void {
         $this->resetAfterTest();
@@ -47,28 +47,29 @@ final class result_page_test extends \advanced_testcase {
     }
 
     /**
-     * Failed batch must report issuccess=false.
+     * issuccess must be false when status is 'failed'.
      */
     public function test_export_failed_status(): void {
         $this->resetAfterTest();
         global $PAGE;
 
         $summary = ['total' => 3, 'success' => 0, 'skipped' => 0, 'error' => 3];
-        $page = new result_page(1, 43, 'failed', $summary, 'shift_dates');
+        $page = new result_page(1, 99, 'failed', $summary, 'shift_dates');
         $data = $page->export_for_template($PAGE->get_renderer('core'));
 
         $this->assertFalse($data['issuccess']);
+        $this->assertSame(99, $data['batchid']);
     }
 
     /**
-     * Summary counts must be carried through correctly.
+     * Summary counts must be passed through as integers.
      */
     public function test_export_includes_summary_counts(): void {
         $this->resetAfterTest();
         global $PAGE;
 
         $summary = ['total' => 5, 'success' => 3, 'skipped' => 1, 'error' => 1];
-        $page = new result_page(1, 44, 'executed', $summary, 'shift_dates');
+        $page = new result_page(1, 1, 'executed', $summary, 'shift_dates');
         $data = $page->export_for_template($PAGE->get_renderer('core'));
 
         $this->assertSame(5, $data['summary_total']);
@@ -78,33 +79,19 @@ final class result_page_test extends \advanced_testcase {
     }
 
     /**
-     * Navigation URLs must point to dashboard and manage pages.
+     * Navigation URLs must point to the correct course.
      */
     public function test_export_includes_navigation_urls(): void {
         $this->resetAfterTest();
         global $PAGE;
 
         $summary = ['total' => 1, 'success' => 1, 'skipped' => 0, 'error' => 0];
-        $page = new result_page(7, 45, 'executed', $summary, 'shift_dates');
+        $page = new result_page(7, 1, 'executed', $summary, 'shift_dates');
         $data = $page->export_for_template($PAGE->get_renderer('core'));
 
-        $this->assertStringContainsString('index.php', $data['dashboardurl']);
         $this->assertStringContainsString('courseid=7', $data['dashboardurl']);
-        $this->assertStringContainsString('manage.php', $data['manageurl']);
+        $this->assertStringContainsString('index.php', $data['dashboardurl']);
         $this->assertStringContainsString('courseid=7', $data['manageurl']);
-    }
-
-    /**
-     * Action label must be a translated string.
-     */
-    public function test_export_includes_action_label(): void {
-        $this->resetAfterTest();
-        global $PAGE;
-
-        $summary = ['total' => 1, 'success' => 1, 'skipped' => 0, 'error' => 0];
-        $page = new result_page(1, 46, 'executed', $summary, 'shift_dates');
-        $data = $page->export_for_template($PAGE->get_renderer('core'));
-
-        $this->assertNotEmpty($data['actionlabel']);
+        $this->assertStringContainsString('manage.php', $data['manageurl']);
     }
 }

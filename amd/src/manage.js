@@ -28,10 +28,8 @@ define([], function() {
 
     /**
      * Initialise the manage page JS enhancements.
-     *
-     * @param {string} courseid The course id (unused, reserved for future use).
      */
-    var init = function(courseid) {
+    var init = function() {
         var root = document.querySelector('[data-region="local_coursectrl-manage"]');
         if (!root) {
             return;
@@ -107,17 +105,15 @@ define([], function() {
                 if (checked.length === 0) {
                     e.preventDefault();
                     // Show a notification using Moodle's notification system if available.
-                    if (typeof require !== 'undefined') {
-                        require(['core/notification'], function(Notification) {
-                            Notification.addNotification({
-                                message: M.util.get_string(
-                                    'manage_no_selection',
-                                    'local_coursectrl'
-                                ),
-                                type: 'warning',
-                            });
+                    require(['core/notification'], function(Notification) {
+                        Notification.addNotification({
+                            message: M.util.get_string(
+                                'manage_no_selection',
+                                'local_coursectrl'
+                            ),
+                            type: 'warning',
                         });
-                    }
+                    });
                     return false;
                 }
                 return true;

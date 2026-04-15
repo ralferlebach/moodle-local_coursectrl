@@ -18,7 +18,7 @@
  * Normalised course module entity for the Course Control Hub inventory.
  *
  * @package    local_coursectrl
- * @copyright  2026 Course Control Hub Contributors
+ * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -55,18 +55,22 @@ final class cm_item extends inventory_item {
     /** @var int COMPLETION_TRACKING_* constant. */
     public readonly int $completion;
 
+    /** @var int Expected completion timestamp (timeline reminder), 0 = unset. */
+    public readonly int $completionexpected;
+
     /**
      * Constructor.
      *
-     * @param int         $id           Moodle course_modules.id (cmid).
-     * @param int         $courseid     Parent course id.
-     * @param int         $sectionid    Parent course_sections.id.
-     * @param string      $modname      Module short name, e.g. 'assign', 'quiz'.
-     * @param int         $instance     Row id inside the module-specific table.
-     * @param string      $name         Activity name as shown to users.
-     * @param bool        $visible      Current visibility flag.
-     * @param string|null $availability JSON availability tree, or null.
-     * @param int         $completion   COMPLETION_TRACKING_* constant.
+     * @param int         $id                 Moodle course_modules.id (cmid).
+     * @param int         $courseid           Parent course id.
+     * @param int         $sectionid          Parent course_sections.id.
+     * @param string      $modname            Module short name, e.g. 'assign', 'quiz'.
+     * @param int         $instance           Row id inside the module-specific table.
+     * @param string      $name               Activity name as shown to users.
+     * @param bool        $visible            Current visibility flag.
+     * @param string|null $availability       JSON availability tree, or null.
+     * @param int         $completion         COMPLETION_TRACKING_* constant.
+     * @param int         $completionexpected Expected completion timestamp, 0 = unset.
      */
     public function __construct(
         int $id,
@@ -77,7 +81,8 @@ final class cm_item extends inventory_item {
         string $name,
         bool $visible,
         ?string $availability,
-        int $completion
+        int $completion,
+        int $completionexpected = 0
     ) {
         $this->id = $id;
         $this->courseid = $courseid;
@@ -88,6 +93,7 @@ final class cm_item extends inventory_item {
         $this->visible = $visible;
         $this->availability = $availability;
         $this->completion = $completion;
+        $this->completionexpected = $completionexpected;
     }
 
     /**
@@ -101,8 +107,6 @@ final class cm_item extends inventory_item {
 
     /**
      * Return the frankenstyle component name, e.g. 'mod_assign'.
-     *
-     * Convenience accessor used by the registry and the bulk engine.
      *
      * @return string
      */
@@ -127,6 +131,7 @@ final class cm_item extends inventory_item {
             'visible' => $this->visible,
             'availability' => $this->availability,
             'completion' => $this->completion,
+            'completionexpected' => $this->completionexpected,
         ];
     }
 
@@ -148,7 +153,8 @@ final class cm_item extends inventory_item {
             (string) self::require_key($data, 'name', $cls),
             (bool) ($data['visible'] ?? true),
             isset($data['availability']) ? (string) $data['availability'] : null,
-            (int) ($data['completion'] ?? 0)
+            (int) ($data['completion'] ?? 0),
+            (int) ($data['completionexpected'] ?? 0)
         );
     }
 }

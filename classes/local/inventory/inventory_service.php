@@ -18,7 +18,7 @@
  * Builds normalised inventory snapshots for a course.
  *
  * @package    local_coursectrl
- * @copyright  2026 Course Control Hub Contributors
+ * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -30,15 +30,12 @@ use local_coursectrl\local\entity\section_item;
 use local_coursectrl\local\entity\text_item;
 
 /**
- * Phase 2 core inventory builder.
+ * Core inventory builder.
  *
  * Reads the course, its sections and its course modules from the database
  * and Moodle's modinfo cache, then normalises everything into immutable DTOs.
  * Text fields that are potential targets for the text-datetime engine
- * (Phase 5) are also collected here, so the selector UI can surface them.
- *
- * The service performs no capability checks. Callers are responsible for
- * verifying that the acting user may read the course.
+ * are also collected here.
  */
 class inventory_service {
     /**
@@ -105,12 +102,37 @@ class inventory_service {
     /**
      * Load all course modules via modinfo and normalise them into cm_items.
      *
+     * Includes the completionexpected field from the course_modules table
+     * which drives the Moodle timeline reminder ("Set reminder in timeline").
+     *
      * @param int $courseid Moodle course id.
      * @return array<int,cm_item> keyed by cmid.
      */
     protected function build_cms(int $courseid): array {
+        global $DB;
         $modinfo = get_fast_modinfo($courseid);
-        $result  = [];
+
+        // Batch-load completionexpected for all CMs in one query.
+        $cmids = [];
+        foreach ($modinfo->get_cms() as $cm) {
+            $cmids[] = (int)$cm->id;
+        }
+        $expectedmap = [];
+        if (!empty($cmids)) {
+            list($insql, $params) = $DB->get_in_or_equal($cmids, SQL_PARAMS_NAMED);
+            $rows = $DB->get_records_select(
+                'course_modules',
+                "id {$insql}",
+                $params,
+                '',
+                'id, completionexpected'
+            );
+            foreach ($rows as $row) {
+                $expectedmap[(int)$row->id] = (int)($row->completionexpected ?? 0);
+            }
+        }
+
+        $result = [];
         foreach ($modinfo->get_cms() as $cm) {
             $result[(int)$cm->id] = new cm_item(
                 id: (int)$cm->id,
@@ -120,8 +142,10 @@ class inventory_service {
                 instance: (int)$cm->instance,
                 name: (string)$cm->name,
                 visible: (bool)$cm->visible,
-                availability: ($cm->availability !== null && $cm->availability !== '') ? (string)$cm->availability : null,
+                availability: ($cm->availability !== null && $cm->availability !== '')
+                    ? (string)$cm->availability : null,
                 completion: (int)$cm->completion,
+                completionexpected: $expectedmap[(int)$cm->id] ?? 0,
             );
         }
         return $result;
@@ -130,12 +154,8 @@ class inventory_service {
     /**
      * Collect editable text fields from the course and its sections.
      *
-     * Phase 2 scope: course summary and non-empty section summaries. Text
-     * fields attached to individual activity modules are delegated to
-     * adapters in Phase 3 and not collected here.
-     *
-     * @param course_item             $course
-     * @param array<int,section_item> $sections
+     * @param course_item             $course   The course entity.
+     * @param array<int,section_item> $sections The section entities.
      * @return array<string,text_item> keyed by text_item::get_key().
      */
     protected function collect_texts(course_item $course, array $sections): array {

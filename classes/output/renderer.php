@@ -73,4 +73,15 @@ class renderer extends plugin_renderer_base {
         $data = $page->export_for_template($this);
         return $this->render_from_template('local_coursectrl/result', $data);
     }
+
+    /**
+     * Render the text-datetime review page.
+     *
+     * @param textreview_page $page The textreview renderable.
+     * @return string HTML.
+     */
+    public function render_textreview_page(textreview_page $page): string {
+        $data = $page->export_for_template($this);
+        return $this->render_from_template('local_coursectrl/textreview', $data);
+    }
 }

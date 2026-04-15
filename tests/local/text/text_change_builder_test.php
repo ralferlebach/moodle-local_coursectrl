@@ -152,8 +152,10 @@ final class text_change_builder_test extends \advanced_testcase {
         $this->assertNotEmpty($hits);
         $found = false;
         foreach ($hits as $hit) {
-            if ($hit['confidence'] === text_hit::CONFIDENCE_INFORMATIONAL
-                || $hit['confidence'] === text_hit::CONFIDENCE_AMBIGUOUS) {
+            if (
+                $hit['confidence'] === text_hit::CONFIDENCE_INFORMATIONAL
+                || $hit['confidence'] === text_hit::CONFIDENCE_AMBIGUOUS
+            ) {
                 $found = true;
             }
         }

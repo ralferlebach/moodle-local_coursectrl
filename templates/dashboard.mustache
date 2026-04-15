@@ -37,6 +37,7 @@
     * sections - array of section objects with id, sectionnum, name, hasname,
                  visible, hassummary, cms (array of cm objects), cmcount
     * manageurl - string (URL to the bulk-action management page)
+    * textreviewurl - string (URL to the text-datetime review page)
 }}
 <div class="local-coursectrl-dashboard" data-region="local_coursectrl-dashboard" data-courseid="{{courseid}}">
     <div class="card mb-4">
@@ -98,6 +99,9 @@
     <div class="mb-4">
         <a href="{{manageurl}}" class="btn btn-primary">
             {{#str}}nav_bulk, local_coursectrl{{/str}}
+        </a>
+        <a href="{{textreviewurl}}" class="btn btn-outline-primary ml-2">
+            {{#str}}nav_textreview, local_coursectrl{{/str}}
         </a>
     </div>
 

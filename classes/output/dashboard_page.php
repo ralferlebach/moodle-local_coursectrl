@@ -31,10 +31,6 @@ use templatable;
 
 /**
  * Pure transformer from inventory_snapshot to mustache template context.
- *
- * Holds no Moodle dependencies beyond the renderer interfaces. Tests can
- * instantiate it with a hand-built snapshot and assert the export shape
- * without booting a full page.
  */
 class dashboard_page implements renderable, templatable {
     /** @var inventory_snapshot The snapshot to render. */
@@ -100,6 +96,10 @@ class dashboard_page implements renderable, templatable {
             'hassections' => count($sections) > 0,
             'manageurl' => (new \moodle_url(
                 '/local/coursectrl/manage.php',
+                ['courseid' => $course->id]
+            ))->out(false),
+            'textreviewurl' => (new \moodle_url(
+                '/local/coursectrl/textreview.php',
                 ['courseid' => $course->id]
             ))->out(false),
         ];

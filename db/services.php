@@ -49,4 +49,20 @@ $functions = [
         'ajax'         => true,
         'capabilities' => 'local/coursectrl:bulkaction',
     ],
+    'local_coursectrl_get_text_hits' => [
+        'classname'    => 'local_coursectrl\\external\\get_text_hits',
+        'methodname'   => 'execute',
+        'description'  => 'Scans course texts for date/time references and returns detected hits.',
+        'type'         => 'read',
+        'ajax'         => true,
+        'capabilities' => 'local/coursectrl:view',
+    ],
+    'local_coursectrl_apply_text_changes' => [
+        'classname'    => 'local_coursectrl\\external\\apply_text_changes',
+        'methodname'   => 'execute',
+        'description'  => 'Applies a delta shift to confirmed text-datetime hits.',
+        'type'         => 'write',
+        'ajax'         => true,
+        'capabilities' => 'local/coursectrl:bulkaction',
+    ],
 ];

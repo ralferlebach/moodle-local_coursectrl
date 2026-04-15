@@ -137,7 +137,7 @@ class text_datetime_extractor {
 
         // Optional time suffix patterns.
         $timeopt = '(?:[,\s]+(?:um\s+)?(?P<hour>\d{1,2})[:.](?P<minute>\d{2})(?:\s*Uhr)?)?';
-        $timeopt_en = '(?:[,\s]+(?:at\s+)?(?P<hour>\d{1,2}):(?P<minute>\d{2})(?:\s*(?P<ampm>[AaPp][Mm]))?)?';
+        $timeopten = '(?:[,\s]+(?:at\s+)?(?P<hour>\d{1,2}):(?P<minute>\d{2})(?:\s*(?P<ampm>[AaPp][Mm]))?)?';
 
         return [
             // ISO 8601: 2026-04-15 or 2026-04-15T14:00.
@@ -163,12 +163,12 @@ class text_datetime_extractor {
             // English: April 15, 2026 [at 2:00 PM].
             'en_mdy_full' => '/\b(?P<monthname>' . $enmonths . ')\.?\s+'
                 . '(?P<day>[0-3]?\d)(?:st|nd|rd|th)?,?\s+(?P<year>20\d{2})'
-                . $timeopt_en . '/iu',
+                . $timeopten . '/iu',
 
             // English without year: April 15 [at 2:00 PM].
             'en_mdy_noyear' => '/\b(?P<monthname>' . $enmonths . ')\.?\s+'
                 . '(?P<day>[0-3]?\d)(?:st|nd|rd|th)?(?!\s*,?\s*\d{4})'
-                . $timeopt_en . '/iu',
+                . $timeopten . '/iu',
 
             // US numeric: 04/15/2026 or 4/15/2026.
             'us_numeric_full' => '/\b(?P<month>0?[1-9]|1[0-2])\/(?P<day>[0-3]?\d)\/(?P<year>20\d{2})/u',

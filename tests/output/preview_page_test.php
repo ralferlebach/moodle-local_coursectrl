@@ -162,12 +162,12 @@ final class preview_page_test extends \advanced_testcase {
         $this->assertTrue($assignrow['fields'][0]['first'] ?? false);
         $this->assertArrayNotHasKey('first', $assignrow['fields'][1]);
 
-        // duedate must be shifted.
+        // Duedate must be shifted.
         $this->assertSame('duedate', $assignrow['fields'][0]['fieldname']);
         $this->assertTrue($assignrow['fields'][0]['shifted']);
         $this->assertNotSame('–', $assignrow['fields'][0]['oldvalue']);
 
-        // cutoffdate must be unset.
+        // Cutoffdate must be unset.
         $this->assertSame('cutoffdate', $assignrow['fields'][1]['fieldname']);
         $this->assertFalse($assignrow['fields'][1]['shifted']);
         $this->assertTrue($assignrow['fields'][1]['isunset']);

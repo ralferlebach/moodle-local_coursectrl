@@ -114,9 +114,9 @@ final class manage_page_test extends \advanced_testcase {
 
         // Section 1: assign (supported), quiz (supported), forum (unsupported).
         $week1 = $data['sections'][1];
-        $this->assertTrue($week1['cms'][0]['supported']);  // assign
-        $this->assertTrue($week1['cms'][1]['supported']);  // quiz
-        $this->assertFalse($week1['cms'][2]['supported']); // forum
+        $this->assertTrue($week1['cms'][0]['supported']);  // Assign.
+        $this->assertTrue($week1['cms'][1]['supported']);  // Quiz.
+        $this->assertFalse($week1['cms'][2]['supported']); // Forum.
         $this->assertTrue($week1['hassupported']);
     }
 

@@ -18,7 +18,7 @@
  * Plugin renderer for local_coursectrl.
  *
  * @package    local_coursectrl
- * @copyright  2026 Course Control Hub Contributors
+ * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -39,5 +39,38 @@ class renderer extends plugin_renderer_base {
     public function render_dashboard_page(dashboard_page $page): string {
         $data = $page->export_for_template($this);
         return $this->render_from_template('local_coursectrl/dashboard', $data);
+    }
+
+    /**
+     * Render the bulk-action management page.
+     *
+     * @param manage_page $page The manage renderable.
+     * @return string HTML.
+     */
+    public function render_manage_page(manage_page $page): string {
+        $data = $page->export_for_template($this);
+        return $this->render_from_template('local_coursectrl/manage', $data);
+    }
+
+    /**
+     * Render the bulk-action preview page.
+     *
+     * @param preview_page $page The preview renderable.
+     * @return string HTML.
+     */
+    public function render_preview_page(preview_page $page): string {
+        $data = $page->export_for_template($this);
+        return $this->render_from_template('local_coursectrl/preview', $data);
+    }
+
+    /**
+     * Render the bulk-action execution result page.
+     *
+     * @param result_page $page The result renderable.
+     * @return string HTML.
+     */
+    public function render_result_page(result_page $page): string {
+        $data = $page->export_for_template($this);
+        return $this->render_from_template('local_coursectrl/result', $data);
     }
 }

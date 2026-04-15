@@ -18,7 +18,7 @@
  * Renderable for the Course Control Hub course dashboard.
  *
  * @package    local_coursectrl
- * @copyright  2026 Course Control Hub Contributors
+ * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -98,6 +98,10 @@ class dashboard_page implements renderable, templatable {
             'textcount' => $this->snapshot->count_texts(),
             'sections' => $sections,
             'hassections' => count($sections) > 0,
+            'manageurl' => (new \moodle_url(
+                '/local/coursectrl/manage.php',
+                ['courseid' => $course->id]
+            ))->out(false),
         ];
     }
 }

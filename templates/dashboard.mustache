@@ -19,7 +19,8 @@
 
     Course Control Hub dashboard for a single course.
 
-    Renders a stats summary and a per-section breakdown of course modules.
+    Renders a stats summary, action links, and a per-section breakdown
+    of course modules.
 
     Context variables required for this template:
     * courseid - int
@@ -35,43 +36,7 @@
     * hassections - bool
     * sections - array of section objects with id, sectionnum, name, hasname,
                  visible, hassummary, cms (array of cm objects), cmcount
-
-    Example context (json):
-    {
-        "courseid": 2,
-        "coursefullname": "Demo course",
-        "courseshortname": "DEMO",
-        "coursestartdate": 1700000000,
-        "courseenddate": 0,
-        "hasenddate": false,
-        "coursevisible": true,
-        "sectioncount": 3,
-        "cmcount": 5,
-        "textcount": 2,
-        "hassections": true,
-        "sections": [
-            {
-                "id": 1,
-                "sectionnum": 0,
-                "name": "General",
-                "hasname": true,
-                "visible": true,
-                "hassummary": false,
-                "cmcount": 1,
-                "cms": [
-                    {
-                        "cmid": 10,
-                        "name": "Welcome",
-                        "modname": "label",
-                        "component": "mod_label",
-                        "visible": true,
-                        "hascompletion": false,
-                        "hasavailability": false
-                    }
-                ]
-            }
-        ]
-    }
+    * manageurl - string (URL to the bulk-action management page)
 }}
 <div class="local-coursectrl-dashboard" data-region="local_coursectrl-dashboard" data-courseid="{{courseid}}">
     <div class="card mb-4">
@@ -127,6 +92,13 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    {{! ---- Action links ---- }}
+    <div class="mb-4">
+        <a href="{{manageurl}}" class="btn btn-primary">
+            {{#str}}nav_bulk, local_coursectrl{{/str}}
+        </a>
     </div>
 
     <h3 class="h5 mb-3">{{#str}}dashboard_inventory, local_coursectrl{{/str}}</h3>

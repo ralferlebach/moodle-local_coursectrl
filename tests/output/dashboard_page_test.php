@@ -18,7 +18,7 @@
  * Tests for the dashboard_page renderable.
  *
  * @package    local_coursectrl
- * @copyright  2026 Course Control Hub Contributors
+ * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -166,5 +166,20 @@ final class dashboard_page_test extends \advanced_testcase {
         $this->assertFalse($data['hassections']);
         $this->assertSame(0, $data['sectioncount']);
         $this->assertSame(0, $data['cmcount']);
+    }
+
+    /**
+     * The manage URL must point to manage.php with the correct courseid.
+     */
+    public function test_export_includes_manage_url(): void {
+        $this->resetAfterTest();
+        global $PAGE;
+
+        $page = new dashboard_page($this->build_snapshot());
+        $data = $page->export_for_template($PAGE->get_renderer('core'));
+
+        $this->assertArrayHasKey('manageurl', $data);
+        $this->assertStringContainsString('manage.php', $data['manageurl']);
+        $this->assertStringContainsString('courseid=1', $data['manageurl']);
     }
 }

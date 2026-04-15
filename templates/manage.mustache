@@ -1,0 +1,187 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_coursectrl/manage
+
+    Bulk-action management page with action selector, payload config
+    and course-module selection grouped by section.
+
+    Context variables required for this template:
+    * courseid - int
+    * coursefullname - string
+    * sesskey - string
+    * previewurl - string
+    * dashboardurl - string
+    * actions - array of {value, label, selected}
+    * sections - array of section objects with cms
+    * hassections - bool
+    * supportedcount - int
+}}
+<div class="local-coursectrl-manage" data-region="local_coursectrl-manage" data-courseid="{{courseid}}">
+
+    <div class="mb-3">
+        <a href="{{dashboardurl}}" class="btn btn-sm btn-outline-secondary">
+            &laquo; {{#str}}nav_dashboard, local_coursectrl{{/str}}
+        </a>
+    </div>
+
+    <form id="coursectrl-manage-form" method="post" action="{{previewurl}}">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="courseid" value="{{courseid}}">
+
+        {{! ---- Action & payload configuration ---- }}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="h5 mb-0">{{#str}}manage_action_config, local_coursectrl{{/str}}</h3>
+            </div>
+            <div class="card-body">
+                <div class="form-group row">
+                    <label for="coursectrl-action" class="col-sm-3 col-form-label">
+                        {{#str}}manage_action, local_coursectrl{{/str}}
+                    </label>
+                    <div class="col-sm-9">
+                        <select id="coursectrl-action" name="action" class="form-control custom-select">
+                            {{#actions}}
+                                <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+                            {{/actions}}
+                        </select>
+                    </div>
+                </div>
+
+                <div id="coursectrl-payload-shift" class="mt-3" data-payload-for="shift_dates">
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label">
+                            {{#str}}manage_delta, local_coursectrl{{/str}}
+                        </label>
+                        <div class="col-sm-9">
+                            <div class="form-inline">
+                                <div class="input-group mr-3 mb-2">
+                                    <input type="number" id="coursectrl-delta-days" name="delta_days"
+                                           class="form-control" style="width:80px" value="0">
+                                    <div class="input-group-append">
+                                        <span class="input-group-text">{{#str}}days{{/str}}</span>
+                                    </div>
+                                </div>
+                                <div class="input-group mb-2">
+                                    <input type="number" id="coursectrl-delta-hours" name="delta_hours"
+                                           class="form-control" style="width:80px" value="0">
+                                    <div class="input-group-append">
+                                        <span class="input-group-text">{{#str}}hours{{/str}}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">
+                                {{#str}}manage_delta_help, local_coursectrl{{/str}}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{! ---- CM selection ---- }}
+        <div class="card mb-4">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h3 class="h5 mb-0">{{#str}}manage_select_activities, local_coursectrl{{/str}}</h3>
+                <span>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-action="select-all-supported">
+                        {{#str}}manage_select_all, local_coursectrl{{/str}}
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-action="deselect-all">
+                        {{#str}}manage_deselect_all, local_coursectrl{{/str}}
+                    </button>
+                </span>
+            </div>
+            <div class="card-body">
+                {{#hassections}}
+                    <p class="text-muted small mb-3">
+                        {{#str}}manage_supported_hint, local_coursectrl{{/str}}
+                        <strong>{{supportedcount}}</strong>
+                    </p>
+                    {{#sections}}
+                        <div class="mb-3 border-bottom pb-3">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <strong>
+                                    {{#str}}dashboard_section, local_coursectrl{{/str}} {{sectionnum}}
+                                    {{#hasname}}<span class="text-muted ml-2">{{name}}</span>{{/hasname}}
+                                </strong>
+                                {{#hassupported}}
+                                    <button type="button" class="btn btn-sm btn-link"
+                                            data-action="toggle-section" data-sectionid="{{id}}">
+                                        {{#str}}manage_toggle_section, local_coursectrl{{/str}}
+                                    </button>
+                                {{/hassupported}}
+                            </div>
+                            {{#hascms}}
+                                {{#cms}}
+                                    <div class="form-check ml-3 mb-1">
+                                        <input type="checkbox" class="form-check-input"
+                                               name="cmids[]" value="{{cmid}}"
+                                               id="coursectrl-cm-{{cmid}}"
+                                               data-sectionid="{{../id}}"
+                                               {{^supported}}disabled{{/supported}}
+                                               {{#supported}}checked{{/supported}}>
+                                        <label class="form-check-label {{^supported}}text-muted{{/supported}}"
+                                               for="coursectrl-cm-{{cmid}}">
+                                            <code class="small mr-1">{{modname}}</code>
+                                            {{name}}
+                                            {{^supported}}
+                                                <span class="badge badge-light ml-1">
+                                                    {{#str}}manage_unsupported, local_coursectrl{{/str}}
+                                                </span>
+                                            {{/supported}}
+                                            {{^visible}}
+                                                <span class="badge badge-secondary ml-1">
+                                                    {{#str}}dashboard_hidden, local_coursectrl{{/str}}
+                                                </span>
+                                            {{/visible}}
+                                        </label>
+                                    </div>
+                                {{/cms}}
+                            {{/hascms}}
+                            {{^hascms}}
+                                <p class="text-muted small ml-3 mb-0">
+                                    {{#str}}manage_no_activities, local_coursectrl{{/str}}
+                                </p>
+                            {{/hascms}}
+                        </div>
+                    {{/sections}}
+                {{/hassections}}
+                {{^hassections}}
+                    <div class="alert alert-info">
+                        {{#str}}dashboard_empty, local_coursectrl{{/str}}
+                    </div>
+                {{/hassections}}
+            </div>
+        </div>
+
+        {{! ---- Submit ---- }}
+        <div class="d-flex justify-content-between">
+            <a href="{{dashboardurl}}" class="btn btn-secondary">
+                {{#str}}cancel{{/str}}
+            </a>
+            <button type="submit" class="btn btn-primary" id="coursectrl-preview-btn">
+                {{#str}}manage_preview_btn, local_coursectrl{{/str}}
+            </button>
+        </div>
+    </form>
+</div>
+{{#js}}
+require(['local_coursectrl/manage'], function(mod) {
+    mod.init('{{courseid}}');
+});
+{{/js}}

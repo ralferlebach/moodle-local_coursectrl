@@ -298,7 +298,7 @@ class condition_evaluator {
                 $base = self::STATUS_PASS;
             }
         } else {
-            // '|': at least one must pass.
+            // Operator |: at least one must pass.
             if ($passcount > 0) {
                 $base = self::STATUS_PASS;
             } else if ($unknowncount > 0 && $failcount < $total) {
@@ -342,7 +342,7 @@ class condition_evaluator {
             // Any completed state satisfies "must be complete".
             return $actual === 1 || $actual === 2 || $actual === 3;
         }
-        // e=2 or e=3: exact match required.
+        // Exact match required for e=2 and e=3.
         return $actual === $expected;
     }
 }

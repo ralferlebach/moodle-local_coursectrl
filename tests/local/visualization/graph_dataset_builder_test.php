@@ -43,8 +43,15 @@ final class graph_dataset_builder_test extends \advanced_testcase {
      */
     private function make_cm(int $cmid, string $avail = '', bool $visible = true): cm_item {
         return new cm_item(
-            $cmid, 1, 10, 'assign', $cmid, 'Activity ' . $cmid,
-            $visible, $avail !== '' ? $avail : null, 2
+            $cmid,
+            1,
+            10,
+            'assign',
+            $cmid,
+            'Activity ' . $cmid,
+            $visible,
+            $avail !== '' ? $avail : null,
+            2
         );
     }
 

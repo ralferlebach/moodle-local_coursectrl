@@ -156,7 +156,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
         $builder = new calendar_grid_builder();
         $start = strtotime('2026-04-01');
         $end = strtotime('2026-04-30');
-        // "Now" in the middle of the month.
+        // Simulated "now" is in the middle of the month.
         $now = strtotime('2026-04-20');
 
         $months = $builder->build($start, $end, [], $now);

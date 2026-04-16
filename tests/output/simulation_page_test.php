@@ -68,8 +68,17 @@ final class simulation_page_test extends \advanced_testcase {
         global $PAGE;
         $page = new simulation_page($this->build_snapshot());
         $data = $page->export_for_template($PAGE->get_renderer('core'));
-        foreach (['courseid', 'sesskey', 'selfurl', 'dashboardurl',
-            'simdate', 'simtime', 'cmformrows', 'hasresults'] as $key) {
+        $requiredkeys = [
+            'courseid',
+            'sesskey',
+            'selfurl',
+            'dashboardurl',
+            'simdate',
+            'simtime',
+            'cmformrows',
+            'hasresults',
+        ];
+        foreach ($requiredkeys as $key) {
             $this->assertArrayHasKey($key, $data, "Missing key: $key");
         }
     }

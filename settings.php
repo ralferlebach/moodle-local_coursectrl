@@ -130,12 +130,16 @@ if ($hassiteconfig) {
         '',
         0
     ));
-    $settings->add(new admin_setting_configtext(
+    $settings->add(new admin_setting_configmulticheckbox(
         'local_coursectrl/calmoodlecal_eventtype',
         get_string('settings_calmoodlecal_eventtype', 'local_coursectrl'),
         get_string('settings_calmoodlecal_eventtype_desc', 'local_coursectrl'),
-        'site',
-        PARAM_TEXT
+        ['site' => 1],
+        [
+            'site'     => get_string('settings_calmoodlecal_eventtype_site', 'local_coursectrl'),
+            'category' => get_string('settings_calmoodlecal_eventtype_category', 'local_coursectrl'),
+            'user'     => get_string('settings_calmoodlecal_eventtype_user', 'local_coursectrl'),
+        ]
     ));
     $settings->add(new admin_setting_configtext(
         'local_coursectrl/calmoodlecal_namepattern',

@@ -35,7 +35,7 @@ namespace local_coursectrl\local\contract;
  */
 abstract class abstract_calendar_provider implements calendar_provider {
     /** @var string Settings key suffix for enabled flag, e.g. 'calnager_enabled'. */
-    protected string $enabled_key = '';
+    protected string $enabledkey = '';
 
     /**
      * Whether this provider is enabled in admin settings.
@@ -43,10 +43,10 @@ abstract class abstract_calendar_provider implements calendar_provider {
      * @return bool
      */
     public function is_enabled(): bool {
-        if ($this->enabled_key === '') {
+        if ($this->enabledkey === '') {
             return false;
         }
-        return (bool) get_config('local_coursectrl', $this->enabled_key);
+        return (bool) get_config('local_coursectrl', $this->enabledkey);
     }
 
     /**

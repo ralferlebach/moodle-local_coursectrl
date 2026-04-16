@@ -48,7 +48,7 @@ use local_coursectrl\local\contract\abstract_calendar_provider;
  */
 class provider extends abstract_calendar_provider {
     /** @var string Settings key for enabled flag. */
-    protected string $enabled_key = 'calmoodlecal_enabled';
+    protected string $enabledkey = 'calmoodlecal_enabled';
 
     /**
      * Returns the frankenstyle component name.
@@ -134,7 +134,10 @@ class provider extends abstract_calendar_provider {
     }
 
     /**
-     * Return configured event types as an array.
+     * Return configured event types from the multi-checkbox setting.
+     *
+     * admin_setting_configmulticheckbox stores the value as a comma-separated
+     * list of enabled keys, e.g. 'site,category'.
      *
      * @return string[]
      */
@@ -143,6 +146,7 @@ class provider extends abstract_calendar_provider {
         if (trim($raw) === '') {
             return ['site'];
         }
-        return array_filter(array_map('trim', explode(',', $raw)));
+        $selected = array_filter(array_map('trim', explode(',', $raw)));
+        return empty($selected) ? ['site'] : $selected;
     }
 }

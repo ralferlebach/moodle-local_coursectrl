@@ -46,7 +46,7 @@ final class calendar_manager_test extends \advanced_testcase {
         $stub->method('is_available')->willReturn(true);
         $stub->method('get_supported_categories')->willReturn(['public_holiday']);
         $stub->method('get_day_info')->willReturnCallback(
-            function(int $year, int $month) use ($dayinfo) {
+            function (int $year, int $month) use ($dayinfo) {
                 $result = [];
                 foreach ($dayinfo as $datekey => $events) {
                     $m = (int) date('n', strtotime('!' . $datekey));

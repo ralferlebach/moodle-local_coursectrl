@@ -45,7 +45,7 @@ use local_coursectrl\local\contract\abstract_calendar_provider;
  */
 class provider extends abstract_calendar_provider {
     /** @var string Settings key for enabled flag. */
-    protected string $enabled_key = 'calmanual_enabled';
+    protected string $enabledkey = 'calmanual_enabled';
 
     /** @var string[] Allowed category values. */
     private const ALLOWED_CATS = ['public_holiday', 'school_holiday', 'custom'];

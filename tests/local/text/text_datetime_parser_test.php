@@ -116,7 +116,7 @@ final class text_datetime_parser_test extends \basic_testcase {
     }
 
     /**
-     * No-year patterns must return null (cannot normalise without year).
+     * No-year patterns must return null.
      */
     public function test_normalise_noyear_returns_null(): void {
         $hits = $this->extractor->extract('Abgabe am 15. April');
@@ -134,18 +134,31 @@ final class text_datetime_parser_test extends \basic_testcase {
             $iso = $this->parser->normalise($hits[0]);
             $this->assertNull($iso);
         } else {
-            // Regex might not match invalid day for February.
             $this->assertTrue(true);
         }
     }
 
     /**
-     * to_timestamp must return correct epoch value.
+     * to_timestamp must return the UTC midnight epoch for a date.
+     *
+     * Uses an explicit UTC DateTime as the reference to be deterministic
+     * regardless of server timezone.
      */
     public function test_to_timestamp(): void {
         $ts = $this->parser->to_timestamp('2026-04-15');
         $this->assertNotNull($ts);
+        $expected = (new \DateTime('2026-04-15', new \DateTimeZone('UTC')))->getTimestamp();
+        $this->assertSame($expected, $ts);
+    }
+
+    /**
+     * to_timestamp must round-trip through a deterministic UTC formatter.
+     */
+    public function test_to_timestamp_roundtrip(): void {
+        $ts = $this->parser->to_timestamp('2026-04-15');
+        $this->assertNotNull($ts);
         $dt = new \DateTime('@' . $ts);
+        $dt->setTimezone(new \DateTimeZone('UTC'));
         $this->assertSame('2026-04-15', $dt->format('Y-m-d'));
     }
 

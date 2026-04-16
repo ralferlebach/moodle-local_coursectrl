@@ -84,4 +84,15 @@ class renderer extends plugin_renderer_base {
         $data = $page->export_for_template($this);
         return $this->render_from_template('local_coursectrl/textreview', $data);
     }
+
+    /**
+     * Render the chronological timeline page.
+     *
+     * @param timeline_page $page The timeline renderable.
+     * @return string HTML.
+     */
+    public function render_timeline_page(timeline_page $page): string {
+        $data = $page->export_for_template($this);
+        return $this->render_from_template('local_coursectrl/timeline', $data);
+    }
 }

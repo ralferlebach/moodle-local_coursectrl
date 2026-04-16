@@ -31,11 +31,6 @@ use local_coursectrl\local\entity\text_item;
 
 /**
  * Core inventory builder.
- *
- * Reads the course, its sections and its course modules from the database
- * and Moodle's modinfo cache, then normalises everything into immutable DTOs.
- * Text fields that are potential targets for the text-datetime engine
- * are also collected here.
  */
 class inventory_service {
     /**
@@ -103,7 +98,7 @@ class inventory_service {
      * Load all course modules via modinfo and normalise them into cm_items.
      *
      * Includes the completionexpected field from the course_modules table
-     * which drives the Moodle timeline reminder ("Set reminder in timeline").
+     * which drives the Moodle timeline reminder.
      *
      * @param int $courseid Moodle course id.
      * @return array<int,cm_item> keyed by cmid.
@@ -112,14 +107,13 @@ class inventory_service {
         global $DB;
         $modinfo = get_fast_modinfo($courseid);
 
-        // Batch-load completionexpected for all CMs in one query.
         $cmids = [];
         foreach ($modinfo->get_cms() as $cm) {
             $cmids[] = (int)$cm->id;
         }
         $expectedmap = [];
         if (!empty($cmids)) {
-            list($insql, $params) = $DB->get_in_or_equal($cmids, SQL_PARAMS_NAMED);
+            [$insql, $params] = $DB->get_in_or_equal($cmids, SQL_PARAMS_NAMED);
             $rows = $DB->get_records_select(
                 'course_modules',
                 "id {$insql}",

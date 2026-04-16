@@ -17,9 +17,10 @@
 /**
  * Parser that normalises raw extractor matches into ISO 8601 values.
  *
- * Takes a match descriptor from text_datetime_extractor and attempts
- * to produce an ISO 8601 date or datetime string. Returns null when
- * the match cannot be normalised (e.g. day-only without year).
+ * All date operations use UTC with a leading '!' in format strings so
+ * missing portions are reset to the Unix epoch (00:00:00) instead of
+ * inheriting the current system time. This guarantees deterministic
+ * results regardless of when or where the test runs.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -32,6 +33,21 @@ namespace local_coursectrl\local\text;
  * Stateless parser: match descriptor → ISO 8601 string.
  */
 class text_datetime_parser {
+    /** @var \DateTimeZone|null Shared UTC timezone instance. */
+    private static ?\DateTimeZone $utc = null;
+
+    /**
+     * Return the shared UTC timezone instance.
+     *
+     * @return \DateTimeZone
+     */
+    private static function utc(): \DateTimeZone {
+        if (self::$utc === null) {
+            self::$utc = new \DateTimeZone('UTC');
+        }
+        return self::$utc;
+    }
+
     /**
      * Attempt to normalise a match descriptor into an ISO 8601 string.
      *
@@ -59,7 +75,6 @@ class text_datetime_parser {
         $hour = $this->extract_hour($groups);
         $minute = $this->extract_minute($groups);
 
-        // Build ISO string.
         if ($year === null) {
             return null;
         }
@@ -73,13 +88,16 @@ class text_datetime_parser {
     /**
      * Convert an ISO 8601 string to a Unix timestamp.
      *
+     * Uses UTC and a bang-prefixed format so missing time components
+     * default to 00:00:00 rather than the current system time.
+     *
      * @param string $iso ISO 8601 date or datetime.
      * @return int|null Unix timestamp, or null on failure.
      */
     public function to_timestamp(string $iso): ?int {
-        $dt = \DateTime::createFromFormat('Y-m-d\TH:i', $iso);
+        $dt = \DateTime::createFromFormat('!Y-m-d\TH:i', $iso, self::utc());
         if ($dt === false) {
-            $dt = \DateTime::createFromFormat('Y-m-d', $iso);
+            $dt = \DateTime::createFromFormat('!Y-m-d', $iso, self::utc());
         }
         if ($dt === false) {
             return null;
@@ -96,13 +114,14 @@ class text_datetime_parser {
      */
     public function shift_iso(string $iso, int $delta): ?string {
         $hastime = str_contains($iso, 'T');
-        $format = $hastime ? 'Y-m-d\TH:i' : 'Y-m-d';
-        $dt = \DateTime::createFromFormat($format, $iso);
+        $readformat = $hastime ? '!Y-m-d\TH:i' : '!Y-m-d';
+        $writeformat = $hastime ? 'Y-m-d\TH:i' : 'Y-m-d';
+        $dt = \DateTime::createFromFormat($readformat, $iso, self::utc());
         if ($dt === false) {
             return null;
         }
         $dt->modify(($delta >= 0 ? '+' : '') . $delta . ' seconds');
-        return $dt->format($format);
+        return $dt->format($writeformat);
     }
 
     /**
@@ -137,7 +156,6 @@ class text_datetime_parser {
             if (str_starts_with($pattern, 'en_')) {
                 return text_datetime_extractor::resolve_en_month($name);
             }
-            // Try both.
             return text_datetime_extractor::resolve_de_month($name)
                 ?? text_datetime_extractor::resolve_en_month($name);
         }

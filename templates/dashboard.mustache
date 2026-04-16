@@ -17,126 +17,152 @@
 {{!
     @template local_coursectrl/dashboard
 
-    Course Control Hub dashboard for a single course.
-
-    Renders a stats summary, action links, and a per-section breakdown
-    of course modules.
+    Course Control Hub dashboard v2 with enriched activity data.
 
     Context variables required for this template:
-    * courseid - int
-    * coursefullname - string
-    * courseshortname - string
-    * coursestartdate - int (unix timestamp)
-    * courseenddate - int|null (unix timestamp)
-    * hasenddate - bool
-    * coursevisible - bool
-    * sectioncount - int
-    * cmcount - int
-    * textcount - int
-    * hassections - bool
-    * sections - array of section objects with id, sectionnum, name, hasname,
-                 visible, hassummary, cms (array of cm objects), cmcount
-    * manageurl - string (URL to the bulk-action management page)
-    * textreviewurl - string (URL to the text-datetime review page)
+    * courseid, coursefullname, courseshortname
+    * coursestartdate, courseenddate, hasenddate, coursevisible
+    * sectioncount, cmcount, textcount, hassections
+    * warningcount, haswarnings
+    * manageurl, textreviewurl
+    * sections - array with enriched cms
 }}
 <div class="local-coursectrl-dashboard" data-region="local_coursectrl-dashboard" data-courseid="{{courseid}}">
+
+    {{! ---- Course header card ---- }}
     <div class="card mb-4">
-        <div class="card-body">
-            <h2 class="card-title h4 mb-1">{{coursefullname}}</h2>
-            <p class="text-muted small mb-3">{{courseshortname}}</p>
-            <dl class="row mb-0 small">
-                <dt class="col-sm-3">{{#str}}dashboard_startdate, local_coursectrl{{/str}}</dt>
-                <dd class="col-sm-9">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start justify-content-between">
+                <div>
+                    <h2 class="h4 mb-0">{{coursefullname}}</h2>
+                    <span class="text-muted small">{{courseshortname}}</span>
+                </div>
+                <div class="text-right small text-muted">
                     {{#userdate}}{{coursestartdate}}, {{#str}}strftimedaydate, core_langconfig{{/str}}{{/userdate}}
-                </dd>
-                {{#hasenddate}}
-                    <dt class="col-sm-3">{{#str}}dashboard_enddate, local_coursectrl{{/str}}</dt>
-                    <dd class="col-sm-9">
-                        {{#userdate}}{{courseenddate}}, {{#str}}strftimedaydate, core_langconfig{{/str}}{{/userdate}}
-                    </dd>
-                {{/hasenddate}}
-                <dt class="col-sm-3">{{#str}}dashboard_visibility, local_coursectrl{{/str}}</dt>
-                <dd class="col-sm-9">
-                    {{#coursevisible}}
-                        <span class="badge badge-success">{{#str}}dashboard_visible, local_coursectrl{{/str}}</span>
-                    {{/coursevisible}}
-                    {{^coursevisible}}
-                        <span class="badge badge-secondary">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>
-                    {{/coursevisible}}
-                </dd>
-            </dl>
-        </div>
-    </div>
-
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card text-center h-100">
-                <div class="card-body">
-                    <div class="display-4">{{sectioncount}}</div>
-                    <div class="text-muted small">{{#str}}dashboard_sections, local_coursectrl{{/str}}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card text-center h-100">
-                <div class="card-body">
-                    <div class="display-4">{{cmcount}}</div>
-                    <div class="text-muted small">{{#str}}dashboard_activities, local_coursectrl{{/str}}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card text-center h-100">
-                <div class="card-body">
-                    <div class="display-4">{{textcount}}</div>
-                    <div class="text-muted small">{{#str}}dashboard_texts, local_coursectrl{{/str}}</div>
+                    {{#hasenddate}} – {{#userdate}}{{courseenddate}}, {{#str}}strftimedaydate, core_langconfig{{/str}}{{/userdate}}{{/hasenddate}}
+                    {{^coursevisible}} · <span class="badge badge-secondary">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>{{/coursevisible}}
                 </div>
             </div>
         </div>
     </div>
 
-    {{! ---- Action links ---- }}
+    {{! ---- Stat counters ---- }}
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <div class="card text-center h-100"><div class="card-body py-2">
+                <div class="h4 mb-0">{{sectioncount}}</div>
+                <div class="text-muted small">{{#str}}dashboard_sections, local_coursectrl{{/str}}</div>
+            </div></div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100"><div class="card-body py-2">
+                <div class="h4 mb-0">{{cmcount}}</div>
+                <div class="text-muted small">{{#str}}dashboard_activities, local_coursectrl{{/str}}</div>
+            </div></div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100"><div class="card-body py-2">
+                <div class="h4 mb-0">{{textcount}}</div>
+                <div class="text-muted small">{{#str}}dashboard_texts, local_coursectrl{{/str}}</div>
+            </div></div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100 {{#haswarnings}}border-danger{{/haswarnings}}"><div class="card-body py-2">
+                <div class="h4 mb-0 {{#haswarnings}}text-danger{{/haswarnings}}">{{warningcount}}</div>
+                <div class="text-muted small">{{#str}}dashboard_warnings, local_coursectrl{{/str}}</div>
+            </div></div>
+        </div>
+    </div>
+
+    {{! ---- Action buttons ---- }}
     <div class="mb-4">
-        <a href="{{manageurl}}" class="btn btn-primary">
-            {{#str}}nav_bulk, local_coursectrl{{/str}}
-        </a>
-        <a href="{{textreviewurl}}" class="btn btn-outline-primary ml-2">
-            {{#str}}nav_textreview, local_coursectrl{{/str}}
-        </a>
+        <a href="{{manageurl}}" class="btn btn-primary btn-sm">{{#str}}nav_bulk, local_coursectrl{{/str}}</a>
+        <a href="{{timelineurl}}" class="btn btn-primary btn-sm ml-1">{{#str}}nav_timeline, local_coursectrl{{/str}}</a>
+        <a href="{{textreviewurl}}" class="btn btn-outline-primary btn-sm ml-1">{{#str}}nav_textreview, local_coursectrl{{/str}}</a>
     </div>
 
-    <h3 class="h5 mb-3">{{#str}}dashboard_inventory, local_coursectrl{{/str}}</h3>
-
+    {{! ---- Inventory ---- }}
     {{#hassections}}
         {{#sections}}
             <div class="card mb-3">
-                <div class="card-header d-flex align-items-center justify-content-between">
+                <div class="card-header py-2 d-flex align-items-center justify-content-between">
                     <span>
                         <strong>{{#str}}dashboard_section, local_coursectrl{{/str}} {{sectionnum}}</strong>
                         {{#hasname}}<span class="text-muted ml-2">{{name}}</span>{{/hasname}}
                     </span>
                     <span>
-                        {{^visible}}<span class="badge badge-secondary mr-2">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>{{/visible}}
-                        <span class="badge badge-light">{{cmcount}} {{#str}}dashboard_activities_short, local_coursectrl{{/str}}</span>
+                        {{^visible}}<span class="badge badge-secondary mr-1">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>{{/visible}}
+                        <span class="badge badge-light">{{cmcount}}</span>
                     </span>
                 </div>
-                {{#cmcount}}
-                    <ul class="list-group list-group-flush">
+                {{#hascms}}
+                    <div class="list-group list-group-flush">
                         {{#cms}}
-                            <li class="list-group-item d-flex align-items-center justify-content-between">
-                                <span>
-                                    <code class="text-muted small mr-2">{{modname}}</code>
-                                    {{name}}
-                                </span>
-                                <span>
-                                    {{^visible}}<span class="badge badge-secondary mr-1">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>{{/visible}}
-                                    {{#hascompletion}}<span class="badge badge-info mr-1">{{#str}}dashboard_completion, local_coursectrl{{/str}}</span>{{/hascompletion}}
-                                    {{#hasavailability}}<span class="badge badge-warning">{{#str}}dashboard_availability, local_coursectrl{{/str}}</span>{{/hasavailability}}
-                                </span>
-                            </li>
+                            <div class="list-group-item py-2 px-3" id="cm-{{cmid}}">
+
+                                {{! ---- Row 1: Name + badges + links ---- }}
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <div>
+                                        {{#haswarnings}}{{#warnings}}<span title="{{message}}">{{icon}}</span> {{/warnings}}{{/haswarnings}}
+                                        <code class="text-muted small mr-1">{{modname}}</code>
+                                        <a href="{{activityurl}}" class="font-weight-bold">{{name}}</a>
+                                        {{^visible}}<span class="badge badge-secondary ml-1">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>{{/visible}}
+                                    </div>
+                                    <div>
+                                        <a href="{{editurl}}" class="btn btn-outline-secondary btn-sm py-0 px-1"
+                                           title="{{#str}}edit{{/str}}">✏️</a>
+                                    </div>
+                                </div>
+
+                                {{! ---- Row 2: Compact detail line ---- }}
+                                <div class="small text-muted">
+
+                                    {{! Dates ---- }}
+                                    {{#hasdates}}
+                                        {{#dates}}
+                                            <span class="mr-2 {{#ispast}}text-decoration-line-through{{/ispast}}">
+                                                <strong>{{field}}</strong> {{formatted}}
+                                            </span>
+                                        {{/dates}}
+                                    {{/hasdates}}
+
+                                    {{! Completion expected ---- }}
+                                    {{#hascompletionexpected}}
+                                        <span class="mr-2">⏰ {{completionexpected}}</span>
+                                    {{/hascompletionexpected}}
+
+                                    {{! Completion tracking ---- }}
+                                    {{#hascompletion}}
+                                        <span class="badge badge-info mr-1">{{completionlabel}}</span>
+                                    {{/hascompletion}}
+
+                                    {{! Date restrictions ---- }}
+                                    {{#hasdaterestrictions}}
+                                        {{#daterestrictions}}
+                                            <span class="badge badge-warning mr-1">🔒 {{direction}} {{formatted}}</span>
+                                        {{/daterestrictions}}
+                                    {{/hasdaterestrictions}}
+
+                                    {{! Prerequisites (what this depends on) ---- }}
+                                    {{#hasprerequisites}}
+                                        <span class="mr-1">{{#str}}dashboard_requires, local_coursectrl{{/str}}</span>
+                                        {{#prerequisites}}
+                                            <a href="{{anchor}}" class="badge badge-outline-primary mr-1" title="cmid {{cmid}}">⬆ {{name}}</a>
+                                        {{/prerequisites}}
+                                    {{/hasprerequisites}}
+
+                                    {{! Dependents (what depends on this) ---- }}
+                                    {{#hasdependents}}
+                                        <span class="mr-1">{{#str}}dashboard_unlocks, local_coursectrl{{/str}}</span>
+                                        {{#dependents}}
+                                            <a href="{{anchor}}" class="badge badge-outline-secondary mr-1" title="cmid {{cmid}}">⬇ {{name}}</a>
+                                        {{/dependents}}
+                                    {{/hasdependents}}
+                                </div>
+                            </div>
                         {{/cms}}
-                    </ul>
-                {{/cmcount}}
+                    </div>
+                {{/hascms}}
             </div>
         {{/sections}}
     {{/hassections}}

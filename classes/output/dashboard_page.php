@@ -15,7 +15,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Renderable for the Course Control Hub course dashboard.
+ * Renderable for the Course Control Hub course dashboard (v2).
+ *
+ * Enriched version that includes per-CM dates, availability conditions,
+ * completion settings, dependency cross-links and light-weight warnings.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -24,13 +27,17 @@
 
 namespace local_coursectrl\output;
 
+use local_coursectrl\local\analysis\availability_parser;
+use local_coursectrl\local\analysis\date_collector;
+use local_coursectrl\local\analysis\dependency_index;
 use local_coursectrl\local\inventory\inventory_snapshot;
+use local_coursectrl\manager\registry;
 use renderable;
 use renderer_base;
 use templatable;
 
 /**
- * Pure transformer from inventory_snapshot to mustache template context.
+ * Enriched dashboard renderable with dates, deps and warnings.
  */
 class dashboard_page implements renderable, templatable {
     /** @var inventory_snapshot The snapshot to render. */
@@ -54,21 +61,36 @@ class dashboard_page implements renderable, templatable {
     public function export_for_template(renderer_base $output): array {
         $course = $this->snapshot->course;
 
+        // Build analysis structures.
+        $depindex = new dependency_index($this->snapshot->cms);
+        $datecollector = new date_collector();
+        $datesbycm = $datecollector->collect_grouped_by_cm($this->snapshot->cms);
+        $circular = $depindex->find_circular_deps();
+        $circularset = $this->build_circular_set($circular);
+        $dateformat = get_string('strftimedaydatetime', 'core_langconfig');
+
+        // Build CM name lookup for cross-linking.
+        $cmnames = [];
+        foreach ($this->snapshot->cms as $cm) {
+            $cmnames[$cm->id] = $cm->name;
+        }
+
         $cmsbysection = [];
         foreach ($this->snapshot->cms as $cm) {
-            $cmsbysection[$cm->sectionid][] = [
-                'cmid' => $cm->id,
-                'name' => $cm->name,
-                'modname' => $cm->modname,
-                'component' => $cm->get_component(),
-                'visible' => $cm->visible,
-                'hascompletion' => $cm->completion > 0,
-                'hasavailability' => $cm->availability !== null && $cm->availability !== '',
-            ];
+            $cmdata = $this->build_cm_context(
+                $cm,
+                $depindex,
+                $datesbycm[$cm->id] ?? [],
+                $cmnames,
+                $circularset,
+                $dateformat
+            );
+            $cmsbysection[$cm->sectionid][] = $cmdata;
         }
 
         $sections = [];
         foreach ($this->snapshot->sections as $section) {
+            $sectioncms = $cmsbysection[$section->id] ?? [];
             $sections[] = [
                 'id' => $section->id,
                 'sectionnum' => $section->sectionnum,
@@ -76,10 +98,13 @@ class dashboard_page implements renderable, templatable {
                 'hasname' => $section->name !== null && $section->name !== '',
                 'visible' => $section->visible,
                 'hassummary' => $section->summary !== '',
-                'cms' => $cmsbysection[$section->id] ?? [],
-                'cmcount' => count($cmsbysection[$section->id] ?? []),
+                'cms' => $sectioncms,
+                'cmcount' => count($sectioncms),
+                'hascms' => count($sectioncms) > 0,
             ];
         }
+
+        $warningcount = count($circular);
 
         return [
             'courseid' => $course->id,
@@ -94,6 +119,8 @@ class dashboard_page implements renderable, templatable {
             'textcount' => $this->snapshot->count_texts(),
             'sections' => $sections,
             'hassections' => count($sections) > 0,
+            'warningcount' => $warningcount,
+            'haswarnings' => $warningcount > 0,
             'manageurl' => (new \moodle_url(
                 '/local/coursectrl/manage.php',
                 ['courseid' => $course->id]
@@ -102,6 +129,141 @@ class dashboard_page implements renderable, templatable {
                 '/local/coursectrl/textreview.php',
                 ['courseid' => $course->id]
             ))->out(false),
+            'timelineurl' => (new \moodle_url(
+                '/local/coursectrl/timeline.php',
+                ['courseid' => $course->id]
+            ))->out(false),
         ];
+    }
+
+    /**
+     * Build template context for a single CM.
+     *
+     * @param \local_coursectrl\local\entity\cm_item $cm         The CM entity.
+     * @param dependency_index                       $depindex   Dependency index.
+     * @param array                                  $dates      Date entries for this CM.
+     * @param array                                  $cmnames    Lookup: cmid → name.
+     * @param array                                  $circularset Set of cmids in circular deps.
+     * @param string                                 $dateformat  Moodle date format string.
+     * @return array
+     */
+    private function build_cm_context(
+        \local_coursectrl\local\entity\cm_item $cm,
+        dependency_index $depindex,
+        array $dates,
+        array $cmnames,
+        array $circularset,
+        string $dateformat
+    ): array {
+        // Activity URL and edit URL.
+        $activityurl = (new \moodle_url('/mod/' . $cm->modname . '/view.php', ['id' => $cm->id]))->out(false);
+        $editurl = (new \moodle_url(
+            '/course/modedit.php',
+            ['update' => $cm->id, 'return' => 1]
+        ))->out(false);
+
+        // Format dates.
+        $formatteddates = [];
+        foreach ($dates as $entry) {
+            $formatteddates[] = [
+                'field' => $entry['fieldlabel'],
+                'source' => $entry['source'],
+                'formatted' => userdate($entry['timestamp'], $dateformat),
+                'timestamp' => $entry['timestamp'],
+                'ispast' => $entry['timestamp'] < time(),
+            ];
+        }
+
+        // Prerequisites (activities this CM depends on).
+        $prerequisites = [];
+        foreach ($depindex->get_prerequisites($cm->id) as $depcmid) {
+            $prerequisites[] = [
+                'cmid' => $depcmid,
+                'name' => $cmnames[$depcmid] ?? 'cmid ' . $depcmid,
+                'anchor' => '#cm-' . $depcmid,
+            ];
+        }
+
+        // Dependents (activities that depend on this CM).
+        $dependents = [];
+        foreach ($depindex->get_dependents($cm->id) as $depcmid) {
+            $dependents[] = [
+                'cmid' => $depcmid,
+                'name' => $cmnames[$depcmid] ?? 'cmid ' . $depcmid,
+                'anchor' => '#cm-' . $depcmid,
+            ];
+        }
+
+        // Date-based availability restrictions.
+        $daterestrictions = [];
+        foreach ($depindex->get_date_restrictions($cm->id) as $cond) {
+            if ($cond['timestamp'] > 0) {
+                $daterestrictions[] = [
+                    'direction' => $cond['direction'] === '>=' ? 'from' : 'until',
+                    'formatted' => userdate($cond['timestamp'], $dateformat),
+                    'timestamp' => $cond['timestamp'],
+                ];
+            }
+        }
+
+        // Completion info.
+        $completionlabel = '';
+        if ($cm->completion === 1) {
+            $completionlabel = get_string('dashboard_completion_manual', 'local_coursectrl');
+        } else if ($cm->completion === 2) {
+            $completionlabel = get_string('dashboard_completion_auto', 'local_coursectrl');
+        }
+
+        // Warnings.
+        $iscircular = isset($circularset[$cm->id]);
+        $warnings = [];
+        if ($iscircular) {
+            $warnings[] = [
+                'type' => 'circular',
+                'icon' => '❗',
+                'message' => get_string('warning_circular_dep', 'local_coursectrl'),
+            ];
+        }
+
+        return [
+            'cmid' => $cm->id,
+            'name' => $cm->name,
+            'modname' => $cm->modname,
+            'component' => $cm->get_component(),
+            'visible' => $cm->visible,
+            'activityurl' => $activityurl,
+            'editurl' => $editurl,
+            'hascompletion' => $cm->completion > 0,
+            'completionlabel' => $completionlabel,
+            'hascompletionexpected' => $cm->completionexpected > 0,
+            'completionexpected' => $cm->completionexpected > 0
+                ? userdate($cm->completionexpected, $dateformat) : '',
+            'hasavailability' => $cm->availability !== null && $cm->availability !== '',
+            'dates' => $formatteddates,
+            'hasdates' => count($formatteddates) > 0,
+            'prerequisites' => $prerequisites,
+            'hasprerequisites' => count($prerequisites) > 0,
+            'dependents' => $dependents,
+            'hasdependents' => count($dependents) > 0,
+            'daterestrictions' => $daterestrictions,
+            'hasdaterestrictions' => count($daterestrictions) > 0,
+            'warnings' => $warnings,
+            'haswarnings' => count($warnings) > 0,
+        ];
+    }
+
+    /**
+     * Build a lookup set of cmids involved in circular dependencies.
+     *
+     * @param array $circular Circular pairs from dependency_index.
+     * @return array<int, true> cmid → true.
+     */
+    private function build_circular_set(array $circular): array {
+        $set = [];
+        foreach ($circular as $pair) {
+            $set[$pair['a']] = true;
+            $set[$pair['b']] = true;
+        }
+        return $set;
     }
 }

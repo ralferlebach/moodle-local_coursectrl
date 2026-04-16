@@ -1,0 +1,148 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_coursectrl/timeline
+
+    Chronological timeline view of all date entries in the course,
+    grouped by day and by time slot.
+
+    Context variables required for this template:
+    * courseid, coursefullname, sesskey
+    * days - array of day group objects with slots
+    * hasdays - bool
+    * totalentries, totaldays - int
+    * showpast, onlywithdeps - bool
+    * componentoptions - array of {value, label, selected}
+    * hascomponentoptions - bool
+    * dashboardurl, manageurl, timelineurl - string
+}}
+<div class="local-coursectrl-timeline" data-region="local_coursectrl-timeline" data-courseid="{{courseid}}">
+
+    <div class="mb-3">
+        <a href="{{dashboardurl}}" class="btn btn-sm btn-outline-secondary">
+            &laquo; {{#str}}nav_dashboard, local_coursectrl{{/str}}
+        </a>
+        <a href="{{manageurl}}" class="btn btn-sm btn-outline-secondary ml-1">
+            {{#str}}nav_bulk, local_coursectrl{{/str}}
+        </a>
+    </div>
+
+    {{! ---- Control strip (single row) ---- }}
+    <form id="coursectrl-timeline-filters" method="get" action="{{timelineurl}}"
+          class="card mb-3">
+        <input type="hidden" name="courseid" value="{{courseid}}">
+        <div class="card-body py-2">
+            <div class="form-inline flex-wrap">
+                <label class="mb-0 mr-3">
+                    <input type="checkbox" name="showpast" value="1"
+                           {{#showpast}}checked{{/showpast}}
+                           onchange="this.form.submit()">
+                    {{#str}}timeline_show_past, local_coursectrl{{/str}}
+                </label>
+                <label class="mb-0 mr-3">
+                    <input type="checkbox" name="onlywithdeps" value="1"
+                           {{#onlywithdeps}}checked{{/onlywithdeps}}
+                           onchange="this.form.submit()">
+                    {{#str}}timeline_only_with_deps, local_coursectrl{{/str}}
+                </label>
+                {{#hascomponentoptions}}
+                    <div class="mr-3">
+                        <label class="mb-0 mr-1">{{#str}}timeline_filter_components, local_coursectrl{{/str}}</label>
+                        <select name="components[]" multiple size="1" class="form-control form-control-sm"
+                                onchange="this.form.submit()">
+                            {{#componentoptions}}
+                                <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+                            {{/componentoptions}}
+                        </select>
+                    </div>
+                {{/hascomponentoptions}}
+                <span class="text-muted small ml-auto">
+                    {{totalentries}} {{#str}}timeline_entries, local_coursectrl{{/str}},
+                    {{totaldays}} {{#str}}timeline_days, local_coursectrl{{/str}}
+                </span>
+            </div>
+        </div>
+    </form>
+
+    {{! ---- Day-grouped timeline list ---- }}
+    {{#hasdays}}
+        {{#days}}
+            <div class="card mb-2 {{#ispast}}border-muted{{/ispast}}">
+                <div class="card-header py-1 px-3 d-flex align-items-center justify-content-between">
+                    <strong class="{{#ispast}}text-muted{{/ispast}}">{{dayformatted}}</strong>
+                    <span class="badge badge-light">{{slotcount}}</span>
+                </div>
+                <div class="list-group list-group-flush">
+                    {{#slots}}
+                        <div class="list-group-item py-2 px-3 {{#ispast}}bg-light text-muted{{/ispast}}">
+
+                            {{! Time header ---- }}
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <strong class="small">⏱ {{timeformatted}}</strong>
+                                <span>
+                                    <form method="post" action="{{../../timelineurl}}" class="d-inline">
+                                        <input type="hidden" name="sesskey" value="{{../../sesskey}}">
+                                        <input type="hidden" name="courseid" value="{{../../courseid}}">
+                                        <input type="hidden" name="action" value="shift_slot">
+                                        <input type="hidden" name="timestamp" value="{{timekey}}">
+                                        <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2"
+                                                data-action="shift-slot" data-timestamp="{{timekey}}"
+                                                title="{{#str}}timeline_action_shift_slot, local_coursectrl{{/str}}">
+                                            ⇥
+                                        </button>
+                                    </form>
+                                </span>
+                            </div>
+
+                            {{! Entries at this time slot ---- }}
+                            <ul class="list-unstyled mb-0 ml-3">
+                                {{#entries}}
+                                    <li class="d-flex align-items-center justify-content-between py-1">
+                                        <span>
+                                            <code class="small text-muted mr-1">{{modname}}</code>
+                                            <a href="{{activityurl}}">{{name}}</a>
+                                            <span class="badge badge-outline-secondary ml-1" title="{{source}}">{{field}}</span>
+                                        </span>
+                                        <span>
+                                            <a href="{{dashboardanchor}}" class="btn btn-outline-secondary btn-sm py-0 px-2"
+                                               title="{{#str}}timeline_action_view, local_coursectrl{{/str}}">👁</a>
+                                            <a href="{{editurl}}" class="btn btn-outline-secondary btn-sm py-0 px-2"
+                                               title="{{#str}}edit{{/str}}">✏️</a>
+                                            <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2"
+                                                    data-action="shift-entry" data-cmid="{{cmid}}" data-field="{{field}}"
+                                                    title="{{#str}}timeline_action_shift_entry, local_coursectrl{{/str}}">⇥</button>
+                                        </span>
+                                    </li>
+                                {{/entries}}
+                            </ul>
+                        </div>
+                    {{/slots}}
+                </div>
+            </div>
+        {{/days}}
+    {{/hasdays}}
+    {{^hasdays}}
+        <div class="alert alert-info">
+            {{#str}}timeline_empty, local_coursectrl{{/str}}
+        </div>
+    {{/hasdays}}
+</div>
+{{#js}}
+require(['local_coursectrl/timeline'], function(mod) {
+    mod.init();
+});
+{{/js}}

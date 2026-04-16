@@ -15,7 +15,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for local_coursectrl.
+ * Plugin-wide hook callbacks for local_coursectrl.
+ *
+ * Declares user preferences so they can be stored via the
+ * core_user_update_user_preferences web service from AMD modules.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -24,8 +27,18 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_coursectrl';
-$plugin->version   = 2026041602;
-$plugin->requires  = 2024042200; // Moodle 4.5.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.29';
+/**
+ * Return the list of user preferences that local_coursectrl manages.
+ *
+ * @return array Preference definitions keyed by preference name.
+ */
+function local_coursectrl_user_preferences(): array {
+    return [
+        'local_coursectrl_showcalendar' => [
+            'type' => PARAM_BOOL,
+            'null' => NULL_NOT_ALLOWED,
+            'default' => 1,
+            'choices' => [0, 1],
+        ],
+    ];
+}

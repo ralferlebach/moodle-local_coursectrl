@@ -17,9 +17,8 @@
 /**
  * Renderable for the chronological timeline manager page.
  *
- * Transforms the grouped-by-day date_collector output into a template
- * context suitable for timeline.mustache: a list of day groups, each
- * containing time slots with the activities linked to that moment.
+ * v2 adds the mini-calendar block at the top and preserves the user's
+ * filter preferences across sessions.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -28,6 +27,7 @@
 
 namespace local_coursectrl\output;
 
+use local_coursectrl\local\analysis\calendar_grid_builder;
 use local_coursectrl\local\analysis\date_collector;
 use local_coursectrl\local\analysis\dependency_index;
 use local_coursectrl\local\inventory\inventory_snapshot;
@@ -36,7 +36,7 @@ use renderer_base;
 use templatable;
 
 /**
- * Renderable for the chronological timeline manager page.
+ * Renderable for the chronological timeline manager page with mini-calendar.
  */
 class timeline_page implements renderable, templatable {
     /** @var inventory_snapshot The course inventory. */
@@ -52,7 +52,8 @@ class timeline_page implements renderable, templatable {
      * @param array              $filters  User filters:
      *                                     - showpast (bool)
      *                                     - onlywithdeps (bool)
-     *                                     - components (string[]).
+     *                                     - components (string[])
+     *                                     - showcalendar (bool).
      */
     public function __construct(inventory_snapshot $snapshot, array $filters = []) {
         $this->snapshot = $snapshot;
@@ -61,6 +62,7 @@ class timeline_page implements renderable, templatable {
                 'showpast' => true,
                 'onlywithdeps' => false,
                 'components' => [],
+                'showcalendar' => true,
             ],
             $filters
         );
@@ -78,34 +80,46 @@ class timeline_page implements renderable, templatable {
         $depindex = new dependency_index($this->snapshot->cms);
         $allentries = $collector->collect($this->snapshot->cms);
         $now = time();
-        $dateformat = get_string('strftimedaydatetime', 'core_langconfig');
         $dayformat = get_string('strftimedaydate', 'core_langconfig');
         $timeformat = get_string('strftimetime24', 'core_langconfig');
 
-        // Apply filters.
+        // Build mini-calendar from all entries (regardless of filters).
+        $gridbuilder = new calendar_grid_builder();
+        $months = $gridbuilder->build(
+            (int) $course->startdate,
+            $course->enddate,
+            $allentries,
+            $now
+        );
+
+        // Apply filters to the list view.
         $entries = [];
         foreach ($allentries as $entry) {
             if (!$this->filters['showpast'] && $entry['timestamp'] < $now) {
                 continue;
             }
-            if ($this->filters['onlywithdeps']
-                && !$depindex->has_dependents($entry['cmid'])) {
+            if (
+                $this->filters['onlywithdeps']
+                && !$depindex->has_dependents($entry['cmid'])
+            ) {
                 continue;
             }
-            if (!empty($this->filters['components'])
-                && !in_array($entry['component'], $this->filters['components'], true)) {
+            if (
+                !empty($this->filters['components'])
+                && !in_array($entry['component'], $this->filters['components'], true)
+            ) {
                 continue;
             }
             $entries[] = $entry;
         }
 
         // Group by day, then by timestamp within the day.
-        $dayGroups = [];
+        $daygroups = [];
         foreach ($entries as $entry) {
             $daykey = date('Y-m-d', $entry['timestamp']);
             $timekey = $entry['timestamp'];
-            if (!isset($dayGroups[$daykey])) {
-                $dayGroups[$daykey] = [
+            if (!isset($daygroups[$daykey])) {
+                $daygroups[$daykey] = [
                     'daykey' => $daykey,
                     'dayformatted' => userdate($entry['timestamp'], $dayformat),
                     'dayts' => strtotime($daykey . ' 00:00:00'),
@@ -113,8 +127,8 @@ class timeline_page implements renderable, templatable {
                     'slots' => [],
                 ];
             }
-            if (!isset($dayGroups[$daykey]['slots'][$timekey])) {
-                $dayGroups[$daykey]['slots'][$timekey] = [
+            if (!isset($daygroups[$daykey]['slots'][$timekey])) {
+                $daygroups[$daykey]['slots'][$timekey] = [
                     'timekey' => (int) $timekey,
                     'timeformatted' => userdate((int) $timekey, $timeformat),
                     'timestamp' => (int) $timekey,
@@ -122,7 +136,7 @@ class timeline_page implements renderable, templatable {
                     'entries' => [],
                 ];
             }
-            $dayGroups[$daykey]['slots'][$timekey]['entries'][] = [
+            $daygroups[$daykey]['slots'][$timekey]['entries'][] = [
                 'cmid' => $entry['cmid'],
                 'name' => $entry['name'],
                 'modname' => $entry['modname'],
@@ -144,11 +158,9 @@ class timeline_page implements renderable, templatable {
             ];
         }
 
-        // Convert to flat arrays and mark past days.
         $days = [];
-        ksort($dayGroups);
-        foreach ($dayGroups as $day) {
-            // Flatten slots, sorted by time.
+        ksort($daygroups);
+        foreach ($daygroups as $day) {
             ksort($day['slots']);
             $slots = array_values($day['slots']);
             $day['slots'] = $slots;
@@ -157,7 +169,7 @@ class timeline_page implements renderable, templatable {
             $days[] = $day;
         }
 
-        // Build component filter options from registered components.
+        // Component filter options.
         $components = [];
         foreach ($allentries as $entry) {
             $components[$entry['component']] = $entry['modname'];
@@ -175,12 +187,15 @@ class timeline_page implements renderable, templatable {
             'courseid' => $course->id,
             'coursefullname' => format_string($course->fullname),
             'sesskey' => sesskey(),
+            'months' => $months,
+            'hascalendar' => count($months) > 0,
             'days' => $days,
             'hasdays' => count($days) > 0,
             'totalentries' => count($entries),
             'totaldays' => count($days),
             'showpast' => $this->filters['showpast'],
             'onlywithdeps' => $this->filters['onlywithdeps'],
+            'showcalendar' => $this->filters['showcalendar'],
             'componentoptions' => $componentoptions,
             'hascomponentoptions' => count($componentoptions) > 0,
             'dashboardurl' => (new \moodle_url(
@@ -193,6 +208,10 @@ class timeline_page implements renderable, templatable {
             ))->out(false),
             'timelineurl' => (new \moodle_url(
                 '/local/coursectrl/timeline.php',
+                ['courseid' => $course->id]
+            ))->out(false),
+            'shifturl' => (new \moodle_url(
+                '/local/coursectrl/shift.php',
                 ['courseid' => $course->id]
             ))->out(false),
         ];

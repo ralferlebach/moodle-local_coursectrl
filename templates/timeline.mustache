@@ -17,18 +17,7 @@
 {{!
     @template local_coursectrl/timeline
 
-    Chronological timeline view of all date entries in the course,
-    grouped by day and by time slot.
-
-    Context variables required for this template:
-    * courseid, coursefullname, sesskey
-    * days - array of day group objects with slots
-    * hasdays - bool
-    * totalentries, totaldays - int
-    * showpast, onlywithdeps - bool
-    * componentoptions - array of {value, label, selected}
-    * hascomponentoptions - bool
-    * dashboardurl, manageurl, timelineurl - string
+    Timeline view with mini-calendar block + chronological day list.
 }}
 <div class="local-coursectrl-timeline" data-region="local_coursectrl-timeline" data-courseid="{{courseid}}">
 
@@ -41,9 +30,69 @@
         </a>
     </div>
 
-    {{! ---- Control strip (single row) ---- }}
-    <form id="coursectrl-timeline-filters" method="get" action="{{timelineurl}}"
-          class="card mb-3">
+    {{! ---- Mini-calendar (collapsible, preference-persisted) ---- }}
+    {{#hascalendar}}
+        <div class="card mb-3" id="coursectrl-calendar-card">
+            <div class="card-header py-1 px-3 d-flex align-items-center justify-content-between">
+                <strong class="small">{{#str}}timeline_calendar_title, local_coursectrl{{/str}}</strong>
+                <button type="button" class="btn btn-sm btn-link py-0"
+                        data-action="toggle-calendar" data-state="{{#showcalendar}}open{{/showcalendar}}{{^showcalendar}}closed{{/showcalendar}}">
+                    {{#showcalendar}}−{{/showcalendar}}{{^showcalendar}}+{{/showcalendar}}
+                </button>
+            </div>
+            <div class="card-body p-2" id="coursectrl-calendar-body"
+                 style="{{^showcalendar}}display:none;{{/showcalendar}}">
+                <div class="d-flex flex-wrap">
+                    {{#months}}
+                        <div class="coursectrl-mini-month m-1" style="font-size:10px;">
+                            <div class="text-center font-weight-bold small mb-1">{{label}}</div>
+                            <table class="table-sm mb-0" style="border-collapse:separate; border-spacing:1px;">
+                                <thead>
+                                    <tr class="text-muted text-center">
+                                        <th style="width:14px">M</th>
+                                        <th style="width:14px">D</th>
+                                        <th style="width:14px">M</th>
+                                        <th style="width:14px">D</th>
+                                        <th style="width:14px">F</th>
+                                        <th style="width:14px">S</th>
+                                        <th style="width:14px">S</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{#weeks}}
+                                        <tr>
+                                            {{#cells}}
+                                                {{#inmonth}}
+                                                    <td class="text-center p-0
+                                                        {{#hasentries}}bg-primary text-white font-weight-bold{{/hasentries}}
+                                                        {{#istoday}}border border-warning{{/istoday}}
+                                                        {{#ispast}}text-muted{{/ispast}}"
+                                                        style="width:14px; height:14px; cursor:{{#hasentries}}pointer{{/hasentries}}default;"
+                                                        {{#hasentries}}
+                                                            data-daykey="{{daykey}}"
+                                                            data-action="jump-to-day"
+                                                            title="{{#entries}}{{time}} {{modname}}: {{name}}&#10;{{/entries}}"
+                                                        {{/hasentries}}>
+                                                        {{day}}
+                                                    </td>
+                                                {{/inmonth}}
+                                                {{^inmonth}}
+                                                    <td style="width:14px; height:14px;"></td>
+                                                {{/inmonth}}
+                                            {{/cells}}
+                                        </tr>
+                                    {{/weeks}}
+                                </tbody>
+                            </table>
+                        </div>
+                    {{/months}}
+                </div>
+            </div>
+        </div>
+    {{/hascalendar}}
+
+    {{! ---- Control strip ---- }}
+    <form id="coursectrl-timeline-filters" method="get" action="{{timelineurl}}" class="card mb-3">
         <input type="hidden" name="courseid" value="{{courseid}}">
         <div class="card-body py-2">
             <div class="form-inline flex-wrap">
@@ -81,7 +130,7 @@
     {{! ---- Day-grouped timeline list ---- }}
     {{#hasdays}}
         {{#days}}
-            <div class="card mb-2 {{#ispast}}border-muted{{/ispast}}">
+            <div class="card mb-2 {{#ispast}}border-muted{{/ispast}}" id="day-{{daykey}}">
                 <div class="card-header py-1 px-3 d-flex align-items-center justify-content-between">
                     <strong class="{{#ispast}}text-muted{{/ispast}}">{{dayformatted}}</strong>
                     <span class="badge badge-light">{{slotcount}}</span>
@@ -89,26 +138,14 @@
                 <div class="list-group list-group-flush">
                     {{#slots}}
                         <div class="list-group-item py-2 px-3 {{#ispast}}bg-light text-muted{{/ispast}}">
-
-                            {{! Time header ---- }}
                             <div class="d-flex align-items-center justify-content-between mb-1">
                                 <strong class="small">⏱ {{timeformatted}}</strong>
-                                <span>
-                                    <form method="post" action="{{../../timelineurl}}" class="d-inline">
-                                        <input type="hidden" name="sesskey" value="{{../../sesskey}}">
-                                        <input type="hidden" name="courseid" value="{{../../courseid}}">
-                                        <input type="hidden" name="action" value="shift_slot">
-                                        <input type="hidden" name="timestamp" value="{{timekey}}">
-                                        <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2"
-                                                data-action="shift-slot" data-timestamp="{{timekey}}"
-                                                title="{{#str}}timeline_action_shift_slot, local_coursectrl{{/str}}">
-                                            ⇥
-                                        </button>
-                                    </form>
-                                </span>
+                                <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2"
+                                        data-action="shift-slot" data-timestamp="{{timekey}}"
+                                        title="{{#str}}timeline_action_shift_slot, local_coursectrl{{/str}}">
+                                    ⇥ {{#str}}timeline_shift, local_coursectrl{{/str}}
+                                </button>
                             </div>
-
-                            {{! Entries at this time slot ---- }}
                             <ul class="list-unstyled mb-0 ml-3">
                                 {{#entries}}
                                     <li class="d-flex align-items-center justify-content-between py-1">
@@ -123,7 +160,7 @@
                                             <a href="{{editurl}}" class="btn btn-outline-secondary btn-sm py-0 px-2"
                                                title="{{#str}}edit{{/str}}">✏️</a>
                                             <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2"
-                                                    data-action="shift-entry" data-cmid="{{cmid}}" data-field="{{field}}"
+                                                    data-action="shift-entry" data-cmid="{{cmid}}"
                                                     title="{{#str}}timeline_action_shift_entry, local_coursectrl{{/str}}">⇥</button>
                                         </span>
                                     </li>
@@ -140,6 +177,56 @@
             {{#str}}timeline_empty, local_coursectrl{{/str}}
         </div>
     {{/hasdays}}
+
+    {{! ---- Shift dialog (hidden by default) ---- }}
+    <div id="coursectrl-shift-dialog" class="modal" tabindex="-1" role="dialog" style="display:none;">
+        <div class="modal-dialog" role="document">
+            <form method="post" action="{{shifturl}}">
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                <input type="hidden" name="courseid" value="{{courseid}}">
+                <input type="hidden" name="cmids" id="coursectrl-shift-cmids" value="">
+                <input type="hidden" name="mode" id="coursectrl-shift-mode" value="slot">
+                <input type="hidden" name="followdeps" id="coursectrl-shift-followdeps" value="0">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">{{#str}}timeline_shift_dialog_title, local_coursectrl{{/str}}</h5>
+                        <button type="button" class="close" data-action="close-dialog">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="coursectrl-shift-target" class="small text-muted"></p>
+                        <div class="form-group">
+                            <label>{{#str}}manage_delta, local_coursectrl{{/str}}</label>
+                            <div class="form-inline">
+                                <div class="input-group mr-2 mb-2">
+                                    <input type="number" name="delta_days" class="form-control" style="width:80px" value="0">
+                                    <div class="input-group-append"><span class="input-group-text">{{#str}}days{{/str}}</span></div>
+                                </div>
+                                <div class="input-group mb-2">
+                                    <input type="number" name="delta_hours" class="form-control" style="width:80px" value="0">
+                                    <div class="input-group-append"><span class="input-group-text">{{#str}}hours{{/str}}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="coursectrl-shift-followdeps-cb"
+                                   data-bind="followdeps">
+                            <label class="form-check-label" for="coursectrl-shift-followdeps-cb">
+                                {{#str}}timeline_shift_followdeps, local_coursectrl{{/str}}
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-action="close-dialog">
+                            {{#str}}cancel{{/str}}
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            {{#str}}timeline_shift, local_coursectrl{{/str}}
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {{#js}}
 require(['local_coursectrl/timeline'], function(mod) {

@@ -100,6 +100,7 @@ $string['result_new_action']                   = 'Neue Massenaktion';
 $string['result_success']                      = 'Batch erfolgreich ausgeführt';
 $string['result_summary']                      = 'Ausführungszusammenfassung';
 $string['result_title']                        = 'Ausführungsergebnis';
+$string['shift_no_change']                     = 'Nichts zu verschieben (keine Aktivitäten ausgewählt oder Delta ist null).';
 $string['stub_placeholder']                    = 'Kursablauf-Zentrale – Phase-1-Stub. Die vollständige Oberfläche folgt in Phase 2.';
 $string['subplugintype_coursectrlmod']         = 'Aktivitätsadapter';
 $string['subplugintype_coursectrlmod_plural']  = 'Aktivitätsadapter';

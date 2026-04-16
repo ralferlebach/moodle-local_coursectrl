@@ -14,11 +14,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * AMD module for the chronological timeline view.
+ * AMD module for the timeline page.
  *
- * Wires up the per-slot and per-entry shift action buttons. The actual
- * shift dialog and backend call are placeholders at this stage; they
- * will be implemented alongside the dedicated shift backend.
+ * Wires up the shift dialog, mini-calendar toggle, and jump-to-day
+ * navigation from calendar cells.
  *
  * @module     local_coursectrl/timeline
  * @copyright  2026 Ralf Erlebach
@@ -26,6 +25,84 @@
  */
 
 define([], function() {
+
+    /**
+     * Persist a boolean user preference via Moodle's core_user ws.
+     *
+     * @param {string} name  Preference name.
+     * @param {boolean} value Value to store.
+     */
+    var persistPref = function(name, value) {
+        require(['core/ajax'], function(Ajax) {
+            Ajax.call([{
+                methodname: 'core_user_update_user_preferences',
+                args: {
+                    preferences: [{
+                        type: name,
+                        value: value ? '1' : '0',
+                    }],
+                },
+            }]);
+        });
+    };
+
+    /**
+     * Collect all cmids that have an entry at the given timestamp.
+     *
+     * @param {HTMLElement} root      Root element.
+     * @param {string}      timestamp Slot timestamp.
+     * @return {string[]} cmids
+     */
+    var cmidsForSlot = function(root, timestamp) {
+        var btn = root.querySelector('[data-action="shift-slot"][data-timestamp="' + timestamp + '"]');
+        if (!btn) {
+            return [];
+        }
+        var slot = btn.closest('.list-group-item');
+        if (!slot) {
+            return [];
+        }
+        var ids = [];
+        slot.querySelectorAll('[data-action="shift-entry"]').forEach(function(b) {
+            ids.push(b.getAttribute('data-cmid'));
+        });
+        return ids;
+    };
+
+    /**
+     * Open the shift dialog with the given cmids and mode.
+     *
+     * @param {HTMLElement} root  Root element.
+     * @param {string[]}    cmids CMIDs to shift.
+     * @param {string}      mode  'slot' or 'entry'.
+     * @param {string}      label Human-readable target label.
+     */
+    var openShiftDialog = function(root, cmids, mode, label) {
+        var dialog = document.getElementById('coursectrl-shift-dialog');
+        if (!dialog) {
+            return;
+        }
+        document.getElementById('coursectrl-shift-cmids').value = cmids.join(',');
+        document.getElementById('coursectrl-shift-mode').value = mode;
+        var target = document.getElementById('coursectrl-shift-target');
+        if (target) {
+            target.textContent = label;
+        }
+        dialog.style.display = 'block';
+        dialog.classList.add('show');
+    };
+
+    /**
+     * Close the shift dialog.
+     */
+    var closeShiftDialog = function() {
+        var dialog = document.getElementById('coursectrl-shift-dialog');
+        if (!dialog) {
+            return;
+        }
+        dialog.style.display = 'none';
+        dialog.classList.remove('show');
+    };
 
     /**
      * Initialise the timeline page JS enhancements.
@@ -36,23 +113,62 @@ define([], function() {
             return;
         }
 
-        // Slot-level shift buttons.
-        var slotBtns = root.querySelectorAll('[data-action="shift-slot"]');
-        slotBtns.forEach(function(btn) {
+        // Slot-level shift.
+        root.querySelectorAll('[data-action="shift-slot"]').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var ts = btn.getAttribute('data-timestamp');
-                // Placeholder: real dialog comes in the next iteration.
-                window.alert('Shift slot (timestamp ' + ts + ') — UI placeholder');
+                var cmids = cmidsForSlot(root, ts);
+                openShiftDialog(root, cmids, 'slot', 'Slot: ' + cmids.length + ' entries');
             });
         });
 
-        // Entry-level shift buttons.
-        var entryBtns = root.querySelectorAll('[data-action="shift-entry"]');
-        entryBtns.forEach(function(btn) {
+        // Entry-level shift.
+        root.querySelectorAll('[data-action="shift-entry"]').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var cmid = btn.getAttribute('data-cmid');
-                var field = btn.getAttribute('data-field');
-                window.alert('Shift entry (cmid ' + cmid + ', field ' + field + ') — UI placeholder');
+                var link = btn.closest('li').querySelector('a');
+                var name = link ? link.textContent.trim() : 'cmid ' + cmid;
+                openShiftDialog(root, [cmid], 'entry', name);
+            });
+        });
+
+        // Close dialog.
+        root.querySelectorAll('[data-action="close-dialog"]').forEach(function(btn) {
+            btn.addEventListener('click', closeShiftDialog);
+        });
+
+        // Followdeps checkbox → hidden input.
+        var followdepsCb = document.getElementById('coursectrl-shift-followdeps-cb');
+        if (followdepsCb) {
+            followdepsCb.addEventListener('change', function() {
+                document.getElementById('coursectrl-shift-followdeps').value = followdepsCb.checked ? '1' : '0';
+            });
+        }
+
+        // Mini-calendar toggle with preference persistence.
+        var toggleBtn = root.querySelector('[data-action="toggle-calendar"]');
+        var body = document.getElementById('coursectrl-calendar-body');
+        if (toggleBtn && body) {
+            toggleBtn.addEventListener('click', function() {
+                var isOpen = body.style.display !== 'none';
+                body.style.display = isOpen ? 'none' : '';
+                toggleBtn.textContent = isOpen ? '+' : '−';
+                persistPref('local_coursectrl_showcalendar', !isOpen);
+            });
+        }
+
+        // Jump-to-day from mini-calendar cell.
+        root.querySelectorAll('[data-action="jump-to-day"]').forEach(function(cell) {
+            cell.addEventListener('click', function() {
+                var daykey = cell.getAttribute('data-daykey');
+                var target = document.getElementById('day-' + daykey);
+                if (target) {
+                    target.scrollIntoView({behavior: 'smooth', block: 'start'});
+                    target.classList.add('border-primary');
+                    window.setTimeout(function() {
+                        target.classList.remove('border-primary');
+                    }, 2000);
+                }
             });
         });
     };

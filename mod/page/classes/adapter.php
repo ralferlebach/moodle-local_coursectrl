@@ -115,5 +115,4 @@ class adapter extends abstract_activity_adapter {
             'visible'    => (bool)$cm->visible,
         ];
     }
-
 }

@@ -28,6 +28,7 @@ $courseid     = required_param('courseid', PARAM_INT);
 $showpast     = optional_param('showpast', 1, PARAM_INT);
 $onlywithdeps = optional_param('onlywithdeps', 0, PARAM_INT);
 $components   = optional_param_array('components', [], PARAM_COMPONENT);
+$groupid      = optional_param('groupid', 0, PARAM_INT);
 
 $course = get_course($courseid);
 $context = context_course::instance($courseid);
@@ -63,6 +64,7 @@ $filters = [
     'components' => $components,
     'showcalendar' => $showcalendar,
     'immediateapply' => $immediateapply,
+    'groupid' => $groupid,
 ];
 
 $renderable = new \local_coursectrl\output\timeline_page($snapshot, $filters);

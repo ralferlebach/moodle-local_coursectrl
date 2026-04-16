@@ -82,7 +82,7 @@ class temporal_conflict_detector {
             ['opensubmissionfrom', 'closesubmissionfrom'],
             ['openansweringfrom', 'closeansweringfrom'],
         ],
-        // mod_capquiz: single timedue field — no ordering rule applicable.
+        // CAPQuiz has a single timedue field; no ordering rule applicable.
     ];
 
     /**

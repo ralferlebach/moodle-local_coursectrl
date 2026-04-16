@@ -32,6 +32,7 @@ namespace local_coursectrl\output;
 use local_coursectrl\local\analysis\calendar_grid_builder;
 use local_coursectrl\local\analysis\date_collector;
 use local_coursectrl\local\analysis\dependency_index;
+use local_coursectrl\local\analysis\group_resolver;
 use local_coursectrl\local\inventory\inventory_snapshot;
 use renderable;
 use renderer_base;
@@ -67,6 +68,7 @@ class timeline_page implements renderable, templatable {
                 'components' => [],
                 'showcalendar' => true,
                 'immediateapply' => false,
+                'groupid' => 0,
             ],
             $filters
         );
@@ -184,6 +186,18 @@ class timeline_page implements renderable, templatable {
             ];
         }
 
+        // Build group filter options from course groups.
+        $activegroupid = (int) ($this->filters['groupid'] ?? 0);
+        $groupresolver = new group_resolver($course->id);
+        $groupoptions = [];
+        foreach ($groupresolver->get_groups_for_template() as $g) {
+            $groupoptions[] = [
+                'id' => $g['id'],
+                'name' => $g['name'],
+                'selected' => $g['id'] === $activegroupid,
+            ];
+        }
+
         return [
             'courseid' => $course->id,
             'coursefullname' => format_string($course->fullname),
@@ -198,6 +212,10 @@ class timeline_page implements renderable, templatable {
             'onlywithdeps' => $this->filters['onlywithdeps'],
             'showcalendar' => $this->filters['showcalendar'],
             'immediateapply' => $this->filters['immediateapply'],
+            'activegroupid' => $activegroupid,
+            'hasgroupfilter' => $activegroupid > 0,
+            'groupoptions' => $groupoptions,
+            'hasgroupoptions' => count($groupoptions) > 0,
             'componentoptions' => $componentoptions,
             'hascomponentoptions' => count($componentoptions) > 0,
             'dashboardurl' => (new \moodle_url(

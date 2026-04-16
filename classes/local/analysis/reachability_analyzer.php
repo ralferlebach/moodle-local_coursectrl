@@ -17,19 +17,17 @@
 /**
  * Reachability analyzer for the Course Control Hub.
  *
- * Validates completion-based availability dependencies against the actual
- * inventory snapshot. Two classes of problems are detected:
+ * Checks completion dependencies and group/grouping conditions in
+ * availability JSON against the actual course inventory and group setup.
  *
- *   dangling_dep   — The availability JSON of a CM references a cmid that does
- *                    not exist in the current course inventory. This happens
- *                    when an activity has been deleted while an availability
- *                    condition referencing it was left in place.
+ * Issue types returned by analyze():
  *
- *   impossible_dep — The availability JSON references a CM that exists but has
- *                    completion tracking disabled (completion === 0). Because
- *                    Moodle will never record a completion event for that CM,
- *                    the condition can never be met and the depending activity
- *                    is permanently inaccessible.
+ *   dangling_dep      — prerequisite cmid not in course inventory.
+ *   impossible_dep    — prerequisite CM has completion tracking disabled.
+ *   dangling_group    — availability requires a group that does not exist
+ *                       in the course.
+ *   dangling_grouping — availability requires a grouping that does not exist
+ *                       in the course.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -41,22 +39,25 @@ namespace local_coursectrl\local\analysis;
 use local_coursectrl\local\entity\cm_item;
 
 /**
- * Checks completion dependencies for dangling references and impossible conditions.
+ * Checks completion dependencies and group conditions for reachability issues.
  */
 class reachability_analyzer {
     /**
      * Analyse all CMs for reachability issues.
      *
-     * @param cm_item[]        $cms      Course modules keyed by cmid.
-     * @param dependency_index $depindex Prebuilt dependency index for the course.
-     * @return array<int, array[]> cmid → list of issue arrays. Each issue:
-     *                             ['issuetype' => 'dangling_dep'|'impossible_dep',
-     *                              'depcmid' => int, 'depname' => string|null]
+     * @param cm_item[]         $cms      Course modules keyed by cmid.
+     * @param dependency_index  $depindex Prebuilt dependency index.
+     * @param group_resolver|null $groups Optional resolver for group existence checks.
+     * @return array<int, array[]> cmid → list of issue arrays.
      */
-    public function analyze(array $cms, dependency_index $depindex): array {
+    public function analyze(
+        array $cms,
+        dependency_index $depindex,
+        ?group_resolver $groups = null
+    ): array {
         $result = [];
         foreach ($cms as $cm) {
-            $issues = $this->check_cm($cm, $cms, $depindex);
+            $issues = $this->check_cm($cm, $cms, $depindex, $groups);
             if (!empty($issues)) {
                 $result[$cm->id] = $issues;
             }
@@ -67,27 +68,29 @@ class reachability_analyzer {
     /**
      * Check a single CM for reachability issues.
      *
-     * @param cm_item          $cm       The CM being checked.
-     * @param cm_item[]        $cms      All CMs in the course, keyed by cmid.
-     * @param dependency_index $depindex Prebuilt dependency index.
+     * @param cm_item             $cm       The CM being checked.
+     * @param cm_item[]           $cms      All CMs in the course, keyed by cmid.
+     * @param dependency_index    $depindex Prebuilt dependency index.
+     * @param group_resolver|null $groups   Optional group resolver.
      * @return array[] List of issue arrays (may be empty).
      */
     private function check_cm(
         cm_item $cm,
         array $cms,
-        dependency_index $depindex
+        dependency_index $depindex,
+        ?group_resolver $groups
     ): array {
         $issues = [];
+
+        // Completion dependency checks.
         foreach ($depindex->get_prerequisites($cm->id) as $depcmid) {
             if (!array_key_exists($depcmid, $cms)) {
-                // Referenced cmid is not in the course inventory.
                 $issues[] = [
                     'issuetype' => 'dangling_dep',
                     'depcmid' => $depcmid,
                     'depname' => null,
                 ];
             } else if ($cms[$depcmid]->completion === 0) {
-                // The prerequisite CM has completion tracking disabled.
                 $issues[] = [
                     'issuetype' => 'impossible_dep',
                     'depcmid' => $depcmid,
@@ -95,6 +98,33 @@ class reachability_analyzer {
                 ];
             }
         }
+
+        // Group / grouping condition checks (only when a resolver is provided).
+        if ($groups !== null && $cm->availability !== null && $cm->availability !== '') {
+            $parsed = $depindex->get_parsed_availability($cm->id);
+
+            foreach ($parsed['groupconditions'] ?? [] as $cond) {
+                $id = (int) ($cond['id'] ?? 0);
+                if ($id === 0) {
+                    continue;
+                }
+                if ($cond['type'] === 'group' && !$groups->group_exists($id)) {
+                    $issues[] = [
+                        'issuetype' => 'dangling_group',
+                        'groupid' => $id,
+                        'groupname' => null,
+                    ];
+                } else if ($cond['type'] === 'grouping' && !$groups->grouping_exists($id)) {
+                    $issues[] = [
+                        'issuetype' => 'dangling_grouping',
+                        'groupingid' => $id,
+                        'groupingname' => null,
+                    ];
+                }
+            }
+        }
+
         return $issues;
     }
 }
+

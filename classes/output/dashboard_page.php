@@ -33,6 +33,7 @@ use local_coursectrl\local\analysis\availability_parser;
 use local_coursectrl\local\analysis\consistency_runner;
 use local_coursectrl\local\analysis\date_collector;
 use local_coursectrl\local\analysis\dependency_index;
+use local_coursectrl\local\analysis\group_resolver;
 use local_coursectrl\local\inventory\inventory_snapshot;
 use local_coursectrl\manager\registry;
 use renderable;
@@ -71,7 +72,8 @@ class dashboard_page implements renderable, templatable {
         $circular = $depindex->find_circular_deps();
         $circularset = $this->build_circular_set($circular);
         $runner = new consistency_runner();
-        $checkresults = $runner->get_warnings($this->snapshot->cms, $depindex, $datesbycm);
+        $groups = new group_resolver($course->id);
+        $checkresults = $runner->get_warnings($this->snapshot->cms, $depindex, $datesbycm, $groups);
         $dateformat = get_string('strftimedaydatetime', 'core_langconfig');
 
         // Build CM name lookup for cross-linking.
@@ -143,14 +145,6 @@ class dashboard_page implements renderable, templatable {
             ))->out(false),
             'graphurl' => (new \moodle_url(
                 '/local/coursectrl/graph.php',
-                ['courseid' => $course->id]
-            ))->out(false),
-            'simulationurl' => (new \moodle_url(
-                '/local/coursectrl/simulation.php',
-                ['courseid' => $course->id]
-            ))->out(false),
-            'historyurl' => (new \moodle_url(
-                '/local/coursectrl/history.php',
                 ['courseid' => $course->id]
             ))->out(false),
         ];
@@ -322,6 +316,28 @@ class dashboard_page implements renderable, templatable {
                     'warning_impossible_dep',
                     'local_coursectrl',
                     (object)['name' => $issue['depname']]
+                ),
+            ];
+        }
+        if ($type === 'dangling_group') {
+            return [
+                'type' => 'dangling_group',
+                'icon' => '⚠️',
+                'message' => get_string(
+                    'warning_dangling_group',
+                    'local_coursectrl',
+                    (object)['groupid' => $issue['groupid']]
+                ),
+            ];
+        }
+        if ($type === 'dangling_grouping') {
+            return [
+                'type' => 'dangling_grouping',
+                'icon' => '⚠️',
+                'message' => get_string(
+                    'warning_dangling_grouping',
+                    'local_coursectrl',
+                    (object)['groupingid' => $issue['groupingid']]
                 ),
             ];
         }

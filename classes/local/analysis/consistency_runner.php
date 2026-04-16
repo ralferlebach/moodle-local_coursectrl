@@ -27,9 +27,8 @@
  * Supported issue types returned by get_warnings():
  *
  *   temporal_conflict  — Two date fields within the same CM have an inverted
- *                        ordering (e.g. due date is before the open date).
- *                        Extra keys: field_early (string), field_late (string),
- *                        ts_early (int), ts_late (int).
+ *                        ordering.
+ *                        Extra keys: field_early, field_late, ts_early, ts_late.
  *
  *   dangling_dep       — An availability condition references a cmid that no
  *                        longer exists in the course inventory.
@@ -38,6 +37,14 @@
  *   impossible_dep     — An availability condition requires completion of an
  *                        activity that has completion tracking disabled.
  *                        Extra keys: depcmid (int), depname (string).
+ *
+ *   dangling_group     — An availability condition references a group id that
+ *                        does not exist in the course.
+ *                        Extra keys: groupid (int).
+ *
+ *   dangling_grouping  — An availability condition references a grouping id
+ *                        that does not exist in the course.
+ *                        Extra keys: groupingid (int).
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -75,18 +82,19 @@ class consistency_runner {
     /**
      * Run all checks and return a per-CM issue map.
      *
-     * @param cm_item[]        $cms       Course modules keyed by cmid.
-     * @param dependency_index $depindex  Prebuilt dependency index.
-     * @param array            $datesbycm Per-CM date entries from
-     *                                    date_collector::collect_grouped_by_cm().
-     * @return array<int, array[]> cmid → list of issue arrays. Each issue has at
-     *                             least a 'type' key (string) plus type-specific
-     *                             payload keys (see class doc).
+     * @param cm_item[]           $cms       Course modules keyed by cmid.
+     * @param dependency_index    $depindex  Prebuilt dependency index.
+     * @param array               $datesbycm Per-CM date entries from
+     *                                        date_collector::collect_grouped_by_cm().
+     * @param group_resolver|null $groups    Optional resolver for group existence checks.
+     *                                        Pass null to skip group validation.
+     * @return array<int, array[]> cmid → list of issue arrays.
      */
     public function get_warnings(
         array $cms,
         dependency_index $depindex,
-        array $datesbycm
+        array $datesbycm,
+        ?group_resolver $groups = null
     ): array {
         $warnings = [];
 
@@ -102,7 +110,7 @@ class consistency_runner {
             }
         }
 
-        foreach ($this->reachabilityanalyzer->analyze($cms, $depindex) as $cmid => $issues) {
+        foreach ($this->reachabilityanalyzer->analyze($cms, $depindex, $groups) as $cmid => $issues) {
             foreach ($issues as $issue) {
                 $warnings[$cmid][] = array_merge(['type' => $issue['issuetype']], $issue);
             }

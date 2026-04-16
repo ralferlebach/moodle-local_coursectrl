@@ -75,23 +75,17 @@ if ($run) {
     }
 
     $completionsparam = optional_param_array('completions', [], PARAM_INT);
-    $groupidsstr = optional_param('groupids', '', PARAM_TEXT);
-    $groupingidsstr = optional_param('groupingids', '', PARAM_TEXT);
+    $groupidsparam = optional_param_array('groupids', [], PARAM_INT);
+    $groupingidsparam = optional_param_array('groupingids', [], PARAM_INT);
 
-    $groupids = array_filter(
-        array_map('intval', explode(',', $groupidsstr)),
-        fn($id) => $id > 0
-    );
-    $groupingids = array_filter(
-        array_map('intval', explode(',', $groupingidsstr)),
-        fn($id) => $id > 0
-    );
+    $groupids = array_values(array_filter($groupidsparam, fn($id) => $id > 0));
+    $groupingids = array_values(array_filter($groupingidsparam, fn($id) => $id > 0));
 
     $state = new learner_state(
         $simts,
         $completionsparam,
-        array_values($groupids),
-        array_values($groupingids)
+        $groupids,
+        $groupingids
     );
 }
 

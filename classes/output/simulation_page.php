@@ -29,6 +29,7 @@
 namespace local_coursectrl\output;
 
 use local_coursectrl\local\inventory\inventory_snapshot;
+use local_coursectrl\local\analysis\group_resolver;
 use local_coursectrl\local\simulation\condition_evaluator;
 use local_coursectrl\local\simulation\learner_state;
 use local_coursectrl\local\simulation\next_step_engine;
@@ -68,6 +69,23 @@ class simulation_page implements renderable, templatable {
         $course = $this->snapshot->course;
         $cms = $this->snapshot->cms;
         $courseid = $course->id;
+
+        // Load real course groups and groupings for the form.
+        $groupresolver = new group_resolver($courseid);
+        $coursegroups = $groupresolver->get_groups_for_template();
+        $coursegroupings = $groupresolver->get_groupings_for_template();
+
+        // Mark which groups/groupings are selected in the submitted state.
+        $selectedgroupids = $this->state ? $this->state->groupids : [];
+        $selectedgroupingids = $this->state ? $this->state->groupingids : [];
+        foreach ($coursegroups as &$g) {
+            $g['selected'] = in_array($g['id'], $selectedgroupids, true);
+        }
+        unset($g);
+        foreach ($coursegroupings as &$gg) {
+            $gg['selected'] = in_array($gg['id'], $selectedgroupingids, true);
+        }
+        unset($gg);
         $dateformat = get_string('strftimedaydatetime', 'core_langconfig');
         $now = time();
 
@@ -187,8 +205,10 @@ class simulation_page implements renderable, templatable {
             'simdate' => $simdate,
             'simtime' => $simtime,
             'simts' => $simts,
-            'groupids' => $groupids,
-            'groupingids' => $groupingids,
+            'coursegroups' => $coursegroups,
+            'hascoursegroups' => count($coursegroups) > 0,
+            'coursegroupings' => $coursegroupings,
+            'hascoursegroupings' => count($coursegroupings) > 0,
             'resultrows' => $resultrows,
             'hasresultrows' => count($resultrows) > 0,
             'nextsteprows' => $nextsteprows,

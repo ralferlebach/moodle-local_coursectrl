@@ -15,17 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for local_coursectrl.
+ * German strings for coursectrlcal_manual.
  *
- * @package    local_coursectrl
+ * @package    coursectrlcal_manual
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_coursectrl';
-$plugin->version   = 2026041805;
-$plugin->requires  = 2024042200; // Moodle 4.5.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.37';
+$string['setting_enabled']       = 'Manuelle Freitags-Eingabe aktivieren';
+$string['setting_entries']       = 'Freitags-Einträge';
+$string['setting_entries_desc']  = 'Einen Eintrag pro Zeile: JJJJ-MM-TT,Bezeichnung,Kategorie oder JJJJ-MM-TT/JJJJ-MM-TT,Bezeichnung,Kategorie. Kategorien: public_holiday, school_holiday, custom. Zeilen mit # werden ignoriert.';
+$string['pluginname']       = 'Kursablauf-Zentrale: Manuelle Freitage';
+$string['privacy:metadata'] = 'Der manuelle Kalender-Adapter speichert keine personenbezogenen Daten.';

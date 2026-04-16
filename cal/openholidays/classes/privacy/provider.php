@@ -15,17 +15,25 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for local_coursectrl.
+ * Privacy provider for coursectrlcal_openholidays.
  *
- * @package    local_coursectrl
+ * @package    coursectrlcal_openholidays\privacy
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+namespace coursectrlcal_openholidays\privacy;
 
-$plugin->component = 'local_coursectrl';
-$plugin->version   = 2026041805;
-$plugin->requires  = 2024042200; // Moodle 4.5.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.37';
+/**
+ * Null provider: this subplugin stores no personal data.
+ */
+class provider implements \core_privacy\local\metadata\null_provider {
+    /**
+     * Returns the reason string key.
+     *
+     * @return string
+     */
+    public static function get_reason(): string {
+        return 'privacy:metadata';
+    }
+}

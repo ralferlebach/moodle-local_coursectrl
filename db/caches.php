@@ -15,7 +15,11 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for local_coursectrl.
+ * Moodle Universal Cache (MUC) definitions for local_coursectrl.
+ *
+ * caldata — Application-level cache for holiday and free-period data
+ *            fetched from external calendar provider APIs. TTL 24 hours.
+ *            Key format: {component}_{year}_{month}[_{region}][_{hash}]
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -24,8 +28,11 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_coursectrl';
-$plugin->version   = 2026041805;
-$plugin->requires  = 2024042200; // Moodle 4.5.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.37';
+$definitions = [
+    'caldata' => [
+        'mode' => cache_store::MODE_APPLICATION,
+        'ttl' => 86400,
+        'simplekeys' => true,
+        'simpledata' => false,
+    ],
+];

@@ -38,6 +38,7 @@ namespace local_coursectrl\local\visualization;
 
 use local_coursectrl\local\analysis\date_collector;
 use local_coursectrl\local\entity\cm_item;
+use local_coursectrl\manager\calendar_manager;
 
 /**
  * Builds a Gantt row dataset from a set of CMs.
@@ -58,16 +59,19 @@ class gantt_dataset_builder {
     /**
      * Build the Gantt dataset.
      *
-     * @param cm_item[] $cms Course modules keyed by cmid.
+     * @param cm_item[]             $cms    Course modules keyed by cmid.
+     * @param calendar_manager|null $calman Optional calendar manager for holiday bands.
      * @return array{
      *     rows: array,
      *     mints: int,
      *     maxts: int,
      *     hasdata: bool,
-     *     rowcount: int
+     *     rowcount: int,
+     *     holidaybands: array,
+     *     hasholidaybands: bool
      * }
      */
-    public function build(array $cms): array {
+    public function build(array $cms, ?calendar_manager $calman = null): array {
         if (empty($cms)) {
             return $this->empty_result();
         }
@@ -131,6 +135,8 @@ class gantt_dataset_builder {
             'maxts' => $maxts,
             'hasdata' => true,
             'rowcount' => count($rows),
+            'holidaybands' => $this->build_holiday_bands($mints, $maxts, $calman),
+            'hasholidaybands' => $calman !== null,
         ];
     }
 
@@ -146,6 +152,60 @@ class gantt_dataset_builder {
             'maxts' => 0,
             'hasdata' => false,
             'rowcount' => 0,
+            'holidaybands' => [],
+            'hasholidaybands' => false,
         ];
+    }
+
+    /**
+     * Build a list of holiday band descriptors for the Gantt renderer.
+     *
+     * Each band represents a single special day or a contiguous run of
+     * special days of the same category. The renderer uses these to paint
+     * semi-transparent background bands across all rows.
+     *
+     * @param int                   $mints  Global min timestamp of the Gantt.
+     * @param int                   $maxts  Global max timestamp of the Gantt.
+     * @param calendar_manager|null $calman Calendar manager, or null.
+     * @return array[] Each entry: {from_ts, to_ts, category, names[]}.
+     */
+    private function build_holiday_bands(
+        int $mints,
+        int $maxts,
+        ?calendar_manager $calman
+    ): array {
+        if ($calman === null || $mints <= 0 || $maxts <= 0) {
+            return [];
+        }
+        $holidays = $calman->get_holidays_for_range($mints, $maxts);
+        if (empty($holidays)) {
+            return [];
+        }
+        ksort($holidays);
+        $bands = [];
+        foreach ($holidays as $datekey => $events) {
+            $ts = strtotime('!' . $datekey);
+            if ($ts === false) {
+                continue;
+            }
+            $category = 'custom';
+            $names = [];
+            foreach ($events as $ev) {
+                $names[] = $ev['name'];
+                if ($ev['category'] === 'public_holiday') {
+                    $category = 'public_holiday';
+                } else if ($ev['category'] === 'school_holiday' && $category !== 'public_holiday') {
+                    $category = 'school_holiday';
+                }
+            }
+            $bands[] = [
+                'from_ts' => $ts,
+                'to_ts' => $ts + 86399,
+                'category' => $category,
+                'names' => $names,
+                'label' => implode(', ', array_unique($names)),
+            ];
+        }
+        return $bands;
     }
 }

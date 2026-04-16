@@ -15,17 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for local_coursectrl.
+ * English strings for coursectrlcal_manual.
  *
- * @package    local_coursectrl
+ * @package    coursectrlcal_manual
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_coursectrl';
-$plugin->version   = 2026041805;
-$plugin->requires  = 2024042200; // Moodle 4.5.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.37';
+$string['setting_enabled']       = 'Enable manual free-day provider';
+$string['setting_entries']       = 'Free day entries';
+$string['setting_entries_desc']  = 'One per line: YYYY-MM-DD,Name,category or YYYY-MM-DD/YYYY-MM-DD,Name,category. Categories: public_holiday, school_holiday, custom. Lines starting with # are comments.';
+$string['pluginname']       = 'Course Control Hub: Manual Free Days';
+$string['privacy:metadata'] = 'The manual calendar adapter stores no personal data. Entered dates are plugin configuration.';

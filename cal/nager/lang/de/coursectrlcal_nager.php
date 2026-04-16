@@ -15,17 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for local_coursectrl.
+ * German strings for coursectrlcal_nager.
  *
- * @package    local_coursectrl
+ * @package    coursectrlcal_nager
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_coursectrl';
-$plugin->version   = 2026041805;
-$plugin->requires  = 2024042200; // Moodle 4.5.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.37';
+$string['setting_countrycode']      = 'Ländercode (ISO 3166-1 alpha-2)';
+$string['setting_countrycode_desc'] = 'Z.B. DE, AT, CH, FR, US. Verfügbare Länder: https://date.nager.at.';
+$string['setting_enabled']          = 'Nager.Date-Anbieter aktivieren';
+$string['pluginname']       = 'Kursablauf-Zentrale: Nager.Date (Gesetzliche Feiertage)';
+$string['privacy:metadata'] = 'Der Nager.Date-Adapter ruft öffentliche Daten ab und speichert keine personenbezogenen Daten.';

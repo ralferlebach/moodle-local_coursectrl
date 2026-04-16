@@ -1,4 +1,8 @@
 {
+    "subplugintypes": {
+        "coursectrlmod": "mod",
+        "coursectrlcal": "cal"
+    },
     "plugintypes": {
         "coursectrlmod": "local/coursectrl/mod",
         "coursectrlcal": "local/coursectrl/cal"

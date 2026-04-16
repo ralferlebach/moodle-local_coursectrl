@@ -80,7 +80,7 @@ class calendar_manager {
             $month = (int) date('n', $current);
             $monthdata = $this->get_month($year, $month);
             foreach ($monthdata as $datekey => $events) {
-                $ts = strtotime('!' . $datekey);
+                $ts = strtotime($datekey);
                 if ($ts >= $from && $ts <= $to) {
                     if (!isset($result[$datekey])) {
                         $result[$datekey] = [];

@@ -117,4 +117,15 @@ class renderer extends plugin_renderer_base {
         $data = $page->export_for_template($this);
         return $this->render_from_template('local_coursectrl/simulation', $data);
     }
+
+    /**
+     * Render the batch history and rollback page.
+     *
+     * @param history_page $page The history renderable.
+     * @return string HTML.
+     */
+    public function render_history_page(history_page $page): string {
+        $data = $page->export_for_template($this);
+        return $this->render_from_template('local_coursectrl/history', $data);
+    }
 }

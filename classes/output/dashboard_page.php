@@ -145,6 +145,14 @@ class dashboard_page implements renderable, templatable {
                 '/local/coursectrl/graph.php',
                 ['courseid' => $course->id]
             ))->out(false),
+            'simulationurl' => (new \moodle_url(
+                '/local/coursectrl/simulation.php',
+                ['courseid' => $course->id]
+            ))->out(false),
+            'historyurl' => (new \moodle_url(
+                '/local/coursectrl/history.php',
+                ['courseid' => $course->id]
+            ))->out(false),
         ];
     }
 

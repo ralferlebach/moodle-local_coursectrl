@@ -1,0 +1,117 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_coursectrl/graph
+
+    Dependency graph and Gantt view for the Course Control Hub.
+    Two Bootstrap tabs: dependency graph (SVG rendered by graphview.js) and Gantt.
+
+    Context variables:
+    * courseid, coursefullname
+    * graphjson     - JSON string for graph dataset (nodes, edges, layers)
+    * ganttjson     - JSON string for Gantt dataset (rows, mints, maxts)
+    * hasgraph      - bool: course has at least one CM
+    * hasgantt      - bool: at least one CM has date entries
+    * graphnodecount, graphedgecount, ganttrowcount
+    * dashboardurl, timelineurl, manageurl
+}}
+<div class="local-coursectrl-graph" data-region="local_coursectrl-graph" data-courseid="{{courseid}}">
+
+    <div class="mb-3">
+        <a href="{{dashboardurl}}" class="btn btn-sm btn-outline-secondary">
+            &laquo; {{#str}}nav_dashboard, local_coursectrl{{/str}}
+        </a>
+        <a href="{{timelineurl}}" class="btn btn-sm btn-outline-secondary ml-1">
+            {{#str}}nav_timeline, local_coursectrl{{/str}}
+        </a>
+        <a href="{{manageurl}}" class="btn btn-sm btn-outline-secondary ml-1">
+            {{#str}}nav_bulk, local_coursectrl{{/str}}
+        </a>
+    </div>
+
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" data-toggle="tab" href="#panel-depgraph" role="tab">
+                {{#str}}graph_tab_deps, local_coursectrl{{/str}}
+                <span class="badge badge-secondary ml-1">{{graphedgecount}}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-toggle="tab" href="#panel-gantt" role="tab">
+                {{#str}}graph_tab_gantt, local_coursectrl{{/str}}
+                <span class="badge badge-secondary ml-1">{{ganttrowcount}}</span>
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+
+        <div class="tab-pane fade show active" id="panel-depgraph" role="tabpanel">
+            {{#hasgraph}}
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between py-2">
+                    <span class="small font-weight-bold">
+                        {{#str}}graph_nodes, local_coursectrl{{/str}}: {{graphnodecount}}
+                        &nbsp;|&nbsp;
+                        {{#str}}graph_edges, local_coursectrl{{/str}}: {{graphedgecount}}
+                    </span>
+                    <span class="small text-muted">{{#str}}graph_legend_circular, local_coursectrl{{/str}}</span>
+                </div>
+                <div class="card-body p-0" style="overflow:auto;">
+                    <div data-region="coursectrl-graph-canvas"
+                         data-graph="{{graphjson}}"
+                         style="min-height:200px;">
+                        <p class="text-muted small p-3">{{#str}}graph_loading, local_coursectrl{{/str}}</p>
+                    </div>
+                </div>
+            </div>
+            {{/hasgraph}}
+            {{^hasgraph}}
+            <p class="text-muted">{{#str}}graph_empty, local_coursectrl{{/str}}</p>
+            {{/hasgraph}}
+        </div>
+
+        <div class="tab-pane fade" id="panel-gantt" role="tabpanel">
+            {{#hasgantt}}
+            <div class="card">
+                <div class="card-header py-2">
+                    <span class="small font-weight-bold">
+                        {{#str}}graph_gantt_activities, local_coursectrl{{/str}}: {{ganttrowcount}}
+                    </span>
+                </div>
+                <div class="card-body p-0" style="overflow:auto;">
+                    <div data-region="coursectrl-gantt-canvas"
+                         data-gantt="{{ganttjson}}"
+                         style="min-height:100px;">
+                        <p class="text-muted small p-3">{{#str}}graph_loading, local_coursectrl{{/str}}</p>
+                    </div>
+                </div>
+            </div>
+            {{/hasgantt}}
+            {{^hasgantt}}
+            <p class="text-muted">{{#str}}graph_gantt_empty, local_coursectrl{{/str}}</p>
+            {{/hasgantt}}
+        </div>
+
+    </div>
+
+</div>
+{{#js}}
+require(['local_coursectrl/graphview'], function(GraphView) {
+    GraphView.init(document.querySelector('[data-region="local_coursectrl-graph"]'));
+});
+{{/js}}

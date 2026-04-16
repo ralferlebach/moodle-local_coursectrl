@@ -95,4 +95,15 @@ class renderer extends plugin_renderer_base {
         $data = $page->export_for_template($this);
         return $this->render_from_template('local_coursectrl/timeline', $data);
     }
+
+    /**
+     * Render the dependency graph and Gantt view.
+     *
+     * @param graph_page $page The graph renderable.
+     * @return string HTML.
+     */
+    public function render_graph_page(graph_page $page): string {
+        $data = $page->export_for_template($this);
+        return $this->render_from_template('local_coursectrl/graph', $data);
+    }
 }

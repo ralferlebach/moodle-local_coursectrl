@@ -24,7 +24,7 @@
     * coursestartdate, courseenddate, hasenddate, coursevisible
     * sectioncount, cmcount, textcount, hassections
     * warningcount, haswarnings
-    * manageurl, textreviewurl
+    * manageurl, textreviewurl, graphurl
     * sections - array with enriched cms
 }}
 <div class="local-coursectrl-dashboard" data-region="local_coursectrl-dashboard" data-courseid="{{courseid}}">
@@ -78,6 +78,7 @@
     <div class="mb-4">
         <a href="{{manageurl}}" class="btn btn-primary btn-sm">{{#str}}nav_bulk, local_coursectrl{{/str}}</a>
         <a href="{{timelineurl}}" class="btn btn-primary btn-sm ml-1">{{#str}}nav_timeline, local_coursectrl{{/str}}</a>
+        <a href="{{graphurl}}" class="btn btn-primary btn-sm ml-1">{{#str}}nav_graph, local_coursectrl{{/str}}</a>
         <a href="{{textreviewurl}}" class="btn btn-outline-primary btn-sm ml-1">{{#str}}nav_textreview, local_coursectrl{{/str}}</a>
     </div>
 

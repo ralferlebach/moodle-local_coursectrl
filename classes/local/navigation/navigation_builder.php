@@ -37,16 +37,21 @@ namespace local_coursectrl\local\navigation;
  * Sets up the secondary navigation tree for local_coursectrl pages.
  */
 class navigation_builder {
-    /**
-     * Node key constants for all menu items.
-     */
+    /** @var string Navigation key for the dashboard page. */
     public const KEY_DASHBOARD      = 'coursectrl_dashboard';
+    /** @var string Navigation key for the "Einstellen" group container. */
     public const KEY_GROUP_SETUP    = 'coursectrl_group_setup';
+    /** @var string Navigation key for the timeline page. */
     public const KEY_TIMELINE       = 'coursectrl_timeline';
+    /** @var string Navigation key for the dependency graph page. */
     public const KEY_GRAPH          = 'coursectrl_graph';
+    /** @var string Navigation key for the manage/bulk-edit page. */
     public const KEY_MANAGE         = 'coursectrl_manage';
+    /** @var string Navigation key for the "Prüfen" group container. */
     public const KEY_GROUP_CHECK    = 'coursectrl_group_check';
+    /** @var string Navigation key for the simulation page. */
     public const KEY_SIMULATION     = 'coursectrl_simulation';
+    /** @var string Navigation key for the history/logs page. */
     public const KEY_HISTORY        = 'coursectrl_history';
 
     /**

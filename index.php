@@ -38,10 +38,7 @@ if (!$courseid) {
     $PAGE->set_title(get_string('pluginname', 'local_coursectrl'));
     $PAGE->set_heading(get_string('pluginname', 'local_coursectrl'));
 
-    
-navigation_builder::setup($PAGE, $courseid, navigation_builder::KEY_DASHBOARD);
-
-echo $OUTPUT->header();
+    echo $OUTPUT->header();
     echo $OUTPUT->notification(
         get_string('error_no_course', 'local_coursectrl'),
         \core\output\notification::NOTIFY_WARNING
@@ -67,6 +64,8 @@ $snapshot = $service->build_for_course((int) $courseid);
 $renderable = new \local_coursectrl\output\dashboard_page($snapshot);
 /** @var \local_coursectrl\output\renderer $renderer */
 $renderer = $PAGE->get_renderer('local_coursectrl');
+
+navigation_builder::setup($PAGE, $courseid, navigation_builder::KEY_DASHBOARD);
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('nav_dashboard', 'local_coursectrl'), 2);

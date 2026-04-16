@@ -128,8 +128,8 @@ abstract class abstract_calendar_provider implements calendar_provider {
         int $year,
         int $month
     ): void {
-        $start = strtotime($startdate);
-        $end = strtotime($enddate);
+        $start = strtotime('!' . $startdate);
+        $end = strtotime('!' . $enddate);
         if ($start === false || $end === false || $start > $end) {
             return;
         }

@@ -31,9 +31,10 @@ namespace local_coursectrl\output;
 
 use local_coursectrl\local\analysis\availability_parser;
 use local_coursectrl\local\analysis\consistency_runner;
+use local_coursectrl\local\analysis\calendar_grid_builder;
 use local_coursectrl\local\analysis\date_collector;
+use local_coursectrl\manager\calendar_manager;
 use local_coursectrl\local\analysis\dependency_index;
-use local_coursectrl\local\analysis\group_resolver;
 use local_coursectrl\local\inventory\inventory_snapshot;
 use local_coursectrl\manager\registry;
 use renderable;
@@ -72,8 +73,7 @@ class dashboard_page implements renderable, templatable {
         $circular = $depindex->find_circular_deps();
         $circularset = $this->build_circular_set($circular);
         $runner = new consistency_runner();
-        $groups = new group_resolver($course->id);
-        $checkresults = $runner->get_warnings($this->snapshot->cms, $depindex, $datesbycm, $groups);
+        $checkresults = $runner->get_warnings($this->snapshot->cms, $depindex, $datesbycm);
         $dateformat = get_string('strftimedaydatetime', 'core_langconfig');
 
         // Build CM name lookup for cross-linking.
@@ -116,6 +116,17 @@ class dashboard_page implements renderable, templatable {
             ];
         }
 
+
+        // Build calendar grid for dashboard.
+        $calbuilder = new calendar_grid_builder();
+        $allentries = $datecollector->collect($this->snapshot->cms);
+        $calmonths = $calbuilder->build(
+            (int) $course->startdate,
+            (int) ($course->enddate ?: 0),
+            $allentries,
+            time()
+        );
+
         return [
             'courseid' => $course->id,
             'coursefullname' => $course->fullname,
@@ -129,6 +140,8 @@ class dashboard_page implements renderable, templatable {
             'textcount' => $this->snapshot->count_texts(),
             'sections' => $sections,
             'hassections' => count($sections) > 0,
+            'months' => $calmonths,
+            'hascalendar' => count($calmonths) > 0,
             'warningcount' => $totalwarnings,
             'haswarnings' => $totalwarnings > 0,
             'manageurl' => (new \moodle_url(
@@ -147,7 +160,40 @@ class dashboard_page implements renderable, templatable {
                 '/local/coursectrl/graph.php',
                 ['courseid' => $course->id]
             ))->out(false),
+            'simulationurl' => (new \moodle_url(
+                '/local/coursectrl/simulation.php',
+                ['courseid' => $course->id]
+            ))->out(false),
+            'historyurl' => (new \moodle_url(
+                '/local/coursectrl/history.php',
+                ['courseid' => $course->id]
+            ))->out(false),
+            'upcoming7days'  => $this->count_upcoming_dates($datesbycm, 7),
+            'upcoming28days' => $this->count_upcoming_dates($datesbycm, 28),
+            'showcalendar' => (bool) get_user_preferences('local_coursectrl_showcalendar', 1),
         ];
+    }
+
+    /**
+     * Count distinct CMs with at least one date in the next N days.
+     *
+     * @param array $datesbycm Date entries keyed by cmid.
+     * @param int   $days      Number of days ahead.
+     * @return int
+     */
+    private function count_upcoming_dates(array $datesbycm, int $days): int {
+        $now = time();
+        $cutoff = $now + ($days * 86400);
+        $count = 0;
+        foreach ($datesbycm as $cmid => $entries) {
+            foreach ($entries as $entry) {
+                if ($entry['timestamp'] >= $now && $entry['timestamp'] <= $cutoff) {
+                    $count++;
+                    break;
+                }
+            }
+        }
+        return $count;
     }
 
     /**
@@ -316,28 +362,6 @@ class dashboard_page implements renderable, templatable {
                     'warning_impossible_dep',
                     'local_coursectrl',
                     (object)['name' => $issue['depname']]
-                ),
-            ];
-        }
-        if ($type === 'dangling_group') {
-            return [
-                'type' => 'dangling_group',
-                'icon' => '⚠️',
-                'message' => get_string(
-                    'warning_dangling_group',
-                    'local_coursectrl',
-                    (object)['groupid' => $issue['groupid']]
-                ),
-            ];
-        }
-        if ($type === 'dangling_grouping') {
-            return [
-                'type' => 'dangling_grouping',
-                'icon' => '⚠️',
-                'message' => get_string(
-                    'warning_dangling_grouping',
-                    'local_coursectrl',
-                    (object)['groupingid' => $issue['groupingid']]
                 ),
             ];
         }

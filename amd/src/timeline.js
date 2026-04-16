@@ -201,19 +201,33 @@ define([], function() {
         }
 
         // Jump-to-day from mini-calendar cell.
-        root.querySelectorAll('[data-action="jump-to-day"]').forEach(function(cell) {
-            cell.addEventListener('click', function() {
-                var daykey = cell.getAttribute('data-daykey');
-                var target = document.getElementById('day-' + daykey);
-                if (target) {
-                    target.scrollIntoView({behavior: 'smooth', block: 'start'});
-                    target.classList.add('border-primary');
-                    window.setTimeout(function() {
-                        target.classList.remove('border-primary');
-                    }, 2000);
-                }
+        var jumpActions = ['jump-to-day', 'calday-jump'];
+        jumpActions.forEach(function(action) {
+            root.querySelectorAll('[data-action="' + action + '"]').forEach(function(cell) {
+                cell.addEventListener('click', function() {
+                    var daykey = cell.getAttribute('data-daykey');
+                    var target = root.querySelector('[data-daykey="' + daykey + '"].card');
+                    if (target) {
+                        target.scrollIntoView({behavior: 'smooth', block: 'start'});
+                        target.classList.add('border-primary');
+                        window.setTimeout(function() {
+                            target.classList.remove('border-primary');
+                        }, 2000);
+                    }
+                });
             });
         });
+
+        // Gantt: initialise SVG renderer if Gantt tab is active.
+        var ganttRegion = root.querySelector('[data-region="local_coursectrl-gantt"]');
+        if (ganttRegion) {
+            var ganttData = ganttRegion.getAttribute('data-gantt');
+            if (ganttData) {
+                require(['local_coursectrl/graphview'], function(G) {
+                    G.renderGantt(ganttRegion, JSON.parse(ganttData));
+                });
+            }
+        }
     };
 
     return {

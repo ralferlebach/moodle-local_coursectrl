@@ -74,7 +74,9 @@ define([], function() {
     };
 
     var nodeCenter = function(layer, layerpos) {
-        return {
+
+
+    return {
             cx: PAD + NODE_W / 2 + layer * LAYER_GAP_X,
             cy: PAD + NODE_H / 2 + layerpos * NODE_GAP_Y,
         };
@@ -269,6 +271,45 @@ define([], function() {
         canvas.appendChild(svg);
     };
 
+
+    /**
+     * Toggle visibility of independent nodes on the dependency graph.
+     *
+     * @param {HTMLElement} canvas The graph canvas element.
+     * @param {boolean}     hide   Whether to hide independent nodes.
+     */
+    var applyIndependentFilter = function(canvas, hide) {
+        if (!canvas) {
+            return;
+        }
+        canvas.querySelectorAll('.coursectrl-node').forEach(function(node) {
+            var independent = node.getAttribute('data-independent') === '1';
+            if (independent) {
+                node.style.opacity = hide ? '0' : '0.35';
+                node.style.pointerEvents = hide ? 'none' : '';
+            }
+        });
+    };
+
+    /**
+     * Wire up the independents filter toggle on the graph page.
+     *
+     * @param {HTMLElement} root The [data-region="local_coursectrl-graph"] element.
+     */
+    var initFilters = function(root) {
+        var toggleBtn = root.querySelector('[data-action="toggle-independents"]');
+        if (!toggleBtn) {
+            return;
+        }
+        var canvas = root.querySelector('[data-region="coursectrl-graph-canvas"]');
+        if (toggleBtn.checked) {
+            applyIndependentFilter(canvas, true);
+        }
+        toggleBtn.addEventListener('change', function() {
+            applyIndependentFilter(canvas, toggleBtn.checked);
+        });
+    };
+
     return {
         /**
          * Initialise graph and Gantt visualisations inside the root element.
@@ -293,6 +334,7 @@ define([], function() {
                     setTimeout(function() { renderGantt(ganttCanvas); }, 50);
                 });
             }
+            initFilters(root);
         },
     };
 });

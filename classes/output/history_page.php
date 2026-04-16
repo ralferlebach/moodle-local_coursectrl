@@ -15,10 +15,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Renderable for the Course Control Hub history and rollback page.
+ * Renderable for the Logs & Historie page.
  *
- * Exports the list of executed batches for a course with rollback buttons
- * for batches that have snapshots and are still in 'executed' status.
+ * Reads batch records from local_coursectrl_batch (most recent first) and
+ * enriches them with per-item counts and rollback availability info.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -27,101 +27,105 @@
 
 namespace local_coursectrl\output;
 
-use local_coursectrl\manager\rollback_manager;
 use renderable;
 use renderer_base;
 use templatable;
 
 /**
- * History and rollback page renderable.
+ * Renderable for the Logs & Historie page.
  */
 class history_page implements renderable, templatable {
-    /** @var int Course id. */
-    protected int $courseid;
+    /** @var int The course id. */
+    private int $courseid;
 
-    /** @var array|null Rollback result to surface, or null. */
-    protected ?array $rollbackresult;
+    /** @var int Maximum number of batches to show (from settings, default 100). */
+    private int $maxbatches;
 
     /**
      * Constructor.
      *
-     * @param int        $courseid      The course being displayed.
-     * @param array|null $rollbackresult Result of a just-executed rollback, or null.
+     * @param int $courseid   The course id.
+     * @param int $maxbatches Maximum number of batches to show.
      */
-    public function __construct(int $courseid, ?array $rollbackresult = null) {
+    public function __construct(int $courseid, int $maxbatches = 100) {
         $this->courseid = $courseid;
-        $this->rollbackresult = $rollbackresult;
+        $this->maxbatches = $maxbatches;
     }
 
     /**
-     * Build template context for templates/history.mustache.
+     * Export for template.
      *
-     * @param renderer_base $output Renderer (unused, required by interface).
-     * @return array<string,mixed>
+     * @param renderer_base $output Renderer.
+     * @return array
      */
     public function export_for_template(renderer_base $output): array {
-        $manager = new rollback_manager();
-        $batches = $manager->get_course_batches($this->courseid);
+        global $DB, $USER;
+        $course = get_course($this->courseid);
+        $context = \context_course::instance($this->courseid);
+        $canrollback = has_capability('local/coursectrl:manageall', $context);
+        $dateformat = get_string('strftimedaydatetime', 'core_langconfig');
 
-        $batchrows = [];
+        $maxbatches = (int) (get_config('local_coursectrl', 'history_maxcount') ?: $this->maxbatches);
+
+        $batches = $DB->get_records(
+            'local_coursectrl_batch',
+            ['courseid' => $this->courseid],
+            'timecreated DESC',
+            '*',
+            0,
+            $maxbatches
+        );
+
+        $rows = [];
         foreach ($batches as $batch) {
-            $batchrows[] = [
-                'id' => $batch['id'],
-                'action' => $batch['action'],
-                'status' => $batch['status'],
-                'status_executed' => $batch['status'] === 'executed',
-                'status_rolled_back' => $batch['status'] === 'rolled_back',
-                'status_failed' => $batch['status'] === 'failed',
-                'timecreated_formatted' => $batch['timecreated_formatted'],
-                'itemcount' => $batch['itemcount'],
-                'has_snapshots' => $batch['has_snapshots'],
-                'can_rollback' => $batch['can_rollback'],
+            $items = $DB->count_records(
+                'local_coursectrl_batch_item',
+                ['batchid' => $batch->id]
+            );
+            $hasnapsshot = $DB->record_exists(
+                'local_coursectrl_snapshot',
+                ['batchid' => $batch->id]
+            );
+            $user = $DB->get_record(
+                'user',
+                ['id' => $batch->userid],
+                'id, firstname, lastname, email',
+                IGNORE_MISSING
+            );
+            $username = $user
+                ? fullname($user)
+                : get_string('unknownuser', 'local_coursectrl');
+
+            $rows[] = [
+                'batchid'     => (int) $batch->id,
+                'action'      => (string) $batch->action,
+                'actionlabel' => get_string('action_' . $batch->action, 'local_coursectrl', null, true)
+                    ?: (string) $batch->action,
+                'status'      => (string) $batch->status,
+                'itemcount'   => $items,
+                'username'    => $username,
+                'timeago'     => format_time(time() - $batch->timecreated),
+                'timeformatted' => userdate($batch->timecreated, $dateformat),
+                'canrollback' => $canrollback && $hasnapsshot && $batch->status !== 'rolledback',
+                'rolledback'  => $batch->status === 'rolledback',
+                'rollbackurl' => (new \moodle_url(
+                    '/local/coursectrl/rollback.php',
+                    ['batchid' => $batch->id, 'courseid' => $this->courseid]
+                ))->out(false),
             ];
         }
 
-        // Format rollback result if present.
-        $hasrollbackresult = $this->rollbackresult !== null;
-        $rollbacksuccess = $hasrollbackresult && ($this->rollbackresult['success'] ?? false);
-        $rollbackerror = $hasrollbackresult ? ($this->rollbackresult['error'] ?? '') : '';
-        $rollbackitems = [];
-        if ($hasrollbackresult) {
-            foreach ($this->rollbackresult['items'] ?? [] as $item) {
-                $rollbackitems[] = [
-                    'entityid' => $item['entityid'],
-                    'component' => $item['component'],
-                    'status' => $item['status'],
-                    'isrestored' => $item['status'] === 'restored',
-                    'iserror' => $item['status'] === 'error',
-                    'message' => $item['message'],
-                ];
-            }
-        }
-
-        $courseid = $this->courseid;
         return [
-            'courseid' => $courseid,
-            'sesskey' => sesskey(),
-            'batchrows' => $batchrows,
-            'hasbatchrows' => count($batchrows) > 0,
-            'batchcount' => count($batchrows),
-            'hasrollbackresult' => $hasrollbackresult,
-            'rollbacksuccess' => $rollbacksuccess,
-            'rollbackerror' => $rollbackerror,
-            'rollbackitems' => $rollbackitems,
-            'hasrollbackitems' => count($rollbackitems) > 0,
-            'rollbackrestored' => $this->rollbackresult['restored'] ?? 0,
-            'rollbackfailed' => $this->rollbackresult['failed'] ?? 0,
-            'rollbackurl' => (new \moodle_url(
-                '/local/coursectrl/history.php',
-                ['courseid' => $courseid]
-            ))->out(false),
-            'dashboardurl' => (new \moodle_url(
+            'courseid'       => $this->courseid,
+            'coursefullname' => format_string($course->fullname),
+            'rows'           => $rows,
+            'hasrows'        => count($rows) > 0,
+            'rowcount'       => count($rows),
+            'maxbatches'     => $maxbatches,
+            'canrollback'    => $canrollback,
+            'dashboardurl'   => (new \moodle_url(
                 '/local/coursectrl/index.php',
-                ['courseid' => $courseid]
-            ))->out(false),
-            'timelineurl' => (new \moodle_url(
-                '/local/coursectrl/timeline.php',
-                ['courseid' => $courseid]
+                ['courseid' => $this->courseid]
             ))->out(false),
         ];
     }

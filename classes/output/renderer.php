@@ -31,6 +31,28 @@ use plugin_renderer_base;
  */
 class renderer extends plugin_renderer_base {
     /**
+     * Render the navigation bar select_menu.
+     *
+     * @param navigation_bar $nav The navigation bar renderable.
+     * @return string HTML.
+     */
+    public function render_navigation_bar(navigation_bar $nav): string {
+        $data = $nav->export_for_template($this);
+        return $this->render_from_template('local_coursectrl/navigation_bar', $data);
+    }
+
+    /**
+     * Render the history/logs page.
+     *
+     * @param history_page $page The history renderable.
+     * @return string HTML.
+     */
+    public function render_history_page(history_page $page): string {
+        $data = $page->export_for_template($this);
+        return $this->render_from_template('local_coursectrl/history', $data);
+    }
+
+    /**
      * Render the course dashboard page.
      *
      * @param dashboard_page $page The dashboard renderable.
@@ -116,16 +138,5 @@ class renderer extends plugin_renderer_base {
     public function render_simulation_page(simulation_page $page): string {
         $data = $page->export_for_template($this);
         return $this->render_from_template('local_coursectrl/simulation', $data);
-    }
-
-    /**
-     * Render the batch history and rollback page.
-     *
-     * @param history_page $page The history renderable.
-     * @return string HTML.
-     */
-    public function render_history_page(history_page $page): string {
-        $data = $page->export_for_template($this);
-        return $this->render_from_template('local_coursectrl/history', $data);
     }
 }

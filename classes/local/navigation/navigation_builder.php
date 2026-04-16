@@ -15,16 +15,15 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Navigation builder for local_coursectrl pages.
+ * Navigation builder for local_coursectrl.
  *
- * Adds the plugin's tertiary navigation tree to $PAGE->secondarynav so that
- * Moodle's Boost theme renders it as the familiar tab/selector bar. Two
- * non-link group containers ("Einstellen", "Prüfen") appear as unclickable
- * section labels, mirroring the "Gruppen"/"Rechte" pattern on the
- * Participants page.
+ * Renders the plugin navigation as Moodle's native \core\output\select_menu,
+ * identical to the Participants page (user/index.php) tertiary navigation.
+ * The dropdown becomes both the navigation control and the page title.
  *
- * Usage in every plugin entry point:
- *   navigation_builder::setup($PAGE, $courseid, 'timeline');
+ * Call in each entry point after $OUTPUT->header():
+ *
+ *   echo navigation_builder::render($courseid, navigation_builder::KEY_TIMELINE, $OUTPUT);
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -34,104 +33,137 @@
 namespace local_coursectrl\local\navigation;
 
 /**
- * Sets up the secondary navigation tree for local_coursectrl pages.
+ * Renders plugin navigation as a native Moodle select_menu dropdown.
  */
 class navigation_builder {
-    /** @var string Navigation key for the dashboard page. */
-    public const KEY_DASHBOARD      = 'coursectrl_dashboard';
-    /** @var string Navigation key for the "Einstellen" group container. */
-    public const KEY_GROUP_SETUP    = 'coursectrl_group_setup';
-    /** @var string Navigation key for the timeline page. */
-    public const KEY_TIMELINE       = 'coursectrl_timeline';
-    /** @var string Navigation key for the dependency graph page. */
-    public const KEY_GRAPH          = 'coursectrl_graph';
-    /** @var string Navigation key for the manage/bulk-edit page. */
-    public const KEY_MANAGE         = 'coursectrl_manage';
-    /** @var string Navigation key for the "Prüfen" group container. */
-    public const KEY_GROUP_CHECK    = 'coursectrl_group_check';
-    /** @var string Navigation key for the simulation page. */
-    public const KEY_SIMULATION     = 'coursectrl_simulation';
-    /** @var string Navigation key for the history/logs page. */
-    public const KEY_HISTORY        = 'coursectrl_history';
+    /** @var string Key for the dashboard page. */
+    public const KEY_DASHBOARD   = 'coursectrl_dashboard';
+    /** @var string Key for the "Einstellen" group header. */
+    public const KEY_GROUP_SETUP = 'coursectrl_group_setup';
+    /** @var string Key for the timeline page. */
+    public const KEY_TIMELINE    = 'coursectrl_timeline';
+    /** @var string Key for the dependency graph page. */
+    public const KEY_GRAPH       = 'coursectrl_graph';
+    /** @var string Key for the manage / activity-list page. */
+    public const KEY_MANAGE      = 'coursectrl_manage';
+    /** @var string Key for the "Prüfen" group header. */
+    public const KEY_GROUP_CHECK = 'coursectrl_group_check';
+    /** @var string Key for the simulation / plausibility-check page. */
+    public const KEY_SIMULATION  = 'coursectrl_simulation';
+    /** @var string Key for the history / logs page. */
+    public const KEY_HISTORY     = 'coursectrl_history';
 
     /**
-     * Set up $PAGE->secondarynav with all plugin navigation nodes.
+     * Render the select_menu navigation and return the HTML.
      *
-     * @param \moodle_page $page     The current page object.
-     * @param int          $courseid Course id.
-     * @param string       $activekey One of the KEY_* constants identifying
-     *                                the currently active page.
+     * The returned HTML is the core/select_menu component — visually identical
+     * to the Participants page tertiary navigation.
+     *
+     * @param int              $courseid  Course id.
+     * @param string           $activekey One of the KEY_* constants.
+     * @param \renderer_base   $output    Page renderer.
+     * @return string Rendered HTML.
      */
-    public static function setup(\moodle_page $page, int $courseid, string $activekey): void {
-        $nav = $page->secondarynav;
-        $params = ['courseid' => $courseid];
+    public static function render(int $courseid, string $activekey, \renderer_base $output): string {
+        $select = static::build_select($courseid, $activekey);
+        $data = $select->export_for_template($output);
+        return $output->render_from_template('core/select_menu', $data);
+    }
 
-        // Dashboard.
-        $nav->add(
-            get_string('nav_dashboard', 'local_coursectrl'),
-            new \moodle_url('/local/coursectrl/index.php', $params),
-            \navigation_node::TYPE_SETTING,
-            null,
-            self::KEY_DASHBOARD
-        );
+    /**
+     * Build the \core\output\select_menu object.
+     *
+     * @param int    $courseid  Course id.
+     * @param string $activekey Active page key.
+     * @return \core\output\select_menu
+     */
+    private static function build_select(int $courseid, string $activekey): \core\output\select_menu {
+        $url = function (string $script) use ($courseid): string {
+            return (new \moodle_url('/local/coursectrl/' . $script, ['courseid' => $courseid]))->out(false);
+        };
 
-        // Group container: Einstellen (non-link, TYPE_CONTAINER).
-        $setup = $nav->add(
-            get_string('nav_group_setup', 'local_coursectrl'),
-            null,
-            \navigation_node::TYPE_CONTAINER,
-            null,
-            self::KEY_GROUP_SETUP
-        );
-        $setup->add(
-            get_string('nav_timeline', 'local_coursectrl'),
-            new \moodle_url('/local/coursectrl/timeline.php', $params),
-            \navigation_node::TYPE_SETTING,
-            null,
-            self::KEY_TIMELINE
-        );
-        $setup->add(
-            get_string('nav_graph', 'local_coursectrl'),
-            new \moodle_url('/local/coursectrl/graph.php', $params),
-            \navigation_node::TYPE_SETTING,
-            null,
-            self::KEY_GRAPH
-        );
-        $setup->add(
-            get_string('nav_manage', 'local_coursectrl'),
-            new \moodle_url('/local/coursectrl/manage.php', $params),
-            \navigation_node::TYPE_SETTING,
-            null,
-            self::KEY_MANAGE
-        );
+        $opt = function (string $strkey, string $script) use ($url): \core\output\select_menu_option {
+            return new \core\output\select_menu_option(
+                get_string($strkey, 'local_coursectrl'),
+                $url($script)
+            );
+        };
 
-        // Group container: Prüfen (non-link, TYPE_CONTAINER).
-        $check = $nav->add(
-            get_string('nav_group_check', 'local_coursectrl'),
-            null,
-            \navigation_node::TYPE_CONTAINER,
-            null,
-            self::KEY_GROUP_CHECK
-        );
-        $check->add(
-            get_string('nav_simulation', 'local_coursectrl'),
-            new \moodle_url('/local/coursectrl/simulation.php', $params),
-            \navigation_node::TYPE_SETTING,
-            null,
-            self::KEY_SIMULATION
-        );
-        $check->add(
-            get_string('nav_history', 'local_coursectrl'),
-            new \moodle_url('/local/coursectrl/history.php', $params),
-            \navigation_node::TYPE_SETTING,
-            null,
-            self::KEY_HISTORY
-        );
+        $activeurl = $url(static::key_to_script($activekey));
 
-        // Mark the active node.
-        $active = $nav->find($activekey, \navigation_node::TYPE_SETTING);
-        if ($active) {
-            $active->make_active();
+        // Dashboard stands alone.
+        $options = [
+            $opt('nav_dashboard', 'index.php'),
+        ];
+
+        // Einstellen group — with optgroups if available (Moodle 4.3+).
+        $setupopts = [
+            $opt('nav_timeline',   'timeline.php'),
+            $opt('nav_graph',      'graph.php'),
+            $opt('nav_manage',     'manage.php'),
+        ];
+        $checkopts = [
+            $opt('nav_simulation', 'simulation.php'),
+            $opt('nav_history',    'history.php'),
+        ];
+
+        if (class_exists('\core\output\select_menu_optgroup')) {
+            $options[] = new \core\output\select_menu_optgroup(
+                get_string('nav_group_setup', 'local_coursectrl'),
+                $setupopts
+            );
+            $options[] = new \core\output\select_menu_optgroup(
+                get_string('nav_group_check', 'local_coursectrl'),
+                $checkopts
+            );
+        } else {
+            foreach (array_merge($setupopts, $checkopts) as $opt_item) {
+                $options[] = $opt_item;
+            }
         }
+
+        $select = new \core\output\select_menu('coursectrl_nav', $options, $activeurl);
+        // Visually-hidden label for accessibility — same pattern as Participants page.
+        $select->set_label(
+            get_string(static::key_to_strkey($activekey), 'local_coursectrl'),
+            ['class' => 'visually-hidden']
+        );
+        return $select;
+    }
+
+    /**
+     * Map a nav key to the PHP script filename.
+     *
+     * @param string $key Nav key constant value.
+     * @return string
+     */
+    public static function key_to_script(string $key): string {
+        $map = [
+            self::KEY_DASHBOARD  => 'index.php',
+            self::KEY_TIMELINE   => 'timeline.php',
+            self::KEY_GRAPH      => 'graph.php',
+            self::KEY_MANAGE     => 'manage.php',
+            self::KEY_SIMULATION => 'simulation.php',
+            self::KEY_HISTORY    => 'history.php',
+        ];
+        return $map[$key] ?? 'index.php';
+    }
+
+    /**
+     * Map a nav key to the lang string key for that page.
+     *
+     * @param string $key Nav key constant value.
+     * @return string Lang string key.
+     */
+    public static function key_to_strkey(string $key): string {
+        $map = [
+            self::KEY_DASHBOARD  => 'nav_dashboard',
+            self::KEY_TIMELINE   => 'nav_timeline',
+            self::KEY_GRAPH      => 'nav_graph',
+            self::KEY_MANAGE     => 'nav_manage',
+            self::KEY_SIMULATION => 'nav_simulation',
+            self::KEY_HISTORY    => 'nav_history',
+        ];
+        return $map[$key] ?? 'nav_dashboard';
     }
 }

@@ -33,6 +33,8 @@
 require_once(__DIR__ . '/../../config.php');
 
 use local_coursectrl\local\navigation\navigation_builder;
+
+
 use local_coursectrl\local\simulation\learner_state;
 use local_coursectrl\output\simulation_page;
 
@@ -101,10 +103,11 @@ $renderable = new simulation_page($snapshot, $state);
 /** @var \local_coursectrl\output\renderer $renderer */
 $renderer = $PAGE->get_renderer('local_coursectrl');
 
-
-navigation_builder::setup($PAGE, $courseid, navigation_builder::KEY_SIMULATION);
-
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('sim_title', 'local_coursectrl'), 2);
+
+$navbar = navigation_builder::make($courseid, navigation_builder::KEY_SIMULATION);
+
+echo $OUTPUT->render($navbar);
+
 echo $renderer->render_simulation_page($renderable);
 echo $OUTPUT->footer();

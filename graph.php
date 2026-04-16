@@ -59,10 +59,11 @@ $renderable = new \local_coursectrl\output\graph_page($snapshot);
 /** @var \local_coursectrl\output\renderer $renderer */
 $renderer = $PAGE->get_renderer('local_coursectrl');
 
-
-navigation_builder::setup($PAGE, $courseid, navigation_builder::KEY_GRAPH);
-
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('graph_title', 'local_coursectrl'), 2);
+
+$navbar = navigation_builder::make($courseid, navigation_builder::KEY_GRAPH);
+
+echo $OUTPUT->render($navbar);
+
 echo $renderer->render_graph_page($renderable);
 echo $OUTPUT->footer();

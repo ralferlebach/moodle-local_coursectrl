@@ -46,7 +46,7 @@ $PAGE->navbar->add(
 );
 $PAGE->navbar->add(get_string('nav_history', 'local_coursectrl'));
 
-navigation_builder::setup($PAGE, $courseid, navigation_builder::KEY_HISTORY);
+$navbar = navigation_builder::make($courseid, navigation_builder::KEY_HISTORY);
 
 $renderable = new history_page($courseid);
 
@@ -54,5 +54,7 @@ $renderable = new history_page($courseid);
 $renderer = $PAGE->get_renderer('local_coursectrl');
 
 echo $OUTPUT->header();
+
+echo $OUTPUT->render($navbar);
 echo $renderer->render($renderable);
 echo $OUTPUT->footer();

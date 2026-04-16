@@ -99,7 +99,7 @@ class provider extends abstract_calendar_provider {
         // Filter to the requested month.
         $result = [];
         foreach ($yeardata as $datekey => $events) {
-            $m = (int) date('n', strtotime($datekey));
+            $m = (int) date('n', strtotime('!' . $datekey));
             if ($m === $month) {
                 $result[$datekey] = $events;
             }

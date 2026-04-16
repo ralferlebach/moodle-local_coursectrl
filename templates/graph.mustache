@@ -1,5 +1,5 @@
 {{!
-    This file is part of Moodle - http://moodle.org/
+    This file is part of Moodle - https://moodle.org/
 
     Moodle is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,101 +17,80 @@
 {{!
     @template local_coursectrl/graph
 
-    Dependency graph and Gantt view for the Course Control Hub.
-    Two Bootstrap tabs: dependency graph (SVG rendered by graphview.js) and Gantt.
+    Dependency graph view. Gantt has moved to the Timeline page.
 
-    Context variables:
-    * courseid, coursefullname
-    * graphjson     - JSON string for graph dataset (nodes, edges, layers)
-    * ganttjson     - JSON string for Gantt dataset (rows, mints, maxts)
-    * hasgraph      - bool: course has at least one CM
-    * hasgantt      - bool: at least one CM has date entries
-    * graphnodecount, graphedgecount, ganttrowcount
-    * dashboardurl, timelineurl, manageurl
+    Context variables required for this template:
+    * courseid (int)
+    * graphjson (string) — JSON for graphview.js
+    * graphnodecount (int), graphedgecount (int)
+    * groupoptions (array) [{id, name, selected}]
+    * hasgroupoptions (bool)
+    * graphurl (string)
+    * activegroupid (int)
+    * hideindependents (bool)
+
+    Example context (json):
+    {"courseid":2,"graphnodecount":5,"graphedgecount":3,
+     "graphjson":"{}","hasgroupoptions":false,"hideindependents":false}
 }}
-<div class="local-coursectrl-graph" data-region="local_coursectrl-graph" data-courseid="{{courseid}}">
 
-    <div class="mb-3">
-        <a href="{{dashboardurl}}" class="btn btn-sm btn-outline-secondary">
-            &laquo; {{#str}}nav_dashboard, local_coursectrl{{/str}}
-        </a>
-        <a href="{{timelineurl}}" class="btn btn-sm btn-outline-secondary ml-1">
-            {{#str}}nav_timeline, local_coursectrl{{/str}}
-        </a>
-        <a href="{{manageurl}}" class="btn btn-sm btn-outline-secondary ml-1">
-            {{#str}}nav_bulk, local_coursectrl{{/str}}
-        </a>
+<div class="local_coursectrl_graph" data-region="local_coursectrl-graph"
+     data-courseid="{{courseid}}">
+
+  {{! ── Filter toolbar ─────────────────────────────────────────────────── }}
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+
+    <span class="text-muted small">
+      {{graphnodecount}} {{#str}} graph_nodes, local_coursectrl {{/str}},
+      {{graphedgecount}} {{#str}} graph_edges, local_coursectrl {{/str}}
+    </span>
+
+    {{! Toggle independent activities }}
+    <div class="form-check form-switch mb-0 ms-2">
+      <input class="form-check-input" type="checkbox"
+             id="hide-independents"
+             data-action="toggle-independents"
+             {{#hideindependents}}checked{{/hideindependents}}>
+      <label class="form-check-label small" for="hide-independents">
+        {{#str}} graph_hide_independents, local_coursectrl {{/str}}
+      </label>
     </div>
 
-    <ul class="nav nav-tabs mb-3" role="tablist">
-        <li class="nav-item">
-            <a class="nav-link active" data-toggle="tab" href="#panel-depgraph" role="tab">
-                {{#str}}graph_tab_deps, local_coursectrl{{/str}}
-                <span class="badge badge-secondary ml-1">{{graphedgecount}}</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" data-toggle="tab" href="#panel-gantt" role="tab">
-                {{#str}}graph_tab_gantt, local_coursectrl{{/str}}
-                <span class="badge badge-secondary ml-1">{{ganttrowcount}}</span>
-            </a>
-        </li>
-    </ul>
+    {{! Group filter }}
+    {{#hasgroupoptions}}
+    <form method="get" action="{{graphurl}}" class="d-flex align-items-center gap-1 mb-0">
+      <input type="hidden" name="courseid" value="{{courseid}}">
+      <label class="form-label mb-0 small text-nowrap">
+        {{#str}} timeline_filter_group, local_coursectrl {{/str}}
+      </label>
+      <select name="groupid" class="form-select form-select-sm"
+              style="width:auto" onchange="this.form.submit()">
+        <option value="0"{{^activegroupid}} selected{{/activegroupid}}>
+          {{#str}} timeline_filter_group_none, local_coursectrl {{/str}}
+        </option>
+        {{#groupoptions}}
+        <option value="{{id}}"{{#selected}} selected{{/selected}}>{{name}}</option>
+        {{/groupoptions}}
+      </select>
+    </form>
+    {{/hasgroupoptions}}
 
-    <div class="tab-content">
+  </div>
 
-        <div class="tab-pane fade show active" id="panel-depgraph" role="tabpanel">
-            {{#hasgraph}}
-            <div class="card">
-                <div class="card-header d-flex align-items-center justify-content-between py-2">
-                    <span class="small font-weight-bold">
-                        {{#str}}graph_nodes, local_coursectrl{{/str}}: {{graphnodecount}}
-                        &nbsp;|&nbsp;
-                        {{#str}}graph_edges, local_coursectrl{{/str}}: {{graphedgecount}}
-                    </span>
-                    <span class="small text-muted">{{#str}}graph_legend_circular, local_coursectrl{{/str}}</span>
-                </div>
-                <div class="card-body p-0" style="overflow:auto;">
-                    <div data-region="coursectrl-graph-canvas"
-                         data-graph="{{graphjson}}"
-                         style="min-height:200px;">
-                        <p class="text-muted small p-3">{{#str}}graph_loading, local_coursectrl{{/str}}</p>
-                    </div>
-                </div>
-            </div>
-            {{/hasgraph}}
-            {{^hasgraph}}
-            <p class="text-muted">{{#str}}graph_empty, local_coursectrl{{/str}}</p>
-            {{/hasgraph}}
-        </div>
-
-        <div class="tab-pane fade" id="panel-gantt" role="tabpanel">
-            {{#hasgantt}}
-            <div class="card">
-                <div class="card-header py-2">
-                    <span class="small font-weight-bold">
-                        {{#str}}graph_gantt_activities, local_coursectrl{{/str}}: {{ganttrowcount}}
-                    </span>
-                </div>
-                <div class="card-body p-0" style="overflow:auto;">
-                    <div data-region="coursectrl-gantt-canvas"
-                         data-gantt="{{ganttjson}}"
-                         style="min-height:100px;">
-                        <p class="text-muted small p-3">{{#str}}graph_loading, local_coursectrl{{/str}}</p>
-                    </div>
-                </div>
-            </div>
-            {{/hasgantt}}
-            {{^hasgantt}}
-            <p class="text-muted">{{#str}}graph_gantt_empty, local_coursectrl{{/str}}</p>
-            {{/hasgantt}}
-        </div>
-
+  {{! ── Graph canvas ────────────────────────────────────────────────────── }}
+  <div class="overflow-auto border rounded p-2 bg-white"
+       style="min-height:400px;-webkit-overflow-scrolling:touch">
+    <div data-region="coursectrl-graph-canvas"
+         data-graph="{{graphjson}}"
+         data-hide-independents="{{hideindependents}}"
+         style="width:100%;min-height:400px;overflow:hidden">
     </div>
+  </div>
 
 </div>
+
 {{#js}}
-require(['local_coursectrl/graphview'], function(GraphView) {
-    GraphView.init(document.querySelector('[data-region="local_coursectrl-graph"]'));
+require(['local_coursectrl/graphview'], function(G) {
+    G.init(document.querySelector('[data-region="local_coursectrl-graph"]'));
 });
 {{/js}}

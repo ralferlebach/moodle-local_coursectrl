@@ -24,7 +24,7 @@
     * coursestartdate, courseenddate, hasenddate, coursevisible
     * sectioncount, cmcount, textcount, hassections
     * warningcount, haswarnings
-    * manageurl, textreviewurl, graphurl, simulationurl, historyurl
+    * manageurl, textreviewurl, graphurl
     * sections - array with enriched cms
 }}
 <div class="local-coursectrl-dashboard" data-region="local_coursectrl-dashboard" data-courseid="{{courseid}}">
@@ -37,6 +37,12 @@
                     <h2 class="h4 mb-0">{{coursefullname}}</h2>
                     <span class="text-muted small">{{courseshortname}}</span>
                 </div>
+
+{{#js}}
+require(['local_coursectrl/dashboard'], function(D) {
+    D.init(document.querySelector('[data-region="local_coursectrl-dashboard"]'));
+});
+{{/js}}
                 <div class="text-right small text-muted">
                     {{#userdate}}{{coursestartdate}}, {{#str}}strftimedaydate, core_langconfig{{/str}}{{/userdate}}
                     {{#hasenddate}} – {{#userdate}}{{courseenddate}}, {{#str}}strftimedaydate, core_langconfig{{/str}}{{/userdate}}{{/hasenddate}}
@@ -72,17 +78,63 @@
                 <div class="text-muted small">{{#str}}dashboard_warnings, local_coursectrl{{/str}}</div>
             </div></div>
         </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100 border-info"><div class="card-body py-2">
+                <div class="h4 mb-0 text-info">{{upcoming7days}}</div>
+                <div class="text-muted small">{{#str}}dashboard_upcoming7, local_coursectrl{{/str}}</div>
+            </div></div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100 border-info"><div class="card-body py-2">
+                <div class="h4 mb-0 text-info">{{upcoming28days}}</div>
+                <div class="text-muted small">{{#str}}dashboard_upcoming28, local_coursectrl{{/str}}</div>
+            </div></div>
+        </div>
     </div>
 
-    {{! ---- Action buttons ---- }}
-    <div class="mb-4">
-        <a href="{{manageurl}}" class="btn btn-primary btn-sm">{{#str}}nav_bulk, local_coursectrl{{/str}}</a>
-        <a href="{{timelineurl}}" class="btn btn-primary btn-sm ml-1">{{#str}}nav_timeline, local_coursectrl{{/str}}</a>
-        <a href="{{graphurl}}" class="btn btn-primary btn-sm ml-1">{{#str}}nav_graph, local_coursectrl{{/str}}</a>
-        <a href="{{simulationurl}}" class="btn btn-primary btn-sm ml-1">{{#str}}nav_simulation, local_coursectrl{{/str}}</a>
-        <a href="{{historyurl}}" class="btn btn-outline-primary btn-sm ml-1">{{#str}}nav_history, local_coursectrl{{/str}}</a>
-        <a href="{{textreviewurl}}" class="btn btn-outline-primary btn-sm ml-1">{{#str}}nav_textreview, local_coursectrl{{/str}}</a>
+    {{! ---- Collapsible calendar block ---- }}
+    <div class="mb-3">
+        <button type="button"
+                class="btn btn-sm btn-outline-secondary mb-2"
+                data-action="toggle-calendar"
+                data-courseid="{{courseid}}">
+            <i class="fa fa-calendar fa-fw"></i>
+            <span data-cal-label>
+                {{#showcalendar}}{{#str}}cal_hide, local_coursectrl{{/str}}{{/showcalendar}}
+                {{^showcalendar}}{{#str}}cal_show, local_coursectrl{{/str}}{{/showcalendar}}
+            </span>
+        </button>
+        <div class="local_coursectrl_calblock{{^showcalendar}} d-none{{/showcalendar}}"
+             data-region="local_coursectrl-calwrapper">
+            <div class="d-flex flex-nowrap overflow-auto gap-2 pb-1"
+                 data-region="local_coursectrl-calrow" style="-webkit-overflow-scrolling:touch">
+                {{#months}}
+                <div class="flex-shrink-0{{#iscurrentmonth}} rounded bg-success bg-opacity-10{{/iscurrentmonth}}"
+                     style="min-width:196px" data-monthkey="{{monthkey}}">
+                    <div class="text-center small fw-semibold py-1">
+                        <a href="{{timelineurl}}&tab=timeline#month-{{monthkey}}" class="text-decoration-none">{{monthlabel}}</a>
+                    </div>
+                    {{#weeks}}
+                    <div class="d-flex">
+                        {{#days}}
+                        <div class="text-center small flex-fill p-0
+                             {{^inmonth}}text-muted{{/inmonth}}
+                             {{#istoday}}border border-primary fw-bold{{/istoday}}
+                             {{#isholiday}}bg-warning bg-opacity-25{{/isholiday}}"
+                             style="min-width:1.55em;line-height:1.7em">
+                            {{#inmonth}}{{#hasentries}}<a href="{{timelineurl}}&tab=timeline&daykey={{daykey}}" target="_blank" rel="noopener" class="fw-bold">{{day}}</a>{{/hasentries}}{{^hasentries}}{{day}}{{/hasentries}}{{/inmonth}}
+                            {{^inmonth}}&nbsp;{{/inmonth}}
+                        </div>
+                        {{/days}}
+                    </div>
+                    {{/weeks}}
+                </div>
+                {{/months}}
+            </div>
+        </div>
     </div>
+
+
 
     {{! ---- Inventory ---- }}
     {{#hassections}}
@@ -173,3 +225,9 @@
         <div class="alert alert-info">{{#str}}dashboard_empty, local_coursectrl{{/str}}</div>
     {{/hassections}}
 </div>
+
+{{#js}}
+require(['local_coursectrl/dashboard'], function(D) {
+    D.init(document.querySelector('[data-region="local_coursectrl-dashboard"]'));
+});
+{{/js}}

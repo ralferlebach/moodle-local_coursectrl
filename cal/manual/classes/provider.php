@@ -116,8 +116,8 @@ class provider extends abstract_calendar_provider {
                 [$start, $end] = explode('/', $datepart, 2);
                 $this->expand_range($daymap, trim($start), trim($end), $this->make_event($name, $category), $year, $month);
             } else {
-                $m = (int) date('n', strtotime($datepart));
-                $y = (int) date('Y', strtotime($datepart));
+                $m = (int) date('n', strtotime('!' . $datepart));
+                $y = (int) date('Y', strtotime('!' . $datepart));
                 if ($y === $year && $m === $month) {
                     $daymap[$datepart][] = $this->make_event($name, $category);
                 }

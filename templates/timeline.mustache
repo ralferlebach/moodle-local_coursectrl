@@ -1,5 +1,5 @@
 {{!
-    This file is part of Moodle - http://moodle.org/
+    This file is part of Moodle - https://moodle.org/
 
     Moodle is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,263 +17,344 @@
 {{!
     @template local_coursectrl/timeline
 
-    Timeline view with mini-calendar, filter strip, day-grouped entries,
-    shift / delete action buttons and immediate-apply preference.
+    Timeline page with three tabs: Terminübersicht, Textprüfung, Grafische Übersicht.
+
+    Context variables required for this template:
+    * courseid (int)
+    * sesskey (string)
+    * tab_timeline, tab_textreview, tab_gantt (bool)
+    * days (array) — [{dayformatted, daykey, ispast, slotcount, slots[]}]
+    * slots (array) — [{timeformatted, timekey, ispast, entries[]}]
+    * entries (array) — [{cmid, name, modname, field, activityurl, deletable}]
+    * months (array) — calendar grid from calendar_grid_builder
+    * showcalendar, showpast, onlywithdeps (bool)
+    * componentoptions (array), hascomponentoptions (bool)
+    * groupoptions (array), hasgroupoptions (bool)
+    * shifturl, timelineurl, textreviewurl (string)
+    * gantt_json (string)
+
+    Example context (json):
+    {"courseid":2,"tab_timeline":true,"days":[],"months":[],"showcalendar":true,
+     "sesskey":"x","shifturl":"","timelineurl":""}
 }}
-<div class="local-coursectrl-timeline" data-region="local_coursectrl-timeline"
-     data-courseid="{{courseid}}" data-immediateapply="{{#immediateapply}}1{{/immediateapply}}{{^immediateapply}}0{{/immediateapply}}">
 
-    <div class="mb-3">
-        <a href="{{dashboardurl}}" class="btn btn-sm btn-outline-secondary">
-            &laquo; {{#str}}nav_dashboard, local_coursectrl{{/str}}
-        </a>
-        <a href="{{manageurl}}" class="btn btn-sm btn-outline-secondary ml-1">
-            {{#str}}nav_bulk, local_coursectrl{{/str}}
-        </a>
+<div class="local_coursectrl_timeline" data-region="local_coursectrl-timeline"
+     data-courseid="{{courseid}}" data-shifturl="{{shifturl}}">
+
+  {{! ── Tab navigation ──────────────────────────────────────────────────── }}
+  <ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item">
+      <a class="nav-link{{#tab_timeline}} active{{/tab_timeline}}"
+         href="{{timelineurl}}&amp;tab=timeline">
+        {{#str}} tab_timeline, local_coursectrl {{/str}}
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link{{#tab_textreview}} active{{/tab_textreview}}"
+         href="{{timelineurl}}&amp;tab=textreview">
+        {{#str}} tab_textreview, local_coursectrl {{/str}}
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link{{#tab_gantt}} active{{/tab_gantt}}"
+         href="{{timelineurl}}&amp;tab=gantt">
+        {{#str}} tab_gantt, local_coursectrl {{/str}}
+      </a>
+    </li>
+  </ul>
+
+  {{! ── TAB: Terminübersicht ───────────────────────────────────────────── }}
+  {{#tab_timeline}}
+
+  {{! Single-row horizontally scrollable calendar }}
+  <div class="card mb-3{{^showcalendar}} d-none{{/showcalendar}}"
+       data-region="local_coursectrl-calwrapper">
+    <div class="card-body p-2">
+      <div class="d-flex flex-nowrap overflow-auto gap-2 pb-1"
+           data-region="local_coursectrl-calrow"
+           style="-webkit-overflow-scrolling:touch">
+        {{#months}}
+        <div class="flex-shrink-0 text-center" style="min-width:196px">
+          <div class="small fw-semibold py-1">{{monthlabel}}</div>
+          {{#weeks}}
+          <div class="d-flex">
+            {{#days}}
+            <div class="text-center small flex-fill p-0
+                 {{^inmonth}}text-muted{{/inmonth}}
+                 {{#istoday}}border border-primary fw-bold{{/istoday}}
+                 {{#isholiday}}bg-warning bg-opacity-25{{/isholiday}}"
+                 style="min-width:1.55em;line-height:1.7em;{{#hasentries}}cursor:pointer{{/hasentries}}"
+                 {{#hasentries}}data-action="jump-to-day" data-daykey="{{daykey}}"{{/hasentries}}
+                 {{#hasholidays}}title="{{#holidaynames}}{{name}} {{/holidaynames}}"{{/hasholidays}}>
+              {{#inmonth}}{{day}}{{/inmonth}}{{^inmonth}}&nbsp;{{/inmonth}}
+            </div>
+            {{/days}}
+          </div>
+          {{/weeks}}
+        </div>
+        {{/months}}
+      </div>
     </div>
+  </div>
 
-    {{! ---- Mini-calendar (collapsible) ---- }}
-    {{#hascalendar}}
-        <div class="card mb-3" id="coursectrl-calendar-card">
-            <div class="card-header py-1 px-3 d-flex align-items-center justify-content-between">
-                <strong class="small">{{#str}}timeline_calendar_title, local_coursectrl{{/str}}</strong>
-                <button type="button" class="btn btn-sm btn-link py-0" data-action="toggle-calendar">
-                    {{#showcalendar}}−{{/showcalendar}}{{^showcalendar}}+{{/showcalendar}}
-                </button>
-            </div>
-            <div class="card-body p-2" id="coursectrl-calendar-body"
-                 style="{{^showcalendar}}display:none;{{/showcalendar}}">
-                <div class="d-flex flex-wrap">
-                    {{#months}}
-                        <div class="coursectrl-mini-month m-1" style="font-size:10px;">
-                            <div class="text-center font-weight-bold small mb-1">{{label}}</div>
-                            <table class="table-sm mb-0" style="border-collapse:separate; border-spacing:1px;">
-                                <thead>
-                                    <tr class="text-muted text-center">
-                                        <th style="width:14px">M</th>
-                                        <th style="width:14px">D</th>
-                                        <th style="width:14px">M</th>
-                                        <th style="width:14px">D</th>
-                                        <th style="width:14px">F</th>
-                                        <th style="width:14px">S</th>
-                                        <th style="width:14px">S</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {{#weeks}}
-                                        <tr>
-                                            {{#cells}}
-                                                {{#inmonth}}
-                                                    <td class="text-center p-0
-                                                        {{#hasentries}}bg-primary text-white font-weight-bold{{/hasentries}}
-                                                        {{#istoday}}border border-warning{{/istoday}}
-                                                        {{#ispast}}text-muted{{/ispast}}"
-                                                        style="width:14px; height:14px; cursor:{{#hasentries}}pointer{{/hasentries}}default;"
-                                                        {{#hasentries}}
-                                                            data-daykey="{{daykey}}"
-                                                            data-action="jump-to-day"
-                                                            title="{{#entries}}{{time}} {{modname}}: {{name}}&#10;{{/entries}}"
-                                                        {{/hasentries}}>
-                                                        {{day}}
-                                                    </td>
-                                                {{/inmonth}}
-                                                {{^inmonth}}
-                                                    <td style="width:14px; height:14px;"></td>
-                                                {{/inmonth}}
-                                            {{/cells}}
-                                        </tr>
-                                    {{/weeks}}
-                                </tbody>
-                            </table>
-                        </div>
-                    {{/months}}
-                </div>
-            </div>
-        </div>
-    {{/hascalendar}}
+  {{! Filter toolbar }}
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <button type="button" class="btn btn-sm btn-outline-secondary"
+            data-action="toggle-calendar" data-courseid="{{courseid}}">
+      <i class="fa fa-calendar fa-fw"></i>
+      <span data-cal-label>
+        {{#showcalendar}}{{#str}} cal_hide, local_coursectrl {{/str}}{{/showcalendar}}
+        {{^showcalendar}}{{#str}} cal_show, local_coursectrl {{/str}}{{/showcalendar}}
+      </span>
+    </button>
 
-    {{! ---- Control strip ---- }}
-    <form id="coursectrl-timeline-filters" method="get" action="{{timelineurl}}" class="card mb-3">
-        <input type="hidden" name="courseid" value="{{courseid}}">
-        <div class="card-body py-2">
-            <div class="form-inline flex-wrap">
-                <label class="mb-0 mr-3">
-                    <input type="checkbox" name="showpast" value="1"
-                           {{#showpast}}checked{{/showpast}}
-                           onchange="this.form.submit()">
-                    {{#str}}timeline_show_past, local_coursectrl{{/str}}
-                </label>
-                <label class="mb-0 mr-3">
-                    <input type="checkbox" name="onlywithdeps" value="1"
-                           {{#onlywithdeps}}checked{{/onlywithdeps}}
-                           onchange="this.form.submit()">
-                    {{#str}}timeline_only_with_deps, local_coursectrl{{/str}}
-                </label>
-                {{#hascomponentoptions}}
-                    <div class="mr-3">
-                        <label class="mb-0 mr-1">{{#str}}timeline_filter_components, local_coursectrl{{/str}}</label>
-                        <select name="components[]" multiple size="1" class="form-control form-control-sm"
-                                onchange="this.form.submit()">
-                            {{#componentoptions}}
-                                <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
-                            {{/componentoptions}}
-                        </select>
-                    </div>
-                {{/hascomponentoptions}}
-                <label class="mb-0 mr-3">
-                    <input type="checkbox" id="coursectrl-immediateapply"
-                           {{#immediateapply}}checked{{/immediateapply}}>
-                    <span class="font-weight-bold">{{#str}}timeline_immediate_apply, local_coursectrl{{/str}}</span>
-                </label>
-                <span class="text-muted small ml-auto">
-                    {{totalentries}} {{#str}}timeline_entries, local_coursectrl{{/str}},
-                    {{totaldays}} {{#str}}timeline_days, local_coursectrl{{/str}}
-                </span>
-            </div>
-        </div>
+    <form method="get" action="{{timelineurl}}" class="mb-0 d-inline">
+      <input type="hidden" name="courseid" value="{{courseid}}">
+      <input type="hidden" name="tab" value="timeline">
+      {{^showpast}}<input type="hidden" name="showpast" value="0">{{/showpast}}
+      <label class="mb-0">
+        <input type="checkbox" name="showpast" value="1"
+               class="me-1"{{#showpast}} checked{{/showpast}}>
+        {{#str}} toggle_past, local_coursectrl {{/str}}
+      </label>
     </form>
 
-    {{! ---- Day-grouped timeline list ---- }}
-    {{#hasdays}}
-        {{#days}}
-            <div class="card mb-2 {{#ispast}}border-muted{{/ispast}}" id="day-{{daykey}}">
-                <div class="card-header py-1 px-3 d-flex align-items-center justify-content-between">
-                    <strong class="{{#ispast}}text-muted{{/ispast}}">{{dayformatted}}</strong>
-                    <span class="badge badge-light">{{slotcount}}</span>
-                </div>
-                <div class="list-group list-group-flush">
-                    {{#slots}}
-                        <div class="list-group-item py-2 px-3 {{#ispast}}bg-light text-muted{{/ispast}}">
-                            <div class="d-flex align-items-center justify-content-between mb-1">
-                                <strong class="small">⏱ {{timeformatted}}</strong>
-                                <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2"
-                                        data-action="shift-slot" data-timestamp="{{timekey}}"
-                                        title="{{#str}}timeline_action_shift_slot, local_coursectrl{{/str}}">
-                                    ⇥ {{#str}}timeline_shift, local_coursectrl{{/str}}
-                                </button>
-                            </div>
-                            <ul class="list-unstyled mb-0 ml-3">
-                                {{#entries}}
-                                    <li class="d-flex align-items-center justify-content-between py-1">
-                                        <span>
-                                            <code class="small text-muted mr-1">{{modname}}</code>
-                                            <a href="{{activityurl}}">{{name}}</a>
-                                            <span class="badge badge-outline-secondary ml-1" title="{{source}}">{{field}}</span>
-                                        </span>
-                                        <span>
-                                            <a href="{{dashboardanchor}}" class="btn btn-outline-secondary btn-sm py-0 px-2"
-                                               title="{{#str}}timeline_action_view, local_coursectrl{{/str}}">👁</a>
-                                            <a href="{{editurl}}" class="btn btn-outline-secondary btn-sm py-0 px-2"
-                                               title="{{#str}}edit{{/str}}">✏️</a>
-                                            <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2"
-                                                    data-action="shift-entry" data-cmid="{{cmid}}"
-                                                    title="{{#str}}timeline_action_shift_entry, local_coursectrl{{/str}}">⇥</button>
-                                            {{#deletable}}
-                                                <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2"
-                                                        data-action="delete-entry" data-cmid="{{cmid}}" data-field="{{field}}"
-                                                        data-name="{{name}}"
-                                                        title="{{#str}}timeline_action_delete, local_coursectrl{{/str}}">🗑</button>
-                                            {{/deletable}}
-                                        </span>
-                                    </li>
-                                {{/entries}}
-                            </ul>
-                        </div>
-                    {{/slots}}
-                </div>
+    {{#hasgroupoptions}}
+    <form method="get" action="{{timelineurl}}" class="d-flex align-items-center gap-1 mb-0">
+      <input type="hidden" name="courseid" value="{{courseid}}">
+      <input type="hidden" name="tab" value="timeline">
+      <label class="form-label mb-0 small text-nowrap">
+        {{#str}} timeline_filter_group, local_coursectrl {{/str}}
+      </label>
+      <select name="groupid" class="form-select form-select-sm" style="width:auto"
+              onchange="this.form.submit()">
+        <option value="0"{{^activegroupid}} selected{{/activegroupid}}>
+          {{#str}} timeline_filter_group_none, local_coursectrl {{/str}}
+        </option>
+        {{#groupoptions}}
+        <option value="{{id}}"{{#selected}} selected{{/selected}}>{{name}}</option>
+        {{/groupoptions}}
+      </select>
+    </form>
+    {{/hasgroupoptions}}
+
+    {{#hascomponentoptions}}
+    <div class="dropdown">
+      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+              data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fa fa-filter fa-fw"></i>
+        {{#str}} filter_activitytypes, local_coursectrl {{/str}}
+      </button>
+      <form method="get" action="{{timelineurl}}" class="dropdown-menu p-3"
+            style="min-width:200px">
+        <input type="hidden" name="courseid" value="{{courseid}}">
+        <input type="hidden" name="tab" value="timeline">
+        <input type="hidden" name="groupid" value="{{activegroupid}}">
+        {{#componentoptions}}
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="components[]"
+                 value="{{value}}" id="comp-{{value}}"{{#selected}} checked{{/selected}}>
+          <label class="form-check-label small" for="comp-{{value}}">{{label}}</label>
+        </div>
+        {{/componentoptions}}
+        <div class="mt-2">
+          <button type="submit" class="btn btn-sm btn-primary">
+            {{#str}} apply, core {{/str}}
+          </button>
+        </div>
+      </form>
+    </div>
+    {{/hascomponentoptions}}
+  </div>
+
+  {{! Date rows }}
+  {{#hasdays}}
+  <div data-region="local_coursectrl-days">
+    {{#days}}
+    <div class="card mb-2{{#ispast}} opacity-75{{/ispast}}"
+         id="day-{{daykey}}" data-daykey="{{daykey}}">
+      <div class="card-header py-1 d-flex align-items-center gap-2">
+        <strong class="{{#ispast}}text-muted{{/ispast}}">{{dayformatted}}</strong>
+        <span class="badge bg-light text-dark border small">{{slotcount}}</span>
+      </div>
+      {{#slots}}
+      <div class="card-body py-1 px-2">
+        <div class="d-flex align-items-center justify-content-between mb-1">
+          <span class="small text-muted">{{timeformatted}}</span>
+          <span class="d-flex gap-1">
+            {{! Shift this slot (single date/time) }}
+            <button type="button" class="btn btn-sm btn-outline-secondary p-1 lh-1"
+                    data-action="shift-slot" data-timestamp="{{timekey}}"
+                    title="{{#str}} timeline_action_shift_slot, local_coursectrl {{/str}}">
+              <i class="fa fa-calendar-day fa-sm"></i>
+              <i class="fa fa-arrow-right fa-sm"></i>
+            </button>
+            {{! Shift following activities (all after this date) }}
+            <button type="button" class="btn btn-sm btn-outline-secondary p-1 lh-1"
+                    data-action="shift-following" data-timestamp="{{timekey}}"
+                    title="{{#str}} shift_following, local_coursectrl {{/str}}">
+              <i class="fa fa-calendar-days fa-sm"></i>
+              <i class="fa fa-angles-double-right fa-sm"></i>
+            </button>
+          </span>
+        </div>
+        <ul class="list-group list-group-flush">
+          {{#entries}}
+          <li class="list-group-item d-flex align-items-center justify-content-between py-1 px-0">
+            <span class="text-truncate me-2">
+              <code class="small text-muted me-1">{{modname}}</code>
+              <a href="{{activityurl}}" target="_blank" rel="noopener noreferrer">{{name}}</a>
+              <span class="badge bg-light text-dark border ms-1 small">{{field}}</span>
+            </span>
+            <span class="d-flex gap-1 flex-shrink-0">
+              {{! Shift this single entry }}
+              <button type="button" class="btn btn-sm btn-outline-secondary p-1 lh-1"
+                      data-action="shift-entry" data-cmid="{{cmid}}"
+                      title="{{#str}} shift_single, local_coursectrl {{/str}}">
+                <i class="fa fa-calendar-day fa-sm"></i>
+                <i class="fa fa-arrow-right fa-sm"></i>
+              </button>
+              {{#deletable}}
+              <button type="button" class="btn btn-sm btn-outline-danger p-1 lh-1"
+                      data-action="delete-entry" data-cmid="{{cmid}}"
+                      data-field="{{field}}" data-name="{{name}}"
+                      title="{{#str}} timeline_action_delete_entry, local_coursectrl {{/str}}">
+                <i class="fa fa-times fa-sm"></i>
+              </button>
+              {{/deletable}}
+            </span>
+          </li>
+          {{/entries}}
+        </ul>
+      </div>
+      {{/slots}}
+    </div>
+    {{/days}}
+  </div>
+  {{/hasdays}}
+  {{^hasdays}}
+  <p class="text-muted mt-3">{{#str}} no_dates_found, local_coursectrl {{/str}}</p>
+  {{/hasdays}}
+
+  {{! ── Shift dialog (existing mechanism) ─────────────────────────────── }}
+  <div id="coursectrl-shift-dialog" class="modal fade" tabindex="-1" role="dialog"
+       style="display:none" aria-hidden="true">
+    <div class="modal-dialog modal-sm" role="document">
+      <div class="modal-content">
+        <div class="modal-header py-2">
+          <h6 class="modal-title">
+            {{#str}} timeline_shift_heading, local_coursectrl {{/str}}
+          </h6>
+          <button type="button" class="close btn-close"
+                  data-action="close-dialog" aria-label="Close"></button>
+        </div>
+        <form method="post" action="{{shifturl}}">
+          <input type="hidden" name="sesskey" value="{{sesskey}}">
+          <input type="hidden" name="courseid" value="{{courseid}}">
+          <input type="hidden" name="cmids" id="coursectrl-shift-cmids" value="">
+          <input type="hidden" name="action_type" value="shift_dates">
+          <input type="hidden" name="mode" id="coursectrl-shift-mode" value="slot">
+          <input type="hidden" name="followdeps"
+                 id="coursectrl-shift-followdeps" value="0">
+          <div class="modal-body py-2">
+            <div class="form-group mb-2">
+              <label class="small">
+                {{#str}} timeline_shift_days, local_coursectrl {{/str}}
+              </label>
+              <input type="number" name="delta_days"
+                     class="form-control form-control-sm" style="width:80px" value="0">
             </div>
-        {{/days}}
-    {{/hasdays}}
-    {{^hasdays}}
-        <div class="alert alert-info">
-            {{#str}}timeline_empty, local_coursectrl{{/str}}
-        </div>
-    {{/hasdays}}
-
-    {{! ---- Shift dialog ---- }}
-    <div id="coursectrl-shift-dialog" class="modal" tabindex="-1" role="dialog" style="display:none;">
-        <div class="modal-dialog" role="document">
-            <form method="post" action="{{shifturl}}">
-                <input type="hidden" name="sesskey" value="{{sesskey}}">
-                <input type="hidden" name="courseid" value="{{courseid}}">
-                <input type="hidden" name="cmids" id="coursectrl-shift-cmids" value="">
-                <input type="hidden" name="action_type" value="shift_dates">
-                <input type="hidden" name="mode" id="coursectrl-shift-mode" value="slot">
-                <input type="hidden" name="followdeps" id="coursectrl-shift-followdeps" value="0">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">{{#str}}timeline_shift_dialog_title, local_coursectrl{{/str}}</h5>
-                        <button type="button" class="close" data-action="close-dialog">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <p id="coursectrl-shift-target" class="small text-muted"></p>
-                        <div class="form-group">
-                            <label>{{#str}}manage_delta, local_coursectrl{{/str}}</label>
-                            <div class="form-inline">
-                                <div class="input-group mr-2 mb-2">
-                                    <input type="number" name="delta_days" class="form-control" style="width:80px" value="0">
-                                    <div class="input-group-append"><span class="input-group-text">{{#str}}days{{/str}}</span></div>
-                                </div>
-                                <div class="input-group mb-2">
-                                    <input type="number" name="delta_hours" class="form-control" style="width:80px" value="0">
-                                    <div class="input-group-append"><span class="input-group-text">{{#str}}hours{{/str}}</span></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-check">
-                            <input type="checkbox" class="form-check-input" id="coursectrl-shift-followdeps-cb"
-                                   data-bind="followdeps">
-                            <label class="form-check-label" for="coursectrl-shift-followdeps-cb">
-                                {{#str}}timeline_shift_followdeps, local_coursectrl{{/str}}
-                            </label>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-action="close-dialog">
-                            {{#str}}cancel{{/str}}
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            {{#str}}timeline_shift, local_coursectrl{{/str}}
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
+            <div class="form-group mb-2">
+              <label class="small">
+                {{#str}} timeline_shift_hours, local_coursectrl {{/str}}
+              </label>
+              <input type="number" name="delta_hours"
+                     class="form-control form-control-sm" style="width:80px" value="0">
+            </div>
+            <div class="form-check">
+              <input type="checkbox" id="coursectrl-shift-followdeps-cb"
+                     class="form-check-input">
+              <label class="form-check-label small" for="coursectrl-shift-followdeps-cb">
+                {{#str}} shift_dependants, local_coursectrl {{/str}}
+              </label>
+            </div>
+          </div>
+          <div class="modal-footer py-2 d-flex justify-content-between">
+            <button type="button" class="btn btn-sm btn-secondary"
+                    data-action="close-dialog">
+              {{#str}} cancel, core {{/str}}
+            </button>
+            <button type="submit" class="btn btn-sm btn-primary">
+              {{#str}} timeline_shift_apply, local_coursectrl {{/str}}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
+  </div>
 
-    {{! ---- Delete confirm dialog ---- }}
-    <div id="coursectrl-delete-dialog" class="modal" tabindex="-1" role="dialog" style="display:none;">
-        <div class="modal-dialog" role="document">
-            <form method="post" action="{{shifturl}}">
-                <input type="hidden" name="sesskey" value="{{sesskey}}">
-                <input type="hidden" name="courseid" value="{{courseid}}">
-                <input type="hidden" name="cmids" id="coursectrl-delete-cmids" value="">
-                <input type="hidden" name="action_type" value="unset_dates">
-                <input type="hidden" name="fields" id="coursectrl-delete-fields" value="">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">{{#str}}timeline_delete_dialog_title, local_coursectrl{{/str}}</h5>
-                        <button type="button" class="close" data-action="close-dialog">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <p class="text-danger">{{#str}}timeline_delete_warning, local_coursectrl{{/str}}</p>
-                        <p id="coursectrl-delete-target" class="small"></p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-action="close-dialog">
-                            {{#str}}cancel{{/str}}
-                        </button>
-                        <button type="submit" class="btn btn-danger">
-                            {{#str}}timeline_action_delete, local_coursectrl{{/str}}
-                        </button>
-                    </div>
-                </div>
-            </form>
+  <div id="coursectrl-delete-dialog" class="modal fade" tabindex="-1" role="dialog"
+       style="display:none" aria-hidden="true">
+    <div class="modal-dialog modal-sm" role="document">
+      <div class="modal-content">
+        <div class="modal-header py-2">
+          <h6 class="modal-title">
+            {{#str}} timeline_delete_heading, local_coursectrl {{/str}}
+          </h6>
+          <button type="button" class="close btn-close"
+                  data-action="close-dialog" aria-label="Close"></button>
         </div>
+        <form method="post" action="{{shifturl}}">
+          <input type="hidden" name="sesskey" value="{{sesskey}}">
+          <input type="hidden" name="courseid" value="{{courseid}}">
+          <input type="hidden" name="cmids" id="coursectrl-delete-cmids" value="">
+          <input type="hidden" name="action_type" value="unset_dates">
+          <div class="modal-body py-2">
+            <p id="coursectrl-delete-msg" class="small mb-0"></p>
+          </div>
+          <div class="modal-footer py-2 d-flex justify-content-between">
+            <button type="button" class="btn btn-sm btn-secondary"
+                    data-action="close-dialog">
+              {{#str}} cancel, core {{/str}}
+            </button>
+            <button type="submit" class="btn btn-sm btn-danger">
+              {{#str}} delete, core {{/str}}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
+  </div>
+
+  {{/tab_timeline}}
+
+  {{! ── TAB: Textprüfung ───────────────────────────────────────────────── }}
+  {{#tab_textreview}}
+  <div id="tab-textreview">
+    <p class="text-muted">{{#str}} textreview_hint, local_coursectrl {{/str}}</p>
+    <a href="{{textreviewurl}}" class="btn btn-primary">
+      {{#str}} textreview_open, local_coursectrl {{/str}}
+    </a>
+  </div>
+  {{/tab_textreview}}
+
+  {{! ── TAB: Grafische Übersicht (Gantt) ───────────────────────────────── }}
+  {{#tab_gantt}}
+  <div id="tab-gantt">
+    <div class="overflow-auto border rounded p-2"
+         data-region="local_coursectrl-gantt"
+         data-gantt="{{gantt_json}}"
+         style="-webkit-overflow-scrolling:touch">
+      <svg id="local_coursectrl_gantt_svg"
+           style="min-width:800px;width:100%;height:auto"></svg>
+    </div>
+  </div>
+  {{/tab_gantt}}
+
 </div>
+
 {{#js}}
-require(['local_coursectrl/timeline'], function(mod) {
-    mod.init();
+require(['local_coursectrl/timeline'], function(T) {
+    T.init(document.querySelector('[data-region="local_coursectrl-timeline"]'));
 });
 {{/js}}

@@ -1,0 +1,96 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_coursectrl/navigation
+
+    Tertiary navigation selector rendered as Moodle select_menu dropdown.
+    Visually identical to the Participants page selector (Einschreibung /
+    Gruppen / Rechte pattern).
+
+    Context variables required for this template:
+    * uniqid (string) — unique ID prefix
+    * activelabel (string) — label of the currently active page
+    * activevalue (string) — URL of the currently active page
+    * items (array) — navigation items; each may be:
+        isgroup=false: value, label, isactive
+        isgroup=true:  grouplabel, groupid, options[]{value, label, isactive}
+
+    Example context (json):
+    {
+        "uniqid": "coursectrl-nav-1",
+        "activelabel": "Zeitleiste",
+        "activevalue": "https://example.com/timeline.php?courseid=2",
+        "items": []
+    }
+}}
+
+<div class="local_coursectrl_navselect mb-3" data-region="local_coursectrl-navselect">
+  <label id="{{uniqid}}-label" class="visually-hidden">
+    {{#str}} pluginname, local_coursectrl {{/str}}
+  </label>
+  <div class="btn dropdown-toggle select-menu-trigger"
+       role="combobox"
+       data-toggle="dropdown"
+       data-bs-toggle="dropdown"
+       aria-labelledby="{{uniqid}}-label"
+       aria-haspopup="listbox"
+       aria-expanded="false"
+       aria-controls="{{uniqid}}-listbox"
+       data-input-element="{{uniqid}}-input"
+       tabindex="0"
+       id="{{uniqid}}-btn">
+    {{activelabel}}
+  </div>
+  <input type="hidden" id="{{uniqid}}-input" name="coursectrl_nav" value="{{activevalue}}">
+  <ul class="dropdown-menu" role="listbox"
+      id="{{uniqid}}-listbox"
+      aria-labelledby="{{uniqid}}-label">
+    {{#items}}
+      {{! Standalone (non-group) item }}
+      {{^isgroup}}
+      <li class="dropdown-item{{#isactive}} active{{/isactive}}"
+          role="option"
+          data-value="{{value}}"
+          {{#isactive}}aria-selected="true"{{/isactive}}>
+        {{label}}
+      </li>
+      {{/isgroup}}
+      {{! Optgroup }}
+      {{#isgroup}}
+      <li role="none">
+        <ul role="group" aria-labelledby="{{uniqid}}-{{groupid}}">
+          <li role="presentation" id="{{uniqid}}-{{groupid}}">{{grouplabel}}</li>
+          {{#options}}
+          <li class="dropdown-item{{#isactive}} active{{/isactive}}"
+              role="option"
+              data-value="{{value}}"
+              {{#isactive}}aria-selected="true"{{/isactive}}>
+            {{label}}
+          </li>
+          {{/options}}
+        </ul>
+      </li>
+      {{/isgroup}}
+    {{/items}}
+  </ul>
+</div>
+
+{{#js}}
+require(['local_coursectrl/navigation'], function(Nav) {
+    Nav.init(document.getElementById('{{uniqid}}-btn'));
+});
+{{/js}}

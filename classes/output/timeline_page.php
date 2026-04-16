@@ -31,8 +31,9 @@ namespace local_coursectrl\output;
 
 use local_coursectrl\local\analysis\calendar_grid_builder;
 use local_coursectrl\local\analysis\date_collector;
+use local_coursectrl\local\visualization\gantt_dataset_builder;
+use local_coursectrl\manager\calendar_manager;
 use local_coursectrl\local\analysis\dependency_index;
-use local_coursectrl\local\analysis\group_resolver;
 use local_coursectrl\local\inventory\inventory_snapshot;
 use renderable;
 use renderer_base;
@@ -68,7 +69,7 @@ class timeline_page implements renderable, templatable {
                 'components' => [],
                 'showcalendar' => true,
                 'immediateapply' => false,
-                'groupid' => 0,
+                'tab' => 'timeline',
             ],
             $filters
         );
@@ -186,18 +187,6 @@ class timeline_page implements renderable, templatable {
             ];
         }
 
-        // Build group filter options from course groups.
-        $activegroupid = (int) ($this->filters['groupid'] ?? 0);
-        $groupresolver = new group_resolver($course->id);
-        $groupoptions = [];
-        foreach ($groupresolver->get_groups_for_template() as $g) {
-            $groupoptions[] = [
-                'id' => $g['id'],
-                'name' => $g['name'],
-                'selected' => $g['id'] === $activegroupid,
-            ];
-        }
-
         return [
             'courseid' => $course->id,
             'coursefullname' => format_string($course->fullname),
@@ -212,10 +201,6 @@ class timeline_page implements renderable, templatable {
             'onlywithdeps' => $this->filters['onlywithdeps'],
             'showcalendar' => $this->filters['showcalendar'],
             'immediateapply' => $this->filters['immediateapply'],
-            'activegroupid' => $activegroupid,
-            'hasgroupfilter' => $activegroupid > 0,
-            'groupoptions' => $groupoptions,
-            'hasgroupoptions' => count($groupoptions) > 0,
             'componentoptions' => $componentoptions,
             'hascomponentoptions' => count($componentoptions) > 0,
             'dashboardurl' => (new \moodle_url(
@@ -226,8 +211,18 @@ class timeline_page implements renderable, templatable {
                 '/local/coursectrl/manage.php',
                 ['courseid' => $course->id]
             ))->out(false),
+            'gantt_json' => json_encode($ganttdata = $this->build_gantt_data($this->snapshot->cms)),
+            'gantt' => $ganttdata,
+            'activetab' => $this->filters['tab'] ?? 'timeline',
+            'tab_timeline'   => ($this->filters['tab'] ?? 'timeline') === 'timeline',
+            'tab_textreview' => ($this->filters['tab'] ?? 'timeline') === 'textreview',
+            'tab_gantt'      => ($this->filters['tab'] ?? 'timeline') === 'gantt',
             'timelineurl' => (new \moodle_url(
                 '/local/coursectrl/timeline.php',
+                ['courseid' => $course->id]
+            ))->out(false),
+            'textreviewurl' => (new \moodle_url(
+                '/local/coursectrl/textreview.php',
                 ['courseid' => $course->id]
             ))->out(false),
             'shifturl' => (new \moodle_url(
@@ -236,4 +231,16 @@ class timeline_page implements renderable, templatable {
             ))->out(false),
         ];
     }
+    /**
+     * Build Gantt dataset for the 'Grafische Übersicht' tab.
+     *
+     * @param array $cms CMs keyed by cmid.
+     * @return array Gantt dataset export.
+     */
+    private function build_gantt_data(array $cms): array {
+        $calman = new calendar_manager();
+        $builder = new gantt_dataset_builder();
+        return $builder->build($cms, $calman);
+    }
+
 }

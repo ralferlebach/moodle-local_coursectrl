@@ -43,3 +43,35 @@ function local_coursectrl_user_preferences(): array {
         ],
     ];
 }
+
+/**
+ * Extend the course navigation to add a "Course Control Hub" entry in the
+ * course "More" menu. This legacy callback is supported in all Moodle 4.x/5.x
+ * versions and is the primary mechanism for adding plugin entries to the course
+ * navigation bar.
+ *
+ * @param navigation_node $coursenode The course navigation node.
+ * @param stdClass        $course     The course object.
+ * @param context_course  $context    The course context.
+ */
+function local_coursectrl_extend_navigation_course(
+    navigation_node $coursenode,
+    stdClass $course,
+    context_course $context
+): void {
+    if (!has_capability('local/coursectrl:view', $context)) {
+        return;
+    }
+    $url = new moodle_url(
+        '/local/coursectrl/index.php',
+        ['courseid' => $course->id]
+    );
+    $coursenode->add(
+        get_string('pluginname', 'local_coursectrl'),
+        $url,
+        navigation_node::TYPE_SETTING,
+        null,
+        'local_coursectrl',
+        new pix_icon('i/settings', '')
+    );
+}

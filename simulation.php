@@ -32,6 +32,7 @@
 
 require_once(__DIR__ . '/../../config.php');
 
+use local_coursectrl\local\navigation\navigation_builder;
 use local_coursectrl\local\simulation\learner_state;
 use local_coursectrl\output\simulation_page;
 
@@ -75,17 +76,23 @@ if ($run) {
     }
 
     $completionsparam = optional_param_array('completions', [], PARAM_INT);
-    $groupidsparam = optional_param_array('groupids', [], PARAM_INT);
-    $groupingidsparam = optional_param_array('groupingids', [], PARAM_INT);
+    $groupidsstr = optional_param('groupids', '', PARAM_TEXT);
+    $groupingidsstr = optional_param('groupingids', '', PARAM_TEXT);
 
-    $groupids = array_values(array_filter($groupidsparam, fn($id) => $id > 0));
-    $groupingids = array_values(array_filter($groupingidsparam, fn($id) => $id > 0));
+    $groupids = array_filter(
+        array_map('intval', explode(',', $groupidsstr)),
+        fn($id) => $id > 0
+    );
+    $groupingids = array_filter(
+        array_map('intval', explode(',', $groupingidsstr)),
+        fn($id) => $id > 0
+    );
 
     $state = new learner_state(
         $simts,
         $completionsparam,
-        $groupids,
-        $groupingids
+        array_values($groupids),
+        array_values($groupingids)
     );
 }
 
@@ -93,6 +100,9 @@ $renderable = new simulation_page($snapshot, $state);
 
 /** @var \local_coursectrl\output\renderer $renderer */
 $renderer = $PAGE->get_renderer('local_coursectrl');
+
+
+navigation_builder::setup($PAGE, $courseid, navigation_builder::KEY_SIMULATION);
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('sim_title', 'local_coursectrl'), 2);

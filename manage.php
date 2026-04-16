@@ -27,6 +27,9 @@
 
 require_once(__DIR__ . '/../../config.php');
 
+use local_coursectrl\local\navigation\navigation_builder;
+
+
 $courseid = required_param('courseid', PARAM_INT);
 
 $course = get_course($courseid);
@@ -62,6 +65,9 @@ $PAGE->requires->string_for_js('manage_no_selection', 'local_coursectrl');
 $renderable = new \local_coursectrl\output\manage_page($snapshot, $supportedcomponents);
 /** @var \local_coursectrl\output\renderer $renderer */
 $renderer = $PAGE->get_renderer('local_coursectrl');
+
+
+navigation_builder::setup($PAGE, $courseid, navigation_builder::KEY_MANAGE);
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('nav_bulk', 'local_coursectrl'), 2);

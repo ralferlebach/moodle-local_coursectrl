@@ -24,6 +24,9 @@
 
 require_once(__DIR__ . '/../../config.php');
 
+use local_coursectrl\local\navigation\navigation_builder;
+
+
 require_login();
 
 $courseid = optional_param('courseid', 0, PARAM_INT);
@@ -35,7 +38,10 @@ if (!$courseid) {
     $PAGE->set_title(get_string('pluginname', 'local_coursectrl'));
     $PAGE->set_heading(get_string('pluginname', 'local_coursectrl'));
 
-    echo $OUTPUT->header();
+    
+navigation_builder::setup($PAGE, $courseid, navigation_builder::KEY_DASHBOARD);
+
+echo $OUTPUT->header();
     echo $OUTPUT->notification(
         get_string('error_no_course', 'local_coursectrl'),
         \core\output\notification::NOTIFY_WARNING

@@ -15,10 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Batch history and rollback page for the Course Control Hub.
- *
- * GET  — display batch list for the course.
- * POST — execute a rollback for the given batchid (requires sesskey).
+ * Logs & Historie — entry point for local_coursectrl.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -27,24 +24,19 @@
 
 require_once(__DIR__ . '/../../config.php');
 
-use local_coursectrl\manager\rollback_manager;
+use local_coursectrl\local\navigation\navigation_builder;
 use local_coursectrl\output\history_page;
 
 $courseid = required_param('courseid', PARAM_INT);
 
-$course = get_course($courseid);
+$course  = get_course($courseid);
 $context = context_course::instance($courseid);
 require_login($course);
 require_capability('local/coursectrl:view', $context);
 
-$PAGE->set_course($course);
-$PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/local/coursectrl/history.php', ['courseid' => $courseid]));
-$PAGE->set_title(
-    format_string($course->fullname) . ' - ' .
-    get_string('pluginname', 'local_coursectrl') . ' - ' .
-    get_string('history_title', 'local_coursectrl')
-);
+$PAGE->set_context($context);
+$PAGE->set_title(get_string('nav_history', 'local_coursectrl'));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_pagelayout('incourse');
 
@@ -52,24 +44,15 @@ $PAGE->navbar->add(
     get_string('pluginname', 'local_coursectrl'),
     new moodle_url('/local/coursectrl/index.php', ['courseid' => $courseid])
 );
-$PAGE->navbar->add(get_string('history_title', 'local_coursectrl'));
+$PAGE->navbar->add(get_string('nav_history', 'local_coursectrl'));
 
-$rollbackresult = null;
+navigation_builder::setup($PAGE, $courseid, navigation_builder::KEY_HISTORY);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    require_capability('local/coursectrl:rollback', $context);
-    require_sesskey();
-    $batchid = required_param('batchid', PARAM_INT);
-    $manager = new rollback_manager();
-    $rollbackresult = $manager->rollback_batch($batchid, $USER->id);
-}
-
-$renderable = new history_page($courseid, $rollbackresult);
+$renderable = new history_page($courseid);
 
 /** @var \local_coursectrl\output\renderer $renderer */
 $renderer = $PAGE->get_renderer('local_coursectrl');
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('history_title', 'local_coursectrl'), 2);
-echo $renderer->render_history_page($renderable);
+echo $renderer->render($renderable);
 echo $OUTPUT->footer();

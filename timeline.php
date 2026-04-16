@@ -24,11 +24,13 @@
 
 require_once(__DIR__ . '/../../config.php');
 
+use local_coursectrl\local\navigation\navigation_builder;
+
+
 $courseid     = required_param('courseid', PARAM_INT);
 $showpast     = optional_param('showpast', 1, PARAM_INT);
 $onlywithdeps = optional_param('onlywithdeps', 0, PARAM_INT);
 $components   = optional_param_array('components', [], PARAM_COMPONENT);
-$groupid      = optional_param('groupid', 0, PARAM_INT);
 
 $course = get_course($courseid);
 $context = context_course::instance($courseid);
@@ -64,13 +66,15 @@ $filters = [
     'components' => $components,
     'showcalendar' => $showcalendar,
     'immediateapply' => $immediateapply,
-    'groupid' => $groupid,
 ];
 
 $renderable = new \local_coursectrl\output\timeline_page($snapshot, $filters);
 
 /** @var \local_coursectrl\output\renderer $renderer */
 $renderer = $PAGE->get_renderer('local_coursectrl');
+
+
+navigation_builder::setup($PAGE, $courseid, navigation_builder::KEY_TIMELINE);
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('timeline_title', 'local_coursectrl'), 2);

@@ -24,6 +24,9 @@
 
 require_once(__DIR__ . '/../../config.php');
 
+use local_coursectrl\local\navigation\navigation_builder;
+
+
 $courseid = required_param('courseid', PARAM_INT);
 
 $course = get_course($courseid);
@@ -55,6 +58,9 @@ $renderable = new \local_coursectrl\output\graph_page($snapshot);
 
 /** @var \local_coursectrl\output\renderer $renderer */
 $renderer = $PAGE->get_renderer('local_coursectrl');
+
+
+navigation_builder::setup($PAGE, $courseid, navigation_builder::KEY_GRAPH);
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('graph_title', 'local_coursectrl'), 2);

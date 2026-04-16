@@ -106,4 +106,15 @@ class renderer extends plugin_renderer_base {
         $data = $page->export_for_template($this);
         return $this->render_from_template('local_coursectrl/graph', $data);
     }
+
+    /**
+     * Render the learner simulation page.
+     *
+     * @param simulation_page $page The simulation renderable.
+     * @return string HTML.
+     */
+    public function render_simulation_page(simulation_page $page): string {
+        $data = $page->export_for_template($this);
+        return $this->render_from_template('local_coursectrl/simulation', $data);
+    }
 }

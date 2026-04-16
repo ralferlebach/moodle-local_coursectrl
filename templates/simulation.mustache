@@ -1,0 +1,228 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_coursectrl/simulation
+
+    Learner simulation: scenario form + results.
+
+    Context variables:
+    * courseid, coursefullname, sesskey, selfurl
+    * simdate, simtime, groupids, groupingids
+    * cmformrows     — CMs with completion checkboxes
+    * hasresults     — bool: simulation was run
+    * resultrows     — per-CM accessibility results
+    * nextsteprows   — next actionable CMs
+    * hasnextsteps, nextstepcount
+    * blockedrows, hasblockedrows, blockedcount
+    * accessiblecount, totalcmcount
+    * dashboardurl, graphurl
+}}
+<div class="local-coursectrl-simulation" data-region="local_coursectrl-simulation"
+     data-courseid="{{courseid}}">
+
+    <div class="mb-3">
+        <a href="{{dashboardurl}}" class="btn btn-sm btn-outline-secondary">
+            &laquo; {{#str}}nav_dashboard, local_coursectrl{{/str}}
+        </a>
+        <a href="{{graphurl}}" class="btn btn-sm btn-outline-secondary ml-1">
+            {{#str}}nav_graph, local_coursectrl{{/str}}
+        </a>
+    </div>
+
+    {{! ---- Scenario form ---- }}
+    <div class="card mb-4">
+        <div class="card-header py-2">
+            <strong class="small">{{#str}}sim_scenario, local_coursectrl{{/str}}</strong>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{{selfurl}}">
+                <input type="hidden" name="courseid" value="{{courseid}}">
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                <input type="hidden" name="run" value="1">
+
+                <div class="form-row mb-3">
+                    <div class="col-auto">
+                        <label class="small font-weight-bold">
+                            {{#str}}sim_simdate, local_coursectrl{{/str}}
+                        </label>
+                        <input type="date" name="simdate" class="form-control form-control-sm"
+                               value="{{simdate}}">
+                    </div>
+                    <div class="col-auto">
+                        <label class="small font-weight-bold">
+                            {{#str}}sim_simtime, local_coursectrl{{/str}}
+                        </label>
+                        <input type="time" name="simtime" class="form-control form-control-sm"
+                               value="{{simtime}}">
+                    </div>
+                    <div class="col-auto">
+                        <label class="small font-weight-bold">
+                            {{#str}}sim_groupids, local_coursectrl{{/str}}
+                        </label>
+                        <input type="text" name="groupids" class="form-control form-control-sm"
+                               value="{{groupids}}" placeholder="1,2,3">
+                    </div>
+                    <div class="col-auto">
+                        <label class="small font-weight-bold">
+                            {{#str}}sim_groupingids, local_coursectrl{{/str}}
+                        </label>
+                        <input type="text" name="groupingids" class="form-control form-control-sm"
+                               value="{{groupingids}}" placeholder="1,2">
+                    </div>
+                </div>
+
+                {{#hascmformrows}}
+                <div class="mb-3">
+                    <p class="small font-weight-bold mb-1">
+                        {{#str}}sim_assumed_completions, local_coursectrl{{/str}}
+                    </p>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-borderless" style="font-size:12px;">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>{{#str}}sim_col_activity, local_coursectrl{{/str}}</th>
+                                    <th>{{#str}}sim_col_tracking, local_coursectrl{{/str}}</th>
+                                    <th>{{#str}}sim_col_complete, local_coursectrl{{/str}}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{#cmformrows}}
+                                <tr>
+                                    <td>{{name}} <span class="text-muted">({{modname}})</span></td>
+                                    <td>
+                                        {{#hascompletion}}{{completionlabel}}{{/hascompletion}}
+                                        {{^hascompletion}}—{{/hascompletion}}
+                                    </td>
+                                    <td>
+                                        {{#hascompletion}}
+                                        <select name="completions[{{cmid}}]"
+                                                class="form-control form-control-sm"
+                                                style="width:auto;">
+                                            <option value="0">{{#str}}sim_state_incomplete, local_coursectrl{{/str}}</option>
+                                            <option value="1"{{#assumed_complete}} selected{{/assumed_complete}}>{{#str}}sim_state_complete, local_coursectrl{{/str}}</option>
+                                            <option value="2"{{#assumed_pass}} selected{{/assumed_pass}}>{{#str}}sim_state_pass, local_coursectrl{{/str}}</option>
+                                            <option value="3"{{#assumed_fail}} selected{{/assumed_fail}}>{{#str}}sim_state_fail, local_coursectrl{{/str}}</option>
+                                        </select>
+                                        {{/hascompletion}}
+                                    </td>
+                                </tr>
+                                {{/cmformrows}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {{/hascmformrows}}
+
+                <button type="submit" class="btn btn-primary btn-sm">
+                    {{#str}}sim_run_btn, local_coursectrl{{/str}}
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {{! ---- Results ---- }}
+    {{#hasresults}}
+
+    {{! Summary bar }}
+    <div class="alert alert-info py-2 mb-3 small">
+        {{#str}}sim_summary, local_coursectrl, {"accessible": "{{accessiblecount}}", "total": "{{totalcmcount}}", "nextsteps": "{{nextstepcount}}", "blocked": "{{blockedcount}}"}{{/str}}
+    </div>
+
+    {{! Next steps }}
+    {{#hasnextsteps}}
+    <div class="card mb-3 border-success">
+        <div class="card-header py-2 bg-success text-white small font-weight-bold">
+            {{#str}}sim_next_steps, local_coursectrl{{/str}} ({{nextstepcount}})
+        </div>
+        <ul class="list-group list-group-flush">
+            {{#nextsteprows}}
+            <li class="list-group-item py-1 small">
+                <a href="{{url}}" target="_blank">{{name}}</a>
+                <span class="text-muted ml-1">({{modname}})</span>
+            </li>
+            {{/nextsteprows}}
+        </ul>
+    </div>
+    {{/hasnextsteps}}
+
+    {{! Blocked }}
+    {{#hasblockedrows}}
+    <div class="card mb-3 border-warning">
+        <div class="card-header py-2 bg-warning small font-weight-bold">
+            {{#str}}sim_blocked, local_coursectrl{{/str}} ({{blockedcount}})
+        </div>
+        <ul class="list-group list-group-flush">
+            {{#blockedrows}}
+            <li class="list-group-item py-1 small">{{name}}</li>
+            {{/blockedrows}}
+        </ul>
+    </div>
+    {{/hasblockedrows}}
+
+    {{! Full result table }}
+    {{#hasresultrows}}
+    <div class="card">
+        <div class="card-header py-2">
+            <strong class="small">{{#str}}sim_result_all, local_coursectrl{{/str}}</strong>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0" style="font-size:12px;">
+                <thead class="thead-light">
+                    <tr>
+                        <th>{{#str}}sim_col_activity, local_coursectrl{{/str}}</th>
+                        <th>{{#str}}sim_col_accessible, local_coursectrl{{/str}}</th>
+                        <th>{{#str}}sim_col_reasons, local_coursectrl{{/str}}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#resultrows}}
+                    <tr class="{{#status_pass}}table-success{{/status_pass}}{{#status_fail}}table-danger{{/status_fail}}{{#status_unknown}}table-warning{{/status_unknown}}">
+                        <td>
+                            <a href="{{url}}" target="_blank">{{name}}</a>
+                            <span class="text-muted">({{modname}})</span>
+                            {{#isnextstep}}<span class="badge badge-success ml-1">{{#str}}sim_badge_next, local_coursectrl{{/str}}</span>{{/isnextstep}}
+                            {{#isblocked}}<span class="badge badge-warning ml-1">{{#str}}sim_badge_blocked, local_coursectrl{{/str}}</span>{{/isblocked}}
+                            {{^teacher_visible}}<span class="badge badge-secondary ml-1">{{#str}}sim_badge_hidden, local_coursectrl{{/str}}</span>{{/teacher_visible}}
+                        </td>
+                        <td>
+                            {{#accessible}}✅{{/accessible}}
+                            {{^accessible}}❌{{/accessible}}
+                        </td>
+                        <td>
+                            {{#hasreasons}}
+                            <ul class="mb-0 pl-3">
+                                {{#reasons}}
+                                <li>
+                                    {{#pass}}✅{{/pass}}{{#fail}}❌{{/fail}}{{#unknown}}❓{{/unknown}}
+                                    {{label}}
+                                </li>
+                                {{/reasons}}
+                            </ul>
+                            {{/hasreasons}}
+                            {{^hasreasons}}—{{/hasreasons}}
+                        </td>
+                    </tr>
+                    {{/resultrows}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {{/hasresultrows}}
+
+    {{/hasresults}}
+
+</div>

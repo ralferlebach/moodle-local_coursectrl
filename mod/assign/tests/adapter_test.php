@@ -624,4 +624,3 @@ final class adapter_test extends \advanced_testcase {
         );
     }
 }
-

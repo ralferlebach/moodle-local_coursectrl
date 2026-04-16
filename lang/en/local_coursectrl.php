@@ -140,3 +140,6 @@ $string['timeline_shift_followdeps']           = 'Also shift all dependent activ
 $string['timeline_show_past']                  = 'Show past entries';
 $string['timeline_title']                      = 'Timeline by date';
 $string['warning_circular_dep']                = 'Circular dependency detected';
+$string['warning_dangling_dep']                = 'Prerequisite references a non-existent activity (ID {$a->cmid})';
+$string['warning_impossible_dep']              = 'Prerequisite \'{$a->name}\' has completion tracking disabled';
+$string['warning_temporal_conflict']           = 'Date conflict: {$a->field_early} is set later than {$a->field_late}';

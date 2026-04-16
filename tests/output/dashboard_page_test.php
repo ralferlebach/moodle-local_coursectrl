@@ -182,4 +182,108 @@ final class dashboard_page_test extends \advanced_testcase {
         $this->assertStringContainsString('manage.php', $data['manageurl']);
         $this->assertStringContainsString('courseid=1', $data['manageurl']);
     }
+
+    /**
+     * A CM whose availability JSON references a non-existent cmid must expose
+     * a dangling_dep warning and be counted in warningcount.
+     */
+    public function test_dangling_dep_warning_surfaced_on_dashboard(): void {
+        $this->resetAfterTest();
+        global $PAGE;
+
+        $avail = json_encode([
+            'op' => '&',
+            'c' => [['type' => 'completion', 'cm' => 9999, 'e' => 1]],
+            'show' => false,
+        ]);
+        $course = new course_item(1, 'Demo Course', 'DEMO', '', 1, 1700000000, null, true);
+        $sections = [10 => new section_item(10, 1, 0, 'General', '', 1, true)];
+        $cms = [
+            200 => new cm_item(200, 1, 10, 'assign', 200, 'Restricted', true, $avail, 2),
+        ];
+        $snapshot = new inventory_snapshot($course, $sections, $cms, []);
+
+        $page = new dashboard_page($snapshot);
+        $data = $page->export_for_template($PAGE->get_renderer('core'));
+
+        $this->assertGreaterThan(0, $data['warningcount']);
+        $this->assertTrue($data['haswarnings']);
+
+        $cm200 = $data['sections'][0]['cms'][0];
+        $this->assertTrue($cm200['haswarnings']);
+        $types = array_column($cm200['warnings'], 'type');
+        $this->assertContains('dangling_dep', $types);
+    }
+
+    /**
+     * A CM that depends on an activity with completion tracking disabled must
+     * expose an impossible_dep warning.
+     */
+    public function test_impossible_dep_warning_surfaced_on_dashboard(): void {
+        $this->resetAfterTest();
+        global $PAGE;
+
+        $avail = json_encode([
+            'op' => '&',
+            'c' => [['type' => 'completion', 'cm' => 300, 'e' => 1]],
+            'show' => false,
+        ]);
+        $course = new course_item(1, 'Demo Course', 'DEMO', '', 1, 1700000000, null, true);
+        $sections = [10 => new section_item(10, 1, 0, 'General', '', 1, true)];
+        $cms = [
+            // Provider CM: completion tracking disabled.
+            300 => new cm_item(300, 1, 10, 'label', 300, 'Intro', true, null, 0),
+            // Depending CM: requires completion of cmid 300.
+            301 => new cm_item(301, 1, 10, 'assign', 301, 'Task', true, $avail, 2),
+        ];
+        $snapshot = new inventory_snapshot($course, $sections, $cms, []);
+
+        $page = new dashboard_page($snapshot);
+        $data = $page->export_for_template($PAGE->get_renderer('core'));
+
+        // CM 301 should have the impossible_dep warning.
+        $allcms = $data['sections'][0]['cms'];
+        $cm301data = null;
+        foreach ($allcms as $cmdata) {
+            if ($cmdata['cmid'] === 301) {
+                $cm301data = $cmdata;
+                break;
+            }
+        }
+        $this->assertNotNull($cm301data, 'cmid 301 must be present in template data');
+        $this->assertTrue($cm301data['haswarnings']);
+        $types = array_column($cm301data['warnings'], 'type');
+        $this->assertContains('impossible_dep', $types);
+    }
+
+    /**
+     * warningcount reflects the number of CMs that have at least one warning,
+     * not the total number of individual warning entries.
+     */
+    public function test_warning_count_is_per_cm(): void {
+        $this->resetAfterTest();
+        global $PAGE;
+
+        // CM 400 has a dangling dep AND (once adapters load) would show
+        // temporal conflicts too – but in this unit test the registry returns
+        // no real adapter dates so only the dangling_dep is raised.
+        $avail = json_encode([
+            'op' => '&',
+            'c' => [['type' => 'completion', 'cm' => 9999, 'e' => 1]],
+            'show' => false,
+        ]);
+        $course = new course_item(1, 'Demo', 'D', '', 1, 0, null, true);
+        $sections = [10 => new section_item(10, 1, 0, 'S', '', 1, true)];
+        $cms = [
+            400 => new cm_item(400, 1, 10, 'assign', 400, 'A', true, $avail, 2),
+            401 => new cm_item(401, 1, 10, 'assign', 401, 'B', true, null, 2),
+        ];
+        $snapshot = new inventory_snapshot($course, $sections, $cms, []);
+
+        $page = new dashboard_page($snapshot);
+        $data = $page->export_for_template($PAGE->get_renderer('core'));
+
+        // Only cm 400 has a warning; warningcount must be 1, not > 1.
+        $this->assertSame(1, $data['warningcount']);
+    }
 }

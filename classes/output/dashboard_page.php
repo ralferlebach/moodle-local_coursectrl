@@ -19,6 +19,8 @@
  *
  * Enriched version that includes per-CM dates, availability conditions,
  * completion settings, dependency cross-links and light-weight warnings.
+ * Warnings are produced transiently via consistency_runner; nothing is
+ * persisted to the database.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -28,6 +30,7 @@
 namespace local_coursectrl\output;
 
 use local_coursectrl\local\analysis\availability_parser;
+use local_coursectrl\local\analysis\consistency_runner;
 use local_coursectrl\local\analysis\date_collector;
 use local_coursectrl\local\analysis\dependency_index;
 use local_coursectrl\local\inventory\inventory_snapshot;
@@ -67,6 +70,8 @@ class dashboard_page implements renderable, templatable {
         $datesbycm = $datecollector->collect_grouped_by_cm($this->snapshot->cms);
         $circular = $depindex->find_circular_deps();
         $circularset = $this->build_circular_set($circular);
+        $runner = new consistency_runner();
+        $checkresults = $runner->get_warnings($this->snapshot->cms, $depindex, $datesbycm);
         $dateformat = get_string('strftimedaydatetime', 'core_langconfig');
 
         // Build CM name lookup for cross-linking.
@@ -76,6 +81,7 @@ class dashboard_page implements renderable, templatable {
         }
 
         $cmsbysection = [];
+        $totalwarnings = 0;
         foreach ($this->snapshot->cms as $cm) {
             $cmdata = $this->build_cm_context(
                 $cm,
@@ -83,8 +89,12 @@ class dashboard_page implements renderable, templatable {
                 $datesbycm[$cm->id] ?? [],
                 $cmnames,
                 $circularset,
+                $checkresults[$cm->id] ?? [],
                 $dateformat
             );
+            if ($cmdata['haswarnings']) {
+                $totalwarnings++;
+            }
             $cmsbysection[$cm->sectionid][] = $cmdata;
         }
 
@@ -104,8 +114,6 @@ class dashboard_page implements renderable, templatable {
             ];
         }
 
-        $warningcount = count($circular);
-
         return [
             'courseid' => $course->id,
             'coursefullname' => $course->fullname,
@@ -119,8 +127,8 @@ class dashboard_page implements renderable, templatable {
             'textcount' => $this->snapshot->count_texts(),
             'sections' => $sections,
             'hassections' => count($sections) > 0,
-            'warningcount' => $warningcount,
-            'haswarnings' => $warningcount > 0,
+            'warningcount' => $totalwarnings,
+            'haswarnings' => $totalwarnings > 0,
             'manageurl' => (new \moodle_url(
                 '/local/coursectrl/manage.php',
                 ['courseid' => $course->id]
@@ -139,12 +147,13 @@ class dashboard_page implements renderable, templatable {
     /**
      * Build template context for a single CM.
      *
-     * @param \local_coursectrl\local\entity\cm_item $cm         The CM entity.
-     * @param dependency_index                       $depindex   Dependency index.
-     * @param array                                  $dates      Date entries for this CM.
-     * @param array                                  $cmnames    Lookup: cmid → name.
-     * @param array                                  $circularset Set of cmids in circular deps.
-     * @param string                                 $dateformat  Moodle date format string.
+     * @param \local_coursectrl\local\entity\cm_item $cm           The CM entity.
+     * @param dependency_index                       $depindex     Dependency index.
+     * @param array                                  $dates        Date entries for this CM.
+     * @param array                                  $cmnames      Lookup: cmid → name.
+     * @param array                                  $circularset  Set of cmids in circular deps.
+     * @param array                                  $checkresults Consistency issues for this CM.
+     * @param string                                 $dateformat   Moodle date format string.
      * @return array
      */
     private function build_cm_context(
@@ -153,6 +162,7 @@ class dashboard_page implements renderable, templatable {
         array $dates,
         array $cmnames,
         array $circularset,
+        array $checkresults,
         string $dateformat
     ): array {
         // Activity URL and edit URL.
@@ -214,15 +224,20 @@ class dashboard_page implements renderable, templatable {
             $completionlabel = get_string('dashboard_completion_auto', 'local_coursectrl');
         }
 
-        // Warnings.
-        $iscircular = isset($circularset[$cm->id]);
+        // Warnings: circular dependency (from dep index) + consistency issues.
         $warnings = [];
-        if ($iscircular) {
+        if (isset($circularset[$cm->id])) {
             $warnings[] = [
                 'type' => 'circular',
                 'icon' => '❗',
                 'message' => get_string('warning_circular_dep', 'local_coursectrl'),
             ];
+        }
+        foreach ($checkresults as $issue) {
+            $formatted = $this->format_check_result($issue);
+            if (!empty($formatted)) {
+                $warnings[] = $formatted;
+            }
         }
 
         return [
@@ -250,6 +265,55 @@ class dashboard_page implements renderable, templatable {
             'warnings' => $warnings,
             'haswarnings' => count($warnings) > 0,
         ];
+    }
+
+    /**
+     * Format a structured consistency-check issue as a template-ready warning array.
+     *
+     * Returns an empty array for unknown issue types so callers can safely filter.
+     *
+     * @param array $issue Structured issue from consistency_runner::get_warnings().
+     * @return array Warning array with 'type', 'icon', 'message' keys, or [].
+     */
+    private function format_check_result(array $issue): array {
+        $type = $issue['type'] ?? '';
+        if ($type === 'temporal_conflict') {
+            return [
+                'type' => 'temporal_conflict',
+                'icon' => '⚠️',
+                'message' => get_string(
+                    'warning_temporal_conflict',
+                    'local_coursectrl',
+                    (object)[
+                        'field_early' => $issue['field_early'],
+                        'field_late' => $issue['field_late'],
+                    ]
+                ),
+            ];
+        }
+        if ($type === 'dangling_dep') {
+            return [
+                'type' => 'dangling_dep',
+                'icon' => '⚠️',
+                'message' => get_string(
+                    'warning_dangling_dep',
+                    'local_coursectrl',
+                    (object)['cmid' => $issue['depcmid']]
+                ),
+            ];
+        }
+        if ($type === 'impossible_dep') {
+            return [
+                'type' => 'impossible_dep',
+                'icon' => '⚠️',
+                'message' => get_string(
+                    'warning_impossible_dep',
+                    'local_coursectrl',
+                    (object)['name' => $issue['depname']]
+                ),
+            ];
+        }
+        return [];
     }
 
     /**

@@ -140,3 +140,6 @@ $string['timeline_shift_followdeps']           = 'Alle abhängigen Aktivitäten 
 $string['timeline_show_past']                  = 'Vergangene Termine anzeigen';
 $string['timeline_title']                      = 'Zeitachse nach Datum';
 $string['warning_circular_dep']                = 'Zirkuläre Abhängigkeit erkannt';
+$string['warning_dangling_dep']                = 'Voraussetzung verweist auf nicht vorhandene Aktivität (ID {$a->cmid})';
+$string['warning_impossible_dep']              = 'Voraussetzung \'{$a->name}\' hat keine Fortschrittserfassung aktiviert';
+$string['warning_temporal_conflict']           = 'Datumskonflikt: {$a->field_early} liegt nach {$a->field_late}';

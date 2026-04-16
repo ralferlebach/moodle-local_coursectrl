@@ -127,4 +127,3 @@ class reachability_analyzer {
         return $issues;
     }
 }
-

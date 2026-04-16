@@ -65,7 +65,7 @@ final class timeline_page_test extends \advanced_testcase {
 
         $this->assertSame(1, $data['courseid']);
         $this->assertNotEmpty($data['sesskey']);
-        $this->assertStringContainsString('dashboard', $data['dashboardurl']);
+        $this->assertStringContainsString('index.php', $data['dashboardurl']);
         $this->assertStringContainsString('manage.php', $data['manageurl']);
         $this->assertStringContainsString('timeline.php', $data['timelineurl']);
     }
@@ -134,6 +134,42 @@ final class timeline_page_test extends \advanced_testcase {
         $this->assertStringContainsString('/mod/', $firstentry['activityurl']);
         $this->assertStringContainsString('modedit.php', $firstentry['editurl']);
         $this->assertStringContainsString('#cm-', $firstentry['dashboardanchor']);
+    }
+
+    /**
+     * Context must expose the shift endpoint URL and the immediateapply flag.
+     */
+    public function test_export_exposes_shifturl_and_immediateapply(): void {
+        $this->resetAfterTest();
+        global $PAGE;
+
+        $page = new timeline_page($this->build_snapshot(), ['immediateapply' => true]);
+        $data = $page->export_for_template($PAGE->get_renderer('core'));
+
+        $this->assertStringContainsString('shift.php', $data['shifturl']);
+        $this->assertTrue($data['immediateapply']);
+    }
+
+    /**
+     * Entries backed by adapter fields must be marked deletable.
+     */
+    public function test_entries_have_deletable_flag(): void {
+        $this->resetAfterTest();
+        global $PAGE;
+
+        $page = new timeline_page($this->build_snapshot());
+        $data = $page->export_for_template($PAGE->get_renderer('core'));
+
+        $this->assertNotEmpty($data['days']);
+        foreach ($data['days'] as $day) {
+            foreach ($day['slots'] as $slot) {
+                foreach ($slot['entries'] as $entry) {
+                    // Every entry must carry a 'deletable' boolean.
+                    $this->assertArrayHasKey('deletable', $entry);
+                    $this->assertIsBool($entry['deletable']);
+                }
+            }
+        }
     }
 
     /**

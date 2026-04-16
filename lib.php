@@ -17,9 +17,6 @@
 /**
  * Plugin-wide hook callbacks for local_coursectrl.
  *
- * Declares user preferences so they can be stored via the
- * core_user_update_user_preferences web service from AMD modules.
- *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -38,6 +35,12 @@ function local_coursectrl_user_preferences(): array {
             'type' => PARAM_BOOL,
             'null' => NULL_NOT_ALLOWED,
             'default' => 1,
+            'choices' => [0, 1],
+        ],
+        'local_coursectrl_immediateapply' => [
+            'type' => PARAM_BOOL,
+            'null' => NULL_NOT_ALLOWED,
+            'default' => 0,
             'choices' => [0, 1],
         ],
     ];

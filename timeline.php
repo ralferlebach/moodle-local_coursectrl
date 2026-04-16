@@ -51,8 +51,8 @@ $PAGE->navbar->add(
 );
 $PAGE->navbar->add(get_string('timeline_title', 'local_coursectrl'));
 
-// Load the user's persisted calendar visibility preference (default: on).
-$showcalendar = (bool) get_user_preferences('local_coursectrl_showcalendar', 1);
+$showcalendar   = (bool) get_user_preferences('local_coursectrl_showcalendar', 1);
+$immediateapply = (bool) get_user_preferences('local_coursectrl_immediateapply', 0);
 
 $service = new \local_coursectrl\local\inventory\inventory_service();
 $snapshot = $service->build_for_course($courseid);
@@ -62,6 +62,7 @@ $filters = [
     'onlywithdeps' => (bool) $onlywithdeps,
     'components' => $components,
     'showcalendar' => $showcalendar,
+    'immediateapply' => $immediateapply,
 ];
 
 $renderable = new \local_coursectrl\output\timeline_page($snapshot, $filters);

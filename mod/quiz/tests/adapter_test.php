@@ -92,7 +92,7 @@ final class adapter_test extends \advanced_testcase {
         $adapter = new adapter();
         $this->assertSame('mod_quiz', adapter::component());
         $this->assertTrue($adapter->is_available());
-        $this->assertSame(['shift_dates'], $adapter->get_supported_actions());
+        $this->assertSame(['shift_dates', 'unset_dates'], $adapter->get_supported_actions());
         $fields = $adapter->get_supported_fields();
         $this->assertArrayHasKey('timeopen', $fields);
         $this->assertArrayHasKey('timeclose', $fields);

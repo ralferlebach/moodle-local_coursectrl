@@ -62,7 +62,7 @@ class adapter extends abstract_activity_adapter {
      * @return string[]
      */
     public function get_supported_actions(): array {
-        return ['shift_dates'];
+        return ['shift_dates', 'unset_dates'];
     }
 
     /**

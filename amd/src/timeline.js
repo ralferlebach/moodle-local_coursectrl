@@ -16,8 +16,8 @@
 /**
  * AMD module for the timeline page.
  *
- * Wires up the shift dialog, mini-calendar toggle, and jump-to-day
- * navigation from calendar cells.
+ * Wires up shift and delete dialogs, mini-calendar toggle,
+ * jump-to-day navigation and the immediate-apply preference.
  *
  * @module     local_coursectrl/timeline
  * @copyright  2026 Ralf Erlebach
@@ -29,7 +29,7 @@ define([], function() {
     /**
      * Persist a boolean user preference via Moodle's core_user ws.
      *
-     * @param {string} name  Preference name.
+     * @param {string}  name  Preference name.
      * @param {boolean} value Value to store.
      */
     var persistPref = function(name, value) {
@@ -70,14 +70,13 @@ define([], function() {
     };
 
     /**
-     * Open the shift dialog with the given cmids and mode.
+     * Open the shift dialog.
      *
-     * @param {HTMLElement} root  Root element.
-     * @param {string[]}    cmids CMIDs to shift.
-     * @param {string}      mode  'slot' or 'entry'.
-     * @param {string}      label Human-readable target label.
+     * @param {string[]} cmids CMIDs to shift.
+     * @param {string}   mode  'slot' or 'entry'.
+     * @param {string}   label Human-readable target label.
      */
-    var openShiftDialog = function(root, cmids, mode, label) {
+    var openShiftDialog = function(cmids, mode, label) {
         var dialog = document.getElementById('coursectrl-shift-dialog');
         if (!dialog) {
             return;
@@ -93,15 +92,38 @@ define([], function() {
     };
 
     /**
-     * Close the shift dialog.
+     * Open the delete confirmation dialog.
+     *
+     * @param {string} cmid  CM id to clear.
+     * @param {string} field Field name.
+     * @param {string} name  Activity name for display.
      */
-    var closeShiftDialog = function() {
-        var dialog = document.getElementById('coursectrl-shift-dialog');
+    var openDeleteDialog = function(cmid, field, name) {
+        var dialog = document.getElementById('coursectrl-delete-dialog');
         if (!dialog) {
             return;
         }
-        dialog.style.display = 'none';
-        dialog.classList.remove('show');
+        document.getElementById('coursectrl-delete-cmids').value = cmid;
+        document.getElementById('coursectrl-delete-fields').value = field;
+        var target = document.getElementById('coursectrl-delete-target');
+        if (target) {
+            target.textContent = name + ' — ' + field;
+        }
+        dialog.style.display = 'block';
+        dialog.classList.add('show');
+    };
+
+    /**
+     * Close any open dialog.
+     */
+    var closeDialogs = function() {
+        ['coursectrl-shift-dialog', 'coursectrl-delete-dialog'].forEach(function(id) {
+            var d = document.getElementById(id);
+            if (d) {
+                d.style.display = 'none';
+                d.classList.remove('show');
+            }
+        });
     };
 
     /**
@@ -118,7 +140,7 @@ define([], function() {
             btn.addEventListener('click', function() {
                 var ts = btn.getAttribute('data-timestamp');
                 var cmids = cmidsForSlot(root, ts);
-                openShiftDialog(root, cmids, 'slot', 'Slot: ' + cmids.length + ' entries');
+                openShiftDialog(cmids, 'slot', 'Slot: ' + cmids.length + ' entries');
             });
         });
 
@@ -128,20 +150,32 @@ define([], function() {
                 var cmid = btn.getAttribute('data-cmid');
                 var link = btn.closest('li').querySelector('a');
                 var name = link ? link.textContent.trim() : 'cmid ' + cmid;
-                openShiftDialog(root, [cmid], 'entry', name);
+                openShiftDialog([cmid], 'entry', name);
             });
         });
 
-        // Close dialog.
+        // Entry-level delete.
+        root.querySelectorAll('[data-action="delete-entry"]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                openDeleteDialog(
+                    btn.getAttribute('data-cmid'),
+                    btn.getAttribute('data-field'),
+                    btn.getAttribute('data-name') || ''
+                );
+            });
+        });
+
+        // Close dialogs.
         root.querySelectorAll('[data-action="close-dialog"]').forEach(function(btn) {
-            btn.addEventListener('click', closeShiftDialog);
+            btn.addEventListener('click', closeDialogs);
         });
 
         // Followdeps checkbox → hidden input.
         var followdepsCb = document.getElementById('coursectrl-shift-followdeps-cb');
         if (followdepsCb) {
             followdepsCb.addEventListener('change', function() {
-                document.getElementById('coursectrl-shift-followdeps').value = followdepsCb.checked ? '1' : '0';
+                document.getElementById('coursectrl-shift-followdeps').value =
+                    followdepsCb.checked ? '1' : '0';
             });
         }
 
@@ -154,6 +188,15 @@ define([], function() {
                 body.style.display = isOpen ? 'none' : '';
                 toggleBtn.textContent = isOpen ? '+' : '−';
                 persistPref('local_coursectrl_showcalendar', !isOpen);
+            });
+        }
+
+        // Immediate-apply preference toggle.
+        var immediateCb = document.getElementById('coursectrl-immediateapply');
+        if (immediateCb) {
+            immediateCb.addEventListener('change', function() {
+                persistPref('local_coursectrl_immediateapply', immediateCb.checked);
+                root.setAttribute('data-immediateapply', immediateCb.checked ? '1' : '0');
             });
         }
 

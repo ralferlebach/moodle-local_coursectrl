@@ -17,9 +17,11 @@
 {{!
     @template local_coursectrl/timeline
 
-    Timeline view with mini-calendar block + chronological day list.
+    Timeline view with mini-calendar, filter strip, day-grouped entries,
+    shift / delete action buttons and immediate-apply preference.
 }}
-<div class="local-coursectrl-timeline" data-region="local_coursectrl-timeline" data-courseid="{{courseid}}">
+<div class="local-coursectrl-timeline" data-region="local_coursectrl-timeline"
+     data-courseid="{{courseid}}" data-immediateapply="{{#immediateapply}}1{{/immediateapply}}{{^immediateapply}}0{{/immediateapply}}">
 
     <div class="mb-3">
         <a href="{{dashboardurl}}" class="btn btn-sm btn-outline-secondary">
@@ -30,13 +32,12 @@
         </a>
     </div>
 
-    {{! ---- Mini-calendar (collapsible, preference-persisted) ---- }}
+    {{! ---- Mini-calendar (collapsible) ---- }}
     {{#hascalendar}}
         <div class="card mb-3" id="coursectrl-calendar-card">
             <div class="card-header py-1 px-3 d-flex align-items-center justify-content-between">
                 <strong class="small">{{#str}}timeline_calendar_title, local_coursectrl{{/str}}</strong>
-                <button type="button" class="btn btn-sm btn-link py-0"
-                        data-action="toggle-calendar" data-state="{{#showcalendar}}open{{/showcalendar}}{{^showcalendar}}closed{{/showcalendar}}">
+                <button type="button" class="btn btn-sm btn-link py-0" data-action="toggle-calendar">
                     {{#showcalendar}}−{{/showcalendar}}{{^showcalendar}}+{{/showcalendar}}
                 </button>
             </div>
@@ -119,6 +120,11 @@
                         </select>
                     </div>
                 {{/hascomponentoptions}}
+                <label class="mb-0 mr-3">
+                    <input type="checkbox" id="coursectrl-immediateapply"
+                           {{#immediateapply}}checked{{/immediateapply}}>
+                    <span class="font-weight-bold">{{#str}}timeline_immediate_apply, local_coursectrl{{/str}}</span>
+                </label>
                 <span class="text-muted small ml-auto">
                     {{totalentries}} {{#str}}timeline_entries, local_coursectrl{{/str}},
                     {{totaldays}} {{#str}}timeline_days, local_coursectrl{{/str}}
@@ -162,6 +168,12 @@
                                             <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2"
                                                     data-action="shift-entry" data-cmid="{{cmid}}"
                                                     title="{{#str}}timeline_action_shift_entry, local_coursectrl{{/str}}">⇥</button>
+                                            {{#deletable}}
+                                                <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2"
+                                                        data-action="delete-entry" data-cmid="{{cmid}}" data-field="{{field}}"
+                                                        data-name="{{name}}"
+                                                        title="{{#str}}timeline_action_delete, local_coursectrl{{/str}}">🗑</button>
+                                            {{/deletable}}
                                         </span>
                                     </li>
                                 {{/entries}}
@@ -178,13 +190,14 @@
         </div>
     {{/hasdays}}
 
-    {{! ---- Shift dialog (hidden by default) ---- }}
+    {{! ---- Shift dialog ---- }}
     <div id="coursectrl-shift-dialog" class="modal" tabindex="-1" role="dialog" style="display:none;">
         <div class="modal-dialog" role="document">
             <form method="post" action="{{shifturl}}">
                 <input type="hidden" name="sesskey" value="{{sesskey}}">
                 <input type="hidden" name="courseid" value="{{courseid}}">
                 <input type="hidden" name="cmids" id="coursectrl-shift-cmids" value="">
+                <input type="hidden" name="action_type" value="shift_dates">
                 <input type="hidden" name="mode" id="coursectrl-shift-mode" value="slot">
                 <input type="hidden" name="followdeps" id="coursectrl-shift-followdeps" value="0">
                 <div class="modal-content">
@@ -221,6 +234,37 @@
                         </button>
                         <button type="submit" class="btn btn-primary">
                             {{#str}}timeline_shift, local_coursectrl{{/str}}
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{! ---- Delete confirm dialog ---- }}
+    <div id="coursectrl-delete-dialog" class="modal" tabindex="-1" role="dialog" style="display:none;">
+        <div class="modal-dialog" role="document">
+            <form method="post" action="{{shifturl}}">
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                <input type="hidden" name="courseid" value="{{courseid}}">
+                <input type="hidden" name="cmids" id="coursectrl-delete-cmids" value="">
+                <input type="hidden" name="action_type" value="unset_dates">
+                <input type="hidden" name="fields" id="coursectrl-delete-fields" value="">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">{{#str}}timeline_delete_dialog_title, local_coursectrl{{/str}}</h5>
+                        <button type="button" class="close" data-action="close-dialog">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-danger">{{#str}}timeline_delete_warning, local_coursectrl{{/str}}</p>
+                        <p id="coursectrl-delete-target" class="small"></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-action="close-dialog">
+                            {{#str}}cancel{{/str}}
+                        </button>
+                        <button type="submit" class="btn btn-danger">
+                            {{#str}}timeline_action_delete, local_coursectrl{{/str}}
                         </button>
                     </div>
                 </div>

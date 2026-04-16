@@ -95,7 +95,7 @@ final class adapter_test extends \advanced_testcase {
         $adapter = new adapter();
         $this->assertSame('mod_assign', adapter::component());
         $this->assertTrue($adapter->is_available());
-        $this->assertSame(['shift_dates'], $adapter->get_supported_actions());
+        $this->assertSame(['shift_dates', 'unset_dates'], $adapter->get_supported_actions());
         $fields = $adapter->get_supported_fields();
         $this->assertArrayHasKey('duedate', $fields);
         $this->assertArrayHasKey('allowsubmissionsfromdate', $fields);
@@ -482,4 +482,146 @@ final class adapter_test extends \advanced_testcase {
         $this->assertSame(1234600000, (int)$record->cutoffdate);
         $this->assertSame(1234700000, (int)$record->gradingduedate);
     }
+
+    /**
+     * unset_dates must validate that the 'fields' payload is present.
+     */
+    public function test_validate_unset_dates_requires_fields(): void {
+        $this->resetAfterTest();
+        $adapter = new adapter();
+
+        $ok = $adapter->validate_action('unset_dates', ['fields' => ['duedate']], [1]);
+        $this->assertTrue($ok['valid']);
+
+        $missing = $adapter->validate_action('unset_dates', [], [1]);
+        $this->assertFalse($missing['valid']);
+        $this->assertSame('invalid_fields', $missing['errors'][0]['code']);
+
+        $empty = $adapter->validate_action('unset_dates', ['fields' => []], [1]);
+        $this->assertFalse($empty['valid']);
+    }
+
+    /**
+     * unset_dates must reject unknown field names.
+     */
+    public function test_validate_unset_dates_rejects_unknown_field(): void {
+        $this->resetAfterTest();
+        $adapter = new adapter();
+
+        $bad = $adapter->validate_action('unset_dates', ['fields' => ['notafield']], [1]);
+        $this->assertFalse($bad['valid']);
+        $this->assertSame('unknown_field', $bad['errors'][0]['code']);
+    }
+
+    /**
+     * unset_dates preview must mark the targeted fields as shifted-to-zero.
+     */
+    public function test_preview_unset_dates(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_assign_with_dates();
+        $adapter = new adapter();
+
+        $preview = $adapter->preview_action(
+            'unset_dates',
+            ['fields' => ['duedate']],
+            [$fixture['cmid']]
+        );
+
+        $this->assertSame('unset_dates', $preview['action']);
+        $this->assertCount(1, $preview['items']);
+        $this->assertArrayHasKey('duedate', $preview['items'][0]['fields']);
+        $this->assertSame(
+            self::BASE_TIME,
+            $preview['items'][0]['fields']['duedate']['old']
+        );
+        $this->assertSame(0, $preview['items'][0]['fields']['duedate']['new']);
+        $this->assertTrue($preview['items'][0]['fields']['duedate']['shifted']);
+    }
+
+    /**
+     * unset_dates execute must zero out the targeted field in the database.
+     */
+    public function test_execute_unset_dates_writes_zero(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $fixture = $this->create_assign_with_dates();
+        $adapter = new adapter();
+
+        $result = $adapter->execute_action(
+            'unset_dates',
+            ['fields' => ['duedate', 'cutoffdate']],
+            [$fixture['cmid']],
+            2
+        );
+
+        $this->assertSame('unset_dates', $result['action']);
+        $this->assertCount(1, $result['items']);
+        $this->assertSame('ok', $result['items'][0]['status']);
+
+        $record = $DB->get_record('assign', ['id' => $fixture['instanceid']]);
+        $this->assertSame(0, (int)$record->duedate);
+        $this->assertSame(0, (int)$record->cutoffdate);
+        // Non-targeted fields must be untouched.
+        $this->assertSame(
+            self::BASE_TIME - self::ONE_DAY,
+            (int)$record->allowsubmissionsfromdate
+        );
+        $this->assertSame(
+            self::BASE_TIME + (2 * self::ONE_DAY),
+            (int)$record->gradingduedate
+        );
+    }
+
+    /**
+     * unset_dates on an already-zero field must produce a noop status.
+     */
+    public function test_execute_unset_dates_noop_on_zero(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_assign');
+        $instance = $generator->create_instance([
+            'course' => $course->id,
+            'name' => 'Assign with no duedate',
+            'duedate' => 0,
+            'allowsubmissionsfromdate' => 0,
+            'cutoffdate' => 0,
+            'gradingduedate' => 0,
+        ]);
+        $adapter = new adapter();
+
+        $result = $adapter->execute_action(
+            'unset_dates',
+            ['fields' => ['duedate']],
+            [(int)$instance->cmid],
+            2
+        );
+
+        $this->assertSame('noop', $result['items'][0]['status']);
+        $this->assertEmpty($result['items'][0]['changed']);
+    }
+
+    /**
+     * unset_dates execute must capture a snapshot of the pre-change state.
+     */
+    public function test_execute_unset_dates_captures_snapshot(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_assign_with_dates();
+        $adapter = new adapter();
+
+        $result = $adapter->execute_action(
+            'unset_dates',
+            ['fields' => ['duedate']],
+            [$fixture['cmid']],
+            2
+        );
+
+        $snapshot = $result['items'][0]['snapshot'];
+        $this->assertSame('mod_assign', $snapshot['component']);
+        $this->assertSame($fixture['cmid'], $snapshot['cmid']);
+        $this->assertSame(
+            self::BASE_TIME,
+            $snapshot['fields']['duedate']
+        );
+    }
 }
+

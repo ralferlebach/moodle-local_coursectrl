@@ -15,11 +15,12 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Shift action handler for the timeline page.
+ * Shift / unset action handler for the timeline page.
  *
- * Receives a POST from the shift dialog with cmids + delta and
- * dispatches through the existing batch_manager pipeline. Supports
- * 'followdeps' to also shift all dependent CMs transitively.
+ * Receives a POST from the shift or delete dialog and dispatches
+ * through batch_manager::execute() with the appropriate action.
+ * When the user preference 'local_coursectrl_immediateapply' is set,
+ * successful executions redirect directly back to the timeline.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -30,11 +31,13 @@ require_once(__DIR__ . '/../../config.php');
 
 require_sesskey();
 
-$courseid    = required_param('courseid', PARAM_INT);
-$cmidsraw    = required_param('cmids', PARAM_RAW);
-$deltadays   = optional_param('delta_days', 0, PARAM_INT);
-$deltahours  = optional_param('delta_hours', 0, PARAM_INT);
-$followdeps  = optional_param('followdeps', 0, PARAM_INT);
+$courseid   = required_param('courseid', PARAM_INT);
+$actiontype = required_param('action_type', PARAM_ALPHANUMEXT);
+$cmidsraw   = required_param('cmids', PARAM_RAW);
+$followdeps = optional_param('followdeps', 0, PARAM_INT);
+$deltadays  = optional_param('delta_days', 0, PARAM_INT);
+$deltahours = optional_param('delta_hours', 0, PARAM_INT);
+$fieldsraw  = optional_param('fields', '', PARAM_RAW);
 
 $course = get_course($courseid);
 $context = context_course::instance($courseid);
@@ -62,10 +65,11 @@ $PAGE->navbar->add(
 );
 $PAGE->navbar->add(get_string('result_title', 'local_coursectrl'));
 
-// Parse cmids (comma-separated).
-$cmids = array_filter(array_map('intval', explode(',', $cmidsraw)));
+$cmids = array_values(array_filter(array_map('intval', explode(',', $cmidsraw))));
 
-// If followdeps, transitively expand via dependency_index.
+$timelineurl = new moodle_url('/local/coursectrl/timeline.php', ['courseid' => $courseid]);
+
+// Expand with dependents if followdeps is set.
 if ($followdeps && !empty($cmids)) {
     $service = new \local_coursectrl\local\inventory\inventory_service();
     $snapshot = $service->build_for_course($courseid);
@@ -85,14 +89,23 @@ if ($followdeps && !empty($cmids)) {
     $cmids = array_keys($expanded);
 }
 
-$deltaseconds = ($deltadays * 86400) + ($deltahours * 3600);
+// Build the payload for the selected action.
+$payload = [];
+if ($actiontype === 'shift_dates') {
+    $payload['delta'] = ($deltadays * 86400) + ($deltahours * 3600);
+    $hasvaliddelta = $payload['delta'] !== 0;
+    $nothingtodo = empty($cmids) || !$hasvaliddelta;
+} else if ($actiontype === 'unset_dates') {
+    $fields = array_filter(array_map('trim', explode(',', $fieldsraw)));
+    $payload['fields'] = array_values($fields);
+    $nothingtodo = empty($cmids) || empty($payload['fields']);
+} else {
+    throw new moodle_exception('invalidaction', 'local_coursectrl');
+}
 
-$timelineurl = new moodle_url('/local/coursectrl/timeline.php', ['courseid' => $courseid]);
-
-echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('result_title', 'local_coursectrl'), 2);
-
-if (empty($cmids) || $deltaseconds === 0) {
+if ($nothingtodo) {
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading(get_string('result_title', 'local_coursectrl'), 2);
     echo $OUTPUT->notification(
         get_string('shift_no_change', 'local_coursectrl'),
         \core\output\notification::NOTIFY_WARNING
@@ -102,10 +115,8 @@ if (empty($cmids) || $deltaseconds === 0) {
     exit;
 }
 
-$payload = ['delta' => $deltaseconds];
-
 $manager = new \local_coursectrl\manager\batch_manager();
-$batchid = $manager->execute($courseid, 'shift_dates', $payload, $cmids, (int) $USER->id);
+$batchid = $manager->execute($courseid, $actiontype, $payload, $cmids, (int) $USER->id);
 
 $batch = new \local_coursectrl\local\persistent\batch($batchid);
 $items = \local_coursectrl\local\persistent\batch_item::get_records(['batchid' => $batchid]);
@@ -122,15 +133,29 @@ foreach ($items as $item) {
     }
 }
 
+// Immediate-apply flow: if the user's preference is set and there were no
+// errors, redirect silently back to the timeline with a success message.
+$immediateapply = (bool) get_user_preferences('local_coursectrl_immediateapply', 0);
+if ($immediateapply && $summary['error'] === 0 && $batch->get('status') === 'executed') {
+    redirect(
+        $timelineurl,
+        get_string('result_success', 'local_coursectrl'),
+        null,
+        \core\output\notification::NOTIFY_SUCCESS
+    );
+}
+
 $renderable = new \local_coursectrl\output\result_page(
     $courseid,
     $batchid,
     $batch->get('status'),
     $summary,
-    'shift_dates'
+    $actiontype
 );
 
 /** @var \local_coursectrl\output\renderer $renderer */
 $renderer = $PAGE->get_renderer('local_coursectrl');
+echo $OUTPUT->header();
+echo $OUTPUT->heading(get_string('result_title', 'local_coursectrl'), 2);
 echo $renderer->render_result_page($renderable);
 echo $OUTPUT->footer();

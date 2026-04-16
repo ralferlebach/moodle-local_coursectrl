@@ -17,8 +17,10 @@
 /**
  * Renderable for the chronological timeline manager page.
  *
- * v2 adds the mini-calendar block at the top and preserves the user's
- * filter preferences across sessions.
+ * v3 adds:
+ *   - 'immediateapply' preference passed through to template
+ *   - field name per entry (so the delete action can target a single field)
+ *   - deletability flag per entry (only adapter-sourced fields are deletable)
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -36,7 +38,7 @@ use renderer_base;
 use templatable;
 
 /**
- * Renderable for the chronological timeline manager page with mini-calendar.
+ * Renderable for the chronological timeline manager page.
  */
 class timeline_page implements renderable, templatable {
     /** @var inventory_snapshot The course inventory. */
@@ -53,7 +55,8 @@ class timeline_page implements renderable, templatable {
      *                                     - showpast (bool)
      *                                     - onlywithdeps (bool)
      *                                     - components (string[])
-     *                                     - showcalendar (bool).
+     *                                     - showcalendar (bool)
+     *                                     - immediateapply (bool).
      */
     public function __construct(inventory_snapshot $snapshot, array $filters = []) {
         $this->snapshot = $snapshot;
@@ -63,6 +66,7 @@ class timeline_page implements renderable, templatable {
                 'onlywithdeps' => false,
                 'components' => [],
                 'showcalendar' => true,
+                'immediateapply' => false,
             ],
             $filters
         );
@@ -83,7 +87,6 @@ class timeline_page implements renderable, templatable {
         $dayformat = get_string('strftimedaydate', 'core_langconfig');
         $timeformat = get_string('strftimetime24', 'core_langconfig');
 
-        // Build mini-calendar from all entries (regardless of filters).
         $gridbuilder = new calendar_grid_builder();
         $months = $gridbuilder->build(
             (int) $course->startdate,
@@ -92,7 +95,6 @@ class timeline_page implements renderable, templatable {
             $now
         );
 
-        // Apply filters to the list view.
         $entries = [];
         foreach ($allentries as $entry) {
             if (!$this->filters['showpast'] && $entry['timestamp'] < $now) {
@@ -113,7 +115,6 @@ class timeline_page implements renderable, templatable {
             $entries[] = $entry;
         }
 
-        // Group by day, then by timestamp within the day.
         $daygroups = [];
         foreach ($entries as $entry) {
             $daykey = date('Y-m-d', $entry['timestamp']);
@@ -143,6 +144,7 @@ class timeline_page implements renderable, templatable {
                 'component' => $entry['component'],
                 'field' => $entry['fieldlabel'],
                 'source' => $entry['source'],
+                'deletable' => $entry['source'] === 'adapter',
                 'activityurl' => (new \moodle_url(
                     '/mod/' . $entry['modname'] . '/view.php',
                     ['id' => $entry['cmid']]
@@ -169,7 +171,6 @@ class timeline_page implements renderable, templatable {
             $days[] = $day;
         }
 
-        // Component filter options.
         $components = [];
         foreach ($allentries as $entry) {
             $components[$entry['component']] = $entry['modname'];
@@ -196,6 +197,7 @@ class timeline_page implements renderable, templatable {
             'showpast' => $this->filters['showpast'],
             'onlywithdeps' => $this->filters['onlywithdeps'],
             'showcalendar' => $this->filters['showcalendar'],
+            'immediateapply' => $this->filters['immediateapply'],
             'componentoptions' => $componentoptions,
             'hascomponentoptions' => count($componentoptions) > 0,
             'dashboardurl' => (new \moodle_url(

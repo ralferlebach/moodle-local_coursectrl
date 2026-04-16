@@ -15,41 +15,28 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Reusable shift_dates implementation for coursectrlmod_* adapters.
+ * Reusable date-action implementation for coursectrlmod_* adapters.
  *
- * Extracts the validate / preview / execute / export / restore logic shared
- * by the assign, quiz and feedback adapters into a single trait. Adapters
- * pull the trait in and supply four module-specific hooks:
+ * Handles two actions now:
+ *   - shift_dates: add a delta to each configured date field.
+ *   - unset_dates: set specified date fields to 0 (unset).
+ *
+ * Adapters pull the trait in and supply four module-specific hooks:
  *
  *   - get_table_name(): string
- *       e.g. 'assign', 'quiz', 'feedback'.
  *   - get_field_map_class(): string
- *       fully qualified class name of the field_map providing
- *       get_date_fields() and get_shiftable_field_names().
  *   - read_dates_from_record(\stdClass $record): array
- *       maps a {table} row to a ['fieldname' => int, ...] map of the
- *       date fields the adapter cares about.
  *   - get_record_select_fields(): string
- *       comma-separated SQL SELECT clause used by describe_instance().
  *
- * The trait is intentionally a trait and not an intermediate base class
- * so adapters that need a non-shift_dates pipeline (e.g. lesson, workshop)
- * can simply leave the trait out without forcing a parallel hierarchy.
+ * Behaviour preserved from earlier patches:
+ *   - delta=0 or "no field would change" → status 'noop', no DB write.
+ *   - stored value === 0 → "unset", left untouched on shift (reason 'unset').
+ *   - snapshot is captured BEFORE the DB write.
+ *   - restore_state validates component, cmid, fields and filters against
+ *     the shiftable field list before writing.
  *
- * Behaviour preserved verbatim from the per-adapter implementations
- * shipped in patches 018 / 020 / 021 / 022:
- *   - delta=0 or "no field would change" → status 'noop', no DB write
- *   - stored value === 0 → "unset", left untouched (reason 'unset')
- *   - snapshot is captured BEFORE the DB write
- *   - restore_state validates the component, the cmid, the fields and
- *     filters them against get_shiftable_field_names() before writing
- *
- * Capability gating remains the responsibility of the caller (the bulk
- * engine in Phase 4); the trait does not check any capability.
- *
- * Calendar event refresh after a successful shift is also NOT done in
- * the trait. The bulk engine in Phase 4 will issue a centralised
- * refresh after each successful execute_action call.
+ * Capability gating and calendar refresh are NOT done here; they live in
+ * the external function wrapper and the batch_manager respectively.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -59,7 +46,7 @@
 namespace local_coursectrl\local\contract;
 
 /**
- * Trait providing the standard shift_dates pipeline for date-only adapters.
+ * Trait providing shift_dates and unset_dates pipelines for date-only adapters.
  */
 trait shift_dates_executor {
     /**
@@ -70,8 +57,7 @@ trait shift_dates_executor {
     abstract protected function get_table_name(): string;
 
     /**
-     * Returns the fully qualified class name of the field_map providing
-     * get_date_fields() and get_shiftable_field_names().
+     * Returns the fully qualified class name of the field_map.
      *
      * @return string
      */
@@ -93,7 +79,7 @@ trait shift_dates_executor {
     abstract protected function get_record_select_fields(): string;
 
     /**
-     * Validate a shift_dates payload.
+     * Validate a date-action payload.
      *
      * @param string $action  action identifier.
      * @param array  $payload action-specific parameters.
@@ -101,27 +87,50 @@ trait shift_dates_executor {
      * @return array
      */
     public function validate_action(string $action, array $payload, array $cmids): array {
-        if ($action !== 'shift_dates') {
+        if ($action === 'shift_dates') {
+            if (!array_key_exists('delta', $payload) || !is_numeric($payload['delta'])) {
+                return [
+                    'valid'  => false,
+                    'errors' => [['code' => 'invalid_delta']],
+                ];
+            }
             return [
-                'valid'  => false,
-                'errors' => [['code' => 'unsupported_action', 'action' => $action]],
+                'valid'  => true,
+                'errors' => [],
+                'cmids'  => array_values(array_map('intval', $cmids)),
             ];
         }
-        if (!array_key_exists('delta', $payload) || !is_numeric($payload['delta'])) {
+        if ($action === 'unset_dates') {
+            $fields = $payload['fields'] ?? [];
+            if (!is_array($fields) || empty($fields)) {
+                return [
+                    'valid'  => false,
+                    'errors' => [['code' => 'invalid_fields']],
+                ];
+            }
+            $allowed = $this->get_field_map_class()::get_shiftable_field_names();
+            foreach ($fields as $field) {
+                if (!in_array($field, $allowed, true)) {
+                    return [
+                        'valid'  => false,
+                        'errors' => [['code' => 'unknown_field', 'field' => $field]],
+                    ];
+                }
+            }
             return [
-                'valid'  => false,
-                'errors' => [['code' => 'invalid_delta']],
+                'valid'  => true,
+                'errors' => [],
+                'cmids'  => array_values(array_map('intval', $cmids)),
             ];
         }
         return [
-            'valid'  => true,
-            'errors' => [],
-            'cmids'  => array_values(array_map('intval', $cmids)),
+            'valid'  => false,
+            'errors' => [['code' => 'unsupported_action', 'action' => $action]],
         ];
     }
 
     /**
-     * Build a deterministic preview for shift_dates.
+     * Build a deterministic preview for shift_dates or unset_dates.
      *
      * @param string $action  action identifier.
      * @param array  $payload action-specific parameters.
@@ -129,69 +138,25 @@ trait shift_dates_executor {
      * @return array
      */
     public function preview_action(string $action, array $payload, array $cmids): array {
-        if ($action !== 'shift_dates') {
-            return [];
+        if ($action === 'shift_dates') {
+            return $this->preview_shift_dates($payload, $cmids);
         }
-        $delta = (int)($payload['delta'] ?? 0);
-        $items  = [];
-        $errors = [];
-        foreach ($cmids as $rawcmid) {
-            $cmid = (int)$rawcmid;
-            try {
-                $description = $this->describe_instance($cmid);
-            } catch (\Throwable $e) {
-                $errors[] = [
-                    'cmid'    => $cmid,
-                    'code'    => 'describe_failed',
-                    'message' => $e->getMessage(),
-                ];
-                continue;
-            }
-            $fields = [];
-            foreach ($description['dates'] as $name => $oldvalue) {
-                if ($oldvalue === 0) {
-                    $fields[$name] = [
-                        'old'     => 0,
-                        'new'     => 0,
-                        'shifted' => false,
-                        'reason'  => 'unset',
-                    ];
-                    continue;
-                }
-                $newvalue = $oldvalue + $delta;
-                $fields[$name] = [
-                    'old'     => $oldvalue,
-                    'new'     => $newvalue,
-                    'shifted' => $newvalue !== $oldvalue,
-                ];
-            }
-            $items[] = [
-                'cmid'   => $cmid,
-                'name'   => $description['name'],
-                'fields' => $fields,
-            ];
+        if ($action === 'unset_dates') {
+            return $this->preview_unset_dates($payload, $cmids);
         }
-        return [
-            'action'  => 'shift_dates',
-            'payload' => ['delta' => $delta],
-            'items'   => $items,
-            'errors'  => $errors,
-        ];
+        return [];
     }
 
     /**
-     * Execute shift_dates against the given course modules.
+     * Execute a date action against the given course modules.
      *
      * @param string $action  action identifier.
-     * @param array  $payload action-specific parameters; requires 'delta'.
+     * @param array  $payload action-specific parameters.
      * @param int[]  $cmids   target course module ids.
      * @param int    $userid  acting user id.
      * @return array
      */
     public function execute_action(string $action, array $payload, array $cmids, int $userid): array {
-        if ($action !== 'shift_dates') {
-            return [];
-        }
         $validation = $this->validate_action($action, $payload, $cmids);
         if (empty($validation['valid'])) {
             return [
@@ -201,88 +166,13 @@ trait shift_dates_executor {
                 'errors'  => $validation['errors'],
             ];
         }
-        global $DB;
-        $delta  = (int)$payload['delta'];
-        $table  = $this->get_table_name();
-        $items  = [];
-        $errors = [];
-        foreach ($cmids as $rawcmid) {
-            $cmid = (int)$rawcmid;
-            try {
-                $description = $this->describe_instance($cmid);
-            } catch (\Throwable $e) {
-                $errors[] = [
-                    'cmid'    => $cmid,
-                    'code'    => 'describe_failed',
-                    'message' => $e->getMessage(),
-                ];
-                $items[] = [
-                    'cmid'    => $cmid,
-                    'status'  => 'failed',
-                    'message' => $e->getMessage(),
-                ];
-                continue;
-            }
-            $snapshot = [
-                'component'  => static::component(),
-                'cmid'       => $cmid,
-                'instanceid' => $description['instanceid'],
-                'fields'     => $description['dates'],
-                'version'    => 1,
-            ];
-            $update = new \stdClass();
-            $update->id = $description['instanceid'];
-            $changed = [];
-            foreach ($description['dates'] as $name => $oldvalue) {
-                if ($oldvalue === 0) {
-                    continue;
-                }
-                $newvalue = $oldvalue + $delta;
-                if ($newvalue === $oldvalue) {
-                    continue;
-                }
-                $update->$name = $newvalue;
-                $changed[] = $name;
-            }
-            if (empty($changed)) {
-                $items[] = [
-                    'cmid'     => $cmid,
-                    'status'   => 'noop',
-                    'snapshot' => $snapshot,
-                    'changed'  => [],
-                ];
-                continue;
-            }
-            $update->timemodified = time();
-            try {
-                $DB->update_record($table, $update);
-            } catch (\Throwable $e) {
-                $errors[] = [
-                    'cmid'    => $cmid,
-                    'code'    => 'db_write_failed',
-                    'message' => $e->getMessage(),
-                ];
-                $items[] = [
-                    'cmid'     => $cmid,
-                    'status'   => 'failed',
-                    'snapshot' => $snapshot,
-                    'message'  => $e->getMessage(),
-                ];
-                continue;
-            }
-            $items[] = [
-                'cmid'     => $cmid,
-                'status'   => 'ok',
-                'snapshot' => $snapshot,
-                'changed'  => $changed,
-            ];
+        if ($action === 'shift_dates') {
+            return $this->execute_shift_dates($payload, $cmids);
         }
-        return [
-            'action'  => 'shift_dates',
-            'payload' => ['delta' => $delta],
-            'items'   => $items,
-            'errors'  => $errors,
-        ];
+        if ($action === 'unset_dates') {
+            return $this->execute_unset_dates($payload, $cmids);
+        }
+        return [];
     }
 
     /**
@@ -368,6 +258,223 @@ trait shift_dates_executor {
             'status'   => 'ok',
             'cmid'     => (int)$state['cmid'],
             'restored' => $restored,
+        ];
+    }
+
+    /**
+     * Build preview items for shift_dates.
+     *
+     * @param array $payload Payload with 'delta'.
+     * @param int[] $cmids   Target cmids.
+     * @return array
+     */
+    private function preview_shift_dates(array $payload, array $cmids): array {
+        $delta = (int)($payload['delta'] ?? 0);
+        $items = [];
+        $errors = [];
+        foreach ($cmids as $rawcmid) {
+            $cmid = (int)$rawcmid;
+            try {
+                $description = $this->describe_instance($cmid);
+            } catch (\Throwable $e) {
+                $errors[] = ['cmid' => $cmid, 'code' => 'describe_failed', 'message' => $e->getMessage()];
+                continue;
+            }
+            $fields = [];
+            foreach ($description['dates'] as $name => $oldvalue) {
+                if ($oldvalue === 0) {
+                    $fields[$name] = ['old' => 0, 'new' => 0, 'shifted' => false, 'reason' => 'unset'];
+                    continue;
+                }
+                $newvalue = $oldvalue + $delta;
+                $fields[$name] = [
+                    'old'     => $oldvalue,
+                    'new'     => $newvalue,
+                    'shifted' => $newvalue !== $oldvalue,
+                ];
+            }
+            $items[] = ['cmid' => $cmid, 'name' => $description['name'], 'fields' => $fields];
+        }
+        return [
+            'action'  => 'shift_dates',
+            'payload' => ['delta' => $delta],
+            'items'   => $items,
+            'errors'  => $errors,
+        ];
+    }
+
+    /**
+     * Build preview items for unset_dates.
+     *
+     * @param array $payload Payload with 'fields'.
+     * @param int[] $cmids   Target cmids.
+     * @return array
+     */
+    private function preview_unset_dates(array $payload, array $cmids): array {
+        $targetfields = (array)($payload['fields'] ?? []);
+        $items = [];
+        $errors = [];
+        foreach ($cmids as $rawcmid) {
+            $cmid = (int)$rawcmid;
+            try {
+                $description = $this->describe_instance($cmid);
+            } catch (\Throwable $e) {
+                $errors[] = ['cmid' => $cmid, 'code' => 'describe_failed', 'message' => $e->getMessage()];
+                continue;
+            }
+            $fields = [];
+            foreach ($description['dates'] as $name => $oldvalue) {
+                if (!in_array($name, $targetfields, true)) {
+                    continue;
+                }
+                if ($oldvalue === 0) {
+                    $fields[$name] = ['old' => 0, 'new' => 0, 'shifted' => false, 'reason' => 'already_unset'];
+                    continue;
+                }
+                $fields[$name] = ['old' => $oldvalue, 'new' => 0, 'shifted' => true];
+            }
+            $items[] = ['cmid' => $cmid, 'name' => $description['name'], 'fields' => $fields];
+        }
+        return [
+            'action'  => 'unset_dates',
+            'payload' => ['fields' => $targetfields],
+            'items'   => $items,
+            'errors'  => $errors,
+        ];
+    }
+
+    /**
+     * Execute shift_dates with DB writes.
+     *
+     * @param array $payload Payload with 'delta'.
+     * @param int[] $cmids   Target cmids.
+     * @return array
+     */
+    private function execute_shift_dates(array $payload, array $cmids): array {
+        global $DB;
+        $delta = (int)$payload['delta'];
+        $table = $this->get_table_name();
+        $items = [];
+        $errors = [];
+        foreach ($cmids as $rawcmid) {
+            $cmid = (int)$rawcmid;
+            try {
+                $description = $this->describe_instance($cmid);
+            } catch (\Throwable $e) {
+                $errors[] = ['cmid' => $cmid, 'code' => 'describe_failed', 'message' => $e->getMessage()];
+                $items[] = ['cmid' => $cmid, 'status' => 'failed', 'message' => $e->getMessage()];
+                continue;
+            }
+            $snapshot = [
+                'component'  => static::component(),
+                'cmid'       => $cmid,
+                'instanceid' => $description['instanceid'],
+                'fields'     => $description['dates'],
+                'version'    => 1,
+            ];
+            $update = new \stdClass();
+            $update->id = $description['instanceid'];
+            $changed = [];
+            foreach ($description['dates'] as $name => $oldvalue) {
+                if ($oldvalue === 0) {
+                    continue;
+                }
+                $newvalue = $oldvalue + $delta;
+                if ($newvalue === $oldvalue) {
+                    continue;
+                }
+                $update->$name = $newvalue;
+                $changed[] = $name;
+            }
+            if (empty($changed)) {
+                $items[] = ['cmid' => $cmid, 'status' => 'noop', 'snapshot' => $snapshot, 'changed' => []];
+                continue;
+            }
+            $update->timemodified = time();
+            try {
+                $DB->update_record($table, $update);
+            } catch (\Throwable $e) {
+                $errors[] = ['cmid' => $cmid, 'code' => 'db_write_failed', 'message' => $e->getMessage()];
+                $items[] = [
+                    'cmid' => $cmid, 'status' => 'failed',
+                    'snapshot' => $snapshot, 'message' => $e->getMessage(),
+                ];
+                continue;
+            }
+            $items[] = ['cmid' => $cmid, 'status' => 'ok', 'snapshot' => $snapshot, 'changed' => $changed];
+        }
+        return [
+            'action'  => 'shift_dates',
+            'payload' => ['delta' => $delta],
+            'items'   => $items,
+            'errors'  => $errors,
+        ];
+    }
+
+    /**
+     * Execute unset_dates with DB writes.
+     *
+     * @param array $payload Payload with 'fields'.
+     * @param int[] $cmids   Target cmids.
+     * @return array
+     */
+    private function execute_unset_dates(array $payload, array $cmids): array {
+        global $DB;
+        $targetfields = (array)$payload['fields'];
+        $table = $this->get_table_name();
+        $items = [];
+        $errors = [];
+        foreach ($cmids as $rawcmid) {
+            $cmid = (int)$rawcmid;
+            try {
+                $description = $this->describe_instance($cmid);
+            } catch (\Throwable $e) {
+                $errors[] = ['cmid' => $cmid, 'code' => 'describe_failed', 'message' => $e->getMessage()];
+                $items[] = ['cmid' => $cmid, 'status' => 'failed', 'message' => $e->getMessage()];
+                continue;
+            }
+            $snapshot = [
+                'component'  => static::component(),
+                'cmid'       => $cmid,
+                'instanceid' => $description['instanceid'],
+                'fields'     => $description['dates'],
+                'version'    => 1,
+            ];
+            $update = new \stdClass();
+            $update->id = $description['instanceid'];
+            $changed = [];
+            foreach ($description['dates'] as $name => $oldvalue) {
+                if (!in_array($name, $targetfields, true)) {
+                    continue;
+                }
+                if ($oldvalue === 0) {
+                    continue;
+                }
+                $update->$name = 0;
+                $changed[] = $name;
+            }
+            if (empty($changed)) {
+                $items[] = ['cmid' => $cmid, 'status' => 'noop', 'snapshot' => $snapshot, 'changed' => []];
+                continue;
+            }
+            $update->timemodified = time();
+            try {
+                $DB->update_record($table, $update);
+            } catch (\Throwable $e) {
+                $errors[] = ['cmid' => $cmid, 'code' => 'db_write_failed', 'message' => $e->getMessage()];
+                $items[] = [
+                    'cmid' => $cmid, 'status' => 'failed',
+                    'snapshot' => $snapshot, 'message' => $e->getMessage(),
+                ];
+                continue;
+            }
+            $items[] = ['cmid' => $cmid, 'status' => 'ok', 'snapshot' => $snapshot, 'changed' => $changed];
+        }
+        return [
+            'action'  => 'unset_dates',
+            'payload' => ['fields' => $targetfields],
+            'items'   => $items,
+            'errors'  => $errors,
         ];
     }
 }

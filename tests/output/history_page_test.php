@@ -39,8 +39,17 @@ final class history_page_test extends \advanced_testcase {
         $page = new history_page(1);
         $data = $page->export_for_template($PAGE->get_renderer('core'));
 
-        foreach (['courseid', 'sesskey', 'batchrows', 'hasbatchrows',
-            'batchcount', 'hasrollbackresult', 'dashboardurl', 'rollbackurl'] as $key) {
+        $requiredkeys = [
+            'courseid',
+            'sesskey',
+            'batchrows',
+            'hasbatchrows',
+            'batchcount',
+            'hasrollbackresult',
+            'dashboardurl',
+            'rollbackurl',
+        ];
+        foreach ($requiredkeys as $key) {
             $this->assertArrayHasKey($key, $data, "Missing key: $key");
         }
         $this->assertFalse($data['hasbatchrows']);

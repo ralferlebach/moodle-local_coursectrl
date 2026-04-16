@@ -15,17 +15,28 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for local_coursectrl.
+ * Privacy provider for coursectrlmod_forum.
  *
- * @package    local_coursectrl
+ * This adapter is a stateless wrapper and stores no personal data.
+ * All persistent state is covered by the local_coursectrl provider.
+ *
+ * @package    coursectrlmod_forum\privacy
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+namespace coursectrlmod_forum\privacy;
 
-$plugin->component = 'local_coursectrl';
-$plugin->version   = 2026041802;
-$plugin->requires  = 2024042200; // Moodle 4.5.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.35';
+/**
+ * Null provider declaring that this subplugin stores no personal data.
+ */
+class provider implements \core_privacy\local\metadata\null_provider {
+    /**
+     * Returns the language string explaining why no data is stored.
+     *
+     * @return string
+     */
+    public static function get_reason(): string {
+        return 'privacy:metadata';
+    }
+}

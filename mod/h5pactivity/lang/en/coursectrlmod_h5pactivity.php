@@ -15,17 +15,14 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for local_coursectrl.
+ * English strings for coursectrlmod_h5pactivity.
  *
- * @package    local_coursectrl
+ * @package    coursectrlmod_h5pactivity
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_coursectrl';
-$plugin->version   = 2026041802;
-$plugin->requires  = 2024042200; // Moodle 4.5.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.35';
+$string['pluginname']         = 'Course Control Hub: H5P Activity adapter';
+$string['privacy:metadata']   = 'The Course Control Hub H5P activity adapter stores no personal data.';

@@ -61,6 +61,28 @@ class temporal_conflict_detector {
         'mod_feedback' => [
             ['timeopen', 'timeclose'],
         ],
+        'mod_forum' => [
+            // No enforced ordering between cutoffdate and duedate in Moodle.
+        ],
+        'mod_lesson' => [
+            ['available', 'deadline'],
+        ],
+        'mod_workshop' => [
+            ['submissionstart', 'submissionend'],
+            ['assessmentstart', 'assessmentend'],
+            ['submissionend', 'assessmentstart'],
+        ],
+        'mod_questionnaire' => [
+            ['opendate', 'closedate'],
+        ],
+        'mod_choicegroup' => [
+            ['timeopen', 'timeclose'],
+        ],
+        'mod_studentquiz' => [
+            ['opensubmissionfrom', 'closesubmissionfrom'],
+            ['openansweringfrom', 'closeansweringfrom'],
+        ],
+        // mod_capquiz: single timedue field — no ordering rule applicable.
     ];
 
     /**

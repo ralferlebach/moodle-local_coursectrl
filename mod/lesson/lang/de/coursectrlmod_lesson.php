@@ -15,17 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for local_coursectrl.
+ * German strings for coursectrlmod_lesson.
  *
- * @package    local_coursectrl
+ * @package    coursectrlmod_lesson
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_coursectrl';
-$plugin->version   = 2026041802;
-$plugin->requires  = 2024042200; // Moodle 4.5.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.35';
+$string['action_shift_dates'] = 'Termine verschieben';
+$string['field_available']    = 'Verfügbar ab';
+$string['field_deadline']    = 'Abgabetermin';
+$string['pluginname']         = 'Kursablauf-Zentrale: Lektion-Adapter';
+$string['privacy:metadata']   = 'Der Lektion-Adapter der Kursablauf-Zentrale speichert keine personenbezogenen Daten.';

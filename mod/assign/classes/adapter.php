@@ -185,6 +185,68 @@ class adapter extends abstract_activity_adapter {
     }
 
     /**
+     * Run consistency checks on assign instances.
+     *
+     * Detects invalid date orderings, e.g. allowsubmissionsfromdate after
+     * duedate, which Moodle's own form rejects but bulk shifts can produce.
+     *
+     * @param int[] $cmids   Course module ids to check.
+     * @param array $profile Optional check profile (unused).
+     * @return array Check result items.
+     */
+    public function run_checks(array $cmids, array $profile = []): array {
+        global $DB;
+        $results = [];
+        foreach ($cmids as $rawcmid) {
+            $cmid = (int)$rawcmid;
+            try {
+                $cm = get_coursemodule_from_id('assign', $cmid, 0, false, MUST_EXIST);
+                $assign = $DB->get_record(
+                    'assign',
+                    ['id' => $cm->instance],
+                    'id, name, duedate, allowsubmissionsfromdate, cutoffdate',
+                    MUST_EXIST
+                );
+            } catch (\Throwable $e) {
+                continue;
+            }
+
+            $due = (int)$assign->duedate;
+            $fromdate = (int)$assign->allowsubmissionsfromdate;
+            $cutoff = (int)$assign->cutoffdate;
+
+            // Opening date must not be after due date.
+            if ($fromdate > 0 && $due > 0 && $fromdate > $due) {
+                $results[] = [
+                    'cmid' => $cmid,
+                    'name' => $assign->name,
+                    'severity' => 'error',
+                    'code' => 'assign_from_after_due',
+                    'message' => get_string(
+                        'check_assign_from_after_due',
+                        'local_coursectrl'
+                    ),
+                ];
+            }
+
+            // Cut-off date should not be before due date.
+            if ($cutoff > 0 && $due > 0 && $cutoff < $due) {
+                $results[] = [
+                    'cmid' => $cmid,
+                    'name' => $assign->name,
+                    'severity' => 'warning',
+                    'code' => 'assign_cutoff_before_due',
+                    'message' => get_string(
+                        'check_assign_cutoff_before_due',
+                        'local_coursectrl'
+                    ),
+                ];
+            }
+        }
+        return $results;
+    }
+
+    /**
      * Resolve the distinct course ids that contain the given cmids of the
      * specified module type.
      *

@@ -74,17 +74,12 @@
            data-region="local_coursectrl-calrow"
            style="-webkit-overflow-scrolling:touch">
         {{#months}}
-        <div class="flex-shrink-0 text-center{{#iscurrentmonth}} rounded{{/iscurrentmonth}}"
-             style="min-width:196px{{#iscurrentmonth}};background-color:rgb(215,228,214);border:1px solid rgb(198,218,198);border-radius:8px{{/iscurrentmonth}}">
+        <div class="coursectrl-cal-month{{#iscurrentmonth}} month-current{{/iscurrentmonth}}">
           <div class="small fw-semibold py-1">{{monthlabel}}</div>
           {{#weeks}}
-          <div class="d-flex">
+          <div class="coursectrl-cal-week">
             {{#days}}
-            <div class="text-center small flex-fill p-0
-                 {{^inmonth}}text-muted{{/inmonth}}
-                 {{#istoday}}border border-primary fw-bold{{/istoday}}
-                 {{#isholiday}}bg-warning bg-opacity-25{{/isholiday}}"
-                 style="min-width:1.55em;line-height:1.7em;{{#hasentries}}cursor:pointer{{/hasentries}}"
+            <div class="{{cellclass}}"
                  {{#hasentries}}data-action="jump-to-day" data-daykey="{{daykey}}"{{/hasentries}}
                  {{#hasholidays}}title="{{#holidaynames}}{{name}} {{/holidaynames}}"{{/hasholidays}}>
               {{#inmonth}}{{day}}{{/inmonth}}{{^inmonth}}&nbsp;{{/inmonth}}

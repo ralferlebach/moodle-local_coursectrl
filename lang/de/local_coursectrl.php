@@ -329,5 +329,9 @@ $string['shift_scan_text']         = 'Textprüfung nach Verschiebung anzeigen';
 $string['shift_done']              = 'Terminverschiebung erfolgreich ausgeführt';
 $string['shift_collision_generic'] = 'Terminkonflikt erkannt (Details im Protokoll)';
 // Strings added in 0.1.43 -- AJAX shift dialog.
-$string['shift_ajax_skip']         = 'Ohne Textaenderungen schliessen';
-$string['shift_ajax_review_apply'] = 'Ausgewaehlte Textaenderungen anwenden';
+$string['shift_ajax_skip']         = 'Ohne Textänderungen schließen';
+$string['shift_ajax_review_apply'] = 'Ausgewählte Textänderungen anwenden';
+
+// Strings added in 0.1.45 -- assign consistency checks.
+$string['check_assign_from_after_due']    = 'Öffnungsdatum liegt nach dem Abgabedatum (ungültige Kombination).';
+$string['check_assign_cutoff_before_due'] = 'Letzter Abgabetermin liegt vor dem Abgabedatum.';

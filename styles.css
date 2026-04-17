@@ -1,0 +1,95 @@
+/**
+ * Stylesheet for local_coursectrl (Course Control Hub).
+ *
+ * @package    local_coursectrl
+ * @copyright  2026 Ralf Erlebach
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+/* ── Calendar grid ───────────────────────────────────────────────────────── */
+
+/**
+ * Month container: current month uses Bootstrap success colour.
+ */
+.coursectrl-cal-month {
+    min-width: 196px;
+    flex-shrink: 0;
+    text-align: center;
+}
+
+.coursectrl-cal-month.month-current {
+    background-color: var(--bs-success-bg-subtle, #d1e7dd);
+    border: 1px solid var(--bs-success-border-subtle, #a3cfbb);
+    border-radius: 8px;
+}
+
+/**
+ * Week row: CSS grid ensures all 7 cells are perfectly equal-width,
+ * eliminating the flex-fill alignment issue.
+ */
+.coursectrl-cal-week {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    width: 100%;
+}
+
+/**
+ * Day cell base: all cells share the same height and font size.
+ */
+.cc {
+    text-align: center;
+    font-size: .875rem;
+    line-height: 1.7em;
+    min-height: 1.7em;
+    padding: 0;
+    position: relative;
+}
+
+/**
+ * Out-of-month padding cells.
+ */
+.cc-out {
+    color: var(--bs-secondary-color, #6c757d);
+}
+
+/**
+ * Day with date entries: primary colour.
+ * Priority 2.
+ */
+.cc-primary {
+    background-color: var(--bs-primary-bg-subtle, #cfe2ff);
+    border: 1px solid var(--bs-primary-border-subtle, #9ec5fe);
+    color: var(--bs-primary-text-emphasis, #052c65);
+    cursor: pointer;
+}
+
+/**
+ * Holiday day: secondary colour.
+ * Priority 1 (lowest).
+ */
+.cc-secondary {
+    background-color: var(--bs-secondary-bg-subtle, #e2e3e5);
+    border: 1px solid var(--bs-secondary-border-subtle, #c4c8cb);
+    color: var(--bs-secondary-text-emphasis, #2b2d2f);
+}
+
+/**
+ * Day with entries AND a holiday: danger colour.
+ * Priority 3 (highest — overwrites both primary and secondary).
+ */
+.cc-danger {
+    background-color: var(--bs-danger-bg-subtle, #f8d7da);
+    border: 1px solid var(--bs-danger-border-subtle, #f1aeb5);
+    color: var(--bs-danger-text-emphasis, #58151c);
+    cursor: pointer;
+}
+
+/**
+ * Today marker: strong border, always visible regardless of other colours.
+ */
+.cc-today {
+    outline: 2px solid var(--bs-primary, #0d6efd);
+    outline-offset: -2px;
+    font-weight: 700;
+    z-index: 1;
+}

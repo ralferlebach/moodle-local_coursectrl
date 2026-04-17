@@ -133,6 +133,7 @@ class calendar_grid_builder {
                 'count' => 0,
                 'entries' => [],
                 'ispast' => false,
+                'cellclass' => $this->build_cell_class(false, false, false, false),
             ];
         }
 
@@ -175,6 +176,12 @@ class calendar_grid_builder {
                 'isschoolholiday' => $isschoolhol,
                 'hasholidays'    => $isholiday,
                 'holidaynames'   => $holidaynames,
+                'cellclass'      => $this->build_cell_class(
+                    true,
+                    count($entries) > 0,
+                    $isholiday,
+                    date('Y-m-d', $now) === $daykey
+                ),
             ];
         }
 
@@ -187,6 +194,7 @@ class calendar_grid_builder {
                 'count' => 0,
                 'entries' => [],
                 'ispast' => false,
+                'cellclass' => $this->build_cell_class(false, false, false, false),
             ];
         }
 
@@ -205,5 +213,41 @@ class calendar_grid_builder {
             'iscurrentmonth' => (date('Y-m') === date('Y-m', $monthstart)),
             'weeks'          => $weeks,
         ];
+    }
+
+    /**
+     * Build the CSS class string for a calendar day cell.
+     *
+     * Priority: danger (entry+holiday) > primary (entry) > secondary (holiday).
+     * Out-of-month cells always get the 'cc-out' class.
+     *
+     * @param bool $inmonth    Whether the day belongs to the displayed month.
+     * @param bool $hasentries Whether there are date entries on this day.
+     * @param bool $isholiday  Whether this day is a public holiday.
+     * @param bool $istoday    Whether this day is today.
+     * @return string Space-separated CSS class string.
+     */
+    private function build_cell_class(
+        bool $inmonth,
+        bool $hasentries,
+        bool $isholiday,
+        bool $istoday
+    ): string {
+        $classes = ['cc'];
+        if (!$inmonth) {
+            $classes[] = 'cc-out';
+            return implode(' ', $classes);
+        }
+        if ($hasentries && $isholiday) {
+            $classes[] = 'cc-danger';
+        } else if ($hasentries) {
+            $classes[] = 'cc-primary';
+        } else if ($isholiday) {
+            $classes[] = 'cc-secondary';
+        }
+        if ($istoday) {
+            $classes[] = 'cc-today';
+        }
+        return implode(' ', $classes);
     }
 }

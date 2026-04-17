@@ -333,3 +333,7 @@ $string['shift_collision_generic'] = 'Date conflict detected (see log for detail
 // Strings added in 0.1.43 -- AJAX shift dialog.
 $string['shift_ajax_skip']         = 'Close without text changes';
 $string['shift_ajax_review_apply'] = 'Apply selected text changes';
+
+// Strings added in 0.1.45 -- assign consistency checks.
+$string['check_assign_from_after_due']    = 'Opening date is after due date (invalid combination).';
+$string['check_assign_cutoff_before_due'] = 'Cut-off date is before due date.';

@@ -212,7 +212,7 @@ class inventory_service {
                     continue;
                 }
                 $text = new text_item(
-                    entitytype: text_item::OWNER_LABEL,
+                    entitytype: text_item::OWNER_CM,
                     entityid: (int)$cm->id,
                     fieldname: $fieldname,
                     content: (string)$record->$fieldname,

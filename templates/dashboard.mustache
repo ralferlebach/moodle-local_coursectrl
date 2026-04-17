@@ -105,22 +105,18 @@
             <div class="d-flex flex-nowrap overflow-auto gap-2 pb-1"
                  data-region="local_coursectrl-calrow" style="-webkit-overflow-scrolling:touch">
                 {{#months}}
-                <div class="flex-shrink-0{{#iscurrentmonth}} rounded{{/iscurrentmonth}}"
-                     style="min-width:196px{{#iscurrentmonth}};background-color:rgb(215,228,214);border:1px solid rgb(198,218,198);border-radius:8px{{/iscurrentmonth}}"
+                <div class="coursectrl-cal-month{{#iscurrentmonth}} month-current{{/iscurrentmonth}}"
                      data-monthkey="{{monthkey}}">
-                    <div class="text-center small fw-semibold py-1">
-                        <a href="{{timelineurl}}&tab=timeline" class="text-decoration-none">{{monthlabel}}</a>
+                    <div class="small fw-semibold py-1">
+                        <a href="{{timelineurl}}&amp;tab=timeline" class="text-decoration-none">{{monthlabel}}</a>
                     </div>
                     {{#weeks}}
-                    <div class="d-flex">
+                    <div class="coursectrl-cal-week">
                         {{#days}}
-                        <div class="text-center small flex-fill p-0
-                             {{^inmonth}}text-muted{{/inmonth}}
-                             {{#istoday}}border border-primary fw-bold{{/istoday}}
-                             {{#isholiday}}bg-warning bg-opacity-25{{/isholiday}}"
-                             style="min-width:1.55em;line-height:1.7em">
-                            {{#inmonth}}{{#hasentries}}<a href="{{timelineurl}}&tab=timeline#day-{{daykey}}" target="_blank" rel="noopener" class="fw-bold">{{day}}</a>{{/hasentries}}{{^hasentries}}{{day}}{{/hasentries}}{{/inmonth}}
-                            {{^inmonth}}&nbsp;{{/inmonth}}
+                        <div class="{{cellclass}}"
+                             {{#hasentries}}data-action="jump-to-day" data-daykey="{{daykey}}"{{/hasentries}}
+                             {{#hasholidays}}title="{{#holidaynames}}{{name}} {{/holidaynames}}"{{/hasholidays}}>
+                            {{#inmonth}}{{#hasentries}}<a href="{{timelineurl}}&amp;tab=timeline#day-{{daykey}}" target="_blank" rel="noopener">{{day}}</a>{{/hasentries}}{{^hasentries}}{{day}}{{/hasentries}}{{/inmonth}}{{^inmonth}}&nbsp;{{/inmonth}}
                         </div>
                         {{/days}}
                     </div>

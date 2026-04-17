@@ -98,9 +98,15 @@ class text_datetime_rewriter {
             // Verify the text at this offset still matches.
             $actual = substr($text, $offset, $length);
             if ($actual !== $matched) {
-                $skipped[] = ['matchedtext' => $matched, 'reason' => 'offset_mismatch',
-                    'expected' => $matched, 'actual' => $actual];
-                continue;
+                // Offset was computed on plain text; fall back to literal str_replace.
+                // This handles HTML content where stripping shifted the offset.
+                if (!str_contains($text, $matched)) {
+                    $skipped[] = ['matchedtext' => $matched, 'reason' => 'not_found_in_text'];
+                    continue;
+                }
+                // Use position of first occurrence in the raw text.
+                $offset = strpos($text, $matched);
+                $length = strlen($matched);
             }
 
             // Compute shifted ISO value.

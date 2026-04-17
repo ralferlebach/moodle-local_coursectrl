@@ -56,6 +56,15 @@
       </label>
     </div>
 
+    <div class="form-check form-switch mb-0 ms-2">
+      <input class="form-check-input" type="checkbox"
+             id="hide-hidden-cms"
+             data-action="toggle-hidden">
+      <label class="form-check-label small" for="hide-hidden-cms">
+        {{#str}} graph_hide_hidden, local_coursectrl {{/str}}
+      </label>
+    </div>
+
     {{! Group filter }}
     {{#hasgroupoptions}}
     <form method="get" action="{{graphurl}}" class="d-flex align-items-center gap-1 mb-0">

@@ -44,17 +44,27 @@ class history_page implements renderable, templatable {
     /** @var array|null Rollback result to surface in the page, or null. */
     private ?array $rollbackresult;
 
+    /** @var int Current page (0-based). */
+    private int $page;
+
     /**
      * Constructor.
      *
      * @param int        $courseid       The course id.
      * @param array|null $rollbackresult Optional rollback result from rollback.php.
      * @param int        $maxbatches     Maximum number of batches to show.
+     * @param int        $page           Current page number (0-based).
      */
-    public function __construct(int $courseid, ?array $rollbackresult = null, int $maxbatches = 100) {
+    public function __construct(
+        int $courseid,
+        ?array $rollbackresult = null,
+        int $maxbatches = 100,
+        int $page = 0
+    ) {
         $this->courseid = $courseid;
         $this->rollbackresult = $rollbackresult;
         $this->maxbatches = $maxbatches;
+        $this->page = max(0, $page);
     }
 
     /**
@@ -71,14 +81,20 @@ class history_page implements renderable, templatable {
         $dateformat = get_string('strftimedaydatetime', 'core_langconfig');
 
         $maxbatches = (int) (get_config('local_coursectrl', 'history_maxcount') ?: $this->maxbatches);
+        $perpage = 20;
+        $offset = $this->page * $perpage;
+
+        $totalcount = $DB->count_records('local_coursectrl_batch', ['courseid' => $this->courseid]);
+        $totalpages = max(1, (int) ceil($totalcount / $perpage));
+        $currentpage = min($this->page, $totalpages - 1);
 
         $batches = $DB->get_records(
             'local_coursectrl_batch',
             ['courseid' => $this->courseid],
             'timecreated DESC',
             '*',
-            0,
-            $maxbatches
+            $currentpage * $perpage,
+            $perpage
         );
 
         $rows = [];
@@ -157,7 +173,22 @@ class history_page implements renderable, templatable {
             'rows'           => $rows,
             'hasrows'        => count($rows) > 0,
             'rowcount'       => count($rows),
+            'totalcount'     => $totalcount,
             'maxbatches'     => $maxbatches,
+            'currentpage'    => $currentpage,
+            'currentpage1'   => $currentpage + 1,
+            'totalpages'     => $totalpages,
+            'haspagination'  => $totalpages > 1,
+            'prevpage'       => max(0, $currentpage - 1),
+            'nextpage'       => min($totalpages - 1, $currentpage + 1),
+            'hasprev'        => $currentpage > 0,
+            'hasnext'        => $currentpage < $totalpages - 1,
+            'pagestart'      => $currentpage * $perpage + 1,
+            'pageend'        => min(($currentpage + 1) * $perpage, $totalcount),
+            'historyurl'     => (new \moodle_url(
+                '/local/coursectrl/history.php',
+                ['courseid' => $this->courseid]
+            ))->out(false),
             'canrollback'    => $canrollback,
             'batchrows'      => $rows,
             'hasbatchrows'   => count($rows) > 0,

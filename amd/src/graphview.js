@@ -48,7 +48,8 @@ define([], function() {
 
     var COL_NODE_FILL = '#eef2fb';
     var COL_NODE_STROKE = '#5b7fde';
-    var COL_NODE_HIDDEN = '#f0f0f0';
+    var COL_NODE_HIDDEN = '#e9ecef';
+    var COL_NODE_HIDDEN_STROKE = '#adb5bd';
     var COL_CIRCULAR_FILL = '#fff0f0';
     var COL_CIRCULAR_STROKE = '#cc3333';
     var COL_WARN_STROKE = '#e0a800';
@@ -154,9 +155,13 @@ define([], function() {
             var pos = nodeCenter(node.layer, node.layerpos);
             var rx = pos.cx - NODE_W / 2;
             var ry = pos.cy - NODE_H / 2;
-            var fill = node.visible ? COL_NODE_FILL : COL_NODE_HIDDEN;
+            var fill = COL_NODE_FILL;
             var stroke = COL_NODE_STROKE;
             var sw = '1.5';
+            if (!node.visible) {
+                fill = COL_NODE_HIDDEN;
+                stroke = COL_NODE_HIDDEN_STROKE;
+            }
             if (node.circular) {
                 fill = COL_CIRCULAR_FILL;
                 stroke = COL_CIRCULAR_STROKE;
@@ -168,8 +173,13 @@ define([], function() {
 
             var group = svgEl('g', {
                 'class': 'coursectrl-node',
-                'data-independent': connected[node.id] ? '0' : '1'
+                'data-independent': connected[node.id] ? '0' : '1',
+                'data-hidden': node.visible ? '0' : '1',
             });
+            // Independent nodes are dimmed on initial render (not only after toggle).
+            if (!connected[node.id]) {
+                group.style.opacity = '0.35';
+            }
             var a = svgEl('a', {href: node.url, target: '_blank'});
             a.appendChild(svgEl('rect', {x: rx, y: ry, width: NODE_W, height: NODE_H,
                 rx: '5', fill: fill, stroke: stroke, 'stroke-width': sw, cursor: 'pointer'}));
@@ -344,9 +354,26 @@ define([], function() {
         canvas.querySelectorAll('.coursectrl-node').forEach(function(node) {
             var independent = node.getAttribute('data-independent') === '1';
             if (independent) {
+                if (hide) {
+                    node.style.display = 'none';
+                    node.style.pointerEvents = 'none';
+                } else {
+                    node.style.display = '';
+                    node.style.pointerEvents = '';
+                    node.style.opacity = '0.35';
+                }
+            }
+        });
+    };
+
+    var applyHiddenFilter = function(canvas, hide) {
+        if (!canvas) {
+            return;
+        }
+        canvas.querySelectorAll('.coursectrl-node').forEach(function(node) {
+            var ishidden = node.getAttribute('data-hidden') === '1';
+            if (ishidden) {
                 node.style.display = hide ? 'none' : '';
-                node.style.opacity = hide ? '0' : '0.35';
-                node.style.pointerEvents = hide ? 'none' : '';
             }
         });
     };
@@ -358,16 +385,24 @@ define([], function() {
      */
     var initFilters = function(root) {
         var toggleBtn = root.querySelector('[data-action="toggle-independents"]');
-        if (!toggleBtn) {
-            return;
-        }
         var canvas = root.querySelector('[data-region="coursectrl-graph-canvas"]');
-        if (toggleBtn.checked) {
-            applyIndependentFilter(canvas, true);
+        if (toggleBtn) {
+            if (toggleBtn.checked) {
+                applyIndependentFilter(canvas, true);
+            }
+            toggleBtn.addEventListener('change', function() {
+                applyIndependentFilter(canvas, toggleBtn.checked);
+            });
         }
-        toggleBtn.addEventListener('change', function() {
-            applyIndependentFilter(canvas, toggleBtn.checked);
-        });
+        var hiddenBtn = root.querySelector('[data-action="toggle-hidden"]');
+        if (hiddenBtn) {
+            if (hiddenBtn.checked) {
+                applyHiddenFilter(canvas, true);
+            }
+            hiddenBtn.addEventListener('change', function() {
+                applyHiddenFilter(canvas, hiddenBtn.checked);
+            });
+        }
     };
 
     return {

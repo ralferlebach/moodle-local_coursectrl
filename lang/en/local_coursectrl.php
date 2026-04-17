@@ -348,3 +348,5 @@ $string['check_assign_completionexpected_before_from'] = 'Completion expected da
 $string['history_detail_component'] = 'Component';
 $string['history_detail_status'] = 'Status';
 $string['history_detail_fields'] = 'Fields';
+$string['history_of'] = 'of';
+$string['graph_hide_hidden'] = 'Hide invisible activities';

@@ -28,6 +28,7 @@ use local_coursectrl\local\navigation\navigation_builder;
 use local_coursectrl\output\history_page;
 
 $courseid = required_param('courseid', PARAM_INT);
+$page     = optional_param('page', 0, PARAM_INT);
 
 $course  = get_course($courseid);
 $context = context_course::instance($courseid);

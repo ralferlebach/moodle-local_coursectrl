@@ -214,16 +214,48 @@ final class batch_manager_test extends \advanced_testcase {
     }
 
     /**
-     * cmids without a registered adapter (e.g. labels) are persisted as
-     * batch_items with status 'skipped' and reason 'no_adapter'.
+     * cmids without a registered adapter and no CM-level date fields to shift
+     * (completionexpected=0, no availability conditions) produce no batch_item.
+     *
+     * The old behaviour logged a skipped item; the new behaviour silently
+     * skips CMs where there is genuinely nothing to do at any level.
      */
-    public function test_execute_persists_skipped_items(): void {
+    public function test_execute_no_adapter_no_cm_dates_produces_no_item(): void {
         $this->resetAfterTest();
         $fixture = $this->create_mixed_course();
         $label = $this->getDataGenerator()->create_module('label', [
             'course' => $fixture['courseid'],
             'name'   => 'L1',
         ]);
+        // Label has no adapter, completionexpected=0, no availability → nothing to shift.
+        $manager = new batch_manager();
+        $batchid = $manager->execute(
+            $fixture['courseid'],
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [(int)$label->cmid],
+            0
+        );
+        $items = batch_item::get_records(['batchid' => $batchid]);
+        $this->assertCount(0, $items);
+    }
+
+    /**
+     * cmids without a registered adapter but WITH completionexpected set produce
+     * a successful batch_item via the CM-level shift path.
+     */
+    public function test_execute_no_adapter_with_completionexpected_shifts_it(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+        $label = $this->getDataGenerator()->create_module('label', [
+            'course' => $fixture['courseid'],
+            'name'   => 'L2',
+        ]);
+        // Set completionexpected on the CM.
+        $ts = mktime(0, 0, 0, 6, 1, 2026);
+        $DB->set_field('course_modules', 'completionexpected', $ts, ['id' => (int)$label->cmid]);
+
         $manager = new batch_manager();
         $batchid = $manager->execute(
             $fixture['courseid'],
@@ -235,9 +267,10 @@ final class batch_manager_test extends \advanced_testcase {
         $items = batch_item::get_records(['batchid' => $batchid]);
         $this->assertCount(1, $items);
         $item = reset($items);
-        $this->assertSame(batch_item::STATUS_SKIPPED, $item->get('status'));
-        $result = json_decode($item->get('resultjson'), true);
-        $this->assertSame('no_adapter', $result['reason']);
+        $this->assertSame(batch_item::STATUS_SUCCESS, $item->get('status'));
+        // Verify the timestamp was actually shifted.
+        $newts = (int) $DB->get_field('course_modules', 'completionexpected', ['id' => (int)$label->cmid]);
+        $this->assertSame($ts + self::ONE_DAY, $newts);
     }
 
     /**

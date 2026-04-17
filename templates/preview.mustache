@@ -43,7 +43,7 @@
 
     <div class="mb-3">
         <a href="{{manageurl}}" class="btn btn-sm btn-outline-secondary">
-            &laquo; {{#str}}nav_bulk, local_coursectrl{{/str}}
+            &laquo; {{#str}}nav_manage, local_coursectrl{{/str}}
         </a>
     </div>
 
@@ -102,9 +102,9 @@
                             {{#fields}}
                                 <tr class="{{^shifted}}{{#isunset}}table-light text-muted{{/isunset}}{{/shifted}}">
                                     {{#first}}
-                                        <td rowspan="{{../fieldcount}}">
-                                            <code class="small mr-1">{{../component}}</code>
-                                            {{../name}}
+                                        <td rowspan="{{cmrowspan}}">
+                                            <code class="small mr-1">{{component}}</code>
+                                            {{name}}
                                         </td>
                                     {{/first}}
                                     <td><code>{{fieldname}}</code></td>

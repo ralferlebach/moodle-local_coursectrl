@@ -33,8 +33,10 @@ use local_coursectrl\local\analysis\calendar_grid_builder;
 use local_coursectrl\local\analysis\date_collector;
 use local_coursectrl\local\visualization\gantt_dataset_builder;
 use local_coursectrl\manager\calendar_manager;
+use local_coursectrl\manager\textreview_manager;
 use local_coursectrl\local\analysis\dependency_index;
 use local_coursectrl\local\inventory\inventory_snapshot;
+use local_coursectrl\local\persistent\text_hit;
 use renderable;
 use renderer_base;
 use templatable;
@@ -203,6 +205,9 @@ class timeline_page implements renderable, templatable {
             'immediateapply' => $this->filters['immediateapply'],
             'componentoptions' => $componentoptions,
             'hascomponentoptions' => count($componentoptions) > 0,
+            'groupoptions' => [],
+            'hasgroupoptions' => false,
+            'activegroupid' => 0,
             'dashboardurl' => (new \moodle_url(
                 '/local/coursectrl/index.php',
                 ['courseid' => $course->id]
@@ -213,6 +218,7 @@ class timeline_page implements renderable, templatable {
             ))->out(false),
             'gantt_json' => json_encode($ganttdata = $this->build_gantt_data($this->snapshot->cms)),
             'gantt' => $ganttdata,
+            'gantt_hasdata' => !empty($ganttdata['hasdata']),
             'activetab' => $this->filters['tab'] ?? 'timeline',
             'tab_timeline'   => ($this->filters['tab'] ?? 'timeline') === 'timeline',
             'tab_textreview' => ($this->filters['tab'] ?? 'timeline') === 'textreview',
@@ -229,8 +235,83 @@ class timeline_page implements renderable, templatable {
                 '/local/coursectrl/shift.php',
                 ['courseid' => $course->id]
             ))->out(false),
+        ] + $this->build_textreview_context($course->id);
+    }
+    /**
+     * Build textreview context variables for the Textprüfung tab.
+     *
+     * Loads persisted text_hit records for the course, pre-populates the
+     * delta inputs from the shift that triggered this tab, and surfaces any
+     * collision warnings that were stored in the PHP session by shift.php.
+     *
+     * @param int $courseid The course id.
+     * @return array
+     */
+    private function build_textreview_context(int $courseid): array {
+        $deltadays  = (int) ($this->filters['textreview_delta_days'] ?? 0);
+        $deltahours = (int) ($this->filters['textreview_delta_hours'] ?? 0);
+        $fromshift  = !empty($this->filters['from_shift']);
+        $batchid    = (int) ($this->filters['shift_batchid'] ?? 0);
+
+        // Read and clear collision notices stored by shift.php.
+        $collisions = [];
+        $sessionkey = 'coursectrl_collisions_' . $batchid;
+        if ($batchid && !empty($_SESSION[$sessionkey])) {
+            $raw = $_SESSION[$sessionkey];
+            unset($_SESSION[$sessionkey]);
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $msg) {
+                    $collisions[] = ['message' => $msg];
+                }
+            }
+        }
+
+        $hits = text_hit::get_records(['courseid' => $courseid], 'entitytype, entityid, fieldname');
+        if (empty($hits)) {
+            return [
+                'textreview_hasrows' => false,
+                'textreview_rows' => [],
+                'textreview_delta_days' => $deltadays,
+                'textreview_delta_hours' => $deltahours,
+                'textreview_from_shift' => $fromshift,
+                'textreview_hascollisions' => !empty($collisions),
+                'textreview_collisions' => $collisions,
+            ];
+        }
+        $rows = [];
+        foreach ($hits as $hit) {
+            $conf = $hit->get('confidence');
+            $contextraw = $hit->get('contextjson');
+            $ctx = $contextraw ? json_decode($contextraw, true) : [];
+            $rows[] = [
+                'id' => $hit->get('id'),
+                'entitytype' => $hit->get('entitytype'),
+                'entityid' => $hit->get('entityid'),
+                'fieldname' => $hit->get('fieldname'),
+                'matchedtext' => $hit->get('matchedtext'),
+                'normalizedvalue' => $hit->get('normalizedvalue'),
+                'hasnormalized' => !empty($hit->get('normalizedvalue')),
+                'confidence' => $conf,
+                'selectable' => $conf !== text_hit::CONFIDENCE_INFORMATIONAL,
+                'issafe' => $conf === text_hit::CONFIDENCE_SAFE,
+                'isambiguous' => $conf === text_hit::CONFIDENCE_AMBIGUOUS,
+                'isinformational' => $conf === text_hit::CONFIDENCE_INFORMATIONAL,
+                'contextbefore' => $ctx['before'] ?? '',
+                'contextafter' => $ctx['after'] ?? '',
+            ];
+        }
+        return [
+            'textreview_hasrows' => count($rows) > 0,
+            'textreview_rows' => $rows,
+            'textreview_delta_days' => $deltadays,
+            'textreview_delta_hours' => $deltahours,
+            'textreview_from_shift' => $fromshift,
+            'textreview_hascollisions' => !empty($collisions),
+            'textreview_collisions' => $collisions,
         ];
     }
+
     /**
      * Build Gantt dataset for the 'Grafische Übersicht' tab.
      *

@@ -59,10 +59,10 @@ class history_page implements renderable, templatable {
      * @return array
      */
     public function export_for_template(renderer_base $output): array {
-        global $DB, $USER;
+        global $DB;
         $course = get_course($this->courseid);
         $context = \context_course::instance($this->courseid);
-        $canrollback = has_capability('local/coursectrl:manageall', $context);
+        $canrollback = has_capability('local/coursectrl:rollback', $context);
         $dateformat = get_string('strftimedaydatetime', 'core_langconfig');
 
         $maxbatches = (int) (get_config('local_coursectrl', 'history_maxcount') ?: $this->maxbatches);
@@ -82,7 +82,7 @@ class history_page implements renderable, templatable {
                 'local_coursectrl_batch_item',
                 ['batchid' => $batch->id]
             );
-            $hasnapsshot = $DB->record_exists(
+            $hassnapshot = $DB->record_exists(
                 'local_coursectrl_snapshot',
                 ['batchid' => $batch->id]
             );
@@ -106,11 +106,11 @@ class history_page implements renderable, templatable {
                 'username'    => $username,
                 'timeago'     => format_time(time() - $batch->timecreated),
                 'timeformatted' => userdate($batch->timecreated, $dateformat),
-                'canrollback' => $canrollback && $hasnapsshot && $batch->status !== 'rolledback',
-                'rolledback'  => $batch->status === 'rolledback',
+                'canrollback' => $canrollback && $hassnapshot && $batch->status === \local_coursectrl\local\persistent\batch::STATUS_EXECUTED,
+                'rolledback'  => $batch->status === \local_coursectrl\local\persistent\batch::STATUS_ROLLED_BACK,
                 'rollbackurl' => (new \moodle_url(
                     '/local/coursectrl/rollback.php',
-                    ['batchid' => $batch->id, 'courseid' => $this->courseid]
+                    ['batchid' => $batch->id, 'courseid' => $this->courseid, 'sesskey' => sesskey()]
                 ))->out(false),
             ];
         }
@@ -118,11 +118,20 @@ class history_page implements renderable, templatable {
         return [
             'courseid'       => $this->courseid,
             'coursefullname' => format_string($course->fullname),
+            'sesskey'        => sesskey(),
             'rows'           => $rows,
             'hasrows'        => count($rows) > 0,
             'rowcount'       => count($rows),
             'maxbatches'     => $maxbatches,
             'canrollback'    => $canrollback,
+            'batchrows'      => $rows,
+            'hasbatchrows'   => count($rows) > 0,
+            'batchcount'     => count($rows),
+            'hasrollbackresult' => false,
+            'rollbackurl'    => (new \moodle_url(
+                '/local/coursectrl/rollback.php',
+                ['courseid' => $this->courseid, 'sesskey' => sesskey()]
+            ))->out(false),
             'dashboardurl'   => (new \moodle_url(
                 '/local/coursectrl/index.php',
                 ['courseid' => $this->courseid]

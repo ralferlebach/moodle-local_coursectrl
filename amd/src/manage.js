@@ -57,23 +57,28 @@ define([], function() {
             });
         }
 
-        // Per-section toggle.
-        var sectionToggles = root.querySelectorAll('[data-action="toggle-section"]');
-        sectionToggles.forEach(function(btn) {
+        // Per-section select all.
+        root.querySelectorAll('[data-action="select-section"]').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var sectionId = btn.getAttribute('data-sectionid');
                 var checkboxes = root.querySelectorAll(
                     'input[name="cmids[]"][data-sectionid="' + sectionId + '"]:not(:disabled)'
                 );
-                // Determine target state: if any unchecked, check all; otherwise uncheck all.
-                var anyUnchecked = false;
                 checkboxes.forEach(function(cb) {
-                    if (!cb.checked) {
-                        anyUnchecked = true;
-                    }
+                    cb.checked = true;
                 });
+            });
+        });
+
+        // Per-section deselect all.
+        root.querySelectorAll('[data-action="deselect-section"]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var sectionId = btn.getAttribute('data-sectionid');
+                var checkboxes = root.querySelectorAll(
+                    'input[name="cmids[]"][data-sectionid="' + sectionId + '"]'
+                );
                 checkboxes.forEach(function(cb) {
-                    cb.checked = anyUnchecked;
+                    cb.checked = false;
                 });
             });
         });

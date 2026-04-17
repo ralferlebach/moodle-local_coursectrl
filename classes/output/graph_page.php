@@ -45,13 +45,19 @@ class graph_page implements renderable, templatable {
     /** @var inventory_snapshot */
     protected inventory_snapshot $snapshot;
 
+    /** @var array UI filter state. */
+    protected array $filters;
+
     /**
      * Constructor.
      *
      * @param inventory_snapshot $snapshot Course inventory snapshot.
      */
-    public function __construct(inventory_snapshot $snapshot) {
+    public function __construct(inventory_snapshot $snapshot, array $filters = []) {
         $this->snapshot = $snapshot;
+        $this->filters = array_merge([
+            'hideindependents' => false,
+        ], $filters);
     }
 
     /**
@@ -100,6 +106,14 @@ class graph_page implements renderable, templatable {
             'graphnodecount' => $graphdata['nodecount'],
             'graphedgecount' => $graphdata['edgecount'],
             'ganttrowcount' => $ganttdata['rowcount'],
+            'graphurl' => (new \moodle_url(
+                '/local/coursectrl/graph.php',
+                ['courseid' => $courseid]
+            ))->out(false),
+            'hideindependents' => !empty($this->filters['hideindependents']),
+            'groupoptions' => [],
+            'hasgroupoptions' => false,
+            'activegroupid' => 0,
             'dashboardurl' => (new \moodle_url(
                 '/local/coursectrl/index.php',
                 ['courseid' => $courseid]

@@ -29,8 +29,6 @@
 
 namespace local_coursectrl\local\analysis;
 
-use local_coursectrl\manager\calendar_manager;
-
 /**
  * Stateless builder: date entries → calendar grid.
  */
@@ -47,24 +45,21 @@ class calendar_grid_builder {
      *   - count: int (number of entries on this day)
      *   - entries: array (per-entry summary for tooltip)
      *   - ispast: bool
-     *   - isholiday: bool (marked by any enabled calendar provider)
+     *   - istoday: bool
+     *   - isholiday: bool    (requires calman parameter)
      *   - isschoolholiday: bool
-     *   - holidaynames: array of {name, category} for tooltip
+     *   - hasholidays: bool
+     *   - holidaynames: array
+     * Month objects additionally contain: monthlabel, monthkey, iscurrentmonth.
      *
      * @param int                  $startdate Course start date (unix timestamp).
      * @param int|null             $enddate   Course end date, 0 or null = startdate + 6 months.
      * @param array                $entries   Date entries from date_collector::collect().
      * @param int                  $now       Reference time for 'ispast' flag.
-     * @param calendar_manager|null $calman   Optional calendar manager for holiday markers.
+     * @param \local_coursectrl\manager\calendar_manager|null $calman Optional for holiday markers.
      * @return array[] List of month blocks.
      */
-    public function build(
-        int $startdate,
-        ?int $enddate,
-        array $entries,
-        int $now,
-        ?calendar_manager $calman = null
-    ): array {
+    public function build(int $startdate, ?int $enddate, array $entries, int $now, ?\local_coursectrl\manager\calendar_manager $calman = null): array {
         if ($startdate <= 0) {
             $startdate = $now;
         }
@@ -82,7 +77,7 @@ class calendar_grid_builder {
             $byday[$daykey][] = $entry;
         }
 
-        // Load holiday data for the full range when a calendar manager is available.
+        // Load holiday data when a calendar manager is provided.
         $holidays = [];
         if ($calman !== null) {
             $holidays = $calman->get_holidays_for_range($startdate, $enddate);
@@ -106,7 +101,6 @@ class calendar_grid_builder {
      * @param int   $monthstart First-of-month timestamp at midnight.
      * @param array $byday      Entries grouped by Y-m-d.
      * @param int   $now        Reference time for ispast flag.
-     * @param array $holidays   Holiday map keyed by Y-m-d from calendar_manager.
      * @return array Month block with label and weeks.
      */
     private function build_month(int $monthstart, array $byday, int $now, array $holidays = []): array {
@@ -150,35 +144,31 @@ class calendar_grid_builder {
                     'time' => date('H:i', $entry['timestamp']),
                 ];
             }
-            // Holiday markers.
-            $dayholidays = $holidays[$daykey] ?? [];
-            $isholiday = false;
-            $isschoolholiday = false;
-            $holidaynames = [];
+            // Holiday markers from optional calendar_manager data.
+            $dayholidays   = $holidays[$daykey] ?? [];
+            $isholiday     = !empty($dayholidays);
+            $isschoolhol   = false;
+            $holidaynames  = [];
             foreach ($dayholidays as $hevent) {
-                $isholiday = true;
                 if (($hevent['category'] ?? '') === 'school_holiday') {
-                    $isschoolholiday = true;
+                    $isschoolhol = true;
                 }
-                $holidaynames[] = [
-                    'name' => $hevent['name'],
-                    'category' => $hevent['category'] ?? 'custom',
-                ];
+                $holidaynames[] = ['name' => $hevent['name']];
             }
             $cells[] = [
-                'day' => $d,
-                'inmonth' => true,
-                'timestamp' => $dayts,
-                'daykey' => $daykey,
-                'count' => count($entries),
-                'hasentries' => count($entries) > 0,
-                'entries' => $tooltip,
-                'ispast' => ($dayts + 86400) < $now,
-                'istoday' => date('Y-m-d', $now) === $daykey,
-                'isholiday' => $isholiday,
-                'isschoolholiday' => $isschoolholiday,
-                'hasholidays' => !empty($dayholidays),
-                'holidaynames' => $holidaynames,
+                'day'            => $d,
+                'inmonth'        => true,
+                'timestamp'      => $dayts,
+                'daykey'         => $daykey,
+                'count'          => count($entries),
+                'hasentries'     => count($entries) > 0,
+                'entries'        => $tooltip,
+                'ispast'         => ($dayts + 86400) < $now,
+                'istoday'        => date('Y-m-d', $now) === $daykey,
+                'isholiday'      => $isholiday,
+                'isschoolholiday' => $isschoolhol,
+                'hasholidays'    => $isholiday,
+                'holidaynames'   => $holidaynames,
             ];
         }
 
@@ -197,14 +187,17 @@ class calendar_grid_builder {
         // Chunk into weeks of 7.
         $weeks = [];
         foreach (array_chunk($cells, 7) as $row) {
-            $weeks[] = ['cells' => $row];
+            $weeks[] = ['days' => $row];
         }
 
         return [
-            'year' => $year,
-            'month' => $month,
-            'label' => userdate($monthstart, get_string('strftimemonthyear', 'core_langconfig')),
-            'weeks' => $weeks,
+            'year'           => $year,
+            'month'          => $month,
+            'label'          => userdate($monthstart, get_string('strftimemonthyear', 'core_langconfig')),
+            'monthlabel'     => userdate($monthstart, get_string('strftimemonthyear', 'core_langconfig')),
+            'monthkey'       => date('Y-m', $monthstart),
+            'iscurrentmonth' => (date('Y-m') === date('Y-m', $monthstart)),
+            'weeks'          => $weeks,
         ];
     }
 }

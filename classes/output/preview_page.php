@@ -99,6 +99,9 @@ class preview_page implements renderable, templatable {
                     'shifted' => $shifted,
                     'isunset' => $reason === 'unset',
                     'reason' => $reason,
+                    'cmrowspan' => count($change->get_fields()),
+                    'component' => $change->get_component(),
+                    'name' => $change->get_name(),
                 ];
             }
             if (!empty($fieldrows)) {
@@ -140,8 +143,9 @@ class preview_page implements renderable, templatable {
         $deltalabel = '';
         if ($this->action === 'shift_dates' && isset($this->payload['delta'])) {
             $deltaseconds = (int)$this->payload['delta'];
-            $days = intdiv($deltaseconds, 86400);
-            $hours = intdiv($deltaseconds % 86400, 3600);
+            $absseconds = abs($deltaseconds);
+            $days = intdiv($absseconds, 86400);
+            $hours = intdiv($absseconds % 86400, 3600);
             $parts = [];
             if ($days !== 0) {
                 $parts[] = $days . ' ' . get_string('days');
@@ -150,11 +154,12 @@ class preview_page implements renderable, templatable {
                 $parts[] = $hours . ' ' . get_string('hours');
             }
             $deltalabel = implode(', ', $parts);
-            if ($deltaseconds > 0) {
-                $deltalabel = '+' . $deltalabel;
-            }
-            if ($deltaseconds === 0) {
+            if ($deltalabel === '') {
                 $deltalabel = '0';
+            } else if ($deltaseconds > 0) {
+                $deltalabel = '+' . $deltalabel;
+            } else if ($deltaseconds < 0) {
+                $deltalabel = '-' . $deltalabel;
             }
         }
 

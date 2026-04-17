@@ -27,9 +27,14 @@ require_once(__DIR__ . '/../../config.php');
 use local_coursectrl\local\navigation\navigation_builder;
 
 $courseid     = required_param('courseid', PARAM_INT);
-$showpast     = optional_param('showpast', 1, PARAM_INT);
+$showpast_get = optional_param('showpast', null, PARAM_INT);
 $onlywithdeps = optional_param('onlywithdeps', 0, PARAM_INT);
 $components   = optional_param_array('components', [], PARAM_COMPONENT);
+$tab          = optional_param('tab', 'timeline', PARAM_ALPHA);
+$deltadays    = optional_param('delta_days', 0, PARAM_INT);
+$deltahours   = optional_param('delta_hours', 0, PARAM_INT);
+$fromshift    = optional_param('from_shift', 0, PARAM_INT);
+$shiftbatchid = optional_param('batchid', 0, PARAM_INT);
 
 $course = get_course($courseid);
 $context = context_course::instance($courseid);
@@ -56,6 +61,14 @@ $PAGE->navbar->add(get_string('timeline_title', 'local_coursectrl'));
 $showcalendar   = (bool) get_user_preferences('local_coursectrl_showcalendar', 1);
 $immediateapply = (bool) get_user_preferences('local_coursectrl_immediateapply', 0);
 
+// showpast: if submitted via form, persist the new value; otherwise read preference.
+if ($showpast_get !== null) {
+    set_user_preference('local_coursectrl_showpast', (int) $showpast_get);
+    $showpast = (bool) $showpast_get;
+} else {
+    $showpast = (bool) get_user_preferences('local_coursectrl_showpast', 1);
+}
+
 $service = new \local_coursectrl\local\inventory\inventory_service();
 $snapshot = $service->build_for_course($courseid);
 
@@ -65,6 +78,11 @@ $filters = [
     'components' => $components,
     'showcalendar' => $showcalendar,
     'immediateapply' => $immediateapply,
+    'tab' => $tab,
+    'textreview_delta_days' => $deltadays,
+    'textreview_delta_hours' => $deltahours,
+    'from_shift' => (bool) $fromshift,
+    'shift_batchid' => $shiftbatchid,
 ];
 
 $renderable = new \local_coursectrl\output\timeline_page($snapshot, $filters);

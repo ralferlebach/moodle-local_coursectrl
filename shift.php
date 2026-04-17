@@ -38,6 +38,8 @@ $followdeps = optional_param('followdeps', 0, PARAM_INT);
 $deltadays  = optional_param('delta_days', 0, PARAM_INT);
 $deltahours = optional_param('delta_hours', 0, PARAM_INT);
 $fieldsraw  = optional_param('fields', '', PARAM_RAW);
+$scantext   = optional_param('scan_text', 0, PARAM_INT);
+$formatjson = optional_param('format', '', PARAM_ALPHA) === 'json';
 
 $course = get_course($courseid);
 $context = context_course::instance($courseid);
@@ -104,6 +106,11 @@ if ($actiontype === 'shift_dates') {
 }
 
 if ($nothingtodo) {
+    if ($formatjson) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'error' => 'nothing_to_do']);
+        exit;
+    }
     echo $OUTPUT->header();
     echo $OUTPUT->heading(get_string('result_title', 'local_coursectrl'), 2);
     echo $OUTPUT->notification(
@@ -133,9 +140,57 @@ foreach ($items as $item) {
     }
 }
 
+// JSON response path (AJAX calls from timeline.js).
+// Returns shift result only — the caller handles scanning and text review.
+if ($formatjson) {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => $summary['error'] === 0,
+        'batchid' => $batchid,
+        'summary' => $summary,
+    ]);
+    exit;
+}
+
 // Immediate-apply flow: if the user's preference is set and there were no
 // errors, redirect silently back to the timeline with a success message.
 $immediateapply = (bool) get_user_preferences('local_coursectrl_immediateapply', 0);
+
+// If scan_text is requested (and shift succeeded), run text analysis and
+// redirect to the Textprüfung tab so the user can review text date references.
+if (
+    $scantext
+    && $actiontype === 'shift_dates'
+    && $summary['error'] === 0
+    && $batch->get('status') === 'executed'
+) {
+    $textmanager = new \local_coursectrl\manager\textreview_manager();
+    $textmanager->scan_course($courseid);
+
+    // Build list of collision warnings from error/skipped batch items.
+    $collisionnotices = [];
+    foreach ($items as $item) {
+        if ($item->get('status') === \local_coursectrl\local\persistent\batch_item::STATUS_ERROR) {
+            $resultraw = $item->get('resultjson');
+            $result = $resultraw ? json_decode($resultraw, true) : [];
+            $collisionnotices[] = $result['message'] ?? get_string('shift_collision_generic', 'local_coursectrl');
+        }
+    }
+    // Store collision notices in session so timeline_page can read them.
+    if (!empty($collisionnotices)) {
+        $_SESSION['coursectrl_collisions_' . $batchid] = json_encode($collisionnotices);
+    }
+
+    redirect(new \moodle_url('/local/coursectrl/timeline.php', [
+        'courseid'   => $courseid,
+        'tab'        => 'textreview',
+        'delta_days' => $deltadays,
+        'delta_hours' => $deltahours,
+        'batchid'    => $batchid,
+        'from_shift' => 1,
+    ]));
+}
+
 if ($immediateapply && $summary['error'] === 0 && $batch->get('status') === 'executed') {
     redirect(
         $timelineurl,

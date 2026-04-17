@@ -55,7 +55,7 @@ $PAGE->navbar->add(
     new moodle_url('/local/coursectrl/index.php', ['courseid' => $courseid])
 );
 $PAGE->navbar->add(
-    get_string('nav_bulk', 'local_coursectrl'),
+    get_string('nav_manage', 'local_coursectrl'),
     new moodle_url('/local/coursectrl/manage.php', ['courseid' => $courseid])
 );
 $PAGE->navbar->add(get_string('result_title', 'local_coursectrl'));

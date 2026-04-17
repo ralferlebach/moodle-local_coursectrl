@@ -115,10 +115,16 @@
                                     {{#hasname}}<span class="text-muted ml-2">{{name}}</span>{{/hasname}}
                                 </strong>
                                 {{#hassupported}}
-                                    <button type="button" class="btn btn-sm btn-link"
-                                            data-action="toggle-section" data-sectionid="{{id}}">
-                                        {{#str}}manage_toggle_section, local_coursectrl{{/str}}
-                                    </button>
+                                    <span class="d-flex gap-1">
+                                        <button type="button" class="btn btn-sm btn-link py-0"
+                                                data-action="select-section" data-sectionid="{{id}}">
+                                            {{#str}}manage_select_all_section, local_coursectrl{{/str}}
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-link py-0 text-secondary"
+                                                data-action="deselect-section" data-sectionid="{{id}}">
+                                            {{#str}}manage_deselect_all_section, local_coursectrl{{/str}}
+                                        </button>
+                                    </span>
                                 {{/hassupported}}
                             </div>
                             {{#hascms}}
@@ -127,7 +133,7 @@
                                         <input type="checkbox" class="form-check-input"
                                                name="cmids[]" value="{{cmid}}"
                                                id="coursectrl-cm-{{cmid}}"
-                                               data-sectionid="{{../id}}"
+                                               data-sectionid="{{sectionid}}"
                                                {{^supported}}disabled{{/supported}}
                                                {{#supported}}checked{{/supported}}>
                                         <label class="form-check-label {{^supported}}text-muted{{/supported}}"

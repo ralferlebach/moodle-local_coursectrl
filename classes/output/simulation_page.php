@@ -28,6 +28,7 @@
 
 namespace local_coursectrl\output;
 
+use local_coursectrl\local\analysis\group_resolver;
 use local_coursectrl\local\inventory\inventory_snapshot;
 use local_coursectrl\local\simulation\condition_evaluator;
 use local_coursectrl\local\simulation\learner_state;
@@ -84,12 +85,15 @@ class simulation_page implements renderable, templatable {
             $cmformrows[] = [
                 'cmid' => $cm->id,
                 'name' => $cm->name,
+                'cmname' => $cm->name,
                 'modname' => $cm->modname,
+                'modicon' => $cm->modname,
                 'hascompletion' => $cm->completion > 0,
                 'completionlabel' => $completionlabel,
                 'assumed_complete' => $assumed >= 1,
                 'assumed_pass' => $assumed === 2,
                 'assumed_fail' => $assumed === 3,
+                'iscomplete' => $assumed >= 1,
             ];
         }
 
@@ -98,9 +102,16 @@ class simulation_page implements renderable, templatable {
         $simdate = date('Y-m-d', $simts);
         $simtime = date('H:i', $simts);
 
-        // Group / grouping inputs (comma-separated for simplicity).
-        $groupids = $this->state ? implode(',', $this->state->groupids) : '';
-        $groupingids = $this->state ? implode(',', $this->state->groupingids) : '';
+        // Group / grouping selections for the scenario form.
+        $resolver = new group_resolver($courseid);
+        $coursegroups = array_map(function(array $group): array {
+            $group['selected'] = $this->state ? in_array((int) $group['id'], $this->state->groupids, true) : false;
+            return $group;
+        }, $resolver->get_groups_for_template());
+        $coursegroupings = array_map(function(array $grouping): array {
+            $grouping['selected'] = $this->state ? in_array((int) $grouping['id'], $this->state->groupingids, true) : false;
+            return $grouping;
+        }, $resolver->get_groupings_for_template());
 
         // Run simulation if state provided.
         $hasresults = $this->state !== null;
@@ -160,8 +171,13 @@ class simulation_page implements renderable, templatable {
                 $nextsteprows[] = [
                     'cmid' => $cmid,
                     'name' => $cms[$cmid]->name ?? 'cmid ' . $cmid,
+                    'cmname' => $cms[$cmid]->name ?? 'cmid ' . $cmid,
                     'modname' => $cms[$cmid]->modname ?? '',
                     'url' => (new \moodle_url(
+                        '/mod/' . ($cms[$cmid]->modname ?? 'assign') . '/view.php',
+                        ['id' => $cmid]
+                    ))->out(false),
+                    'cmurl' => (new \moodle_url(
                         '/mod/' . ($cms[$cmid]->modname ?? 'assign') . '/view.php',
                         ['id' => $cmid]
                     ))->out(false),
@@ -173,6 +189,11 @@ class simulation_page implements renderable, templatable {
                 $blockedrows[] = [
                     'cmid' => $cmid,
                     'name' => $cms[$cmid]->name ?? 'cmid ' . $cmid,
+                    'cmname' => $cms[$cmid]->name ?? 'cmid ' . $cmid,
+                    'cmurl' => (new \moodle_url(
+                        '/mod/' . ($cms[$cmid]->modname ?? 'assign') . '/view.php',
+                        ['id' => $cmid]
+                    ))->out(false),
                 ];
             }
         }
@@ -187,8 +208,10 @@ class simulation_page implements renderable, templatable {
             'simdate' => $simdate,
             'simtime' => $simtime,
             'simts' => $simts,
-            'groupids' => $groupids,
-            'groupingids' => $groupingids,
+            'coursegroups' => $coursegroups,
+            'hascoursegroups' => count($coursegroups) > 0,
+            'coursegroupings' => $coursegroupings,
+            'hascoursegroupings' => count($coursegroupings) > 0,
             'resultrows' => $resultrows,
             'hasresultrows' => count($resultrows) > 0,
             'nextsteprows' => $nextsteprows,

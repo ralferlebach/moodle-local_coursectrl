@@ -76,10 +76,13 @@ $string['manage_select_activities']            = 'Aktivitäten auswählen';
 $string['manage_select_all']                   = 'Alle unterstützten auswählen';
 $string['manage_supported_hint']               = 'Unterstützte Aktivitäten mit registriertem Adapter:';
 $string['manage_toggle_section']               = 'Abschnitt umschalten';
+$string['manage_select_all_section']           = 'alle wählen';
+$string['manage_deselect_all_section']         = 'alle abwählen';
 $string['manage_unsupported']                  = 'kein Adapter';
 $string['nav_bulk']                            = 'Massenaktionen';
 $string['nav_dashboard']                       = 'Dashboard';
-$string['nav_graph']                           = 'Abhängigkeitsgraph';
+$string['nav_dependencies']                    = 'Abhängigkeiten';
+$string['nav_graph']                           = 'Abhängigkeiten';
 $string['nav_history'] = 'Logs & Historie';
 $string['nav_risks']                           = 'Risiken';
 $string['nav_simulation'] = 'Plausibilitäts- und Kollisionsprüfung';
@@ -252,6 +255,10 @@ $string['tab_textreview'] = 'Textprüfung';
 $string['tab_timeline'] = 'Terminübersicht';
 $string['textreview_hint'] = 'Die Textprüfung durchsucht Aktivitätsbeschreibungen und Labels nach Datumsangaben.';
 $string['textreview_open'] = 'Textprüfung öffnen';
+$string['textreview_workflow_hint_title'] = 'Textprüfung nach Terminverschiebung';
+$string['textreview_workflow_hint'] = 'Hier können Sie erkannte Datumsangaben in Freitexten prüfen und gemeinsam mit Terminverschiebungen aktualisieren.';
+$string['textreview_collision_warning'] = 'Kollisionswarnung: Bitte prüfen Sie die folgenden Konflikte vor der Anwendung:';
+$string['textreview_delta_days'] = 'Tage';
 $string['toggle_past'] = 'Vergangene ein-/ausblenden';
 $string['unknownuser'] = 'Unbekannter Nutzer';
 $string['weekend'] = 'Wochenende';
@@ -300,3 +307,27 @@ $string['settings_useroverride_calendar'] = 'Nutzer dürfen Kalender-Sichtbarkei
 $string['settings_useroverride_desc'] = 'Wenn aktiviert, können Nutzer diese siteweite Voreinstellung in ihrer Sitzung überschreiben.';
 $string['settings_useroverride_immediateapply'] = 'Nutzer dürfen Sofort-Anwenden-Einstellung ändern';
 $string['sim_completions'] = 'Abschlüsse';
+
+$string['sim_groups'] = 'Gruppen';
+$string['sim_groupings'] = 'Gruppierungen';
+$string['timeline_filter_group'] = 'Gruppe';
+$string['timeline_filter_group_none'] = 'Alle Gruppen';
+$string['timeline_action_delete_entry'] = 'Dieses Datumsfeld löschen';
+$string['timeline_shift_heading'] = 'Termine verschieben';
+$string['timeline_shift_following_heading'] = 'Diese + alle Folgetermine verschieben';
+$string['timeline_shift_days'] = 'Tage';
+$string['timeline_shift_hours'] = 'Stunden';
+$string['timeline_shift_apply'] = 'Verschiebung anwenden';
+$string['timeline_delete_heading'] = 'Datum löschen';
+
+$string['rollback_success'] = 'Rollback erfolgreich abgeschlossen.';
+$string['rollback_failed'] = 'Rollback fehlgeschlagen';
+
+$string['shift_immediate_apply'] = 'Änderungen sofort anwenden';
+// Strings added in 0.1.42 – Textprüfungs-Workflow.
+$string['shift_scan_text']         = 'Textprüfung nach Verschiebung anzeigen';
+$string['shift_done']              = 'Terminverschiebung erfolgreich ausgeführt';
+$string['shift_collision_generic'] = 'Terminkonflikt erkannt (Details im Protokoll)';
+// Strings added in 0.1.43 -- AJAX shift dialog.
+$string['shift_ajax_skip']         = 'Ohne Textaenderungen schliessen';
+$string['shift_ajax_review_apply'] = 'Ausgewaehlte Textaenderungen anwenden';

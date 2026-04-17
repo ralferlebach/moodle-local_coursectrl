@@ -81,6 +81,7 @@ class manage_page implements renderable, templatable {
                 'component' => $cm->get_component(),
                 'visible' => $cm->visible,
                 'supported' => $issupported,
+                'sectionid' => $cm->sectionid,
             ];
         }
 

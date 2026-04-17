@@ -101,6 +101,11 @@ define([], function() {
         var edges = data.edges;
         var nodeIndex = {};
         nodes.forEach(function(n) { nodeIndex[n.id] = n; });
+        var connected = {};
+        edges.forEach(function(edge) {
+            connected[edge.from] = true;
+            connected[edge.to] = true;
+        });
 
         var layerCounts = {};
         nodes.forEach(function(n) {
@@ -161,6 +166,10 @@ define([], function() {
                 sw = '2';
             }
 
+            var group = svgEl('g', {
+                'class': 'coursectrl-node',
+                'data-independent': connected[node.id] ? '0' : '1'
+            });
             var a = svgEl('a', {href: node.url, target: '_blank'});
             a.appendChild(svgEl('rect', {x: rx, y: ry, width: NODE_W, height: NODE_H,
                 rx: '5', fill: fill, stroke: stroke, 'stroke-width': sw, cursor: 'pointer'}));
@@ -179,7 +188,8 @@ define([], function() {
             sub.textContent = node.modname;
             a.appendChild(sub);
 
-            svg.appendChild(a);
+            group.appendChild(a);
+            svg.appendChild(group);
         });
 
         canvas.innerHTML = '';
@@ -285,6 +295,7 @@ define([], function() {
         canvas.querySelectorAll('.coursectrl-node').forEach(function(node) {
             var independent = node.getAttribute('data-independent') === '1';
             if (independent) {
+                node.style.display = hide ? 'none' : '';
                 node.style.opacity = hide ? '0' : '0.35';
                 node.style.pointerEvents = hide ? 'none' : '';
             }
@@ -336,5 +347,12 @@ define([], function() {
             }
             initFilters(root);
         },
+        /**
+         * Render a Gantt chart into the given element.
+         * The element must have a data-gantt attribute with JSON.
+         *
+         * @param {HTMLElement} canvas Container element with data-gantt attribute.
+         */
+        renderGantt: renderGantt,
     };
 });

@@ -60,15 +60,15 @@
         <label class="form-label mb-1 small fw-semibold text-nowrap">
           {{#str}} sim_groups, local_coursectrl {{/str}}
         </label>
-        <div class="dropdown">
+        <div class="position-relative d-inline-block" data-region="local_coursectrl-simdropdown">
           <button type="button"
-                  class="btn btn-sm btn-outline-secondary dropdown-toggle"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                  data-bs-auto-close="outside">
+                  class="btn btn-sm btn-outline-secondary"
+                  data-action="toggle-simdropdown">
             {{#str}} sim_select_groups, local_coursectrl {{/str}}
           </button>
-          <ul class="dropdown-menu p-2" style="min-width:200px">
+          <ul class="position-absolute bg-white border rounded shadow-sm p-2 mt-1 d-none"
+              data-region="local_coursectrl-simdropdown-menu"
+              style="z-index:1050;min-width:200px;list-style:none;margin:0">
             {{#coursegroups}}
             <li class="form-check ps-2">
               <input class="form-check-input" type="checkbox"
@@ -87,15 +87,15 @@
         <label class="form-label mb-1 small fw-semibold text-nowrap">
           {{#str}} sim_groupings, local_coursectrl {{/str}}
         </label>
-        <div class="dropdown">
+        <div class="position-relative d-inline-block" data-region="local_coursectrl-simdropdown">
           <button type="button"
-                  class="btn btn-sm btn-outline-secondary dropdown-toggle"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                  data-bs-auto-close="outside">
+                  class="btn btn-sm btn-outline-secondary"
+                  data-action="toggle-simdropdown">
             {{#str}} sim_select_groupings, local_coursectrl {{/str}}
           </button>
-          <ul class="dropdown-menu p-2" style="min-width:200px">
+          <ul class="position-absolute bg-white border rounded shadow-sm p-2 mt-1 d-none"
+              data-region="local_coursectrl-simdropdown-menu"
+              style="z-index:1050;min-width:200px;list-style:none;margin:0">
             {{#coursegroupings}}
             <li class="form-check ps-2">
               <input class="form-check-input" type="checkbox"
@@ -114,21 +114,21 @@
         <label class="form-label mb-1 small fw-semibold text-nowrap">
           {{#str}} sim_completions, local_coursectrl {{/str}}
         </label>
-        <div class="dropdown">
+        <div class="position-relative d-inline-block" data-region="local_coursectrl-simdropdown">
           <button type="button"
-                  class="btn btn-sm btn-outline-secondary dropdown-toggle"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                  data-bs-auto-close="outside">
+                  class="btn btn-sm btn-outline-secondary"
+                  data-action="toggle-simdropdown">
             {{#str}} sim_set_completions, local_coursectrl {{/str}}
           </button>
-          <ul class="dropdown-menu p-2" style="min-width:260px;max-height:300px;overflow-y:auto">
+          <ul class="position-absolute bg-white border rounded shadow-sm p-2 mt-1 d-none"
+              data-region="local_coursectrl-simdropdown-menu"
+              style="z-index:1050;min-width:260px;max-height:300px;overflow-y:auto;list-style:none;margin:0;padding-left:0">
             {{#cmformrows}}
-            <li class="form-check ps-2 mb-1">
-              <input class="form-check-input" type="checkbox"
+            <li class="d-flex align-items-center gap-2 mb-1 px-2">
+              <input class="form-check-input flex-shrink-0" type="checkbox"
                      name="completions[{{cmid}}]" value="1"
                      id="simcm-{{cmid}}"{{#iscomplete}} checked{{/iscomplete}}>
-              <label class="form-check-label small" for="simcm-{{cmid}}">
+              <label class="form-check-label small mb-0" for="simcm-{{cmid}}">
                 <i class="fa fa-{{modicon}} fa-fw text-muted"></i> {{cmname}}
               </label>
             </li>
@@ -197,6 +197,61 @@
     {{/blockedrows}}
   </ul>
   {{/hasblockedrows}}
+  {{#hasresultrows}}
+  <div class="card mb-3">
+    <div class="card-header py-2">
+      <strong>{{#str}} sim_result_all, local_coursectrl {{/str}}</strong>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead>
+          <tr>
+            <th>{{#str}} sim_col_activity, local_coursectrl {{/str}}</th>
+            <th>{{#str}} sim_col_tracking, local_coursectrl {{/str}}</th>
+            <th>{{#str}} sim_col_complete, local_coursectrl {{/str}}</th>
+            <th>{{#str}} sim_col_accessible, local_coursectrl {{/str}}</th>
+            <th>{{#str}} sim_col_reasons, local_coursectrl {{/str}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#resultrows}}
+          <tr>
+            <td><a href="{{url}}" target="_blank" rel="noopener noreferrer">{{name}}</a> <code class="small text-muted">{{modname}}</code></td>
+            <td>{{#teacher_visible}}{{#str}} yes, core {{/str}}{{/teacher_visible}}{{^teacher_visible}}{{#str}} no, core {{/str}}{{/teacher_visible}}</td>
+            <td>
+              {{#status_pass}}<span class="badge bg-success">{{status}}</span>{{/status_pass}}
+              {{#status_fail}}<span class="badge bg-danger">{{status}}</span>{{/status_fail}}
+              {{#status_unknown}}<span class="badge bg-secondary">{{status}}</span>{{/status_unknown}}
+            </td>
+            <td>
+              {{#accessible}}<span class="badge bg-success">{{#str}} yes, core {{/str}}</span>{{/accessible}}
+              {{^accessible}}<span class="badge bg-danger">{{#str}} no, core {{/str}}</span>{{/accessible}}
+              {{#isnextstep}} <span class="badge bg-info">{{#str}} sim_badge_next, local_coursectrl {{/str}}</span>{{/isnextstep}}
+              {{#isblocked}} <span class="badge bg-warning text-dark">{{#str}} sim_badge_blocked, local_coursectrl {{/str}}</span>{{/isblocked}}
+            </td>
+            <td>
+              {{#hasreasons}}
+                <ul class="mb-0 small ps-3">
+                  {{#reasons}}
+                  <li>{{label}}</li>
+                  {{/reasons}}
+                </ul>
+              {{/hasreasons}}
+              {{^hasreasons}}<span class="text-muted small">–</span>{{/hasreasons}}
+            </td>
+          </tr>
+          {{/resultrows}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {{/hasresultrows}}
   {{/hasresults}}
 
 </div>
+
+{{#js}}
+require(['local_coursectrl/simulation'], function(S) {
+    S.init(document.querySelector('[data-region="local_coursectrl-simulation"]'));
+});
+{{/js}}

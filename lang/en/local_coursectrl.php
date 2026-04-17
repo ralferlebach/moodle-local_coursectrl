@@ -76,6 +76,8 @@ $string['manage_select_activities']            = 'Select activities';
 $string['manage_select_all']                   = 'Select all supported';
 $string['manage_supported_hint']               = 'Supported activities with a registered adapter:';
 $string['manage_toggle_section']               = 'Toggle section';
+$string['manage_select_all_section']           = 'select all';
+$string['manage_deselect_all_section']         = 'deselect all';
 $string['manage_unsupported']                  = 'no adapter';
 $string['nav_bulk']                            = 'Bulk Actions';
 $string['nav_dashboard']                       = 'Dashboard';
@@ -300,3 +302,34 @@ $string['settings_useroverride_calendar'] = 'Users may change calendar visibilit
 $string['settings_useroverride_desc'] = 'When enabled, users can override this site-wide default in their own session.';
 $string['settings_useroverride_immediateapply'] = 'Users may change immediate-apply preference';
 $string['sim_completions'] = 'Completions';
+
+$string['sim_groups'] = 'Groups';
+$string['sim_groupings'] = 'Groupings';
+$string['timeline_filter_group'] = 'Group';
+$string['timeline_filter_group_none'] = 'All groups';
+$string['timeline_action_delete_entry'] = 'Delete this date field';
+$string['timeline_shift_heading'] = 'Shift dates';
+$string['timeline_shift_days'] = 'Days';
+$string['timeline_shift_hours'] = 'Hours';
+$string['timeline_shift_apply'] = 'Apply shift';
+$string['timeline_delete_heading'] = 'Delete date';
+
+$string['rollback_success'] = 'Rollback completed successfully.';
+$string['rollback_failed'] = 'Rollback failed';
+
+$string['shift_immediate_apply'] = 'Apply changes immediately';
+
+// Strings added in 0.1.41.
+$string['nav_dependencies']                    = 'Dependencies';
+$string['timeline_shift_following_heading']    = 'Shift this and all following dates';
+$string['textreview_workflow_hint_title']      = 'Text review after date shift';
+$string['textreview_workflow_hint']            = 'Review detected date references in free-text fields and update them alongside your date shifts.';
+$string['textreview_collision_warning']        = 'Collision warning: Please review the following conflicts before applying:';
+$string['textreview_delta_days']               = 'Days';
+// Strings added in 0.1.42 – text-review workflow.
+$string['shift_scan_text']         = 'Show text review after shift';
+$string['shift_done']              = 'Date shift applied successfully';
+$string['shift_collision_generic'] = 'Date conflict detected (see log for details)';
+// Strings added in 0.1.43 -- AJAX shift dialog.
+$string['shift_ajax_skip']         = 'Close without text changes';
+$string['shift_ajax_review_apply'] = 'Apply selected text changes';

@@ -35,7 +35,7 @@ $courseid = required_param('courseid', PARAM_INT);
 $course = get_course($courseid);
 $context = context_course::instance($courseid);
 require_login($course);
-require_capability('local/coursectrl:view', $context);
+require_capability('local/coursectrl:bulkaction', $context);
 
 $PAGE->set_course($course);
 $PAGE->set_context($context);
@@ -43,7 +43,7 @@ $PAGE->set_url(new moodle_url('/local/coursectrl/manage.php', ['courseid' => $co
 $PAGE->set_title(
     format_string($course->fullname) . ' - ' .
     get_string('pluginname', 'local_coursectrl') . ' - ' .
-    get_string('nav_bulk', 'local_coursectrl')
+    get_string('nav_manage', 'local_coursectrl')
 );
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_pagelayout('incourse');
@@ -52,7 +52,7 @@ $PAGE->navbar->add(
     get_string('pluginname', 'local_coursectrl'),
     new moodle_url('/local/coursectrl/index.php', ['courseid' => $courseid])
 );
-$PAGE->navbar->add(get_string('nav_bulk', 'local_coursectrl'));
+$PAGE->navbar->add(get_string('nav_manage', 'local_coursectrl'));
 
 $service = new \local_coursectrl\local\inventory\inventory_service();
 $snapshot = $service->build_for_course($courseid);

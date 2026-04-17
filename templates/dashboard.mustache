@@ -37,12 +37,6 @@
                     <h2 class="h4 mb-0">{{coursefullname}}</h2>
                     <span class="text-muted small">{{courseshortname}}</span>
                 </div>
-
-{{#js}}
-require(['local_coursectrl/dashboard'], function(D) {
-    D.init(document.querySelector('[data-region="local_coursectrl-dashboard"]'));
-});
-{{/js}}
                 <div class="text-right small text-muted">
                     {{#userdate}}{{coursestartdate}}, {{#str}}strftimedaydate, core_langconfig{{/str}}{{/userdate}}
                     {{#hasenddate}} – {{#userdate}}{{courseenddate}}, {{#str}}strftimedaydate, core_langconfig{{/str}}{{/userdate}}{{/hasenddate}}
@@ -97,6 +91,8 @@ require(['local_coursectrl/dashboard'], function(D) {
         <button type="button"
                 class="btn btn-sm btn-outline-secondary mb-2"
                 data-action="toggle-calendar"
+                data-label-show="{{#str}}cal_show, local_coursectrl{{/str}}"
+                data-label-hide="{{#str}}cal_hide, local_coursectrl{{/str}}"
                 data-courseid="{{courseid}}">
             <i class="fa fa-calendar fa-fw"></i>
             <span data-cal-label>
@@ -109,10 +105,11 @@ require(['local_coursectrl/dashboard'], function(D) {
             <div class="d-flex flex-nowrap overflow-auto gap-2 pb-1"
                  data-region="local_coursectrl-calrow" style="-webkit-overflow-scrolling:touch">
                 {{#months}}
-                <div class="flex-shrink-0{{#iscurrentmonth}} rounded bg-success bg-opacity-10{{/iscurrentmonth}}"
-                     style="min-width:196px" data-monthkey="{{monthkey}}">
+                <div class="flex-shrink-0{{#iscurrentmonth}} rounded{{/iscurrentmonth}}"
+                     style="min-width:196px{{#iscurrentmonth}};background-color:rgb(215,228,214);border:1px solid rgb(198,218,198);border-radius:8px{{/iscurrentmonth}}"
+                     data-monthkey="{{monthkey}}">
                     <div class="text-center small fw-semibold py-1">
-                        <a href="{{timelineurl}}&tab=timeline#month-{{monthkey}}" class="text-decoration-none">{{monthlabel}}</a>
+                        <a href="{{timelineurl}}&tab=timeline" class="text-decoration-none">{{monthlabel}}</a>
                     </div>
                     {{#weeks}}
                     <div class="d-flex">
@@ -122,7 +119,7 @@ require(['local_coursectrl/dashboard'], function(D) {
                              {{#istoday}}border border-primary fw-bold{{/istoday}}
                              {{#isholiday}}bg-warning bg-opacity-25{{/isholiday}}"
                              style="min-width:1.55em;line-height:1.7em">
-                            {{#inmonth}}{{#hasentries}}<a href="{{timelineurl}}&tab=timeline&daykey={{daykey}}" target="_blank" rel="noopener" class="fw-bold">{{day}}</a>{{/hasentries}}{{^hasentries}}{{day}}{{/hasentries}}{{/inmonth}}
+                            {{#inmonth}}{{#hasentries}}<a href="{{timelineurl}}&tab=timeline#day-{{daykey}}" target="_blank" rel="noopener" class="fw-bold">{{day}}</a>{{/hasentries}}{{^hasentries}}{{day}}{{/hasentries}}{{/inmonth}}
                             {{^inmonth}}&nbsp;{{/inmonth}}
                         </div>
                         {{/days}}
@@ -165,7 +162,7 @@ require(['local_coursectrl/dashboard'], function(D) {
                                     </div>
                                     <div>
                                         <a href="{{editurl}}" class="btn btn-outline-secondary btn-sm py-0 px-1"
-                                           title="{{#str}}edit{{/str}}">✏️</a>
+                                           title="{{#str}}edit{{/str}}">{{#pix}}t/edit, core{{/pix}}</a>
                                     </div>
                                 </div>
 

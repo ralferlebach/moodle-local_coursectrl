@@ -99,7 +99,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
         // Find the cell for day 15.
         $targetday = null;
         foreach ($april['weeks'] as $week) {
-            foreach ($week['cells'] as $cell) {
+            foreach ($week['days'] as $cell) {
                 if ($cell['inmonth'] && $cell['day'] === 15) {
                     $targetday = $cell;
                     break 2;
@@ -125,7 +125,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
         $months = $builder->build($start, $end, [], $start);
 
         foreach ($months[0]['weeks'] as $week) {
-            $this->assertCount(7, $week['cells']);
+            $this->assertCount(7, $week['days']);
         }
     }
 
@@ -142,10 +142,10 @@ final class calendar_grid_builder_test extends \advanced_testcase {
         $months = $builder->build($start, $end, [], $start);
 
         $firstweek = $months[0]['weeks'][0];
-        $this->assertFalse($firstweek['cells'][0]['inmonth']);
-        $this->assertFalse($firstweek['cells'][1]['inmonth']);
-        $this->assertTrue($firstweek['cells'][2]['inmonth']);
-        $this->assertSame(1, $firstweek['cells'][2]['day']);
+        $this->assertFalse($firstweek['days'][0]['inmonth']);
+        $this->assertFalse($firstweek['days'][1]['inmonth']);
+        $this->assertTrue($firstweek['days'][2]['inmonth']);
+        $this->assertSame(1, $firstweek['days'][2]['day']);
     }
 
     /**
@@ -163,7 +163,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
 
         // Day 10 must be past, day 25 must be future.
         foreach ($months[0]['weeks'] as $week) {
-            foreach ($week['cells'] as $cell) {
+            foreach ($week['days'] as $cell) {
                 if ($cell['inmonth'] && $cell['day'] === 10) {
                     $this->assertTrue($cell['ispast']);
                 }
@@ -187,7 +187,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
         $months = $builder->build($start, $end, [], $now);
 
         foreach ($months[0]['weeks'] as $week) {
-            foreach ($week['cells'] as $cell) {
+            foreach ($week['days'] as $cell) {
                 if ($cell['inmonth'] && $cell['day'] === 15) {
                     $this->assertTrue($cell['istoday']);
                 }

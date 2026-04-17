@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_coursectrl';
-$plugin->version   = 2026041816;
+$plugin->version   = 2026041825;
 $plugin->requires  = 2024042200; // Moodle 4.5.
 $plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.40-fix2';
+$plugin->release   = '0.1.43-fix1';

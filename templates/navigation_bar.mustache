@@ -17,31 +17,108 @@
 {{!
     @template local_coursectrl/navigation_bar
 
-    Plugin-level tertiary navigation rendered as Moodle's core select_menu.
-    Visually identical to the Participants page (user/index.php) selector.
-    Non-clickable optgroup headers serve as section labels ("Einstellen", "Prüfen").
+    Plugin tertiary navigation selector.
+    Wrapping structure matches user/index.php (Participants page) exactly so
+    that Boost theme CSS applies identical styling.
 
     Context variables required for this template:
-    All variables expected by core/select_menu, plus:
-    * currenturl (string) — URL of the currently active page (for JS navigation)
+    * uid (string)         - unique ID prefix
+    * labelid (string)     - id for the label span
+    * listboxid (string)   - id for the ul listbox
+    * inputid (string)     - id for the hidden input
+    * activelabel (string) - display label of the currently active page
+    * activevalue (string) - URL of the currently active page
+    * groups (array)       - navigation groups and standalone options
 
     Example context (json):
-    {"currenturl":"https://example.com/local/coursectrl/timeline.php?courseid=2"}
+    {
+        "uid": "cctrl1",
+        "labelid": "cctrl1-lbl",
+        "listboxid": "cctrl1-list",
+        "inputid": "cctrl1-inp",
+        "activelabel": "Zeitleiste",
+        "activevalue": "https://example.com/local/coursectrl/timeline.php?courseid=2",
+        "groups": []
+    }
 }}
-<div class="local_coursectrl_navbar mb-3" data-region="local_coursectrl-navbar">
-  {{> core/select_menu}}
+
+<div class="container-fluid tertiary-navigation" id="local_coursectrl_navbar">
+  <div class="row">
+    <div class="navitem">
+      <nav class="tertiary-navigation-selector">
+        <div class="dropdown select-menu" id="{{uid}}" data-region="local_coursectrl-navselect">
+
+          <span id="{{labelid}}" class="sr-only visually-hidden">{{activelabel}}</span>
+
+          <div class="btn dropdown-toggle"
+               role="combobox"
+               data-toggle="dropdown"
+               data-bs-toggle="dropdown"
+               aria-labelledby="{{labelid}}"
+               aria-haspopup="listbox"
+               aria-expanded="false"
+               aria-controls="{{listboxid}}"
+               data-input-element="{{inputid}}"
+               tabindex="0"
+               id="{{uid}}-btn">
+            {{activelabel}}
+          </div>
+
+          <ul class="dropdown-menu"
+              role="listbox"
+              id="{{listboxid}}"
+              aria-labelledby="{{labelid}}">
+
+            {{#groups}}
+
+            {{! Standalone option (e.g. Dashboard) }}
+            {{#hasstandalone}}
+            {{#standalone}}
+            <li class="dropdown-item{{#selected}} active{{/selected}}"
+                role="option"
+                id="{{oid}}"
+                data-value="{{value}}"
+                {{#selected}}aria-selected="true"{{/selected}}>
+              {{label}}
+            </li>
+            {{/standalone}}
+            {{/hasstandalone}}
+
+            {{! Grouped options (Einstellen / Prüfen) }}
+            {{#isgroup}}
+            <li role="none">
+              <ul role="group" aria-labelledby="{{groupid}}">
+                <li role="presentation" id="{{groupid}}">{{grouplabel}}</li>
+                {{#options}}
+                <li class="dropdown-item{{#selected}} active{{/selected}}"
+                    role="option"
+                    id="{{oid}}"
+                    data-value="{{value}}"
+                    {{#selected}}aria-selected="true"{{/selected}}>
+                  {{label}}
+                </li>
+                {{/options}}
+              </ul>
+            </li>
+            {{/isgroup}}
+
+            {{/groups}}
+
+          </ul>
+
+          <input type="hidden"
+                 id="{{inputid}}"
+                 name="local_coursectrl_nav"
+                 value="{{activevalue}}">
+
+        </div>
+      </nav>
+    </div>
+  </div>
 </div>
 
 {{#js}}
-require(['core/select_menu'], function() {
-    var input = document.querySelector('[data-region="local_coursectrl-navbar"] input[type="hidden"]');
-    if (!input) {
-        return;
-    }
-    input.addEventListener('change', function() {
-        if (input.value) {
-            window.location.href = input.value;
-        }
-    });
+require(['local_coursectrl/navigation'], function(Nav) {
+    Nav.init(document.getElementById('{{uid}}-btn'));
 });
 {{/js}}

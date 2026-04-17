@@ -74,9 +74,11 @@ define([], function() {
                 // Update label span if present.
                 var label = btn.querySelector('[data-cal-label]');
                 if (label) {
-                    label.setAttribute('data-state', hidden ? 'shown' : 'hidden');
+                    label.textContent = hidden
+                        ? btn.getAttribute('data-label-hide')
+                        : btn.getAttribute('data-label-show');
                 }
-                persistPref('local_coursectrl_showcalendar', hidden);
+                persistPref('local_coursectrl_showcalendar', hidden ? 1 : 0);
             });
         });
 

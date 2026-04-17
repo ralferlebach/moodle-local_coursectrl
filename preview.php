@@ -39,7 +39,7 @@ $cmids      = optional_param_array('cmids', [], PARAM_INT);
 $course = get_course($courseid);
 $context = context_course::instance($courseid);
 require_login($course);
-require_capability('local/coursectrl:view', $context);
+require_capability('local/coursectrl:bulkaction', $context);
 
 $PAGE->set_course($course);
 $PAGE->set_context($context);
@@ -57,7 +57,7 @@ $PAGE->navbar->add(
     new moodle_url('/local/coursectrl/index.php', ['courseid' => $courseid])
 );
 $PAGE->navbar->add(
-    get_string('nav_bulk', 'local_coursectrl'),
+    get_string('nav_manage', 'local_coursectrl'),
     new moodle_url('/local/coursectrl/manage.php', ['courseid' => $courseid])
 );
 $PAGE->navbar->add(get_string('preview_title', 'local_coursectrl'));

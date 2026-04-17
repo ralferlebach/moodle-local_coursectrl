@@ -28,6 +28,7 @@ use local_coursectrl\local\navigation\navigation_builder;
 
 
 $courseid = required_param('courseid', PARAM_INT);
+$hideindependents = optional_param('hideindependents', 0, PARAM_INT);
 
 $course = get_course($courseid);
 $context = context_course::instance($courseid);
@@ -54,7 +55,7 @@ $PAGE->navbar->add(get_string('graph_title', 'local_coursectrl'));
 $service = new \local_coursectrl\local\inventory\inventory_service();
 $snapshot = $service->build_for_course($courseid);
 
-$renderable = new \local_coursectrl\output\graph_page($snapshot);
+$renderable = new \local_coursectrl\output\graph_page($snapshot, ['hideindependents' => (bool) $hideindependents]);
 
 /** @var \local_coursectrl\output\renderer $renderer */
 $renderer = $PAGE->get_renderer('local_coursectrl');

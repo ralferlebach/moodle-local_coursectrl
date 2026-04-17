@@ -78,15 +78,15 @@ if ($run) {
     }
 
     $completionsparam = optional_param_array('completions', [], PARAM_INT);
-    $groupidsstr = optional_param('groupids', '', PARAM_TEXT);
-    $groupingidsstr = optional_param('groupingids', '', PARAM_TEXT);
+    $groupids = optional_param_array('groupids', [], PARAM_INT);
+    $groupingids = optional_param_array('groupingids', [], PARAM_INT);
 
     $groupids = array_filter(
-        array_map('intval', explode(',', $groupidsstr)),
+        array_map('intval', $groupids),
         fn($id) => $id > 0
     );
     $groupingids = array_filter(
-        array_map('intval', explode(',', $groupingidsstr)),
+        array_map('intval', $groupingids),
         fn($id) => $id > 0
     );
 

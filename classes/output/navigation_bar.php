@@ -17,13 +17,9 @@
 /**
  * Navigation bar renderable for local_coursectrl.
  *
- * Builds the data array expected by core/select_menu.mustache manually —
- * without relying on \core\output\select_menu_option or select_menu_optgroup
- * classes (which were added in a later Moodle version and are absent in 4.5).
- *
- * The exported data structure matches \core\output\select_menu::export_for_template
- * so that {{> core/select_menu}} renders the identical HTML to the
- * Participants page (user/index.php) tertiary navigation selector.
+ * Exports a clean, self-contained data structure for navigation_bar.mustache.
+ * Does NOT delegate to core/select_menu because that template's variable
+ * contract differs across Moodle 4.x / 5.x versions.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -58,119 +54,115 @@ class navigation_bar implements renderable, templatable {
     }
 
     /**
-     * Export data for core/select_menu.mustache.
-     *
-     * Builds options and optgroups as plain arrays so no Moodle-version-
-     * specific output classes are required.
+     * Export for navigation_bar.mustache.
      *
      * @param renderer_base $output Renderer.
      * @return array
      */
     public function export_for_template(renderer_base $output): array {
-        $active = $this->activekey;
-        $uniqid = \html_writer::random_id('coursectrl-nav');
+        $active  = $this->activekey;
+        $uid     = \html_writer::random_id('cctrl');
 
         $activelabel = $this->label_for($active);
         $activeurl   = $this->u($this->script_for($active));
 
-        $optcounter = 1;
+        $n = 0;
 
-        $options = [];
-
-        // Dashboard — standalone option.
-        $options[] = $this->make_option(
-            $uniqid,
-            $optcounter++,
-            get_string('nav_dashboard', 'local_coursectrl'),
-            $this->u('index.php'),
-            $active === 'coursectrl_dashboard'
-        );
-
-        // Einstellen group.
-        $gid1 = $uniqid . '-grp-setup';
-        $options[] = $this->make_group(
-            $gid1,
-            get_string('nav_group_setup', 'local_coursectrl'),
+        $groups = [
             [
-                $this->make_option($uniqid, $optcounter++,
-                    get_string('nav_timeline', 'local_coursectrl'),
-                    $this->u('timeline.php'), $active === 'coursectrl_timeline'),
-                $this->make_option($uniqid, $optcounter++,
-                    get_string('nav_graph', 'local_coursectrl'),
-                    $this->u('graph.php'), $active === 'coursectrl_graph'),
-                $this->make_option($uniqid, $optcounter++,
-                    get_string('nav_manage', 'local_coursectrl'),
-                    $this->u('manage.php'), $active === 'coursectrl_manage'),
-            ]
-        );
-
-        // Prüfen group.
-        $gid2 = $uniqid . '-grp-check';
-        $options[] = $this->make_group(
-            $gid2,
-            get_string('nav_group_check', 'local_coursectrl'),
+                'isgroup'    => false,
+                'grouplabel' => '',
+                'groupid'    => '',
+                'options'    => [],
+                'standalone' => [
+                    [
+                        'oid'      => $uid . '-o' . $n++,
+                        'label'    => get_string('nav_dashboard', 'local_coursectrl'),
+                        'value'    => $this->u('index.php'),
+                        'selected' => $active === 'coursectrl_dashboard',
+                        'visible'  => true,
+                    ],
+                ],
+                'hasstandalone' => true,
+            ],
             [
-                $this->make_option($uniqid, $optcounter++,
-                    get_string('nav_simulation', 'local_coursectrl'),
-                    $this->u('simulation.php'), $active === 'coursectrl_simulation'),
-                $this->make_option($uniqid, $optcounter++,
-                    get_string('nav_history', 'local_coursectrl'),
-                    $this->u('history.php'), $active === 'coursectrl_history'),
-            ]
-        );
-
-        return [
-            'id'           => $uniqid,
-            'name'         => 'local_coursectrl_nav',
-            'label'        => $activelabel,
-            'labelid'      => $uniqid . '-label',
-            'listboxid'    => $uniqid . '-listbox',
-            'value'        => $activeurl,
-            'hasoptions'   => true,
-            'options'      => $options,
+                'isgroup'    => true,
+                'grouplabel' => get_string('nav_group_setup', 'local_coursectrl'),
+                'groupid'    => $uid . '-g1',
+                'hasstandalone' => false,
+                'standalone' => [],
+                'options'    => [
+                    [
+                        'oid'      => $uid . '-o' . $n++,
+                        'label'    => get_string('nav_timeline', 'local_coursectrl'),
+                        'value'    => $this->u('timeline.php'),
+                        'selected' => $active === 'coursectrl_timeline',
+                        'visible'  => true,
+                    ],
+                    [
+                        'oid'      => $uid . '-o' . $n++,
+                        'label'    => get_string('nav_dependencies', 'local_coursectrl'),
+                        'value'    => $this->u('graph.php'),
+                        'selected' => $active === 'coursectrl_graph',
+                        'visible'  => true,
+                    ],
+                    [
+                        'oid'      => $uid . '-o' . $n++,
+                        'label'    => get_string('nav_manage', 'local_coursectrl'),
+                        'value'    => $this->u('manage.php'),
+                        'selected' => $active === 'coursectrl_manage',
+                        'visible'  => $this->can('local/coursectrl:bulkaction'),
+                    ],
+                ],
+            ],
+            [
+                'isgroup'    => true,
+                'grouplabel' => get_string('nav_group_check', 'local_coursectrl'),
+                'groupid'    => $uid . '-g2',
+                'hasstandalone' => false,
+                'standalone' => [],
+                'options'    => [
+                    [
+                        'oid'      => $uid . '-o' . $n++,
+                        'label'    => get_string('nav_simulation', 'local_coursectrl'),
+                        'value'    => $this->u('simulation.php'),
+                        'selected' => $active === 'coursectrl_simulation',
+                        'visible'  => $this->can('local/coursectrl:simulate'),
+                    ],
+                    [
+                        'oid'      => $uid . '-o' . $n++,
+                        'label'    => get_string('nav_history', 'local_coursectrl'),
+                        'value'    => $this->u('history.php'),
+                        'selected' => $active === 'coursectrl_history',
+                        'visible'  => true,
+                    ],
+                ],
+            ],
         ];
-    }
 
-    /**
-     * Build a single option array for core/select_menu.mustache.
-     *
-     * @param string $uniqid   ID prefix.
-     * @param int    $counter  Sequential counter for option id.
-     * @param string $label    Display label.
-     * @param string $value    Option value (URL).
-     * @param bool   $selected Whether this option is active.
-     * @return array
-     */
-    private function make_option(
-        string $uniqid,
-        int $counter,
-        string $label,
-        string $value,
-        bool $selected
-    ): array {
-        return [
-            'optionid' => $uniqid . '-option-' . $counter,
-            'label'    => $label,
-            'value'    => $value,
-            'selected' => $selected,
-            'isgroup'  => false,
-        ];
-    }
+        foreach ($groups as &$group) {
+            if (!empty($group['hasstandalone'])) {
+                $group['standalone'] = array_values(array_filter($group['standalone'], fn(array $item): bool => !array_key_exists('visible', $item) || !empty($item['visible'])));
+                $group['hasstandalone'] = !empty($group['standalone']);
+            }
+            if (!empty($group['isgroup'])) {
+                $group['options'] = array_values(array_filter($group['options'], fn(array $item): bool => !array_key_exists('visible', $item) || !empty($item['visible'])));
+                if (empty($group['options'])) {
+                    $group['isgroup'] = false;
+                }
+            }
+        }
+        unset($group);
+        $groups = array_values(array_filter($groups, fn(array $group): bool => !empty($group['hasstandalone']) || !empty($group['isgroup'])));
 
-    /**
-     * Build an optgroup array for core/select_menu.mustache.
-     *
-     * @param string  $groupid ID for the group label element.
-     * @param string  $label   Group header label (non-clickable).
-     * @param array[] $options Child option arrays.
-     * @return array
-     */
-    private function make_group(string $groupid, string $label, array $options): array {
         return [
-            'groupid'  => $groupid,
-            'label'    => $label,
-            'options'  => $options,
-            'isgroup'  => true,
+            'uid'         => $uid,
+            'labelid'     => $uid . '-lbl',
+            'listboxid'   => $uid . '-list',
+            'inputid'     => $uid . '-inp',
+            'activelabel' => $activelabel,
+            'activevalue' => $activeurl,
+            'groups'      => $groups,
         ];
     }
 
@@ -184,7 +176,7 @@ class navigation_bar implements renderable, templatable {
         $map = [
             'coursectrl_dashboard'   => 'nav_dashboard',
             'coursectrl_timeline'    => 'nav_timeline',
-            'coursectrl_graph'       => 'nav_graph',
+            'coursectrl_graph'       => 'nav_dependencies',
             'coursectrl_manage'      => 'nav_manage',
             'coursectrl_simulation'  => 'nav_simulation',
             'coursectrl_history'     => 'nav_history',
@@ -213,9 +205,20 @@ class navigation_bar implements renderable, templatable {
     /**
      * Build an absolute URL for a plugin script.
      *
-     * @param string $script Script filename (e.g. 'timeline.php').
+     * @param string $script Script filename.
      * @return string
      */
+
+    /**
+     * Check whether the current user can access a navigation target.
+     *
+     * @param string $capability Capability name.
+     * @return bool
+     */
+    private function can(string $capability): bool {
+        return has_capability($capability, \context_course::instance($this->courseid));
+    }
+
     private function u(string $script): string {
         return (new \moodle_url(
             '/local/coursectrl/' . $script,

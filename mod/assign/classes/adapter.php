@@ -275,7 +275,7 @@ class adapter extends abstract_activity_adapter {
                 ];
             }
 
-            // completionexpected should not be before allowsubmissionsfromdate.
+            // CompletionExpected should not be before allowsubmissionsfromdate.
             // The CM-level completionexpected field is in course_modules, not {assign}.
             $cmrec = $DB->get_record(
                 'course_modules',

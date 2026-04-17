@@ -424,8 +424,10 @@ trait shift_dates_executor {
             $shouldshiftcompletion = !empty($cmids);
         } else {
             foreach ($items as $item) {
-                if (($item['status'] ?? '') === 'ok'
-                    && in_array($anchor, $item['changed'] ?? [], true)) {
+                if (
+                    ($item['status'] ?? '') === 'ok'
+                    && in_array($anchor, $item['changed'] ?? [], true)
+                ) {
                     $shouldshiftcompletion = true;
                     break;
                 }

@@ -145,8 +145,8 @@ class simulation_page implements renderable, templatable {
                     $reasonrows[] = $this->format_reason($reason, $dateformat, $cms);
                 }
 
-                $iscomplete = $result['status'] === condition_evaluator::STATUS_PASS
-                    || $result['status'] === condition_evaluator::STATUS_FAIL;
+                $iscomplete = $this->state !== null
+                    && $this->state->get_completion($cmid) > 0;
 
                 $resultrows[] = [
                     'cmid' => $cmid,

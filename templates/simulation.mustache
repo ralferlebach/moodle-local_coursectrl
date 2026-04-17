@@ -217,9 +217,11 @@
         </thead>
         <tbody>
           {{#resultrows}}
-          <tr class="{{#iscomplete}}table-secondary{{/iscomplete}}">
-            <td><a href="{{url}}" target="_blank" rel="noopener noreferrer">{{name}}</a>
-              <code class="small text-muted">{{modname}}</code></td>
+          <tr>
+            <td class="{{#iscomplete}}bg-secondary-subtle{{/iscomplete}}">
+              <a href="{{url}}" target="_blank" rel="noopener noreferrer">{{name}}</a>
+              <code class="small text-muted">{{modname}}</code>
+            </td>
             <td>
               {{#teacher_visible}}
                 <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">

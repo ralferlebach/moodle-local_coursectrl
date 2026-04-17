@@ -85,7 +85,7 @@ define([], function() {
         // Scroll calendar to current month on load.
         if (calWrapper) {
             var calRow = calWrapper.querySelector('[data-region="local_coursectrl-calrow"]');
-            var mintEl = calRow ? calRow.querySelector('.bg-success') : null;
+            var mintEl = calRow ? calRow.querySelector('.month-current') : null;
             if (mintEl && calRow) {
                 calRow.scrollLeft = mintEl.offsetLeft - (calRow.clientWidth / 2) + (mintEl.clientWidth / 2);
             }

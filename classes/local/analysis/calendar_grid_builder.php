@@ -198,6 +198,15 @@ class calendar_grid_builder {
             ];
         }
 
+        // Find the first day with entries to link the month label to.
+        $firstentrykey = '';
+        foreach ($cells as $cell) {
+            if (!empty($cell['inmonth']) && !empty($cell['hasentries'])) {
+                $firstentrykey = $cell['daykey'];
+                break;
+            }
+        }
+
         // Chunk into weeks of 7.
         $weeks = [];
         foreach (array_chunk($cells, 7) as $row) {
@@ -211,6 +220,8 @@ class calendar_grid_builder {
             'monthlabel'     => userdate($monthstart, get_string('strftimemonthyear', 'core_langconfig')),
             'monthkey'       => date('Y-m', $monthstart),
             'iscurrentmonth' => (date('Y-m') === date('Y-m', $monthstart)),
+            'firstentrykey'  => $firstentrykey,
+            'hasfirstentry'  => $firstentrykey !== '',
             'weeks'          => $weeks,
         ];
     }

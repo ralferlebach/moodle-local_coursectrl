@@ -88,7 +88,18 @@ class provider extends abstract_calendar_provider {
         $language = strtoupper(trim(
             (string) (get_config('local_coursectrl', 'calopenholidays_languageisocode') ?: 'EN')
         ));
-        $region = trim((string) get_config('local_coursectrl', 'calopenholidays_regioncode'));
+        $region = strtoupper(trim(
+            (string) get_config('local_coursectrl', 'calopenholidays_regioncode')
+        ));
+
+        // Normalise region code: accept short codes like 'NW', 'BY', 'NRW'.
+        // OpenHolidays API expects the ISO 3166-2 format 'CC-XX' (e.g. 'DE-NW').
+        if ($region !== '' && $country !== '' && !str_contains($region, '-')) {
+            // Map common German state abbreviations that differ from ISO codes.
+            $aliasmap = ['NRW' => 'NW', 'BAWUE' => 'BW', 'RHEINLANDPFALZ' => 'RP'];
+            $normalised = $aliasmap[$region] ?? $region;
+            $region = $country . '-' . $normalised;
+        }
         $categories = $this->get_active_categories();
 
         if ($country === '') {

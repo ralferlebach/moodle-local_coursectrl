@@ -721,6 +721,18 @@ define([], function() {
 
         // Custom component-filter dropdown.
         initCompFilterDropdown(root);
+
+        // Scroll horizontal calendar to the current month on page load.
+        var calWrapper = root.querySelector('[data-region="local_coursectrl-calwrapper"]');
+        if (calWrapper) {
+            var calRow = calWrapper.querySelector('[data-region="local_coursectrl-calrow"]');
+            var currentMonth = calRow ? calRow.querySelector('.month-current') : null;
+            if (currentMonth && calRow) {
+                calRow.scrollLeft = currentMonth.offsetLeft
+                    - (calRow.clientWidth / 2)
+                    + (currentMonth.clientWidth / 2);
+            }
+        }
     };
 
     return {

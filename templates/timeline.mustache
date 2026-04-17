@@ -75,7 +75,9 @@
            style="-webkit-overflow-scrolling:touch">
         {{#months}}
         <div class="coursectrl-cal-month{{#iscurrentmonth}} month-current{{/iscurrentmonth}}">
-          <div class="small fw-semibold py-1">{{monthlabel}}</div>
+          <div class="small fw-semibold py-1">
+            {{#hasfirstentry}}<a href="#day-{{firstentrykey}}" class="text-decoration-none" data-action="jump-to-day" data-daykey="{{firstentrykey}}">{{monthlabel}}</a>{{/hasfirstentry}}{{^hasfirstentry}}{{monthlabel}}{{/hasfirstentry}}
+          </div>
           {{#weeks}}
           <div class="coursectrl-cal-week">
             {{#days}}

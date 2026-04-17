@@ -238,18 +238,22 @@ class inventory_service {
      * @return string|null Column name or null.
      */
     private function resolve_text_field(string $modname, \moodle_database $DB): ?string {
-        // mod_page stores its body in 'content', not 'intro'.
+        // Mod_page stores its body in 'content', not 'intro'.
         if ($modname === 'page') {
             return 'content';
         }
-        // All other standard modules use 'intro' if available.
+        // All other standard modules use 'intro' if the column exists.
         try {
             $columns = $DB->get_columns($modname);
             if (array_key_exists('intro', $columns)) {
                 return 'intro';
             }
         } catch (\Throwable $e) {
-            // Table might not exist or schema lookup failed.
+            // Table might not exist or schema lookup failed — skip gracefully.
+            debugging(
+                'local_coursectrl: resolve_text_field failed for ' . $modname . ': ' . $e->getMessage(),
+                DEBUG_DEVELOPER
+            );
         }
         return null;
     }

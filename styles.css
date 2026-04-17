@@ -9,12 +9,15 @@
 /* ── Calendar grid ───────────────────────────────────────────────────────── */
 
 /**
- * Month container: current month uses Bootstrap success colour.
+ * Month container: all months get a subtle secondary border so they read
+ * as individual blocks. The current month uses the Bootstrap success colour.
  */
 .coursectrl-cal-month {
     min-width: 196px;
     flex-shrink: 0;
     text-align: center;
+    border: 1px solid var(--bs-secondary-border-subtle, #c4c8cb);
+    border-radius: 6px;
 }
 
 .coursectrl-cal-month.month-current {

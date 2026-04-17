@@ -126,7 +126,6 @@ if ($hassiteconfig) {
         $adapterhtml = html_writer::tag('em', get_string('settings_adapters_none', 'local_coursectrl'));
     }
     // TODO: Uncomment to link to Moodle.org once the plugin collection is published.
-    // $adapterhtml .= html_writer::tag('p', html_writer::link('https://moodle.org/plugins/', 'Moodle.org'));
     $settings->add(new admin_setting_description(
         'local_coursectrl/adapters_list',
         get_string('settings_adapters_installed', 'local_coursectrl'),

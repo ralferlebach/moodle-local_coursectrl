@@ -96,3 +96,85 @@
     font-weight: 700;
     z-index: 1;
 }
+
+/* ── Simulation page — status badges ─────────────────────────────────────── */
+/**
+ * Subtle-style status badges compatible with Bootstrap 5.0/5.1 (Moodle 4.5).
+ * Bootstrap 5.3 *-subtle utility classes are not available in Moodle 4.5,
+ * so we define equivalent colours explicitly here.
+ */
+.badge.cc-badge-success {
+    background-color: #d1e7dd;
+    color: #0a3622;
+    border: 1px solid #a3cfbb;
+}
+.badge.cc-badge-danger {
+    background-color: #f8d7da;
+    color: #58151c;
+    border: 1px solid #f1aeb5;
+}
+.badge.cc-badge-warning {
+    background-color: #fff3cd;
+    color: #664d03;
+    border: 1px solid #ffda6a;
+}
+.badge.cc-badge-info {
+    background-color: #cff4fc;
+    color: #055160;
+    border: 1px solid #9eeaf9;
+}
+.badge.cc-badge-secondary {
+    background-color: #e2e3e5;
+    color: #41464b;
+    border: 1px solid #c4c8cb;
+}
+
+/* ── Simulation page — dropdown list items ───────────────────────────────── */
+/**
+ * Single rule set for all three simulation dropdowns (groups, groupings,
+ * completions). Only the CSS class needs to change; no inline styles needed.
+ */
+.coursectrl-simdrop-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+    padding: 0 8px;
+    list-style: none;
+}
+
+.coursectrl-simdrop-item .form-check-input {
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.coursectrl-simdrop-item .form-check-label {
+    margin: 0 0 0 10px;
+    line-height: 1.4;
+}
+
+/**
+ * Table cell: activity name column for assumed-complete activities.
+ */
+.cc-sim-completed {
+    background-color: #e2e3e5;
+}
+
+/**
+ * Override Bootstrap's float-based form-check-input positioning within
+ * simulation dropdowns. Bootstrap 5 uses float:left + margin-left:-1.5em
+ * which breaks flex layout without a matching padding-left on the parent.
+ * Our flex-based .coursectrl-simdrop-item handles alignment instead.
+ */
+.coursectrl-simdrop-item .form-check-input {
+    float: none;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+/**
+ * Ensure dropdown UL containers never add extra left padding
+ * regardless of Bootstrap's list-related utilities.
+ */
+[data-region="local_coursectrl-simdropdown-menu"] {
+    padding-left: 0 !important;
+}

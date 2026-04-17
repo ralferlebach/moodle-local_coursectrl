@@ -68,14 +68,13 @@
           </button>
           <ul class="position-absolute bg-white border rounded shadow-sm p-2 mt-1 d-none"
               data-region="local_coursectrl-simdropdown-menu"
-              style="z-index:1050;min-width:200px;list-style:none;margin:0">
+              style="z-index:1050;min-width:200px;list-style:none;margin:0;padding-left:0">
             {{#coursegroups}}
-            <li class="d-flex align-items-center gap-2 mb-1 px-2">
-              <input class="form-check-input flex-shrink-0" type="checkbox"
+            <li class="coursectrl-simdrop-item">
+              <input class="form-check-input" type="checkbox"
                      name="groupids[]" value="{{id}}"
-                     id="simgroup-{{id}}"{{#selected}} checked{{/selected}}
-                     style="margin-left:0">
-              <label class="form-check-label mb-0" for="simgroup-{{id}}" style="margin-left:10px">{{name}}</label>
+                     id="simgroup-{{id}}"{{#selected}} checked{{/selected}}>
+              <label class="form-check-label" for="simgroup-{{id}}">{{name}}</label>
             </li>
             {{/coursegroups}}
           </ul>
@@ -96,14 +95,13 @@
           </button>
           <ul class="position-absolute bg-white border rounded shadow-sm p-2 mt-1 d-none"
               data-region="local_coursectrl-simdropdown-menu"
-              style="z-index:1050;min-width:200px;list-style:none;margin:0">
+              style="z-index:1050;min-width:200px;list-style:none;margin:0;padding-left:0">
             {{#coursegroupings}}
-            <li class="d-flex align-items-center gap-2 mb-1 px-2">
-              <input class="form-check-input flex-shrink-0" type="checkbox"
+            <li class="coursectrl-simdrop-item">
+              <input class="form-check-input" type="checkbox"
                      name="groupingids[]" value="{{id}}"
-                     id="simgrouping-{{id}}"{{#selected}} checked{{/selected}}
-                     style="margin-left:0">
-              <label class="form-check-label mb-0" for="simgrouping-{{id}}" style="margin-left:10px">{{name}}</label>
+                     id="simgrouping-{{id}}"{{#selected}} checked{{/selected}}>
+              <label class="form-check-label" for="simgrouping-{{id}}">{{name}}</label>
             </li>
             {{/coursegroupings}}
           </ul>
@@ -126,12 +124,12 @@
               data-region="local_coursectrl-simdropdown-menu"
               style="z-index:1050;min-width:260px;max-height:300px;overflow-y:auto;list-style:none;margin:0;padding-left:0">
             {{#cmformrows}}
-            <li class="d-flex align-items-center gap-2 mb-1 px-2">
-              <input class="form-check-input flex-shrink-0" type="checkbox"
+            <li class="coursectrl-simdrop-item">
+              <input class="form-check-input" type="checkbox"
                      name="completions[{{cmid}}]" value="1"
                      id="simcm-{{cmid}}"{{#iscomplete}} checked{{/iscomplete}}>
-              <label class="form-check-label small mb-0" for="simcm-{{cmid}}">
-                <i class="fa fa-{{modicon}} fa-fw text-muted"></i> {{cmname}}
+              <label class="form-check-label" for="simcm-{{cmid}}">
+                {{#pix}}monologo, mod_{{modicon}}, {{cmname}}{{/pix}} {{cmname}}
               </label>
             </li>
             {{/cmformrows}}
@@ -218,52 +216,52 @@
         <tbody>
           {{#resultrows}}
           <tr>
-            <td class="{{#iscomplete}}bg-secondary-subtle{{/iscomplete}}">
+            <td class="{{#iscomplete}}cc-sim-completed{{/iscomplete}}">
               <a href="{{url}}" target="_blank" rel="noopener noreferrer">{{name}}</a>
               <code class="small text-muted">{{modname}}</code>
             </td>
             <td>
               {{#teacher_visible}}
-                <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+                <span class="badge cc-badge-success">
                   {{#str}} sim_tracking_active, local_coursectrl {{/str}}
                 </span>
               {{/teacher_visible}}
               {{^teacher_visible}}
-                <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">
+                <span class="badge cc-badge-secondary">
                   {{#str}} sim_tracking_off, local_coursectrl {{/str}}
                 </span>
               {{/teacher_visible}}
             </td>
             <td>
               {{#status_pass}}
-                <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+                <span class="badge cc-badge-success">
                   {{#str}} sim_status_pass, local_coursectrl {{/str}}
                 </span>
               {{/status_pass}}
               {{#status_fail}}
-                <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle">
+                <span class="badge cc-badge-danger">
                   {{#str}} sim_status_fail, local_coursectrl {{/str}}
                 </span>
               {{/status_fail}}
               {{#status_unknown}}
-                <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">
+                <span class="badge cc-badge-secondary">
                   {{#str}} sim_status_unknown, local_coursectrl {{/str}}
                 </span>
               {{/status_unknown}}
             </td>
             <td>
               {{#accessible}}
-                <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+                <span class="badge cc-badge-success">
                   {{#str}} yes, core {{/str}}
                 </span>
               {{/accessible}}
               {{^accessible}}
-                <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle">
+                <span class="badge cc-badge-danger">
                   {{#str}} no, core {{/str}}
                 </span>
               {{/accessible}}
-              {{#isnextstep}}<span class="badge bg-info-subtle text-info-emphasis border border-info-subtle ms-1">{{#str}} sim_badge_next, local_coursectrl {{/str}}</span>{{/isnextstep}}
-              {{#isblocked}}<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-1">{{#str}} sim_badge_blocked, local_coursectrl {{/str}}</span>{{/isblocked}}
+              {{#isnextstep}}<span class="badge cc-badge-info ms-1">{{#str}} sim_badge_next, local_coursectrl {{/str}}</span>{{/isnextstep}}
+              {{#isblocked}}<span class="badge cc-badge-warning ms-1">{{#str}} sim_badge_blocked, local_coursectrl {{/str}}</span>{{/isblocked}}
             </td>
             <td>
               {{#hasreasons}}

@@ -93,11 +93,13 @@ class timeline_page implements renderable, templatable {
         $timeformat = get_string('strftimetime24', 'core_langconfig');
 
         $gridbuilder = new calendar_grid_builder();
+        $calman = new calendar_manager();
         $months = $gridbuilder->build(
             (int) $course->startdate,
             $course->enddate,
             $allentries,
-            $now
+            $now,
+            $calman
         );
 
         $entries = [];

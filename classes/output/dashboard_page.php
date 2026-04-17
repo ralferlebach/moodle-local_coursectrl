@@ -118,12 +118,14 @@ class dashboard_page implements renderable, templatable {
 
         // Build calendar grid for dashboard.
         $calbuilder = new calendar_grid_builder();
+        $calman = new calendar_manager();
         $allentries = $datecollector->collect($this->snapshot->cms);
         $calmonths = $calbuilder->build(
             (int) $course->startdate,
             (int) ($course->enddate ?: 0),
             $allentries,
-            time()
+            time(),
+            $calman
         );
 
         return [

@@ -184,7 +184,7 @@ class gantt_dataset_builder {
         ksort($holidays);
         $bands = [];
         foreach ($holidays as $datekey => $events) {
-            $ts = strtotime('!' . $datekey);
+            $ts = strtotime($datekey);
             if ($ts === false) {
                 continue;
             }

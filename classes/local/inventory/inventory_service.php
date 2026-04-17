@@ -153,6 +153,7 @@ class inventory_service {
      * @return array<string,text_item> keyed by text_item::get_key().
      */
     protected function collect_texts(course_item $course, array $sections): array {
+        global $DB;
         $result = [];
 
         if ($course->summary !== '') {
@@ -180,6 +181,76 @@ class inventory_service {
             $result[$text->get_key()] = $text;
         }
 
+        // Collect intro/content fields from course module instances.
+        // Build a per-modname cache of which field to read ('intro', 'content', or null).
+        $fieldcache = [];
+        try {
+            $modinfo = get_fast_modinfo($course->id);
+        } catch (\Throwable $e) {
+            return $result;
+        }
+
+        foreach ($modinfo->get_cms() as $cm) {
+            $modname = (string)$cm->modname;
+
+            // Determine which text field this module type uses (cached per modname).
+            if (!array_key_exists($modname, $fieldcache)) {
+                $fieldcache[$modname] = $this->resolve_text_field($modname, $DB);
+            }
+            $fieldname = $fieldcache[$modname];
+            if ($fieldname === null) {
+                continue;
+            }
+
+            try {
+                $record = $DB->get_record(
+                    $modname,
+                    ['id' => (int)$cm->instance],
+                    'id,' . $fieldname
+                );
+                if (!$record || empty($record->$fieldname)) {
+                    continue;
+                }
+                $text = new text_item(
+                    entitytype: text_item::OWNER_LABEL,
+                    entityid: (int)$cm->id,
+                    fieldname: $fieldname,
+                    content: (string)$record->$fieldname,
+                    format: FORMAT_HTML,
+                );
+                $result[$text->get_key()] = $text;
+            } catch (\Throwable $e) {
+                continue;
+            }
+        }
+
         return $result;
+    }
+
+    /**
+     * Determine which text column to read for a given module type.
+     *
+     * Returns 'content' for mod_page, 'intro' for modules that have it,
+     * and null when the table or a suitable column does not exist.
+     *
+     * @param string   $modname Module name (e.g. 'assign').
+     * @param \moodle_database $DB Moodle database instance.
+     * @return string|null Column name or null.
+     */
+    private function resolve_text_field(string $modname, \moodle_database $DB): ?string {
+        // mod_page stores its body in 'content', not 'intro'.
+        if ($modname === 'page') {
+            return 'content';
+        }
+        // All other standard modules use 'intro' if available.
+        try {
+            $columns = $DB->get_columns($modname);
+            if (array_key_exists('intro', $columns)) {
+                return 'intro';
+            }
+        } catch (\Throwable $e) {
+            // Table might not exist or schema lookup failed.
+        }
+        return null;
     }
 }

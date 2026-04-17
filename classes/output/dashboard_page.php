@@ -116,7 +116,6 @@ class dashboard_page implements renderable, templatable {
             ];
         }
 
-
         // Build calendar grid for dashboard.
         $calbuilder = new calendar_grid_builder();
         $allentries = $datecollector->collect($this->snapshot->cms);

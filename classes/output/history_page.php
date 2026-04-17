@@ -106,7 +106,8 @@ class history_page implements renderable, templatable {
                 'username'    => $username,
                 'timeago'     => format_time(time() - $batch->timecreated),
                 'timeformatted' => userdate($batch->timecreated, $dateformat),
-                'canrollback' => $canrollback && $hassnapshot && $batch->status === \local_coursectrl\local\persistent\batch::STATUS_EXECUTED,
+                'canrollback' => $canrollback && $hassnapshot
+                    && $batch->status === \local_coursectrl\local\persistent\batch::STATUS_EXECUTED,
                 'rolledback'  => $batch->status === \local_coursectrl\local\persistent\batch::STATUS_ROLLED_BACK,
                 'rollbackurl' => (new \moodle_url(
                     '/local/coursectrl/rollback.php',

@@ -223,6 +223,7 @@
               {{! Shift this single entry }}
               <button type="button" class="btn btn-sm btn-outline-secondary p-1 lh-1"
                       data-action="shift-entry" data-cmid="{{cmid}}"
+                      data-field="{{field}}"
                       title="{{#str}} shift_single, local_coursectrl {{/str}}">
                 <i class="fa fa-calendar-day fa-sm"></i>
                 <i class="fa fa-arrow-right fa-sm"></i>
@@ -277,6 +278,8 @@
                    id="coursectrl-shift-followdeps" value="0">
             <input type="hidden" name="scan_text"
                    id="coursectrl-shift-scantext" value="0">
+            <input type="hidden" name="shift_fields"
+                   id="coursectrl-shift-fields" value="">
             <div class="modal-body py-2">
               <p id="coursectrl-shift-target" class="small text-muted mb-2"></p>
               <div class="form-group mb-2">

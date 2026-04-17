@@ -59,7 +59,13 @@ class calendar_grid_builder {
      * @param \local_coursectrl\manager\calendar_manager|null $calman Optional for holiday markers.
      * @return array[] List of month blocks.
      */
-    public function build(int $startdate, ?int $enddate, array $entries, int $now, ?\local_coursectrl\manager\calendar_manager $calman = null): array {
+    public function build(
+        int $startdate,
+        ?int $enddate,
+        array $entries,
+        int $now,
+        ?\local_coursectrl\manager\calendar_manager $calman = null
+    ): array {
         if ($startdate <= 0) {
             $startdate = $now;
         }

@@ -104,11 +104,11 @@ class simulation_page implements renderable, templatable {
 
         // Group / grouping selections for the scenario form.
         $resolver = new group_resolver($courseid);
-        $coursegroups = array_map(function(array $group): array {
+        $coursegroups = array_map(function (array $group): array {
             $group['selected'] = $this->state ? in_array((int) $group['id'], $this->state->groupids, true) : false;
             return $group;
         }, $resolver->get_groups_for_template());
-        $coursegroupings = array_map(function(array $grouping): array {
+        $coursegroupings = array_map(function (array $grouping): array {
             $grouping['selected'] = $this->state ? in_array((int) $grouping['id'], $this->state->groupingids, true) : false;
             return $grouping;
         }, $resolver->get_groupings_for_template());

@@ -91,8 +91,9 @@ define([], function() {
      * @param {string}   mode      'slot', 'entry' or 'following'.
      * @param {string}   label     Human-readable scope description.
      * @param {boolean}  following True for shift-following action.
+     * @param {string}   field     Optional single field name to restrict the shift.
      */
-    var openShiftDialog = function(cmids, mode, label, following) {
+    var openShiftDialog = function(cmids, mode, label, following, field) {
         var dialog = document.getElementById('coursectrl-shift-dialog');
         if (!dialog) {
             return;
@@ -102,6 +103,12 @@ define([], function() {
 
         document.getElementById('coursectrl-shift-cmids').value = cmids.join(',');
         document.getElementById('coursectrl-shift-mode').value = mode;
+
+        // Set field restriction (single field for entry-level shifts, empty for slot/following).
+        var fieldsInput = document.getElementById('coursectrl-shift-fields');
+        if (fieldsInput) {
+            fieldsInput.value = (field && mode === 'entry') ? field : '';
+        }
 
         var daysEl = document.getElementById('coursectrl-shift-delta-days');
         var hoursEl = document.getElementById('coursectrl-shift-delta-hours');
@@ -600,10 +607,11 @@ define([], function() {
         root.querySelectorAll('[data-action="shift-entry"]').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var cmid = btn.getAttribute('data-cmid');
+                var field = btn.getAttribute('data-field') || '';
                 var li = btn.closest('li');
                 var link = li ? li.querySelector('a') : null;
                 var name = link ? link.textContent.trim() : 'cmid ' + cmid;
-                openShiftDialog([cmid], 'entry', name, false);
+                openShiftDialog([cmid], 'entry', name, false, field);
             });
         });
 

@@ -27,7 +27,7 @@ require_once(__DIR__ . '/../../config.php');
 use local_coursectrl\local\navigation\navigation_builder;
 
 $courseid     = required_param('courseid', PARAM_INT);
-$showpast_get = optional_param('showpast', null, PARAM_INT);
+$showpastparam = optional_param('showpast', null, PARAM_INT);
 $onlywithdeps = optional_param('onlywithdeps', 0, PARAM_INT);
 $components   = optional_param_array('components', [], PARAM_COMPONENT);
 $tab          = optional_param('tab', 'timeline', PARAM_ALPHA);
@@ -61,10 +61,10 @@ $PAGE->navbar->add(get_string('timeline_title', 'local_coursectrl'));
 $showcalendar   = (bool) get_user_preferences('local_coursectrl_showcalendar', 1);
 $immediateapply = (bool) get_user_preferences('local_coursectrl_immediateapply', 0);
 
-// showpast: if submitted via form, persist the new value; otherwise read preference.
-if ($showpast_get !== null) {
-    set_user_preference('local_coursectrl_showpast', (int) $showpast_get);
-    $showpast = (bool) $showpast_get;
+// Showpast: if submitted via form, persist the new value; otherwise read preference.
+if ($showpastparam !== null) {
+    set_user_preference('local_coursectrl_showpast', (int) $showpastparam);
+    $showpast = (bool) $showpastparam;
 } else {
     $showpast = (bool) get_user_preferences('local_coursectrl_showpast', 1);
 }

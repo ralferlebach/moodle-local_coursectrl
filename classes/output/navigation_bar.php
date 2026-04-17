@@ -142,18 +142,27 @@ class navigation_bar implements renderable, templatable {
 
         foreach ($groups as &$group) {
             if (!empty($group['hasstandalone'])) {
-                $group['standalone'] = array_values(array_filter($group['standalone'], fn(array $item): bool => !array_key_exists('visible', $item) || !empty($item['visible'])));
+                $group['standalone'] = array_values(array_filter(
+                    $group['standalone'],
+                    fn(array $item): bool => !array_key_exists('visible', $item) || !empty($item['visible'])
+                ));
                 $group['hasstandalone'] = !empty($group['standalone']);
             }
             if (!empty($group['isgroup'])) {
-                $group['options'] = array_values(array_filter($group['options'], fn(array $item): bool => !array_key_exists('visible', $item) || !empty($item['visible'])));
+                $group['options'] = array_values(array_filter(
+                    $group['options'],
+                    fn(array $item): bool => !array_key_exists('visible', $item) || !empty($item['visible'])
+                ));
                 if (empty($group['options'])) {
                     $group['isgroup'] = false;
                 }
             }
         }
         unset($group);
-        $groups = array_values(array_filter($groups, fn(array $group): bool => !empty($group['hasstandalone']) || !empty($group['isgroup'])));
+        $groups = array_values(array_filter(
+            $groups,
+            fn(array $group): bool => !empty($group['hasstandalone']) || !empty($group['isgroup'])
+        ));
 
         return [
             'uid'         => $uid,
@@ -219,6 +228,12 @@ class navigation_bar implements renderable, templatable {
         return has_capability($capability, \context_course::instance($this->courseid));
     }
 
+    /**
+     * Build the absolute URL for a plugin entry-point script.
+     *
+     * @param string $script Script filename relative to the plugin root (e.g. 'index.php').
+     * @return string Absolute URL string.
+     */
     private function u(string $script): string {
         return (new \moodle_url(
             '/local/coursectrl/' . $script,

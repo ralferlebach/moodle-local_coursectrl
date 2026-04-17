@@ -353,6 +353,10 @@ trait shift_dates_executor {
     private function execute_shift_dates(array $payload, array $cmids): array {
         global $DB;
         $delta = (int)$payload['delta'];
+        // Optional field restriction: only shift the listed fields.
+        $restrictfields = isset($payload['fields']) && is_array($payload['fields'])
+            ? $payload['fields']
+            : [];
         $table = $this->get_table_name();
         $items = [];
         $errors = [];
@@ -376,6 +380,10 @@ trait shift_dates_executor {
             $update->id = $description['instanceid'];
             $changed = [];
             foreach ($description['dates'] as $name => $oldvalue) {
+                // Skip field if a restriction list is active and this field is not in it.
+                if (!empty($restrictfields) && !in_array($name, $restrictfields, true)) {
+                    continue;
+                }
                 if ($oldvalue === 0) {
                     continue;
                 }
@@ -403,12 +411,42 @@ trait shift_dates_executor {
             }
             $items[] = ['cmid' => $cmid, 'status' => 'ok', 'snapshot' => $snapshot, 'changed' => $changed];
         }
+        // Shift completionexpected in course_modules (CM-level, not adapter-table-specific).
+        $this->shift_completionexpected($cmids, $delta);
         return [
             'action'  => 'shift_dates',
             'payload' => ['delta' => $delta],
             'items'   => $items,
             'errors'  => $errors,
         ];
+    }
+
+    /**
+     * Shift the completionexpected field in course_modules for the given cmids.
+     *
+     * Only shifts cmids where completionexpected > 0 (0 means "not set").
+     *
+     * @param int[] $cmids Target course module ids.
+     * @param int   $delta Seconds to shift.
+     * @return void
+     */
+    private function shift_completionexpected(array $cmids, int $delta): void {
+        global $DB;
+        if (empty($cmids) || $delta === 0) {
+            return;
+        }
+        [$insql, $params] = $DB->get_in_or_equal(
+            array_map('intval', $cmids),
+            SQL_PARAMS_NAMED
+        );
+        $params['delta'] = $delta;
+        $DB->execute(
+            "UPDATE {course_modules}
+                SET completionexpected = completionexpected + :delta
+              WHERE id $insql
+                AND completionexpected > 0",
+            $params
+        );
     }
 
     /**

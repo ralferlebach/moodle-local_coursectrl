@@ -323,5 +323,4 @@ class timeline_page implements renderable, templatable {
         $builder = new gantt_dataset_builder();
         return $builder->build($cms, $calman);
     }
-
 }

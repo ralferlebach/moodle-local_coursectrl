@@ -38,6 +38,7 @@ $followdeps = optional_param('followdeps', 0, PARAM_INT);
 $deltadays  = optional_param('delta_days', 0, PARAM_INT);
 $deltahours = optional_param('delta_hours', 0, PARAM_INT);
 $fieldsraw  = optional_param('fields', '', PARAM_RAW);
+$shiftfieldsraw = optional_param('shift_fields', '', PARAM_RAW);
 $scantext   = optional_param('scan_text', 0, PARAM_INT);
 $formatjson = optional_param('format', '', PARAM_ALPHA) === 'json';
 
@@ -95,6 +96,13 @@ if ($followdeps && !empty($cmids)) {
 $payload = [];
 if ($actiontype === 'shift_dates') {
     $payload['delta'] = ($deltadays * 86400) + ($deltahours * 3600);
+    // Optional field restriction: only shift the specified fields.
+    $shiftfields = array_values(
+        array_filter(array_map('trim', explode(',', $shiftfieldsraw)))
+    );
+    if (!empty($shiftfields)) {
+        $payload['fields'] = $shiftfields;
+    }
     $hasvaliddelta = $payload['delta'] !== 0;
     $nothingtodo = empty($cmids) || !$hasvaliddelta;
 } else if ($actiontype === 'unset_dates') {
@@ -128,11 +136,19 @@ $batchid = $manager->execute($courseid, $actiontype, $payload, $cmids, (int) $US
 $batch = new \local_coursectrl\local\persistent\batch($batchid);
 $items = \local_coursectrl\local\persistent\batch_item::get_records(['batchid' => $batchid]);
 
-$summary = ['total' => count($items), 'success' => 0, 'skipped' => 0, 'error' => 0];
+$summary = ['total' => count($items), 'success' => 0, 'noop' => 0, 'skipped' => 0, 'error' => 0];
 foreach ($items as $item) {
     $status = $item->get('status');
+    $resultraw = $item->get('resultjson');
+    $result = $resultraw ? json_decode($resultraw, true) : [];
+    // Distinguish noop (stored as STATUS_SUCCESS but changed=[]) from real changes.
+    $changed = $result['changed'] ?? null;
     if ($status === \local_coursectrl\local\persistent\batch_item::STATUS_SUCCESS) {
-        $summary['success']++;
+        if (is_array($changed) && count($changed) === 0) {
+            $summary['noop']++;
+        } else {
+            $summary['success']++;
+        }
     } else if ($status === \local_coursectrl\local\persistent\batch_item::STATUS_SKIPPED) {
         $summary['skipped']++;
     } else if ($status === \local_coursectrl\local\persistent\batch_item::STATUS_ERROR) {

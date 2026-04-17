@@ -83,10 +83,31 @@ class history_page implements renderable, templatable {
 
         $rows = [];
         foreach ($batches as $batch) {
-            $items = $DB->count_records(
+            $batchitemsraw = $DB->get_records(
                 'local_coursectrl_batch_item',
-                ['batchid' => $batch->id]
+                ['batchid' => $batch->id],
+                'id ASC'
             );
+            $totalentries = count($batchitemsraw);
+            // Count distinct cmids for "X activities" label (F4).
+            $activitycmids = [];
+            $detailrows = [];
+            foreach ($batchitemsraw as $bitem) {
+                $activitycmids[$bitem->entityid] = true;
+                $result = $bitem->resultjson ? json_decode($bitem->resultjson, true) : [];
+                $changed = $result['changed'] ?? [];
+                $detailrows[] = [
+                    'entityid'  => (int) $bitem->entityid,
+                    'component' => (string) $bitem->component,
+                    'status'    => (string) $bitem->status,
+                    'issuccess' => $bitem->status === \local_coursectrl\local\persistent\batch_item::STATUS_SUCCESS,
+                    'isskipped' => $bitem->status === \local_coursectrl\local\persistent\batch_item::STATUS_SKIPPED,
+                    'iserror'   => $bitem->status === \local_coursectrl\local\persistent\batch_item::STATUS_ERROR,
+                    'changed'   => array_map(fn($f) => ['field' => $f], $changed),
+                    'haschanged' => !empty($changed),
+                ];
+            }
+            $activitycount = count($activitycmids);
             $hassnapshot = $DB->record_exists(
                 'local_coursectrl_snapshot',
                 ['batchid' => $batch->id]
@@ -101,20 +122,28 @@ class history_page implements renderable, templatable {
                 ? fullname($user)
                 : get_string('unknownuser', 'local_coursectrl');
 
+            $status = (string) $batch->status;
             $rows[] = [
-                'batchid'     => (int) $batch->id,
-                'action'      => (string) $batch->action,
-                'actionlabel' => get_string('action_' . $batch->action, 'local_coursectrl', null, true)
+                'batchid'          => (int) $batch->id,
+                'action'           => (string) $batch->action,
+                'actionlabel'      => get_string('action_' . $batch->action, 'local_coursectrl', null, true)
                     ?: (string) $batch->action,
-                'status'      => (string) $batch->status,
-                'itemcount'   => $items,
-                'username'    => $username,
-                'timeago'     => format_time(time() - $batch->timecreated),
-                'timeformatted' => userdate($batch->timecreated, $dateformat),
-                'canrollback' => $canrollback && $hassnapshot
-                    && $batch->status === \local_coursectrl\local\persistent\batch::STATUS_EXECUTED,
-                'rolledback'  => $batch->status === \local_coursectrl\local\persistent\batch::STATUS_ROLLED_BACK,
-                'rollbackurl' => (new \moodle_url(
+                'status'           => $status,
+                'status_pending'   => $status === \local_coursectrl\local\persistent\batch::STATUS_PENDING,
+                'status_executed'  => $status === \local_coursectrl\local\persistent\batch::STATUS_EXECUTED,
+                'status_failed'    => $status === \local_coursectrl\local\persistent\batch::STATUS_FAILED,
+                'status_rolledback' => $status === \local_coursectrl\local\persistent\batch::STATUS_ROLLED_BACK,
+                'itemcount'        => $totalentries,
+                'activitycount'    => $activitycount,
+                'detailrows'       => $detailrows,
+                'hasdetailrows'    => !empty($detailrows),
+                'username'         => $username,
+                'timeago'          => format_time(time() - $batch->timecreated),
+                'timeformatted'    => userdate($batch->timecreated, $dateformat),
+                'canrollback'      => $canrollback && $hassnapshot
+                    && $status === \local_coursectrl\local\persistent\batch::STATUS_EXECUTED,
+                'rolledback'       => $status === \local_coursectrl\local\persistent\batch::STATUS_ROLLED_BACK,
+                'rollbackurl'      => (new \moodle_url(
                     '/local/coursectrl/rollback.php',
                     ['batchid' => $batch->id, 'courseid' => $this->courseid, 'sesskey' => sesskey()]
                 ))->out(false),

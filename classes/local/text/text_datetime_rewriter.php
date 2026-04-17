@@ -98,13 +98,21 @@ class text_datetime_rewriter {
             // Verify the text at this offset still matches.
             $actual = substr($text, $offset, $length);
             if ($actual !== $matched) {
-                // Offset was computed on plain text; fall back to literal str_replace.
-                // This handles HTML content where stripping shifted the offset.
-                if (!str_contains($text, $matched)) {
-                    $skipped[] = ['matchedtext' => $matched, 'reason' => 'not_found_in_text'];
+                // Offset was computed on plain text after HTML stripping.
+                // If the original content contains HTML tags, the byte offset
+                // in the raw HTML may differ — fall back to a literal search.
+                // Only attempt this when the text actually contains HTML;
+                // a plain-text offset mismatch is a genuine data error → skip.
+                if (!str_contains($text, '<') || !str_contains($text, $matched)) {
+                    $skipped[] = [
+                        'matchedtext' => $matched,
+                        'reason' => 'offset_mismatch',
+                        'expected' => $matched,
+                        'actual' => $actual,
+                    ];
                     continue;
                 }
-                // Use position of first occurrence in the raw text.
+                // Use position of first occurrence in the raw HTML text.
                 $offset = strpos($text, $matched);
                 $length = strlen($matched);
             }

@@ -130,6 +130,11 @@ if ($nothingtodo) {
     exit;
 }
 
+// All cmids — including those without a registered adapter — are passed to
+// batch_manager. The manager routes adapter-capable CMs through their adapter
+// (for module-specific fields) and shifts CM-level fields (completionexpected,
+// availability dates) for ALL cmids at system level, regardless of adapter.
+
 $manager = new \local_coursectrl\manager\batch_manager();
 $batchid = $manager->execute($courseid, $actiontype, $payload, $cmids, (int) $USER->id);
 
@@ -159,11 +164,34 @@ foreach ($items as $item) {
 // JSON response path (AJAX calls from timeline.js).
 // Returns shift result only — the caller handles scanning and text review.
 if ($formatjson) {
+    // Run a post-shift temporal conflict check so the caller can surface
+    // any ordering violations that the shift may have introduced.
+    $shiftconflicts = [];
+    if ($summary['success'] > 0) {
+        $snapshot = (new \local_coursectrl\local\inventory\inventory_service())->build_for_course($courseid);
+        $datecollector = new \local_coursectrl\local\analysis\date_collector();
+        $datesbycm = $datecollector->collect_grouped_by_cm($snapshot->cms);
+        $detector = new \local_coursectrl\local\analysis\temporal_conflict_detector();
+        $allconflicts = $detector->detect($snapshot->cms, $datesbycm);
+        foreach ($cmids as $checkcmid) {
+            if (!empty($allconflicts[(int)$checkcmid])) {
+                foreach ($allconflicts[(int)$checkcmid] as $conflict) {
+                    $shiftconflicts[] = [
+                        'cmid' => (int)$checkcmid,
+                        'field_early' => $conflict['field_early'],
+                        'field_late' => $conflict['field_late'],
+                    ];
+                }
+            }
+        }
+    }
+
     header('Content-Type: application/json');
     echo json_encode([
         'success' => $summary['error'] === 0,
         'batchid' => $batchid,
         'summary' => $summary,
+        'conflicts' => $shiftconflicts,
     ]);
     exit;
 }

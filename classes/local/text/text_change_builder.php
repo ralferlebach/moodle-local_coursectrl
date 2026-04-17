@@ -152,11 +152,20 @@ class text_change_builder {
             $confidence = $this->classifier->classify($match, $normalized);
 
             // Build context excerpt.
-            $offset = $match['offset'];
-            $matchlen = strlen($match['match']);
-            $plaintext = strip_tags($item->content);
-            $before = mb_substr($plaintext, max(0, $offset - 30), min($offset, 30));
-            $after = mb_substr($plaintext, $offset + $matchlen, 30);
+            // Use the same stripping as the extractor so offsets align correctly.
+            $byteoffset = $match['offset'];
+            $matchlen   = strlen($match['match']);
+            // Replicate strip_tags_preserve_whitespace from the extractor.
+            $stripped = preg_replace(
+                '/<\s*(br|p|div|li|tr|td|th|h[1-6])[^>]*>/i',
+                "\n",
+                $item->content
+            );
+            $stripped = strip_tags($stripped);
+            // Convert byte offset → character offset for mb_substr.
+            $charoffset = mb_strlen(substr($stripped, 0, $byteoffset));
+            $before = mb_substr($stripped, max(0, $charoffset - 30), min($charoffset, 30));
+            $after  = mb_substr($stripped, $charoffset + mb_strlen($match['match']), 30);
 
             $hits[] = [
                 'entitytype' => $item->entitytype,
@@ -168,7 +177,7 @@ class text_change_builder {
                 'contextjson' => json_encode([
                     'before' => $before,
                     'after' => $after,
-                    'offset' => $offset,
+                    'offset' => $byteoffset,
                     'length' => $matchlen,
                     'pattern' => $match['pattern'],
                 ]),

@@ -411,8 +411,36 @@ trait shift_dates_executor {
             }
             $items[] = ['cmid' => $cmid, 'status' => 'ok', 'snapshot' => $snapshot, 'changed' => $changed];
         }
-        // Shift completionexpected in course_modules (CM-level, not adapter-table-specific).
-        $this->shift_completionexpected($cmids, $delta);
+
+        // Shift completionexpected only when the adapter's completion anchor
+        // field was actually changed. For adapters without an anchor (returns null)
+        // we always shift; for adapters with an anchor we only shift if that field
+        // appears in the changed list of at least one successfully shifted CM.
+        $anchor = method_exists($this, 'get_completion_anchor_field')
+            ? $this->get_completion_anchor_field()
+            : null;
+        $shouldshiftcompletion = false;
+        if ($anchor === null) {
+            $shouldshiftcompletion = !empty($cmids);
+        } else {
+            foreach ($items as $item) {
+                if (($item['status'] ?? '') === 'ok'
+                    && in_array($anchor, $item['changed'] ?? [], true)) {
+                    $shouldshiftcompletion = true;
+                    break;
+                }
+            }
+        }
+        if ($shouldshiftcompletion) {
+            // Collect only the cmids where the shift succeeded.
+            $successcmids = [];
+            foreach ($items as $item) {
+                if (($item['status'] ?? '') === 'ok') {
+                    $successcmids[] = (int) $item['cmid'];
+                }
+            }
+            $this->shift_completionexpected($successcmids, $delta);
+        }
         return [
             'action'  => 'shift_dates',
             'payload' => ['delta' => $delta],

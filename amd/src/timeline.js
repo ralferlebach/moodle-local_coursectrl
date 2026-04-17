@@ -342,13 +342,25 @@ define([], function() {
         }
 
         var s = shiftResult.summary;
+        var conflicts = shiftResult.conflicts || [];
+        var conflictHtml = '';
+        if (conflicts.length > 0) {
+            var conflictLines = conflicts.map(function(c) {
+                return '<li>' + c.field_early + ' liegt nach ' + c.field_late + '</li>';
+            }).join('');
+            conflictHtml =
+                '<div class="alert alert-warning py-2 mb-2 small">' +
+                '<i class="fa fa-exclamation-triangle mr-1"></i>' +
+                '<strong>Datumskonflikte erkannt:</strong><ul class="mb-0 mt-1">' +
+                conflictLines + '</ul></div>';
+        }
         var summaryHtml =
-            '<div class="alert alert-success py-2 mb-3 small">' +
+            '<div class="alert alert-success py-2 mb-2 small">' +
             '<i class="fa fa-check-circle mr-1"></i>' +
             '<strong>' + s.success + '</strong> Termin(e) verschoben' +
             (s.error > 0 ? ', <strong class="text-danger">' + s.error + '</strong> Fehler' : '') +
             (s.skipped > 0 ? ', ' + s.skipped + ' \u00fcbersprungen' : '') +
-            '.</div>';
+            '.</div>' + conflictHtml;
 
         if (!hits || hits.length === 0) {
             review.innerHTML = summaryHtml +

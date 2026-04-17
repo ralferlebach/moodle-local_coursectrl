@@ -152,6 +152,23 @@ abstract class abstract_activity_adapter implements activity_adapter {
     }
 
     /**
+     * Return the field name that drives completionexpected shifts.
+     *
+     * When a shift_dates action is executed, completionexpected in
+     * course_modules is only shifted if this anchor field was among the
+     * fields actually changed. Return null to always shift completionexpected
+     * alongside any date shift (the legacy behaviour).
+     *
+     * Override in adapters that have a well-defined primary deadline field
+     * (e.g. 'duedate' for mod_assign, 'timeclose' for mod_quiz).
+     *
+     * @return string|null Field name or null.
+     */
+    public function get_completion_anchor_field(): ?string {
+        return null;
+    }
+
+    /**
      * Run module-specific consistency and sanity checks.
      *
      * @param int[] $cmids   target course module ids.

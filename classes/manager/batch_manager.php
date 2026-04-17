@@ -117,8 +117,23 @@ class batch_manager {
         $transaction = $DB->start_delegated_transaction();
         try {
             foreach ($byadapter['skipped'] as $skip) {
-                $this->persist_skipped_item($batchid, (int)$skip['cmid'], $skip);
-                $summary['skipped']++;
+                $reason = $skip['reason'] ?? 'no_adapter';
+                // For no-adapter CMs, apply system-level CM field shifts instead
+                // of simply skipping them. These CMs can still have completionexpected
+                // and availability date conditions that should be shifted.
+                if ($reason === 'no_adapter' && $action === 'shift_dates') {
+                    $delta = (int) ($payload['delta'] ?? 0);
+                    $syscmid = (int) $skip['cmid'];
+                    if ($delta !== 0) {
+                        $this->shift_cm_level_dates($syscmid, $delta, $batchid, $summary);
+                    } else {
+                        $this->persist_skipped_item($batchid, $syscmid, $skip);
+                        $summary['skipped']++;
+                    }
+                } else {
+                    $this->persist_skipped_item($batchid, (int)$skip['cmid'], $skip);
+                    $summary['skipped']++;
+                }
             }
             foreach ($byadapter['routed'] as $component => $entry) {
                 /** @var activity_adapter $adapter */
@@ -279,6 +294,143 @@ class batch_manager {
             'resultjson' => json_encode($item),
         ];
         (new batch_item(0, $data))->create();
+    }
+
+    /**
+     * Shift CM-level date fields for a single course module without an adapter.
+     *
+     * Handles the two system-level date fields that apply to ALL activity types:
+     *   - completionexpected  in {course_modules}
+     *   - Availability date conditions in {course_modules}.availability (JSON)
+     *
+     * Creates a batch_item and snapshot so the shift can be rolled back.
+     *
+     * @param int   $cmid    Course module id.
+     * @param int   $delta   Seconds to shift (positive = forward).
+     * @param int   $batchid Parent batch id.
+     * @param array $summary Reference to summary counters.
+     */
+    private function shift_cm_level_dates(
+        int $cmid,
+        int $delta,
+        int $batchid,
+        array &$summary
+    ): void {
+        global $DB;
+
+        $cm = $DB->get_record(
+            'course_modules',
+            ['id' => $cmid],
+            'id, completionexpected, availability',
+            IGNORE_MISSING
+        );
+        if (!$cm) {
+            return;
+        }
+
+        $changed = [];
+        $snapshot = [
+            'completionexpected' => (int)$cm->completionexpected,
+            'availability' => (string)($cm->availability ?? ''),
+        ];
+
+        $update = new \stdClass();
+        $update->id = $cmid;
+
+        // Shift completionexpected.
+        if ((int)$cm->completionexpected > 0) {
+            $update->completionexpected = (int)$cm->completionexpected + $delta;
+            $changed[] = 'completionexpected';
+        }
+
+        // Shift date conditions within availability JSON.
+        if (!empty($cm->availability)) {
+            $newavail = $this->shift_availability_dates((string)$cm->availability, $delta);
+            if ($newavail !== (string)$cm->availability) {
+                $update->availability = $newavail;
+                $changed[] = 'availability';
+            }
+        }
+
+        if (empty($changed)) {
+            // Nothing to shift — no batch_item needed.
+            return;
+        }
+
+        try {
+            $DB->update_record('course_modules', $update);
+        } catch (\Throwable $e) {
+            debugging(
+                'local_coursectrl: shift_cm_level_dates failed for cmid ' . $cmid .
+                ': ' . $e->getMessage(),
+                DEBUG_DEVELOPER
+            );
+            return;
+        }
+
+        // Persist snapshot for rollback.
+        $snapdata = (object)[
+            'batchid'    => $batchid,
+            'entitytype' => 'cm',
+            'entityid'   => $cmid,
+            'component'  => 'core_coursemodule',
+            'statejson'  => json_encode($snapshot),
+        ];
+        (new \local_coursectrl\local\persistent\snapshot(0, $snapdata))->create();
+
+        // Persist batch_item as success.
+        $itemdata = (object)[
+            'batchid'    => $batchid,
+            'entitytype' => 'cm',
+            'entityid'   => $cmid,
+            'component'  => 'core_coursemodule',
+            'status'     => batch_item::STATUS_SUCCESS,
+            'resultjson' => json_encode(['changed' => $changed, 'delta' => $delta]),
+        ];
+        (new batch_item(0, $itemdata))->create();
+        $summary['success']++;
+    }
+
+    /**
+     * Shift all date timestamps within a Moodle availability JSON string.
+     *
+     * Walks the condition tree and adds $delta to every node with
+     * type === 'date' and a 't' (timestamp) value greater than zero.
+     *
+     * @param string $json  Raw availability JSON from {course_modules}.availability.
+     * @param int    $delta Seconds to add.
+     * @return string Modified JSON string, or the original on parse failure.
+     */
+    private function shift_availability_dates(string $json, int $delta): string {
+        $data = json_decode($json, true);
+        if (!is_array($data)) {
+            return $json;
+        }
+        $data = $this->walk_availability_node($data, $delta);
+        $encoded = json_encode($data);
+        return ($encoded !== false) ? $encoded : $json;
+    }
+
+    /**
+     * Recursively walk an availability condition node and shift date timestamps.
+     *
+     * @param array $node  Decoded availability node.
+     * @param int   $delta Seconds to shift.
+     * @return array Modified node.
+     */
+    private function walk_availability_node(array $node, int $delta): array {
+        if (($node['type'] ?? '') === 'date' && isset($node['t']) && (int)$node['t'] > 0) {
+            $node['t'] = (int)$node['t'] + $delta;
+            return $node;
+        }
+        if (isset($node['c']) && is_array($node['c'])) {
+            foreach ($node['c'] as $i => $child) {
+                if (is_array($child)) {
+                    $node['c'][$i] = $this->walk_availability_node($child, $delta);
+                }
+            }
+        }
+        return $node;
     }
 
     /**

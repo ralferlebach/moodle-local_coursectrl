@@ -149,6 +149,17 @@ class adapter extends abstract_activity_adapter {
     }
 
     /**
+     * The primary deadline field for mod_quiz is the close time.
+     *
+     * completionexpected is only shifted when timeclose is actually shifted.
+     *
+     * @return string
+     */
+    public function get_completion_anchor_field(): string {
+        return 'timeclose';
+    }
+
+    /**
      * Returns the database table name for the trait.
      *
      * @return string

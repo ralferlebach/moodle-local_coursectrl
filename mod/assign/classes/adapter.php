@@ -143,6 +143,18 @@ class adapter extends abstract_activity_adapter {
     }
 
     /**
+     * The primary deadline field for mod_assign is the due date.
+     *
+     * completionexpected is only shifted when duedate is actually shifted,
+     * not when only the opening or cut-off date moves.
+     *
+     * @return string
+     */
+    public function get_completion_anchor_field(): string {
+        return 'duedate';
+    }
+
+    /**
      * Returns the database table name for the trait.
      *
      * @return string
@@ -224,6 +236,26 @@ class adapter extends abstract_activity_adapter {
                     'code' => 'assign_from_after_due',
                     'message' => get_string(
                         'check_assign_from_after_due',
+                        'local_coursectrl'
+                    ),
+                ];
+            }
+
+            // Opening date should not be after completionexpected.
+            try {
+                $cmobj = get_coursemodule_from_id('assign', $cmid, 0, false, MUST_EXIST);
+                $compexp = (int)$cmobj->completionexpected;
+            } catch (\Throwable $e) {
+                $compexp = 0;
+            }
+            if ($fromdate > 0 && $compexp > 0 && $fromdate > $compexp) {
+                $results[] = [
+                    'cmid' => $cmid,
+                    'name' => $assign->name,
+                    'severity' => 'warning',
+                    'code' => 'assign_from_after_completionexpected',
+                    'message' => get_string(
+                        'check_assign_from_after_completionexpected',
                         'local_coursectrl'
                     ),
                 ];

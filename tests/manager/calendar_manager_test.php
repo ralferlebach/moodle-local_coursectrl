@@ -49,8 +49,8 @@ final class calendar_manager_test extends \advanced_testcase {
             function (int $year, int $month) use ($dayinfo) {
                 $result = [];
                 foreach ($dayinfo as $datekey => $events) {
-                    $m = (int) date('n', strtotime('!' . $datekey));
-                    $y = (int) date('Y', strtotime('!' . $datekey));
+                    $m = (int) date('n', strtotime($datekey));
+                    $y = (int) date('Y', strtotime($datekey));
                     if ($y === $year && $m === $month) {
                         $result[$datekey] = $events;
                     }

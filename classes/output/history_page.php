@@ -41,14 +41,19 @@ class history_page implements renderable, templatable {
     /** @var int Maximum number of batches to show (from settings, default 100). */
     private int $maxbatches;
 
+    /** @var array|null Rollback result to surface in the page, or null. */
+    private ?array $rollbackresult;
+
     /**
      * Constructor.
      *
-     * @param int $courseid   The course id.
-     * @param int $maxbatches Maximum number of batches to show.
+     * @param int        $courseid       The course id.
+     * @param array|null $rollbackresult Optional rollback result from rollback.php.
+     * @param int        $maxbatches     Maximum number of batches to show.
      */
-    public function __construct(int $courseid, int $maxbatches = 100) {
+    public function __construct(int $courseid, ?array $rollbackresult = null, int $maxbatches = 100) {
         $this->courseid = $courseid;
+        $this->rollbackresult = $rollbackresult;
         $this->maxbatches = $maxbatches;
     }
 
@@ -89,7 +94,7 @@ class history_page implements renderable, templatable {
             $user = $DB->get_record(
                 'user',
                 ['id' => $batch->userid],
-                'id, firstname, lastname, email',
+                'id, firstname, lastname, email, firstnamephonetic, lastnamephonetic, middlename, alternatename',
                 IGNORE_MISSING
             );
             $username = $user
@@ -128,7 +133,12 @@ class history_page implements renderable, templatable {
             'batchrows'      => $rows,
             'hasbatchrows'   => count($rows) > 0,
             'batchcount'     => count($rows),
-            'hasrollbackresult' => false,
+            'hasrollbackresult' => $this->rollbackresult !== null,
+            'rollbacksuccess'   => !empty($this->rollbackresult['success']),
+            'rollbackrestored'  => (int) ($this->rollbackresult['restored'] ?? 0),
+            'rollbackfailed'    => (int) ($this->rollbackresult['failed'] ?? 0),
+            'rollbackerror'     => (string) ($this->rollbackresult['error'] ?? ''),
+            'rollbackitems'     => $this->build_rollback_items($this->rollbackresult['items'] ?? []),
             'rollbackurl'    => (new \moodle_url(
                 '/local/coursectrl/rollback.php',
                 ['courseid' => $this->courseid, 'sesskey' => sesskey()]
@@ -138,5 +148,27 @@ class history_page implements renderable, templatable {
                 ['courseid' => $this->courseid]
             ))->out(false),
         ];
+    }
+
+    /**
+     * Build the rollback items array for template rendering.
+     *
+     * @param array $items Raw rollback item arrays from rollback_manager.
+     * @return array Enriched items with boolean status flags.
+     */
+    private function build_rollback_items(array $items): array {
+        $result = [];
+        foreach ($items as $item) {
+            $status = (string) ($item['status'] ?? '');
+            $result[] = [
+                'entityid'   => (int) ($item['entityid'] ?? 0),
+                'component'  => (string) ($item['component'] ?? ''),
+                'status'     => $status,
+                'message'    => (string) ($item['message'] ?? ''),
+                'isrestored' => $status === 'restored',
+                'iserror'    => $status === 'error',
+            ];
+        }
+        return $result;
     }
 }

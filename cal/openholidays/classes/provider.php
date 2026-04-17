@@ -106,7 +106,9 @@ class provider extends abstract_calendar_provider {
             return [];
         }
 
-        $cachekey = "openholidays_{$country}_{$language}_{$region}_{$year}_{$month}";
+        // Build a safe cache key: simplekeys=true allows only [a-zA-Z0-9_].
+        $regionkey = preg_replace('/[^a-zA-Z0-9]/', '_', $region);
+        $cachekey = "openholidays_{$country}_{$language}_{$regionkey}_{$year}_{$month}";
         $cached = $this->cache_get($cachekey);
         if ($cached !== false) {
             return $cached;
@@ -125,7 +127,11 @@ class provider extends abstract_calendar_provider {
             $this->fetch_school($daymap, $country, $language, $region, $dayfrom, $dayto, $year, $month);
         }
 
-        $this->cache_set($cachekey, $daymap);
+        // Only cache non-empty results so a transient API failure does not
+        // poison the cache for the full TTL period.
+        if (!empty($daymap)) {
+            $this->cache_set($cachekey, $daymap);
+        }
         return $daymap;
     }
 
@@ -162,12 +168,16 @@ class provider extends abstract_calendar_provider {
         int $year,
         int $month
     ): void {
-        $params = http_build_query([
-            'countryIsoCode' => $country,
-            'languageIsoCode' => $language,
-            'validFrom' => $dayfrom,
-            'validTo' => $dayto,
-        ]);
+        $params = http_build_query(
+            [
+                'countryIsoCode' => $country,
+                'languageIsoCode' => $language,
+                'validFrom' => $dayfrom,
+                'validTo' => $dayto,
+            ],
+            '',
+            '&'
+        );
         $raw = $this->http_get(self::API_BASE . '/PublicHolidays?' . $params);
         if ($raw === null) {
             return;
@@ -205,13 +215,17 @@ class provider extends abstract_calendar_provider {
         int $year,
         int $month
     ): void {
-        $params = http_build_query([
-            'countryIsoCode' => $country,
-            'languageIsoCode' => $language,
-            'subdivisionCode' => $region,
-            'validFrom' => $dayfrom,
-            'validTo' => $dayto,
-        ]);
+        $params = http_build_query(
+            [
+                'countryIsoCode' => $country,
+                'languageIsoCode' => $language,
+                'subdivisionCode' => $region,
+                'validFrom' => $dayfrom,
+                'validTo' => $dayto,
+            ],
+            '',
+            '&'
+        );
         $raw = $this->http_get(self::API_BASE . '/SchoolHolidays?' . $params);
         if ($raw === null) {
             return;

@@ -93,7 +93,10 @@ class provider extends abstract_calendar_provider {
             $url = self::API_BASE . "/{$year}/{$countrycode}";
             $raw = $this->http_get($url);
             $yeardata = $raw !== null ? $this->parse_response($raw) : [];
-            $this->cache_set($cachekey, $yeardata);
+            // Only cache non-empty results to avoid poisoning the cache on failure.
+            if (!empty($yeardata)) {
+                $this->cache_set($cachekey, $yeardata);
+            }
         }
 
         // Filter to the requested month.

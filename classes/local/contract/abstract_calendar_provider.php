@@ -101,13 +101,42 @@ abstract class abstract_calendar_provider implements calendar_provider {
         $curl->setopt([
             'CURLOPT_TIMEOUT' => $timeout,
             'CURLOPT_CONNECTTIMEOUT' => 5,
+            'CURLOPT_HTTPHEADER' => ['Accept: application/json'],
         ]);
         $response = $curl->get($url);
+
+        // Fail on any cURL-level network error.
         if ($curl->get_errno() !== 0) {
+            debugging(
+                'local_coursectrl calendar http_get cURL error ' . $curl->get_errno() .
+                ' for ' . $url,
+                DEBUG_DEVELOPER
+            );
             return null;
         }
+
+        // Fail on non-2xx HTTP status codes.
+        $info = $curl->get_info();
+        $httpcode = (int) ($info['http_code'] ?? 0);
+        if ($httpcode < 200 || $httpcode >= 300) {
+            debugging(
+                'local_coursectrl calendar http_get HTTP ' . $httpcode .
+                ' for ' . $url,
+                DEBUG_DEVELOPER
+            );
+            return null;
+        }
+
         $decoded = json_decode($response, true);
-        return is_array($decoded) ? $decoded : null;
+        if (!is_array($decoded)) {
+            debugging(
+                'local_coursectrl calendar http_get invalid JSON (HTTP ' . $httpcode .
+                ') for ' . $url,
+                DEBUG_DEVELOPER
+            );
+            return null;
+        }
+        return $decoded;
     }
 
     /**

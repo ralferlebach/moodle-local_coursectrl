@@ -337,3 +337,14 @@ $string['shift_ajax_review_apply'] = 'Apply selected text changes';
 // Strings added in 0.1.45 -- assign consistency checks.
 $string['check_assign_from_after_due']    = 'Opening date is after due date (invalid combination).';
 $string['check_assign_cutoff_before_due'] = 'Cut-off date is before due date.';
+// Strings added: assign check F3, history F4.
+$string['check_assign_from_after_completionexpected'] = 'Opening date is after the expected completion date (completionexpected).';
+$string['history_activities']   = 'activities';
+$string['history_entries']      = 'entries';
+$string['history_detail_title'] = 'Change details';
+$string['history_detail_field'] = 'Field';
+$string['history_noop']         = 'no change';
+$string['check_assign_completionexpected_before_from'] = 'Completion expected date is before the assignment opening date.';
+$string['history_detail_component'] = 'Component';
+$string['history_detail_status'] = 'Status';
+$string['history_detail_fields'] = 'Fields';

@@ -21,18 +21,33 @@
 
     Context variables required for this template:
     * courseid (int)
-    * rows (array) — batch rows, newest first
-    * hasrows (bool)
-    * rowcount (int)
+    * batchrows (array) — batch rows, newest first
+    * hasbatchrows (bool)
+    * batchcount (int)
     * maxbatches (int)
     * canrollback (bool)
     * dashboardurl (string)
 
     Example context (json):
-    {"courseid":2,"hasrows":false,"rows":[],"rowcount":0,"maxbatches":100}
+    {"courseid":2,"hasbatchrows":false,"batchrows":[],"batchcount":0,"maxbatches":100}
 }}
 
 <div class="local_coursectrl_history" data-region="local_coursectrl-history">
+
+  {{#hasrollbackresult}}
+  <div class="alert {{#rollbacksuccess}}alert-success{{/rollbacksuccess}}{{^rollbacksuccess}}alert-danger{{/rollbacksuccess}} small mb-3">
+    {{#rollbacksuccess}}
+      <i class="fa fa-check-circle me-1"></i>
+      {{#str}} rollback_success, local_coursectrl {{/str}}
+      ({{rollbackrestored}} {{#str}} history_items, local_coursectrl {{/str}})
+    {{/rollbacksuccess}}
+    {{^rollbacksuccess}}
+      <i class="fa fa-times-circle me-1"></i>
+      {{#str}} rollback_failed, local_coursectrl {{/str}}
+      {{#rollbackerror}}&mdash; {{rollbackerror}}{{/rollbackerror}}
+    {{/rollbacksuccess}}
+  </div>
+  {{/hasrollbackresult}}
 
   {{#hasrows}}
   <p class="text-muted small mb-2">
@@ -54,22 +69,60 @@
           <span class="text-muted small ms-2" title="{{timeformatted}}">
             <i class="fa fa-clock fa-fw"></i>{{timeago}}
           </span>
+          {{! F4: activity count + entry count }}
           <span class="text-muted small ms-2">
-            <i class="fa fa-list fa-fw"></i>{{itemcount}} {{#str}} history_items, local_coursectrl {{/str}}
+            <i class="fa fa-list fa-fw"></i>{{activitycount}}Â {{#str}} history_activities, local_coursectrl {{/str}},
+            {{itemcount}}Â {{#str}} history_items, local_coursectrl {{/str}}
           </span>
+          {{! F1: detail toggle button }}
+          {{#hasdetailrows}}
+          <button type="button"
+                  class="btn btn-link btn-sm p-0 ms-2"
+                  data-action="show-batch-detail"
+                  data-batchid="{{batchid}}"
+                  title="{{#str}} history_detail_title, local_coursectrl {{/str}}">
+            <i class="fa fa-info-circle"></i>
+          </button>
+          {{/hasdetailrows}}
         </div>
         {{#canrollback}}
         <div class="flex-shrink-0">
-          {{#canrollback}}
           <a href="{{rollbackurl}}" class="btn btn-sm btn-outline-danger"
              onclick="return confirm('{{#str}} rollback_confirm, local_coursectrl {{/str}}')">
             <i class="fa fa-undo fa-fw"></i>
             {{#str}} rollback_action, local_coursectrl {{/str}}
           </a>
-          {{/canrollback}}
         </div>
         {{/canrollback}}
       </div>
+      {{! F1: collapsible detail table }}
+      {{#hasdetailrows}}
+      <div class="coursectrl-batch-detail mt-2 d-none" data-batchid="{{batchid}}">
+        <table class="table table-sm table-striped mb-0 small">
+          <thead>
+            <tr>
+              <th>CM-ID</th>
+              <th>{{#str}} history_detail_component, local_coursectrl {{/str}}</th>
+              <th>{{#str}} history_detail_status, local_coursectrl {{/str}}</th>
+              <th>{{#str}} history_detail_fields, local_coursectrl {{/str}}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#detailrows}}
+            <tr class="{{#issuccess}}table-success{{/issuccess}}{{#iserror}}table-danger{{/iserror}}{{#isskipped}}table-secondary{{/isskipped}}">
+              <td>{{entityid}}</td>
+              <td><code class="small">{{component}}</code></td>
+              <td>{{status}}</td>
+              <td>
+                {{#haschanged}}{{#changed}}<span class="badge bg-light text-dark border me-1">{{field}}</span>{{/changed}}{{/haschanged}}
+                {{^haschanged}}<span class="text-muted">â</span>{{/haschanged}}
+              </td>
+            </tr>
+            {{/detailrows}}
+          </tbody>
+        </table>
+      </div>
+      {{/hasdetailrows}}
     </div>
     {{/rows}}
   </div>
@@ -78,5 +131,24 @@
   {{^hasrows}}
   <p class="text-muted">{{#str}} history_empty, local_coursectrl {{/str}}</p>
   {{/hasrows}}
+
+  {{#js}}
+  (function() {
+    document.querySelectorAll('[data-action="show-batch-detail"]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var id = btn.getAttribute('data-batchid');
+        var panel = document.querySelector('.coursectrl-batch-detail[data-batchid="' + id + '"]');
+        if (panel) {
+          panel.classList.toggle('d-none');
+          var icon = btn.querySelector('i');
+          if (icon) {
+            icon.className = panel.classList.contains('d-none')
+              ? 'fa fa-info-circle' : 'fa fa-times-circle text-primary';
+          }
+        }
+      });
+    });
+  })();
+  {{/js}}
 
 </div>

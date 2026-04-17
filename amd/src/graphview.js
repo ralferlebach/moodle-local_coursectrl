@@ -217,12 +217,14 @@ define([], function() {
         var span = (maxts - mints) || 1;
         var barAreaW = Math.max((canvas.offsetWidth || 400) - GANTT_LABEL_W - GANTT_PAD * 2, 200);
         var svgW = GANTT_LABEL_W + barAreaW + GANTT_PAD * 2;
-        var svgH = GANTT_PAD + rows.length * GANTT_ROW_H + GANTT_PAD;
+        // Extra height for x-axis labels below the chart.
+        var AXIS_LABEL_H = 20;
+        var svgH = GANTT_PAD + rows.length * GANTT_ROW_H + GANTT_PAD + AXIS_LABEL_H;
 
         var svg = svgEl('svg', {width: svgW, height: svgH,
             viewBox: '0 0 ' + svgW + ' ' + svgH});
 
-        var axisY = svgH - GANTT_PAD;
+        var axisY = svgH - GANTT_PAD - AXIS_LABEL_H;
         svg.appendChild(svgEl('line', {
             x1: GANTT_LABEL_W, y1: GANTT_PAD,
             x2: GANTT_LABEL_W, y2: axisY,
@@ -231,6 +233,53 @@ define([], function() {
             x1: GANTT_LABEL_W, y1: axisY,
             x2: GANTT_LABEL_W + barAreaW, y2: axisY,
             stroke: COL_AXIS, 'stroke-width': '1'}));
+
+        // X-axis tick marks and date labels.
+        // Aim for ~5-8 readable ticks across the available width.
+        var spanDays = Math.round(span / 86400);
+        var tickIntervalDays = 1;
+        var intervals = [1, 2, 3, 7, 14, 30, 60, 90, 182, 365];
+        for (var ti = 0; ti < intervals.length; ti++) {
+            if (Math.round(barAreaW / (spanDays / intervals[ti])) >= 50) {
+                tickIntervalDays = intervals[ti];
+                break;
+            }
+        }
+        var tickIntervalSec = tickIntervalDays * 86400;
+        // Align first tick to a round date boundary.
+        var firstTick = Math.ceil(mints / tickIntervalSec) * tickIntervalSec;
+        var tickTs = firstTick;
+        while (tickTs <= maxts) {
+            var pct = (tickTs - mints) / span;
+            var tx = GANTT_LABEL_W + Math.round(pct * barAreaW);
+            // Tick mark.
+            svg.appendChild(svgEl('line', {
+                x1: tx, y1: axisY,
+                x2: tx, y2: axisY + 4,
+                stroke: COL_AXIS, 'stroke-width': '1'}));
+            // Date label — format as DD.MM. or DD.MM.YYYY depending on span.
+            var d = new Date(tickTs * 1000);
+            var labelStr = '';
+            var dd = String(d.getDate()).padStart(2, '0');
+            var mm = String(d.getMonth() + 1).padStart(2, '0');
+            if (tickIntervalDays >= 30) {
+                labelStr = mm + '/' + d.getFullYear();
+            } else {
+                labelStr = dd + '.' + mm + '.';
+            }
+            var ltext = svgEl('text', {
+                x: tx, y: axisY + 14,
+                'text-anchor': 'middle',
+                fill: COL_SUB, 'font-size': '9', 'font-family': 'sans-serif'});
+            ltext.textContent = labelStr;
+            svg.appendChild(ltext);
+            // Faint vertical grid line through rows.
+            svg.appendChild(svgEl('line', {
+                x1: tx, y1: GANTT_PAD,
+                x2: tx, y2: axisY,
+                stroke: '#e8e8e8', 'stroke-width': '1'}));
+            tickTs += tickIntervalSec;
+        }
 
         rows.forEach(function(row, ri) {
             var rowY = GANTT_PAD + ri * GANTT_ROW_H;

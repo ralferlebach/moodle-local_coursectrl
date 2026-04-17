@@ -130,10 +130,39 @@ if ($nothingtodo) {
     exit;
 }
 
-// All cmids — including those without a registered adapter — are passed to
-// batch_manager. The manager routes adapter-capable CMs through their adapter
-// (for module-specific fields) and shifts CM-level fields (completionexpected,
-// availability dates) for ALL cmids at system level, regardless of adapter.
+// E7: Pre-filter cmids against the adapter registry.
+// CMs without a registered adapter (e.g. url, resource, label, completionexpected slots)
+// cannot be shifted and should not produce misleading "skipped" log entries.
+$registry = new \local_coursectrl\manager\registry();
+$adaptercmids = array_values(array_filter($cmids, function(int $cid) use ($registry): bool {
+    return $registry->get_for_cmid($cid) !== null;
+}));
+
+if (empty($adaptercmids)) {
+    if ($formatjson) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'batchid' => 0,
+            'summary' => [
+                'total' => count($cmids),
+                'success' => 0,
+                'noop' => count($cmids),
+                'skipped' => 0,
+                'error' => 0,
+            ],
+            'conflicts' => [],
+        ]);
+        exit;
+    }
+    redirect(
+        $timelineurl,
+        get_string('shift_no_change', 'local_coursectrl'),
+        null,
+        \core\output\notification::NOTIFY_WARNING
+    );
+}
+$cmids = $adaptercmids;
 
 $manager = new \local_coursectrl\manager\batch_manager();
 $batchid = $manager->execute($courseid, $actiontype, $payload, $cmids, (int) $USER->id);

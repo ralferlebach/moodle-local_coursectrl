@@ -274,6 +274,28 @@ class adapter extends abstract_activity_adapter {
                     ),
                 ];
             }
+
+            // completionexpected should not be before allowsubmissionsfromdate.
+            // The CM-level completionexpected field is in course_modules, not {assign}.
+            $cmrec = $DB->get_record(
+                'course_modules',
+                ['id' => $cmid],
+                'completionexpected',
+                IGNORE_MISSING
+            );
+            $compexp = $cmrec ? (int)$cmrec->completionexpected : 0;
+            if ($compexp > 0 && $fromdate > 0 && $compexp < $fromdate) {
+                $results[] = [
+                    'cmid' => $cmid,
+                    'name' => $assign->name,
+                    'severity' => 'warning',
+                    'code' => 'assign_completionexpected_before_from',
+                    'message' => get_string(
+                        'check_assign_completionexpected_before_from',
+                        'local_coursectrl'
+                    ),
+                ];
+            }
         }
         return $results;
     }

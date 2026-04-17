@@ -335,3 +335,14 @@ $string['shift_ajax_review_apply'] = 'Ausgewählte Textänderungen anwenden';
 // Strings added in 0.1.45 -- assign consistency checks.
 $string['check_assign_from_after_due']    = 'Öffnungsdatum liegt nach dem Abgabedatum (ungültige Kombination).';
 $string['check_assign_cutoff_before_due'] = 'Letzter Abgabetermin liegt vor dem Abgabedatum.';
+// Strings added: assign check F3, history F4.
+$string['check_assign_from_after_completionexpected'] = 'Öffnungsdatum liegt nach dem Abschlussdatum (completionexpected).';
+$string['history_activities']   = 'Aktivitäten';
+$string['history_entries']      = 'Einträge';
+$string['history_detail_title'] = 'Änderungsdetails';
+$string['history_detail_field'] = 'Feld';
+$string['history_noop']         = 'keine Änderung';
+$string['check_assign_completionexpected_before_from'] = 'Erwarteter Abschluss liegt vor dem Öffnungsdatum der Aufgabe.';
+$string['history_detail_component'] = 'Komponente';
+$string['history_detail_status'] = 'Status';
+$string['history_detail_fields'] = 'Felder';

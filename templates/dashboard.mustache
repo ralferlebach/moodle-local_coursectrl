@@ -67,10 +67,16 @@
             </div></div>
         </div>
         <div class="col-md-3">
+            {{#haswarnings}}
+            <a href="{{simulationurl}}" class="text-decoration-none">
+            {{/haswarnings}}
             <div class="card text-center h-100 {{#haswarnings}}border-danger{{/haswarnings}}"><div class="card-body py-2">
                 <div class="h4 mb-0 {{#haswarnings}}text-danger{{/haswarnings}}">{{warningcount}}</div>
                 <div class="text-muted small">{{#str}}dashboard_warnings, local_coursectrl{{/str}}</div>
             </div></div>
+            {{#haswarnings}}
+            </a>
+            {{/haswarnings}}
         </div>
         <div class="col-md-3">
             <div class="card text-center h-100 border-info"><div class="card-body py-2">
@@ -127,7 +133,29 @@
         </div>
     </div>
 
-
+    {{! Warning detail panel — shown below calendar when warnings exist }}
+    {{#haswarnings}}
+    <div class="alert alert-danger py-2 mb-3 small">
+        <div class="d-flex align-items-start justify-content-between gap-2">
+            <div>
+                <i class="fa fa-exclamation-triangle me-1"></i>
+                <strong>{{warningcount}} {{#str}} dashboard_warning_detail_title, local_coursectrl {{/str}}</strong>
+                <ul class="mb-0 mt-1 ps-3">
+                    {{#sections}}{{#cms}}{{#haswarnings}}{{#warnings}}
+                    <li>
+                        <a href="{{../url}}" target="_blank" rel="noopener noreferrer" class="alert-link">{{../name}}</a>:
+                        {{message}}
+                    </li>
+                    {{/warnings}}{{/haswarnings}}{{/cms}}{{/sections}}
+                </ul>
+            </div>
+            <a href="{{simulationurl}}" class="btn btn-sm btn-outline-danger flex-shrink-0">
+                <i class="fa fa-play fa-fw"></i>
+                {{#str}} dashboard_warning_simulate, local_coursectrl {{/str}}
+            </a>
+        </div>
+    </div>
+    {{/haswarnings}}
 
     {{! ---- Inventory ---- }}
     {{#hassections}}

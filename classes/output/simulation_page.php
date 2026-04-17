@@ -142,8 +142,11 @@ class simulation_page implements renderable, templatable {
 
                 $reasonrows = [];
                 foreach ($result['reasons'] as $reason) {
-                    $reasonrows[] = $this->format_reason($reason, $dateformat);
+                    $reasonrows[] = $this->format_reason($reason, $dateformat, $cms);
                 }
+
+                $iscomplete = $result['status'] === condition_evaluator::STATUS_PASS
+                    || $result['status'] === condition_evaluator::STATUS_FAIL;
 
                 $resultrows[] = [
                     'cmid' => $cmid,
@@ -158,6 +161,7 @@ class simulation_page implements renderable, templatable {
                     'has_restrictions' => $result['has_restrictions'],
                     'isnextstep' => $isnextstep,
                     'isblocked' => $isblocked,
+                    'iscomplete' => $iscomplete,
                     'reasons' => $reasonrows,
                     'hasreasons' => count($reasonrows) > 0,
                     'url' => (new \moodle_url(
@@ -244,7 +248,7 @@ class simulation_page implements renderable, templatable {
      * @param string $dateformat Moodle date format string.
      * @return array Template-ready reason array.
      */
-    private function format_reason(array $reason, string $dateformat): array {
+    private function format_reason(array $reason, string $dateformat, array $cms = []): array {
         $type = $reason['type'] ?? '';
         $status = $reason['status'] ?? condition_evaluator::STATUS_UNKNOWN;
         $base = [
@@ -257,10 +261,17 @@ class simulation_page implements renderable, templatable {
         ];
 
         if ($type === 'completion') {
+            $depcmid = (int) ($reason['cmid'] ?? 0);
+            $depcm = $cms[$depcmid] ?? null;
+            $depname = $depcm ? $depcm->name : 'cmid ' . $depcmid;
+            $depmodname = $depcm ? $depcm->modname : '';
+            $depurl = $depcm
+                ? (new \moodle_url('/mod/' . $depmodname . '/view.php', ['id' => $depcmid]))->out(false)
+                : '';
             $base['label'] = get_string(
                 'sim_reason_completion',
                 'local_coursectrl',
-                (object)['cmid' => $reason['cmid'], 'expected' => $reason['expected']]
+                (object)['cmname' => $depname, 'cmurl' => $depurl, 'expected' => $reason['expected']]
             );
         } else if ($type === 'date') {
             $base['label'] = get_string(

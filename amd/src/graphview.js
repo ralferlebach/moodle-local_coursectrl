@@ -184,19 +184,22 @@ define([], function() {
             a.appendChild(svgEl('rect', {x: rx, y: ry, width: NODE_W, height: NODE_H,
                 rx: '5', fill: fill, stroke: stroke, 'stroke-width': sw, cursor: 'pointer'}));
 
-            var lbl = svgEl('text', {x: pos.cx, y: pos.cy - 4,
+            var lbl = svgEl('text', {x: pos.cx, y: pos.cy,
                 'text-anchor': 'middle', 'dominant-baseline': 'middle',
                 fill: COL_TEXT, 'font-size': '11', 'font-family': 'sans-serif',
                 'pointer-events': 'none'});
-            lbl.textContent = truncate(node.label, Math.floor((NODE_W - 8) / 7));
+            lbl.textContent = truncate(node.label, Math.floor((NODE_W - 24) / 7));
             a.appendChild(lbl);
 
-            var sub = svgEl('text', {x: pos.cx, y: pos.cy + 10,
-                'text-anchor': 'middle', 'dominant-baseline': 'middle',
-                fill: COL_SUB, 'font-size': '9', 'font-family': 'sans-serif',
-                'pointer-events': 'none'});
-            sub.textContent = node.modname;
-            a.appendChild(sub);
+            // Module icon (16×16) left-aligned inside node.
+            if (node.iconurl) {
+                a.appendChild(svgEl('image', {
+                    href: node.iconurl,
+                    x: rx + 4, y: pos.cy - 8,
+                    width: 16, height: 16,
+                    'pointer-events': 'none',
+                }));
+            }
 
             group.appendChild(a);
             svg.appendChild(group);

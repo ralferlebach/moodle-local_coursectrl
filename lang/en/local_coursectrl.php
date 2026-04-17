@@ -357,3 +357,4 @@ $string['sim_tracking_active'] = 'Active';
 $string['sim_tracking_off'] = 'Off';
 $string['dashboard_warning_detail_title'] = 'Warning(s) detected';
 $string['dashboard_warning_simulate'] = 'Open simulation';
+$string['history_detail_activity'] = 'Activity';

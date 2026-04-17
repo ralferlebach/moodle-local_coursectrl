@@ -148,7 +148,7 @@
 }
 
 .coursectrl-simdrop-item .form-check-label {
-    margin: 0 0 0 10px;
+    margin: 0 0 0 10px !important;
     line-height: 1.4;
 }
 
@@ -177,4 +177,16 @@
  */
 [data-region="local_coursectrl-simdropdown-menu"] {
     padding-left: 0 !important;
+}
+
+/**
+ * Same float/margin override for the timeline activity-type filter form.
+ */
+[data-region="local_coursectrl-compfilter-menu"] .form-check-input {
+    float: none;
+    margin: 0;
+}
+
+[data-region="local_coursectrl-compfilter-menu"] .coursectrl-simdrop-item {
+    padding: 0 4px;
 }

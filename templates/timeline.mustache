@@ -150,7 +150,6 @@
     <div class="position-relative d-inline-block" data-region="local_coursectrl-compfilter">
       <button class="btn btn-sm btn-outline-secondary" type="button"
               data-action="toggle-compfilter">
-        <i class="fa fa-filter fa-fw"></i>
         {{#str}} filter_activitytypes, local_coursectrl {{/str}}
       </button>
       <form method="get" action="{{timelineurl}}"
@@ -160,13 +159,15 @@
         <input type="hidden" name="courseid" value="{{courseid}}">
         <input type="hidden" name="tab" value="timeline">
         <input type="hidden" name="groupid" value="{{activegroupid}}">
+        <ul style="list-style:none;margin:0;padding-left:0">
         {{#componentoptions}}
-        <div class="form-check">
+        <li class="coursectrl-simdrop-item">
           <input class="form-check-input" type="checkbox" name="components[]"
                  value="{{value}}" id="comp-{{value}}"{{#selected}} checked{{/selected}}>
-          <label class="form-check-label small" for="comp-{{value}}">{{label}}</label>
-        </div>
+          <label class="form-check-label" for="comp-{{value}}">{{label}}</label>
+        </li>
         {{/componentoptions}}
+        </ul>
         <div class="mt-2">
           <button type="submit" class="btn btn-sm btn-primary">
             {{#str}} apply, core {{/str}}
@@ -212,7 +213,7 @@
           {{#entries}}
           <li class="list-group-item d-flex align-items-center justify-content-between py-1 px-0">
             <span class="text-truncate me-2">
-              <code class="small text-muted me-1">{{modname}}</code>
+              {{#pix}}monologo, mod_{{modname}}, {{modname}}{{/pix}}
               <a href="{{activityurl}}" target="_blank" rel="noopener noreferrer">{{name}}</a>
               <span class="badge bg-light text-dark border ms-1 small">{{field}}</span>
             </span>

@@ -180,7 +180,7 @@
                                 <div class="d-flex align-items-center justify-content-between mb-1">
                                     <div>
                                         {{#haswarnings}}{{#warnings}}<span title="{{message}}">{{icon}}</span> {{/warnings}}{{/haswarnings}}
-                                        <code class="text-muted small mr-1">{{modname}}</code>
+                                        {{#pix}}monologo, mod_{{modname}}, {{modname}}{{/pix}}
                                         <a href="{{activityurl}}" class="font-weight-bold">{{name}}</a>
                                         {{^visible}}<span class="badge badge-secondary ml-1">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>{{/visible}}
                                     </div>

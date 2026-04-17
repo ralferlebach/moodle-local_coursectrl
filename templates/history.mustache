@@ -91,8 +91,8 @@
           </span>
           {{! F4: activity count + entry count }}
           <span class="text-muted small ms-2">
-            <i class="fa fa-list fa-fw"></i>{{activitycount}}Â {{#str}} history_activities, local_coursectrl {{/str}},
-            {{itemcount}}Â {{#str}} history_items, local_coursectrl {{/str}}
+            <i class="fa fa-list fa-fw"></i>{{activitycount}} {{#str}} history_activities, local_coursectrl {{/str}},
+            {{itemcount}} {{#str}} history_items, local_coursectrl {{/str}}
           </span>
           {{! F1: detail toggle button }}
           {{#hasdetailrows}}
@@ -121,8 +121,7 @@
         <table class="table table-sm table-striped mb-0 small">
           <thead>
             <tr>
-              <th>CM-ID</th>
-              <th>{{#str}} history_detail_component, local_coursectrl {{/str}}</th>
+              <th>{{#str}} history_detail_activity, local_coursectrl {{/str}}</th>
               <th>{{#str}} history_detail_status, local_coursectrl {{/str}}</th>
               <th>{{#str}} history_detail_fields, local_coursectrl {{/str}}</th>
             </tr>
@@ -130,12 +129,17 @@
           <tbody>
             {{#detailrows}}
             <tr class="{{#issuccess}}table-success{{/issuccess}}{{#iserror}}table-danger{{/iserror}}{{#isskipped}}table-secondary{{/isskipped}}">
-              <td>{{entityid}}</td>
-              <td><code class="small">{{component}}</code></td>
+              <td>
+                {{#hascmname}}
+                  {{#pix}}monologo, mod_{{modname}}, {{modname}}{{/pix}}
+                  <a href="{{cmurl}}" target="_blank" rel="noopener noreferrer">{{cmname}}</a>
+                {{/hascmname}}
+                {{^hascmname}}<code class="small">{{component}}</code>{{/hascmname}}
+              </td>
               <td>{{status}}</td>
               <td>
                 {{#haschanged}}{{#changed}}<span class="badge bg-light text-dark border me-1">{{field}}</span>{{/changed}}{{/haschanged}}
-                {{^haschanged}}<span class="text-muted">â</span>{{/haschanged}}
+                {{^haschanged}}<span class="text-muted">—</span>{{/haschanged}}
               </td>
             </tr>
             {{/detailrows}}

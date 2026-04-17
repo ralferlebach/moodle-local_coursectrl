@@ -81,6 +81,12 @@ class graph_page implements renderable, templatable {
         $graphbuilder = new graph_dataset_builder();
         $graphdata = $graphbuilder->build($cms, $depindex, $warnings);
 
+        // Enrich graph nodes with module icon URLs for SVG rendering.
+        foreach ($graphdata['nodes'] as &$node) {
+            $node['iconurl'] = $output->image_url('monologo', 'mod_' . $node['modname'])->out(false);
+        }
+        unset($node);
+
         // Gantt dataset.
         $ganttbuilder = new gantt_dataset_builder($datecollector);
         $ganttdata = $ganttbuilder->build($cms);

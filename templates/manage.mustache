@@ -138,7 +138,7 @@
                                                {{#supported}}checked{{/supported}}>
                                         <label class="form-check-label {{^supported}}text-muted{{/supported}}"
                                                for="coursectrl-cm-{{cmid}}">
-                                            <code class="small mr-1">{{modname}}</code>
+                                            {{#pix}}monologo, mod_{{modname}}, {{modname}}{{/pix}}
                                             {{name}}
                                             {{^supported}}
                                                 <span class="badge badge-light ml-1">

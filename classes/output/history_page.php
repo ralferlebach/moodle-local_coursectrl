@@ -104,22 +104,44 @@ class history_page implements renderable, templatable {
                 ['batchid' => $batch->id],
                 'id ASC'
             );
-            $totalentries = count($batchitemsraw);
-            // Count distinct cmids for "X activities" label (F4).
+            // Count distinct cmids and total changed fields (not batch_item rows).
             $activitycmids = [];
+            $totalfieldchanges = 0;
             $detailrows = [];
+            // Look up CM names and module types for the detail table.
+            $entityids = array_unique(array_map(fn($b) => (int)$b->entityid, $batchitemsraw));
+            $cmnames = [];
+            $cmmodnames = [];
+            foreach ($entityids as $eid) {
+                $cmobj = get_coursemodule_from_id('', $eid, 0, false, IGNORE_MISSING);
+                if ($cmobj) {
+                    $cmnames[$eid]    = $cmobj->name;
+                    $cmmodnames[$eid] = $cmobj->modname;
+                }
+            }
             foreach ($batchitemsraw as $bitem) {
-                $activitycmids[$bitem->entityid] = true;
+                $eid = (int)$bitem->entityid;
+                $activitycmids[$eid] = true;
                 $result = $bitem->resultjson ? json_decode($bitem->resultjson, true) : [];
                 $changed = $result['changed'] ?? [];
+                $totalfieldchanges += count($changed);
+                $modname = $cmmodnames[$eid] ?? '';
+                $cmname  = $cmnames[$eid] ?? '';
+                $cmurl   = $modname && $cmname
+                    ? (new \moodle_url('/mod/' . $modname . '/view.php', ['id' => $eid]))->out(false)
+                    : '';
                 $detailrows[] = [
-                    'entityid'  => (int) $bitem->entityid,
-                    'component' => (string) $bitem->component,
-                    'status'    => (string) $bitem->status,
-                    'issuccess' => $bitem->status === \local_coursectrl\local\persistent\batch_item::STATUS_SUCCESS,
-                    'isskipped' => $bitem->status === \local_coursectrl\local\persistent\batch_item::STATUS_SKIPPED,
-                    'iserror'   => $bitem->status === \local_coursectrl\local\persistent\batch_item::STATUS_ERROR,
-                    'changed'   => array_map(fn($f) => ['field' => $f], $changed),
+                    'entityid'   => $eid,
+                    'cmname'     => $cmname,
+                    'cmurl'      => $cmurl,
+                    'modname'    => $modname,
+                    'hascmname'  => !empty($cmname),
+                    'component'  => (string) $bitem->component,
+                    'status'     => (string) $bitem->status,
+                    'issuccess'  => $bitem->status === \local_coursectrl\local\persistent\batch_item::STATUS_SUCCESS,
+                    'isskipped'  => $bitem->status === \local_coursectrl\local\persistent\batch_item::STATUS_SKIPPED,
+                    'iserror'    => $bitem->status === \local_coursectrl\local\persistent\batch_item::STATUS_ERROR,
+                    'changed'    => array_map(fn($f) => ['field' => $f], $changed),
                     'haschanged' => !empty($changed),
                 ];
             }
@@ -149,7 +171,7 @@ class history_page implements renderable, templatable {
                 'status_executed'  => $status === \local_coursectrl\local\persistent\batch::STATUS_EXECUTED,
                 'status_failed'    => $status === \local_coursectrl\local\persistent\batch::STATUS_FAILED,
                 'status_rolledback' => $status === \local_coursectrl\local\persistent\batch::STATUS_ROLLED_BACK,
-                'itemcount'        => $totalentries,
+                'itemcount'        => $totalfieldchanges,
                 'activitycount'    => $activitycount,
                 'detailrows'       => $detailrows,
                 'hasdetailrows'    => !empty($detailrows),

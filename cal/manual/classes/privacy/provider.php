@@ -17,7 +17,7 @@
 /**
  * Privacy provider for coursectrlcal_manual.
  *
- * @package    coursectrlcal_manual\privacy
+ * @package    coursectrlcal_manual
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

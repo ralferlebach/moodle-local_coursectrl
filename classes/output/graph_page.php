@@ -60,6 +60,8 @@ class graph_page implements renderable, templatable {
             'hideindependents' => false,
             'groupids'         => [],
             'filterbygroup'    => false,
+            'blockedids'       => [],
+            'nextstepids'      => [],
         ], $filters);
     }
 
@@ -74,6 +76,8 @@ class graph_page implements renderable, templatable {
         $cms = $this->snapshot->cms;
         $groupids = array_filter(array_map('intval', $this->filters['groupids'] ?? []));
         $filterbygroup = !empty($this->filters['filterbygroup']) && !empty($groupids);
+        $blockedids  = array_filter(array_map('intval', $this->filters['blockedids'] ?? []));
+        $nextstepids = array_filter(array_map('intval', $this->filters['nextstepids'] ?? []));
 
         // Build shared analysis structures.
         $depindex = new dependency_index($cms);
@@ -86,9 +90,22 @@ class graph_page implements renderable, templatable {
         $graphbuilder = new graph_dataset_builder();
         if ($filterbygroup && !empty($groupids)) {
             $forwardmap = $depindex->get_all_forward_for_groups($groupids);
-            $graphdata = $graphbuilder->build_with_forward($cms, $depindex, $forwardmap, $warnings);
+            $graphdata = $graphbuilder->build_with_forward(
+                $cms,
+                $depindex,
+                $forwardmap,
+                $warnings,
+                $blockedids,
+                $nextstepids
+            );
         } else {
-            $graphdata = $graphbuilder->build($cms, $depindex, $warnings);
+            $graphdata = $graphbuilder->build(
+                $cms,
+                $depindex,
+                $warnings,
+                $blockedids,
+                $nextstepids
+            );
         }
 
         // Enrich graph nodes with module icon URLs for SVG rendering.
@@ -114,7 +131,7 @@ class graph_page implements renderable, templatable {
         // Load group options for the selector.
         $courseid = $course->id;
         $resolver = new group_resolver($courseid);
-        $groupoptions = array_map(function($g) use ($groupids) {
+        $groupoptions = array_map(function ($g) use ($groupids) {
             $g['selected'] = in_array((int) $g['id'], $groupids, true);
             return $g;
         }, $resolver->get_groups_for_template());
@@ -135,6 +152,7 @@ class graph_page implements renderable, templatable {
             ))->out(false),
             'hideindependents' => !empty($this->filters['hideindependents']),
             'filterbygroup' => $filterbygroup,
+            'hassimoverlay' => !empty($blockedids) || !empty($nextstepids),
             'groupoptions' => $groupoptions,
             'hasgroupoptions' => !empty($groupoptions),
             'activegroupids' => $groupids,

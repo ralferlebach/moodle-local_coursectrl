@@ -378,3 +378,7 @@ $string['textreview_modal_title'] = 'Confirm text changes';
 $string['graph_filterbygroup'] = 'Group-specific dependencies';
 $string['dependencies_title'] = 'Dependencies';
 $string['subplugintype_coursectrlcal_plural'] = 'Course control calendars';
+$string['sim_show_in_graph'] = 'Show in dependency graph';
+$string['sim_legend_blocked'] = 'Blocked';
+$string['sim_legend_nextstep'] = 'Next step';
+$string['graph_sim_overlay_hint'] = 'This view shows the simulation status. Red = blocked, Green = next recommended step.';

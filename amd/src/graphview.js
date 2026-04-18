@@ -60,6 +60,11 @@ define([], function() {
     var COL_GANTT_BAR = '#5b7fde';
     var COL_GANTT_MARK = '#cc3333';
     var COL_GANTT_LBL = '#333';
+    // Simulation overlay colors.
+    var COL_BLOCKED_FILL = '#fef2f2';
+    var COL_BLOCKED_STROKE = '#dc3545';
+    var COL_NEXTSTEP_FILL = '#f0fdf4';
+    var COL_NEXTSTEP_STROKE = '#198754';
     var COL_AXIS = '#bbb';
 
     var svgEl = function(tag, attr) {
@@ -162,7 +167,15 @@ define([], function() {
                 fill = COL_NODE_HIDDEN;
                 stroke = COL_NODE_HIDDEN_STROKE;
             }
-            if (node.circular) {
+            if (node.blocked) {
+                fill = COL_BLOCKED_FILL;
+                stroke = COL_BLOCKED_STROKE;
+                sw = '2';
+            } else if (node.nextstep) {
+                fill = COL_NEXTSTEP_FILL;
+                stroke = COL_NEXTSTEP_STROKE;
+                sw = '2';
+            } else if (node.circular) {
                 fill = COL_CIRCULAR_FILL;
                 stroke = COL_CIRCULAR_STROKE;
                 sw = '2';

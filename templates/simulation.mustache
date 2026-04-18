@@ -197,6 +197,27 @@
     {{/blockedrows}}
   </ul>
   {{/hasblockedrows}}
+
+  {{! Link to dependency graph with simulation overlay }}
+  {{#hasgraphurl_sim}}
+  <div class="d-flex align-items-center gap-3 mb-3 mt-1">
+    <a href="{{graphurl_sim}}" class="btn btn-sm btn-outline-primary">
+      <i class="fa fa-project-diagram fa-fw"></i>
+      {{#str}} sim_show_in_graph, local_coursectrl {{/str}}
+    </a>
+    <span class="d-flex align-items-center gap-3 small text-muted">
+      <span class="d-inline-flex align-items-center gap-1">
+        <span style="display:inline-block;width:1rem;height:1rem;background:#fef2f2;border:2px solid #dc3545;border-radius:3px"></span>
+        {{#str}} sim_legend_blocked, local_coursectrl {{/str}}
+      </span>
+      <span class="d-inline-flex align-items-center gap-1">
+        <span style="display:inline-block;width:1rem;height:1rem;background:#f0fdf4;border:2px solid #198754;border-radius:3px"></span>
+        {{#str}} sim_legend_nextstep, local_coursectrl {{/str}}
+      </span>
+    </span>
+  </div>
+  {{/hasgraphurl_sim}}
+
   {{#hasresultrows}}
   <div class="card mb-3">
     <div class="card-header py-2">

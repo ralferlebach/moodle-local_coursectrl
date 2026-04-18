@@ -83,11 +83,11 @@ class manage_page implements renderable, templatable {
         }
 
         $cmsbysection = [];
-        $withDatesCount = 0;
+        $withdatescount = 0;
         foreach ($this->snapshot->cms as $cm) {
             $hasdates = $cmswithdates[$cm->id];
             if ($hasdates) {
-                $withDatesCount++;
+                $withdatescount++;
             }
             $cmsbysection[$cm->sectionid][] = [
                 'cmid' => $cm->id,
@@ -129,13 +129,13 @@ class manage_page implements renderable, templatable {
             'courseid' => $course->id,
             'coursefullname' => format_string($course->fullname),
             'sesskey' => sesskey(),
-                'dashboardurl' => (new \moodle_url(
+            'dashboardurl' => (new \moodle_url(
                 '/local/coursectrl/index.php',
                 ['courseid' => $course->id]
             ))->out(false),
             'sections' => $sections,
             'hassections' => count($sections) > 0,
-            'withdatescount' => $withDatesCount,
+            'withdatescount' => $withdatescount,
         ];
     }
 

@@ -17,7 +17,7 @@
 /**
  * Privacy provider for coursectrlcal_openholidays.
  *
- * @package    coursectrlcal_openholidays\privacy
+ * @package    coursectrlcal_openholidays
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

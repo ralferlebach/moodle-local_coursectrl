@@ -162,16 +162,23 @@ class inventory_service {
      * @var array<string, string[]>
      */
     private const EXTRA_TEXT_FIELDS = [
-        // mod_assign: Aktivitätsanleitung (activity instructions).
+        // Mod_assign: Aktivitätsanleitung (activity instructions).
         'assign' => ['activity'],
-        // mod_feedback: Seite nach dem Absenden.
+        // Mod_feedback: Seite nach dem Absenden.
         'feedback' => ['page_after_submit'],
-        // mod_workshop: three rich-text instruction fields.
+        // Mod_workshop: three rich-text instruction fields.
         'workshop' => ['instructauthors', 'instructreviewers', 'conclusion'],
-        // mod_page: has both 'content' (primary) and 'intro'.
+        // Mod_page: has both content (primary) and intro.
         'page' => ['intro'],
     ];
 
+    /**
+     * Collect all text items from course, sections and course modules.
+     *
+     * @param course_item $course   Course entity.
+     * @param array       $sections Section entities keyed by section id.
+     * @return array<string, text_item> Text items keyed by their entity key.
+     */
     protected function collect_texts(course_item $course, array $sections): array {
         global $DB;
         $result = [];

@@ -376,3 +376,7 @@ $string['textreview_modal_title'] = 'Textänderungen bestätigen';
 $string['graph_filterbygroup'] = 'Gruppenspezifische Abhängigkeiten';
 $string['dependencies_title'] = 'Abhängigkeiten';
 $string['subplugintype_coursectrlcal_plural'] = 'Kursablauf-Kalender';
+$string['sim_show_in_graph'] = 'Im Abhängigkeitsgraphen anzeigen';
+$string['sim_legend_blocked'] = 'Gesperrt';
+$string['sim_legend_nextstep'] = 'Nächster Schritt';
+$string['graph_sim_overlay_hint'] = 'Diese Ansicht zeigt den Simulationsstatus. Rot = gesperrt, Grün = nächster empfohlener Schritt.';

@@ -31,6 +31,8 @@ $courseid       = required_param('courseid', PARAM_INT);
 $hideindependents = optional_param('hideindependents', 0, PARAM_INT);
 $groupids       = optional_param_array('groupids', [], PARAM_INT);
 $filterbygroup  = optional_param('filterbygroup', 0, PARAM_INT);
+$blockedids     = optional_param_array('blockedids', [], PARAM_INT);
+$nextstepids    = optional_param_array('nextstepids', [], PARAM_INT);
 
 $course = get_course($courseid);
 $context = context_course::instance($courseid);
@@ -61,6 +63,8 @@ $renderable = new \local_coursectrl\output\graph_page($snapshot, [
     'hideindependents' => (bool) $hideindependents,
     'groupids'         => array_filter(array_map('intval', $groupids)),
     'filterbygroup'    => (bool) $filterbygroup,
+    'blockedids'       => array_filter(array_map('intval', $blockedids)),
+    'nextstepids'      => array_filter(array_map('intval', $nextstepids)),
 ]);
 
 /** @var \local_coursectrl\output\renderer $renderer */

@@ -20,7 +20,7 @@
  * This adapter is a stateless wrapper and stores no personal data.
  * All persistent state is covered by the local_coursectrl provider.
  *
- * @package    coursectrlmod_lesson\privacy
+ * @package    coursectrlmod_lesson
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

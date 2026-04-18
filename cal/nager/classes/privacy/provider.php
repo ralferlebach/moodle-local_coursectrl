@@ -17,7 +17,7 @@
 /**
  * Privacy provider for coursectrlcal_nager.
  *
- * @package    coursectrlcal_nager\privacy
+ * @package    coursectrlcal_nager
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

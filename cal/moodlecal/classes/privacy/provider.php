@@ -17,7 +17,7 @@
 /**
  * Privacy provider for coursectrlcal_moodlecal.
  *
- * @package    coursectrlcal_moodlecal\privacy
+ * @package    coursectrlcal_moodlecal
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

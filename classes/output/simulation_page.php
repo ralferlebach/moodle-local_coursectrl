@@ -120,6 +120,8 @@ class simulation_page implements renderable, templatable {
         $blockedrows = [];
         $accessiblecount = 0;
         $blockedcount = 0;
+        $blockedids = [];
+        $nextstepids = [];
 
         if ($hasresults) {
             $simulator = new visibility_simulator();
@@ -234,6 +236,25 @@ class simulation_page implements renderable, templatable {
                 '/local/coursectrl/dependencies.php',
                 ['courseid' => $courseid]
             ))->out(false),
+            'graphurl_sim' => $this->state ? (new \moodle_url(
+                '/local/coursectrl/dependencies.php',
+                array_merge(
+                    ['courseid' => $courseid],
+                    !empty($blockedids)
+                        ? ['blockedids' => array_values($blockedids)]
+                        : [],
+                    !empty($nextstepids)
+                        ? ['nextstepids' => array_values($nextstepids)]
+                        : [],
+                    !empty($this->state->groupids)
+                        ? array_merge(
+                            ['filterbygroup' => 1],
+                            ['groupids' => array_values($this->state->groupids)]
+                        )
+                        : []
+                )
+            ))->out(false) : null,
+            'hasgraphurl_sim' => $this->state !== null,
             'selfurl' => (new \moodle_url(
                 '/local/coursectrl/simulation.php',
                 ['courseid' => $courseid]

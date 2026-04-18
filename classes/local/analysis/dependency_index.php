@@ -77,8 +77,10 @@ class dependency_index {
                     array_filter($groupconds, fn($g) => $g['type'] === 'group'),
                     'id'
                 );
-                if (!empty($requiredgroups) &&
-                    empty(array_intersect($groupids, $requiredgroups))) {
+                if (
+                    !empty($requiredgroups) &&
+                    empty(array_intersect($groupids, $requiredgroups))
+                ) {
                     // None of the selected groups satisfy this condition.
                     continue;
                 }
@@ -193,7 +195,10 @@ class dependency_index {
                     array_filter($groupconds, fn($g) => $g['type'] === 'group'),
                     'id'
                 );
-                if (!empty($requiredgroups) && !in_array($groupid, $requiredgroups, true)) {
+                if (
+                    !empty($requiredgroups) &&
+                    !in_array($groupid, $requiredgroups, true)
+                ) {
                     // This CM is behind a group wall — its deps are invisible
                     // to non-members; exclude from the filtered graph.
                     continue;

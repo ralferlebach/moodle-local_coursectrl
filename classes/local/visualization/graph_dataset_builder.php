@@ -58,7 +58,9 @@ class graph_dataset_builder {
     public function build(
         array $cms,
         dependency_index $depindex,
-        array $warnings = []
+        array $warnings = [],
+        array $blockedids = [],
+        array $nextstepids = []
     ): array {
         if (empty($cms)) {
             return $this->empty_result();
@@ -81,6 +83,8 @@ class graph_dataset_builder {
                 'visible' => $cm->visible,
                 'circular' => isset($circularset[$cm->id]),
                 'haswarnings' => !empty($warnings[$cm->id]),
+                'blocked' => in_array($cm->id, $blockedids, true),
+                'nextstep' => in_array($cm->id, $nextstepids, true),
                 'layer' => $layers[$cm->id] ?? 0,
                 'layerpos' => $layerpositions[$cm->id] ?? 0,
                 'url' => (new \moodle_url(
@@ -144,7 +148,9 @@ class graph_dataset_builder {
         array $cms,
         dependency_index $depindex,
         array $forward,
-        array $warnings = []
+        array $warnings = [],
+        array $blockedids = [],
+        array $nextstepids = []
     ): array {
         if (empty($cms)) {
             return $this->empty_result();
@@ -166,6 +172,8 @@ class graph_dataset_builder {
                 'visible' => $cm->visible,
                 'circular' => isset($circularset[$cm->id]),
                 'haswarnings' => !empty($warnings[$cm->id]),
+                'blocked' => in_array($cm->id, $blockedids, true),
+                'nextstep' => in_array($cm->id, $nextstepids, true),
                 'layer' => $layers[$cm->id] ?? 0,
                 'layerpos' => $layerpositions[$cm->id] ?? 0,
                 'url' => (new \moodle_url(

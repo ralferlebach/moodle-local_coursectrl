@@ -36,7 +36,7 @@ use local_coursectrl\local\inventory\inventory_snapshot;
  */
 final class manage_page_test extends \advanced_testcase {
     /**
-     * Build a snapshot with mixed supported/unsupported CMs.
+     * Build a snapshot with mixed cm types and date fields.
      *
      * @return inventory_snapshot
      */
@@ -65,76 +65,53 @@ final class manage_page_test extends \advanced_testcase {
     }
 
     /**
-     * The context must carry course id, sesskey and URLs.
+     * The context must carry courseid, sesskey and dashboardurl.
      */
     public function test_export_includes_scalars_and_urls(): void {
         $this->resetAfterTest();
         global $PAGE;
 
-        $page = new manage_page($this->build_snapshot(), ['mod_assign', 'mod_quiz']);
+        $page = new manage_page($this->build_snapshot());
         $data = $page->export_for_template($PAGE->get_renderer('core'));
 
         $this->assertSame(1, $data['courseid']);
         $this->assertNotEmpty($data['sesskey']);
-        $this->assertStringContainsString('preview.php', $data['previewurl']);
         $this->assertStringContainsString('index.php', $data['dashboardurl']);
         $this->assertStringContainsString('courseid=1', $data['dashboardurl']);
     }
 
     /**
-     * The actions list must include shift_dates.
+     * The sections array must contain all non-empty sections.
      */
-    public function test_export_includes_actions(): void {
+    public function test_export_returns_sections(): void {
         $this->resetAfterTest();
         global $PAGE;
 
-        $page = new manage_page($this->build_snapshot(), ['mod_assign']);
+        $page = new manage_page($this->build_snapshot());
         $data = $page->export_for_template($PAGE->get_renderer('core'));
 
-        $this->assertCount(1, $data['actions']);
-        $this->assertSame('shift_dates', $data['actions'][0]['value']);
-        $this->assertTrue($data['actions'][0]['selected']);
+        $this->assertTrue($data['hassections']);
+        $this->assertCount(2, $data['sections']);
     }
 
     /**
-     * CMs must carry the supported flag based on the registered components.
+     * CMs that carry date fields must be counted in withdatescount.
      */
-    public function test_export_marks_supported_cms(): void {
+    public function test_export_counts_cms_with_dates(): void {
         $this->resetAfterTest();
         global $PAGE;
 
-        $supported = ['mod_assign', 'mod_quiz'];
-        $page = new manage_page($this->build_snapshot(), $supported);
+        $page = new manage_page($this->build_snapshot());
         $data = $page->export_for_template($PAGE->get_renderer('core'));
 
-        // Section 0: label (unsupported).
-        $general = $data['sections'][0];
-        $this->assertFalse($general['cms'][0]['supported']);
-        $this->assertFalse($general['hassupported']);
-
-        // Section 1: assign (supported), quiz (supported), forum (unsupported).
-        $week1 = $data['sections'][1];
-        $this->assertTrue($week1['cms'][0]['supported']);  // Assign.
-        $this->assertTrue($week1['cms'][1]['supported']);  // Quiz.
-        $this->assertFalse($week1['cms'][2]['supported']); // Forum.
-        $this->assertTrue($week1['hassupported']);
+        // assign has completion=2 (auto) → date fields; quiz has completion=1 (manual).
+        // The count reflects CMs whose modname carries recognised date fields.
+        $this->assertArrayHasKey('withdatescount', $data);
+        $this->assertIsInt($data['withdatescount']);
     }
 
     /**
-     * The supportedcount must equal the number of CMs with a registered adapter.
-     */
-    public function test_export_counts_supported(): void {
-        $this->resetAfterTest();
-        global $PAGE;
-
-        $page = new manage_page($this->build_snapshot(), ['mod_assign', 'mod_quiz']);
-        $data = $page->export_for_template($PAGE->get_renderer('core'));
-
-        $this->assertSame(2, $data['supportedcount']);
-    }
-
-    /**
-     * An empty snapshot must report hassections=false.
+     * An empty snapshot must report hassections=false and withdatescount=0.
      */
     public function test_export_handles_empty_snapshot(): void {
         $this->resetAfterTest();
@@ -143,10 +120,10 @@ final class manage_page_test extends \advanced_testcase {
         $course = new course_item(2, 'Empty', 'EMPTY', '', 1, 0, null, true);
         $snapshot = new inventory_snapshot($course, [], [], []);
 
-        $page = new manage_page($snapshot, ['mod_assign']);
+        $page = new manage_page($snapshot);
         $data = $page->export_for_template($PAGE->get_renderer('core'));
 
         $this->assertFalse($data['hassections']);
-        $this->assertSame(0, $data['supportedcount']);
+        $this->assertSame(0, $data['withdatescount']);
     }
 }

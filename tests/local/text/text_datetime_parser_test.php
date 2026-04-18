@@ -116,13 +116,16 @@ final class text_datetime_parser_test extends \basic_testcase {
     }
 
     /**
-     * No-year patterns must return null.
+     * No-year dates assume the current year since session 007.
      */
-    public function test_normalise_noyear_returns_null(): void {
+    public function test_normalise_noyear_assumes_current_year(): void {
         $hits = $this->extractor->extract('Abgabe am 15. April');
         $this->assertCount(1, $hits);
         $iso = $this->parser->normalise($hits[0]);
-        $this->assertNull($iso);
+        // Must return a valid date string for the current year, not null.
+        $this->assertNotNull($iso);
+        $this->assertStringContainsString(date('Y'), $iso);
+        $this->assertStringContainsString('-04-15', $iso);
     }
 
     /**

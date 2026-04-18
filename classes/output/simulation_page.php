@@ -236,30 +236,56 @@ class simulation_page implements renderable, templatable {
                 '/local/coursectrl/dependencies.php',
                 ['courseid' => $courseid]
             ))->out(false),
-            'graphurl_sim' => $this->state ? (new \moodle_url(
-                '/local/coursectrl/dependencies.php',
-                array_merge(
-                    ['courseid' => $courseid],
-                    !empty($blockedids)
-                        ? ['blockedids' => array_values($blockedids)]
-                        : [],
-                    !empty($nextstepids)
-                        ? ['nextstepids' => array_values($nextstepids)]
-                        : [],
-                    !empty($this->state->groupids)
-                        ? array_merge(
-                            ['filterbygroup' => 1],
-                            ['groupids' => array_values($this->state->groupids)]
-                        )
-                        : []
-                )
-            ))->out(false) : null,
+            'graphurl_sim' => $this->build_sim_graph_url($courseid, $blockedids, $nextstepids),
             'hasgraphurl_sim' => $this->state !== null,
             'selfurl' => (new \moodle_url(
                 '/local/coursectrl/simulation.php',
                 ['courseid' => $courseid]
             ))->out(false),
         ];
+    }
+
+    /**
+     * Build the simulation overlay URL for the dependency graph.
+     *
+     * moodle_url does not accept array values as parameters, so array params
+     * are appended manually using http_build_query with Brackets notation.
+     *
+     * @param int   $courseid    Course id.
+     * @param int[] $blockedids  CM ids that are blocked in the simulation.
+     * @param int[] $nextstepids CM ids that are the next recommended steps.
+     * @return string|null URL string, or null if no state is set.
+     */
+    private function build_sim_graph_url(
+        int $courseid,
+        array $blockedids,
+        array $nextstepids
+    ): ?string {
+        if (!$this->state) {
+            return null;
+        }
+        $base = (new \moodle_url(
+            '/local/coursectrl/dependencies.php',
+            ['courseid' => $courseid]
+        ))->out(false);
+
+        $parts = [];
+        foreach (array_values($blockedids) as $id) {
+            $parts[] = 'blockedids%5B%5D=' . (int) $id;
+        }
+        foreach (array_values($nextstepids) as $id) {
+            $parts[] = 'nextstepids%5B%5D=' . (int) $id;
+        }
+        if (!empty($this->state->groupids)) {
+            $parts[] = 'filterbygroup=1';
+            foreach (array_values($this->state->groupids) as $id) {
+                $parts[] = 'groupids%5B%5D=' . (int) $id;
+            }
+        }
+        if (empty($parts)) {
+            return $base;
+        }
+        return $base . '&' . implode('&', $parts);
     }
 
     /**

@@ -111,23 +111,34 @@ class inventory_service {
         foreach ($modinfo->get_cms() as $cm) {
             $cmids[] = (int)$cm->id;
         }
+
+        // Query course_modules directly so we can filter deletioninprogress = 0.
+        // get_fast_modinfo may serve a stale cache that still contains CMs whose
+        // deletion is in progress; the explicit DB check is the authoritative guard.
+        $activeids = [];
         $expectedmap = [];
         if (!empty($cmids)) {
             [$insql, $params] = $DB->get_in_or_equal($cmids, SQL_PARAMS_NAMED);
+            $params['dip'] = 0;
             $rows = $DB->get_records_select(
                 'course_modules',
-                "id {$insql}",
+                "id {$insql} AND deletioninprogress = :dip",
                 $params,
                 '',
                 'id, completionexpected'
             );
             foreach ($rows as $row) {
+                $activeids[(int)$row->id] = true;
                 $expectedmap[(int)$row->id] = (int)($row->completionexpected ?? 0);
             }
         }
 
         $result = [];
         foreach ($modinfo->get_cms() as $cm) {
+            // Skip CMs that are being deleted (not in the active whitelist).
+            if (!isset($activeids[(int)$cm->id])) {
+                continue;
+            }
             $result[(int)$cm->id] = new cm_item(
                 id: (int)$cm->id,
                 courseid: $courseid,
@@ -218,6 +229,10 @@ class inventory_service {
         }
 
         foreach ($modinfo->get_cms() as $cm) {
+            // Skip CMs whose deletion is in progress — they may still appear in a stale cache.
+            if (!empty($cm->deletioninprogress)) {
+                continue;
+            }
             $modname = (string)$cm->modname;
 
             // Determine which text field this module type uses (cached per modname).

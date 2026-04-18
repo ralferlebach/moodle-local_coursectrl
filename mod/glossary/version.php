@@ -15,17 +15,20 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for local_coursectrl.
+ * Plugin version definition for coursectrlmod_glossary.
  *
- * @package    local_coursectrl
+ * @package    coursectrlmod_glossary
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_coursectrl';
-$plugin->version   = 2026041901;
-$plugin->requires  = 2024042200; // Moodle 4.5.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.56';
+$plugin->component    = 'coursectrlmod_glossary';
+$plugin->version      = 2026041901;
+$plugin->requires     = 2024042200; // Moodle 4.5.
+$plugin->dependencies = [
+    'local_coursectrl' => 2026041901,
+];
+$plugin->maturity = MATURITY_ALPHA;
+$plugin->release  = '0.1.56';

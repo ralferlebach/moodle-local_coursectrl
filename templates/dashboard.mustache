@@ -68,7 +68,7 @@
         </div>
         <div class="col-md-3">
             {{#haswarnings}}
-            <a href="{{simulationurl}}" class="text-decoration-none">
+            <a href="#coursectrl-warnings" class="text-decoration-none">
             {{/haswarnings}}
             <div class="card text-center h-100 {{#haswarnings}}border-danger{{/haswarnings}}"><div class="card-body py-2">
                 <div class="h4 mb-0 {{#haswarnings}}text-danger{{/haswarnings}}">{{warningcount}}</div>
@@ -135,27 +135,33 @@
 
     {{! Warning detail panel — shown below calendar when warnings exist }}
     {{#haswarnings}}
-    <div class="alert alert-danger py-2 mb-3 small">
-        <div class="d-flex align-items-start justify-content-between gap-2">
-            <div>
-                <i class="fa fa-exclamation-triangle me-1"></i>
-                <strong>{{warningcount}} {{#str}} dashboard_warning_detail_title, local_coursectrl {{/str}}</strong>
-                <ul class="mb-0 mt-1 ps-3">
-                    {{#sections}}{{#cms}}{{#haswarnings}}{{#warnings}}
-                    <li>
-                        <a href="{{../url}}" target="_blank" rel="noopener noreferrer" class="alert-link">{{../name}}</a>:
-                        {{message}}
-                    </li>
-                    {{/warnings}}{{/haswarnings}}{{/cms}}{{/sections}}
-                </ul>
-            </div>
-            <a href="{{simulationurl}}" class="btn btn-sm btn-outline-danger flex-shrink-0">
-                <i class="fa fa-play fa-fw"></i>
-                {{#str}} dashboard_warning_simulate, local_coursectrl {{/str}}
-            </a>
-        </div>
+    <div class="alert alert-danger py-2 mb-3 small" id="coursectrl-warnings">
+        <i class="fa fa-exclamation-triangle me-1"></i>
+        <strong>{{warningcount}} {{#str}} dashboard_warning_detail_title, local_coursectrl {{/str}}</strong>
+        <ul class="mb-0 mt-1 ps-3">
+            {{#sections}}{{#cms}}{{#haswarnings}}{{#warnings}}
+            <li>
+                <a href="{{../activityurl}}" class="alert-link">{{../name}}</a>:
+                {{message}}
+            </li>
+            {{/warnings}}{{/haswarnings}}{{/cms}}{{/sections}}
+        </ul>
     </div>
     {{/haswarnings}}
+    {{#hasnotices}}
+    <div class="alert alert-info py-2 mb-3 small">
+        <i class="fa fa-info-circle me-1"></i>
+        <strong>{{#str}} dashboard_notice_detail_title, local_coursectrl {{/str}}</strong>
+        <ul class="mb-0 mt-1 ps-3">
+            {{#sections}}{{#cms}}{{#hasnotices}}{{#notices}}
+            <li>
+                <a href="{{../activityurl}}" class="alert-link">{{../name}}</a>:
+                {{message}}
+            </li>
+            {{/notices}}{{/hasnotices}}{{/cms}}{{/sections}}
+        </ul>
+    </div>
+    {{/hasnotices}}
 
     {{! ---- Inventory ---- }}
     {{#hassections}}
@@ -179,7 +185,7 @@
                                 {{! ---- Row 1: Name + badges + links ---- }}
                                 <div class="d-flex align-items-center justify-content-between mb-1">
                                     <div>
-                                        {{#haswarnings}}{{#warnings}}<span title="{{message}}">{{icon}}</span> {{/warnings}}{{/haswarnings}}
+                                        {{#haswarnings}}{{#warnings}}<span title="{{message}}">{{icon}}</span> {{/warnings}}{{/haswarnings}}{{#hasnotices}}{{#notices}}<span title="{{message}}">{{icon}}</span> {{/notices}}{{/hasnotices}}
                                         {{#pix}}monologo, mod_{{modname}}, {{modname}}{{/pix}}
                                         <a href="{{activityurl}}" class="font-weight-bold">{{name}}</a>
                                         {{^visible}}<span class="badge badge-secondary ml-1">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>{{/visible}}

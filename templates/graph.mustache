@@ -133,12 +133,12 @@
   {{/hassimoverlay}}
 
   {{! ── Graph canvas ────────────────────────────────────────────────────── }}
-  <div class="overflow-auto border rounded p-2 bg-white"
-       style="min-height:400px;-webkit-overflow-scrolling:touch">
+  <div style="overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch"
+       class="border rounded p-2 bg-white">
     <div data-region="coursectrl-graph-canvas"
          data-graph="{{graphjson}}"
          data-hide-independents="{{hideindependents}}"
-         style="width:100%;min-height:400px;overflow:hidden">
+         style="display:inline-block;min-width:100%;min-height:400px;overflow:hidden">
     </div>
   </div>
 

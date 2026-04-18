@@ -22,9 +22,14 @@
  * Rules are defined statically per component and applied to the per-CM
  * date map produced by date_collector.
  *
- * Only adapter-sourced entries (source === 'adapter') are considered; the
- * detector does not evaluate availability-date conditions or completionexpected
- * because those are not orderable against each other in a well-defined way.
+ * Only adapter-sourced entries (source === 'adapter') are considered for
+ * ordering conflicts. The completionexpected field from course_modules is
+ * evaluated separately to produce notice-level hints.
+ *
+ * Severity levels:
+ *   error  — logically invalid ordering that Moodle itself would reject.
+ *   warning — ordering that is unusual and likely unintentional.
+ *   notice  — advisory hint, e.g. completionexpected far before the due date.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -36,9 +41,16 @@ namespace local_coursectrl\local\analysis;
 use local_coursectrl\local\entity\cm_item;
 
 /**
- * Detects date-ordering conflicts within course modules.
+ * Detects date-ordering conflicts and advisory notices within course modules.
  */
 class temporal_conflict_detector {
+    /**
+     * Number of seconds in one week, used for completionexpected notice threshold.
+     *
+     * @var int
+     */
+    private const WEEK_SECONDS = 604800;
+
     /**
      * Ordering rules per component.
      *
@@ -55,7 +67,7 @@ class temporal_conflict_detector {
             ['duedate', 'cutoffdate'],
             ['duedate', 'gradingduedate'],
         ],
-        'mod_quiz' => [
+        'mod_choice' => [
             ['timeopen', 'timeclose'],
         ],
         'mod_feedback' => [
@@ -64,19 +76,28 @@ class temporal_conflict_detector {
         'mod_forum' => [
             // No enforced ordering between cutoffdate and duedate in Moodle.
         ],
+        'mod_glossary' => [
+            ['assesstimestart', 'assesstimefinish'],
+        ],
         'mod_lesson' => [
             ['available', 'deadline'],
+        ],
+        'mod_quiz' => [
+            ['timeopen', 'timeclose'],
+        ],
+        'mod_scorm' => [
+            ['timeopen', 'timeclose'],
         ],
         'mod_workshop' => [
             ['submissionstart', 'submissionend'],
             ['assessmentstart', 'assessmentend'],
             ['submissionend', 'assessmentstart'],
         ],
-        'mod_questionnaire' => [
-            ['opendate', 'closedate'],
-        ],
         'mod_choicegroup' => [
             ['timeopen', 'timeclose'],
+        ],
+        'mod_questionnaire' => [
+            ['opendate', 'closedate'],
         ],
         'mod_studentquiz' => [
             ['opensubmissionfrom', 'closesubmissionfrom'],
@@ -86,27 +107,80 @@ class temporal_conflict_detector {
     ];
 
     /**
-     * Detect temporal conflicts for a set of CMs.
+     * The primary deadline field per component, used for completionexpected checks.
      *
-     * @param cm_item[] $cms      Course modules keyed by cmid.
+     * When a CM has a completionexpected timestamp and this deadline field is set,
+     * the detector checks whether completionexpected is more than one week before
+     * the deadline (notice) or after the deadline (warning).
+     *
+     * @var array<string, string>
+     */
+    private const DEADLINE_FIELD = [
+        'mod_assign'      => 'duedate',
+        'mod_choice'      => 'timeclose',
+        'mod_feedback'    => 'timeclose',
+        'mod_forum'       => 'duedate',
+        'mod_glossary'    => 'assesstimefinish',
+        'mod_lesson'      => 'deadline',
+        'mod_quiz'        => 'timeclose',
+        'mod_scorm'       => 'timeclose',
+        'mod_workshop'    => 'assessmentend',
+    ];
+
+    /**
+     * Detect temporal conflicts and advisory notices for a set of CMs.
+     *
+     * @param cm_item[] $cms       Course modules keyed by cmid.
      * @param array     $datesbycm Per-CM date entries from date_collector::collect_grouped_by_cm().
-     *                             Keyed by cmid; each value is an array of date entries with
-     *                             at least 'field', 'timestamp', and 'source' keys.
-     * @return array<int, array[]> cmid → list of conflict arrays. Each conflict:
-     *                             ['field_early' => string, 'field_late' => string,
-     *                              'ts_early' => int, 'ts_late' => int]
+     * @return array<int, array[]> cmid → list of conflict/notice arrays.
      */
     public function detect(array $cms, array $datesbycm): array {
         $result = [];
         foreach ($cms as $cm) {
             $component = $cm->get_component();
-            if (!array_key_exists($component, self::RULES)) {
-                continue;
-            }
             $fieldmap = $this->build_field_map($datesbycm[$cm->id] ?? []);
-            $conflicts = $this->apply_rules(self::RULES[$component], $fieldmap);
-            if (!empty($conflicts)) {
-                $result[$cm->id] = $conflicts;
+            $issues = [];
+
+            // Ordering conflict rules.
+            if (array_key_exists($component, self::RULES)) {
+                $issues = array_merge(
+                    $issues,
+                    $this->apply_rules(self::RULES[$component], $fieldmap)
+                );
+            }
+
+            // completionexpected advisory checks.
+            $compexp = $cm->completionexpected;
+            if ($compexp > 0 && array_key_exists($component, self::DEADLINE_FIELD)) {
+                $deadlinefield = self::DEADLINE_FIELD[$component];
+                $deadline = $fieldmap[$deadlinefield] ?? 0;
+                if ($deadline > 0) {
+                    if ($compexp > $deadline) {
+                        // Completion expected after the module deadline is a warning.
+                        $issues[] = [
+                            'field_early'  => $deadlinefield,
+                            'field_late'   => 'completionexpected',
+                            'ts_early'     => $deadline,
+                            'ts_late'      => $compexp,
+                            'severity'     => 'warning',
+                            'type_override' => 'completionexpected_after_deadline',
+                        ];
+                    } else if (($deadline - $compexp) > self::WEEK_SECONDS) {
+                        // Completion expected more than one week before deadline is a notice.
+                        $issues[] = [
+                            'field_early'  => 'completionexpected',
+                            'field_late'   => $deadlinefield,
+                            'ts_early'     => $compexp,
+                            'ts_late'      => $deadline,
+                            'severity'     => 'notice',
+                            'type_override' => 'completionexpected_early',
+                        ];
+                    }
+                }
+            }
+
+            if (!empty($issues)) {
+                $result[$cm->id] = $issues;
             }
         }
         return $result;
@@ -116,7 +190,7 @@ class temporal_conflict_detector {
      * Build a field-name → timestamp lookup from adapter-sourced date entries.
      *
      * @param array $entries Date entries for a single CM.
-     * @return array<string, int> field name → unix timestamp.
+     * @return array<string, int> Field name → unix timestamp.
      */
     private function build_field_map(array $entries): array {
         $map = [];
@@ -133,7 +207,7 @@ class temporal_conflict_detector {
      *
      * @param array<int, string[]> $rules    Rules for this component.
      * @param array<string, int>   $fieldmap Field → timestamp.
-     * @return array[] List of conflict arrays.
+     * @return array[] List of conflict arrays with severity 'error'.
      */
     private function apply_rules(array $rules, array $fieldmap): array {
         $conflicts = [];
@@ -143,9 +217,10 @@ class temporal_conflict_detector {
             if ($tsearly > 0 && $tslate > 0 && $tsearly > $tslate) {
                 $conflicts[] = [
                     'field_early' => $early,
-                    'field_late' => $late,
-                    'ts_early' => $tsearly,
-                    'ts_late' => $tslate,
+                    'field_late'  => $late,
+                    'ts_early'    => $tsearly,
+                    'ts_late'     => $tslate,
+                    'severity'    => 'error',
                 ];
             }
         }

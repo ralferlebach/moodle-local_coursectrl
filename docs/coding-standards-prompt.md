@@ -390,3 +390,104 @@ el.innerHTML = '<div class="spinner-border spinner-border-sm' +
 ```
 
 **Rule of thumb:** When building HTML strings in JS, break class lists at logical points. Prefer extracting long sub-strings into named variables before combining.
+
+---
+
+## Session 007 Additions (2026-04-18)
+
+### @package tag in privacy/provider.php — no namespace suffix
+Moodle's PHPCS sniff checks the `@package` tag against the *plugin name only*.
+
+```php
+// WRONG (common mistake — namespace appears in @package):
+/**
+ * @package    coursectrlmod_forum\privacy
+ */
+
+// RIGHT:
+/**
+ * @package    coursectrlmod_forum
+ */
+namespace coursectrlmod_forum\privacy;
+```
+
+The namespace declaration in PHP code is `coursectrlmod_forum\privacy`. The `@package` docblock must only contain the plugin component name.
+
+### Multi-line `if` — PSR12 spacing (FirstExpressionLine / CloseParenthesisLine)
+```php
+// WRONG — first expression on same line as opening paren:
+if (!empty($requiredgroups) &&
+    empty(array_intersect($groupids, $requiredgroups))) {
+
+// RIGHT — expression on next line, closing paren on own line:
+if (
+    !empty($requiredgroups) &&
+    empty(array_intersect($groupids, $requiredgroups))
+) {
+```
+
+### Multi-line function calls — one argument per line
+When a function call is broken across lines, each argument gets its own line.
+
+```php
+// WRONG:
+$result = $builder->build($cms, $depindex, $forwardmap, $warnings, $blocked, $next);
+
+// RIGHT:
+$result = $builder->build(
+    $cms,
+    $depindex,
+    $forwardmap,
+    $warnings,
+    $blocked,
+    $next
+);
+```
+
+### Variable naming — no camelCase
+All PHP local variables must be `snake_case`. Moodle's `ValidVariableName.VariableNameLowerCase` sniff rejects camelCase.
+```php
+// WRONG: $withDatesCount, $blockCount, $currentUser
+// RIGHT:  $withdatescount, $blockcount, $currentuser
+```
+
+### querySelector with attribute selector in HTML onchange — HTML parser bug
+Attribute selectors with double-quoted values inside an HTML attribute cause the HTML parser to truncate the value at the first inner `"`.
+
+```mustache
+{{! WRONG — inner " closes the onchange attribute early: }}
+<input onchange="var b=document.querySelector('[data-action=\"foo\"]');">
+
+{{! RIGHT — use getElementById to avoid quoting entirely: }}
+<input id="my-toggle-btn" ...>
+<input onchange="var b=document.getElementById('my-toggle-btn');...">
+```
+
+Always give interactive elements a stable `id` when they need to be referenced from inline event handlers.
+
+### Verify str_replace actually matched
+Python's `str_replace` / `str.replace()` is silent when no match is found — it returns the original string and no error is raised. Always verify after replacement:
+
+```python
+data = data.replace(old, new)
+assert new_marker in data, f"str_replace failed — '{new_marker}' not found"
+```
+
+### Inline comments inside const arrays
+Comments inside `const`-defined arrays follow the same capitalisation rule as all other inline comments.
+```php
+// WRONG: // mod_assign: instructions (lowercase after //)
+// RIGHT: // Mod_assign: instructions
+```
+
+### Checklist additions (append to pre-generation checklist)
+
+**PHP:**
+- [ ] Privacy `provider.php`: `@package` tag has NO `\privacy` suffix
+- [ ] Multi-line `if`: opening paren alone on line, expressions indented, `)` on own line
+- [ ] All local variables: lowercase only, no camelCase (`$withdatescount` not `$withDatesCount`)
+- [ ] Comments inside `const` arrays: start with capital letter
+
+**JS:**
+- [ ] All declared `var`s are actually used (ESLint no-unused-vars)
+- [ ] Attribute selectors in inline event handlers: use `getElementById`, not `querySelector` with `"`

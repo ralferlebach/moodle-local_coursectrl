@@ -266,6 +266,7 @@ local/coursectrl/
   simulation.php
   history.php
   rollback.php
+  dependencies.php
 
   db/
     access.php
@@ -344,9 +345,7 @@ local/coursectrl/
       simulation/
         condition_evaluator.php
         visibility_simulator.php
-        learner_state_factory.php
         next_step_engine.php
-        scenario_builder.php
 
       visualization/
         timeline_builder.php
@@ -655,13 +654,17 @@ Risikofund / Konflikt / Sackgassenhinweis. Felder: `id`, `courseid`, `risktype`,
 
 **Deliverables:** Timeline/Gantt; Abhängigkeitsgraph; visuelle Konfliktanzeige.
 
-### Phase 7 – Lernenden-Simulation
+### Phase 7 – Lernenden-Simulation ✅ Abgeschlossen (Session 007)
 
 **Ziel:** Sichtbarkeit und Erreichbarkeit aus konkreter Perspektive simulieren.
 
-**Arbeitsschritte:** `learner_state`-Modell definieren; `condition_evaluator` implementieren; `visibility_simulator` implementieren; `next_step_engine` implementieren; `simulation_form` entwickeln; `run_simulation`-Service implementieren; Ergebnisdarstellung als Liste und Graph; Begründungen pro Sperre ausgeben; Simulationsprofile speichern; Grenzfälle je Aktivitätstyp testen.
+**Umgesetzt:** `learner_state`, `condition_evaluator`, `visibility_simulator`, `next_step_engine` implementiert; `run_simulation`-Service; Ergebnisdarstellung als Liste; Begründungen pro Sperre; Simulationsoverlay im Abhängigkeitsgraphen (blocked = rot, nextstep = grün).
 
-**Deliverables:** funktionierende Kurszustandssimulation; Sichtbarkeitsdarstellung; Next-Step-Auswertung.
+**Verzichtet (dauerhaft):** learner_state_factory, scenario_builder, Simulationsprofile speichern/laden.
+
+**Zwischenphase (nach Phase 8):** Fixtures-Kurs mit komplexen Abhängigkeitsdaten + umfassende PHPUnit/Behat-Testabdeckung.
+
+**Deliverables:** ✅ funktionierende Kurszustandssimulation; ✅ Sichtbarkeitsdarstellung; ✅ Next-Step-Auswertung; ✅ Simulationsoverlay im Graphen.
 
 ### Phase 8 – Risiko-, Konsistenz- und Sackgassenanalyse
 
@@ -691,28 +694,26 @@ Risikofund / Konflikt / Sackgassenhinweis. Felder: `id`, `courseid`, `risktype`,
 
 ## 7. Priorisierte MVP-Definition
 
-### MVP 1
+### MVP 1 ✅ Abgeschlossen
 
-- Skeleton
-- Registry
-- Inventar
-- Auswahl
-- Adapter: `assign`, `quiz`, `feedback`
-- strukturierte Datumsverschiebung
-- Vorschau
-- Snapshots light
+- Skeleton, Registry, Inventar, Auswahl
+- Adapter: `assign`, `quiz`, `feedback`, `forum`, `lesson`, `page`, `h5pactivity`, `workshop`
+- Strukturierte Datumsverschiebung (Tage, Stunden, Minuten)
+- Shift-Workflow-Modal (3-Schritt: Konfiguration → Vorschau → Textprüfung)
+- Snapshots und Rollback-Mechanismus
 
-### MVP 2
+### MVP 2 ✅ Abgeschlossen
 
-- Text-Datetime-Erkennung
-- Textreview
+- Text-Datetime-Erkennung (sicher/mehrdeutig/informativ, inkl. no-year mit Jahr-Annahme)
+- Textprüfungs-Modal (AJAX-basiert, ohne Page-Reload)
 - Timeline/Gantt
-- Presets
+- Abhängigkeitsgraph mit Gruppen-Filter und Simulationsoverlay
 - Historie
 
-### MVP 3
+### MVP 3 (Phase 8+)
 
-- Simulation
-- Risiko-/Sackgassenprüfung
-- weitere Adapter
-- Rollback vollständig
+- ✅ Simulation (vollständig)
+- Risiko-/Sackgassenprüfung (Phase 8, ausstehend)
+- ✅ alle geplanten Adapter implementiert
+- Rollback-UI vollständig (ausstehend)
+- Fixtures-Testabdeckung (Zwischenphase nach Phase 8)

@@ -137,7 +137,7 @@
 .coursectrl-simdrop-item {
     display: flex;
     align-items: center;
-    margin-bottom: 4px;
+    margin-bottom: 0.1rem;
     padding: 0 8px;
     list-style: none;
 }
@@ -189,4 +189,25 @@
 
 [data-region="local_coursectrl-compfilter-menu"] .coursectrl-simdrop-item {
     padding: 0 4px;
+}
+
+/**
+ * Native checkbox inside shift-workflow hit table — no Bootstrap overrides.
+ */
+.ccwf-hit-table input[type="checkbox"] {
+    display: block;
+    margin: 0 auto;
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
+}
+
+/**
+ * Equal-width timeline action buttons (shift-slot, shift-following, shift-entry, delete-entry).
+ */
+.ccwf-tl-btn {
+    width: 2.5rem;
+    justify-content: center;
+    display: inline-flex;
+    align-items: center;
 }

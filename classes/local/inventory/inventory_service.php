@@ -152,6 +152,26 @@ class inventory_service {
      * @param array<int,section_item> $sections The section entities.
      * @return array<string,text_item> keyed by text_item::get_key().
      */
+    /**
+     * Map of module name → additional text fields beyond the standard intro/content field.
+     *
+     * These fields can contain free-text with date references that should be
+     * picked up by the text-datetime scanner. They are read from the module's
+     * primary table (same table as intro/content).
+     *
+     * @var array<string, string[]>
+     */
+    private const EXTRA_TEXT_FIELDS = [
+        // mod_assign: Aktivitätsanleitung (activity instructions).
+        'assign' => ['activity'],
+        // mod_feedback: Seite nach dem Absenden.
+        'feedback' => ['page_after_submit'],
+        // mod_workshop: three rich-text instruction fields.
+        'workshop' => ['instructauthors', 'instructreviewers', 'conclusion'],
+        // mod_page: has both 'content' (primary) and 'intro'.
+        'page' => ['intro'],
+    ];
+
     protected function collect_texts(course_item $course, array $sections): array {
         global $DB;
         $result = [];
@@ -221,6 +241,35 @@ class inventory_service {
                 $result[$text->get_key()] = $text;
             } catch (\Throwable $e) {
                 continue;
+            }
+
+            // Also scan plugin-specific extra text fields for this module type.
+            $extrafields = self::EXTRA_TEXT_FIELDS[$modname] ?? [];
+            foreach ($extrafields as $extrafield) {
+                try {
+                    $extrarec = $DB->get_record(
+                        $modname,
+                        ['id' => (int)$cm->instance],
+                        'id,' . $extrafield
+                    );
+                    if (!$extrarec || empty($extrarec->$extrafield)) {
+                        continue;
+                    }
+                    $extratext = new text_item(
+                        entitytype: text_item::OWNER_CM,
+                        entityid: (int)$cm->id,
+                        fieldname: $extrafield,
+                        content: (string)$extrarec->$extrafield,
+                        format: FORMAT_HTML,
+                    );
+                    $result[$extratext->get_key()] = $extratext;
+                } catch (\Throwable $e) {
+                    debugging(
+                        'local_coursectrl: collect_texts extra field ' . $extrafield .
+                        ' failed for ' . $modname . ': ' . $e->getMessage(),
+                        DEBUG_DEVELOPER
+                    );
+                }
             }
         }
 

@@ -17,10 +17,9 @@
 /**
  * Renderable for the bulk-action management page.
  *
- * Transforms the inventory snapshot into a template context suitable for
- * the manage.mustache CM-selector form. Sections are listed with their
- * course modules as checkbox groups so that users can pick which CMs to
- * include in a bulk action.
+ * CMs and sections are selectable when they carry at least one date field
+ * (adapter date, completionexpected, or an availability date condition).
+ * CMs without any date fields are listed but disabled.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -29,8 +28,8 @@
 
 namespace local_coursectrl\output;
 
+use local_coursectrl\local\analysis\date_collector;
 use local_coursectrl\local\inventory\inventory_snapshot;
-use local_coursectrl\manager\registry;
 use renderable;
 use renderer_base;
 use templatable;
@@ -42,20 +41,14 @@ class manage_page implements renderable, templatable {
     /** @var inventory_snapshot The course inventory. */
     protected inventory_snapshot $snapshot;
 
-    /** @var string[] Components with a registered adapter. */
-    protected array $supportedcomponents;
-
     /**
      * Constructor.
      *
-     * @param inventory_snapshot $snapshot            The inventory snapshot.
-     * @param string[]           $supportedcomponents Frankenstyle component
-     *                                                names that have a
-     *                                                registered adapter.
+     * @param inventory_snapshot $snapshot The inventory snapshot.
+     * @param string[]           $supportedcomponents Unused; kept for BC.
      */
-    public function __construct(inventory_snapshot $snapshot, array $supportedcomponents) {
+    public function __construct(inventory_snapshot $snapshot, array $supportedcomponents = []) {
         $this->snapshot = $snapshot;
-        $this->supportedcomponents = $supportedcomponents;
     }
 
     /**
@@ -67,12 +60,34 @@ class manage_page implements renderable, templatable {
     public function export_for_template(renderer_base $output): array {
         $course = $this->snapshot->course;
 
-        $cmsbysection = [];
-        $supportedcount = 0;
+        // Collect which CMs actually have date fields.
+        $collector = new date_collector();
+        $datesbycm = $collector->collect_grouped_by_cm($this->snapshot->cms);
+
+        // Also check CM-level fields (completionexpected, availability dates).
+        $cmswithdates = [];
         foreach ($this->snapshot->cms as $cm) {
-            $issupported = in_array($cm->get_component(), $this->supportedcomponents, true);
-            if ($issupported) {
-                $supportedcount++;
+            $hasdates = !empty($datesbycm[$cm->id]);
+            // Check completionexpected.
+            if (!$hasdates && $cm->completionexpected > 0) {
+                $hasdates = true;
+            }
+            // Check availability JSON for date conditions.
+            if (!$hasdates && !empty($cm->availability)) {
+                $avail = json_decode($cm->availability, true);
+                if (is_array($avail)) {
+                    $hasdates = $this->availability_has_date($avail);
+                }
+            }
+            $cmswithdates[$cm->id] = $hasdates;
+        }
+
+        $cmsbysection = [];
+        $withDatesCount = 0;
+        foreach ($this->snapshot->cms as $cm) {
+            $hasdates = $cmswithdates[$cm->id];
+            if ($hasdates) {
+                $withDatesCount++;
             }
             $cmsbysection[$cm->sectionid][] = [
                 'cmid' => $cm->id,
@@ -80,7 +95,8 @@ class manage_page implements renderable, templatable {
                 'modname' => $cm->modname,
                 'component' => $cm->get_component(),
                 'visible' => $cm->visible,
-                'supported' => $issupported,
+                'hasdates' => $hasdates,
+                'nodates' => !$hasdates,
                 'sectionid' => $cm->sectionid,
             ];
         }
@@ -88,10 +104,10 @@ class manage_page implements renderable, templatable {
         $sections = [];
         foreach ($this->snapshot->sections as $section) {
             $sectioncms = $cmsbysection[$section->id] ?? [];
-            $sectionhassupported = false;
-            foreach ($sectioncms as $cm) {
-                if ($cm['supported']) {
-                    $sectionhassupported = true;
+            $sectionhasdates = false;
+            foreach ($sectioncms as $cmdata) {
+                if ($cmdata['hasdates']) {
+                    $sectionhasdates = true;
                     break;
                 }
             }
@@ -104,31 +120,40 @@ class manage_page implements renderable, templatable {
                 'cms' => $sectioncms,
                 'cmcount' => count($sectioncms),
                 'hascms' => count($sectioncms) > 0,
-                'hassupported' => $sectionhassupported,
+                'hasdates' => $sectionhasdates,
+                'nodates' => !$sectionhasdates,
             ];
         }
-
-        $actions = [
-            [
-                'value' => 'shift_dates',
-                'label' => get_string('action_shift_dates', 'local_coursectrl'),
-                'selected' => true,
-            ],
-        ];
 
         return [
             'courseid' => $course->id,
             'coursefullname' => format_string($course->fullname),
             'sesskey' => sesskey(),
-            'previewurl' => (new \moodle_url('/local/coursectrl/preview.php'))->out(false),
-            'dashboardurl' => (new \moodle_url(
+                'dashboardurl' => (new \moodle_url(
                 '/local/coursectrl/index.php',
                 ['courseid' => $course->id]
             ))->out(false),
-            'actions' => $actions,
             'sections' => $sections,
             'hassections' => count($sections) > 0,
-            'supportedcount' => $supportedcount,
+            'withdatescount' => $withDatesCount,
         ];
+    }
+
+    /**
+     * Recursively check whether an availability condition node contains a date condition.
+     *
+     * @param array $node Decoded availability JSON node.
+     * @return bool
+     */
+    private function availability_has_date(array $node): bool {
+        if (($node['type'] ?? '') === 'date') {
+            return true;
+        }
+        foreach ($node['c'] ?? [] as $child) {
+            if (is_array($child) && $this->availability_has_date($child)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

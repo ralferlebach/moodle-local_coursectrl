@@ -69,6 +69,7 @@ class preview_bulk_action extends external_api {
      * @return array Preview result in the shape declared by execute_returns().
      */
     public static function execute(int $courseid, string $action, string $payloadjson, array $cmids = []): array {
+        global $PAGE;
         $params = self::validate_parameters(self::execute_parameters(), [
             'courseid'    => $courseid,
             'action'      => $action,
@@ -95,10 +96,19 @@ class preview_bulk_action extends external_api {
 
         $changes = [];
         foreach ($result['changes'] as $change) {
+            $modname = str_replace('mod_', '', $change->get_component());
+            $iconurl = (new \moodle_url('/theme/image.php', [
+                'theme'     => isset($PAGE->theme) ? $PAGE->theme->name : 'boost',
+                'component' => $change->get_component(),
+                'image'     => 'monologo',
+                'rev'       => -1,
+            ]))->out(false);
             $changes[] = [
                 'cmid'       => $change->get_cmid(),
                 'component'  => $change->get_component(),
+                'modname'    => $modname,
                 'name'       => $change->get_name(),
+                'iconurl'    => $iconurl,
                 'haschanges' => $change->has_changes(),
                 'fieldsjson' => json_encode($change->get_fields()),
             ];
@@ -149,7 +159,9 @@ class preview_bulk_action extends external_api {
                 new external_single_structure([
                     'cmid' => new external_value(PARAM_INT, 'Course module id'),
                     'component' => new external_value(PARAM_COMPONENT, 'Frankenstyle component'),
+                    'modname'   => new external_value(PARAM_ALPHANUMEXT, 'Module name', VALUE_OPTIONAL, ''),
                     'name' => new external_value(PARAM_TEXT, 'Instance display name'),
+                    'iconurl'   => new external_value(PARAM_URL, 'Module icon URL', VALUE_OPTIONAL, ''),
                     'haschanges' => new external_value(PARAM_BOOL, 'Whether any field would actually change'),
                     'fieldsjson' => new external_value(PARAM_RAW, 'JSON-encoded per-field preview descriptors'),
                 ])

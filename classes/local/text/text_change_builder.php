@@ -164,8 +164,10 @@ class text_change_builder {
             $stripped = strip_tags($stripped);
             // Convert byte offset → character offset for mb_substr.
             $charoffset = mb_strlen(substr($stripped, 0, $byteoffset));
-            $before = mb_substr($stripped, max(0, $charoffset - 30), min($charoffset, 30));
-            $after  = mb_substr($stripped, $charoffset + mb_strlen($match['match']), 30);
+            // Store a generous context window (100 chars before, 250 chars after)
+            // so the UI can show an expandable snippet without re-loading the text.
+            $before = mb_substr($stripped, max(0, $charoffset - 100), min($charoffset, 100));
+            $after  = mb_substr($stripped, $charoffset + mb_strlen($match['match']), 250);
 
             $hits[] = [
                 'entitytype' => $item->entitytype,

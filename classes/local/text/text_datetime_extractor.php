@@ -156,9 +156,11 @@ class text_datetime_extractor {
             'de_numeric_full' => '/\b(?P<day>[0-3]?\d)\.(?P<month>0?[1-9]|1[0-2])\.(?P<year>20\d{2})'
                 . $timeopt . '/u',
 
-            // German numeric without year: 15.04. (trailing dot).
+            // German numeric without year: 15.04. [14:00 Uhr] (trailing dot, optional time).
+            // Negative lookahead prevents matching '19.05.2026' as noyear.
+            // Must only block a 4-digit year, not a time like '10:00 Uhr'.
             'de_numeric_noyear' => '/\b(?P<day>[0-3]?\d)\.(?P<month>0?[1-9]|1[0-2])\.'
-                . '(?!\s*\d)' . '/u',
+                . '(?!\s*20\d{2})' . $timeopt . '/u',
 
             // English: April 15, 2026 [at 2:00 PM].
             'en_mdy_full' => '/\b(?P<monthname>' . $enmonths . ')\.?\s+'

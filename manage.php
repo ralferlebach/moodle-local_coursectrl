@@ -18,7 +18,6 @@
  * Bulk-action management page for the Course Control Hub.
  *
  * Displays an action selector, payload configuration and a course-module
- * selector grouped by section. On submit the form POSTs to preview.php.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -57,12 +56,9 @@ $PAGE->navbar->add(get_string('nav_manage', 'local_coursectrl'));
 $service = new \local_coursectrl\local\inventory\inventory_service();
 $snapshot = $service->build_for_course($courseid);
 
-$registry = new \local_coursectrl\manager\registry();
-$supportedcomponents = array_keys($registry->get_all());
-
 $PAGE->requires->string_for_js('manage_no_selection', 'local_coursectrl');
 
-$renderable = new \local_coursectrl\output\manage_page($snapshot, $supportedcomponents);
+$renderable = new \local_coursectrl\output\manage_page($snapshot);
 /** @var \local_coursectrl\output\renderer $renderer */
 $renderer = $PAGE->get_renderer('local_coursectrl');
 

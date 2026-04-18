@@ -27,8 +27,10 @@ require_once(__DIR__ . '/../../config.php');
 use local_coursectrl\local\navigation\navigation_builder;
 
 
-$courseid = required_param('courseid', PARAM_INT);
+$courseid       = required_param('courseid', PARAM_INT);
 $hideindependents = optional_param('hideindependents', 0, PARAM_INT);
+$groupids       = optional_param_array('groupids', [], PARAM_INT);
+$filterbygroup  = optional_param('filterbygroup', 0, PARAM_INT);
 
 $course = get_course($courseid);
 $context = context_course::instance($courseid);
@@ -37,11 +39,11 @@ require_capability('local/coursectrl:view', $context);
 
 $PAGE->set_course($course);
 $PAGE->set_context($context);
-$PAGE->set_url(new moodle_url('/local/coursectrl/graph.php', ['courseid' => $courseid]));
+$PAGE->set_url(new moodle_url('/local/coursectrl/dependencies.php', ['courseid' => $courseid]));
 $PAGE->set_title(
     format_string($course->fullname) . ' - ' .
     get_string('pluginname', 'local_coursectrl') . ' - ' .
-    get_string('graph_title', 'local_coursectrl')
+    get_string('dependencies_title', 'local_coursectrl')
 );
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_pagelayout('incourse');
@@ -50,12 +52,16 @@ $PAGE->navbar->add(
     get_string('pluginname', 'local_coursectrl'),
     new moodle_url('/local/coursectrl/index.php', ['courseid' => $courseid])
 );
-$PAGE->navbar->add(get_string('graph_title', 'local_coursectrl'));
+$PAGE->navbar->add(get_string('dependencies_title', 'local_coursectrl'));
 
 $service = new \local_coursectrl\local\inventory\inventory_service();
 $snapshot = $service->build_for_course($courseid);
 
-$renderable = new \local_coursectrl\output\graph_page($snapshot, ['hideindependents' => (bool) $hideindependents]);
+$renderable = new \local_coursectrl\output\graph_page($snapshot, [
+    'hideindependents' => (bool) $hideindependents,
+    'groupids'         => array_filter(array_map('intval', $groupids)),
+    'filterbygroup'    => (bool) $filterbygroup,
+]);
 
 /** @var \local_coursectrl\output\renderer $renderer */
 $renderer = $PAGE->get_renderer('local_coursectrl');

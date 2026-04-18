@@ -102,7 +102,7 @@ class navigation_bar implements renderable, templatable {
                     [
                         'oid'      => $uid . '-o' . $n++,
                         'label'    => get_string('nav_dependencies', 'local_coursectrl'),
-                        'value'    => $this->u('graph.php'),
+                        'value'    => $this->u('dependencies.php'),
                         'selected' => $active === 'coursectrl_graph',
                         'visible'  => true,
                     ],
@@ -203,7 +203,7 @@ class navigation_bar implements renderable, templatable {
         $map = [
             'coursectrl_dashboard'   => 'index.php',
             'coursectrl_timeline'    => 'timeline.php',
-            'coursectrl_graph'       => 'graph.php',
+            'coursectrl_graph'       => 'dependencies.php',
             'coursectrl_manage'      => 'manage.php',
             'coursectrl_simulation'  => 'simulation.php',
             'coursectrl_history'     => 'history.php',

@@ -127,6 +127,91 @@ class graph_dataset_builder {
     }
 
     /**
+     * Build the full graph dataset using an external forward-dependency map.
+     *
+     * Identical to build() but accepts a pre-filtered forward map (e.g. from
+     * dependency_index::get_all_forward_for_group()) instead of fetching all
+     * forward dependencies from the index. The dependency_index is still used
+     * for circular-cycle detection over the full graph.
+     *
+     * @param cm_item[]        $cms      Course modules keyed by cmid.
+     * @param dependency_index $depindex Prebuilt dependency index (for cycle detection).
+     * @param array            $forward  Filtered forward map: cmid → prerequisite cmids.
+     * @param array            $warnings Per-CM warning lists from consistency_runner.
+     * @return array Graph dataset.
+     */
+    public function build_with_forward(
+        array $cms,
+        dependency_index $depindex,
+        array $forward,
+        array $warnings = []
+    ): array {
+        if (empty($cms)) {
+            return $this->empty_result();
+        }
+
+        $circular = $depindex->find_circular_deps();
+        $circularset = $this->build_circular_set($circular);
+        $layers = $this->assign_layers($cms, $forward);
+        $layerpositions = $this->assign_layer_positions($layers);
+        $layercount = empty($layers) ? 0 : max(array_values($layers)) + 1;
+
+        $nodes = [];
+        foreach ($cms as $cm) {
+            $nodes[] = [
+                'id' => $cm->id,
+                'label' => $cm->name,
+                'modname' => $cm->modname,
+                'component' => $cm->get_component(),
+                'visible' => $cm->visible,
+                'circular' => isset($circularset[$cm->id]),
+                'haswarnings' => !empty($warnings[$cm->id]),
+                'layer' => $layers[$cm->id] ?? 0,
+                'layerpos' => $layerpositions[$cm->id] ?? 0,
+                'url' => (new \moodle_url(
+                    '/mod/' . $cm->modname . '/view.php',
+                    ['id' => $cm->id]
+                ))->out(false),
+                'editurl' => (new \moodle_url(
+                    '/course/modedit.php',
+                    ['update' => $cm->id, 'return' => 1]
+                ))->out(false),
+            ];
+        }
+
+        $knownids = array_fill_keys(array_keys($cms), true);
+        $circularedgeset = [];
+        foreach ($circular as $pair) {
+            $key = min($pair['a'], $pair['b']) . '-' . max($pair['a'], $pair['b']);
+            $circularedgeset[$key] = true;
+        }
+        $edges = [];
+        foreach ($forward as $cmid => $prereqs) {
+            foreach ($prereqs as $depcmid) {
+                if (!isset($knownids[$depcmid])) {
+                    continue;
+                }
+                $key = min($cmid, $depcmid) . '-' . max($cmid, $depcmid);
+                $edges[] = [
+                    'from' => $cmid,
+                    'to' => $depcmid,
+                    'circular' => isset($circularedgeset[$key]),
+                ];
+            }
+        }
+
+        return [
+            'nodes' => $nodes,
+            'edges' => $edges,
+            'nodecount' => count($nodes),
+            'edgecount' => count($edges),
+            'layercount' => $layercount,
+            'hasonlynodes' => count($edges) === 0,
+            'hasdata' => true,
+        ];
+    }
+
+    /**
      * Assign topological layers to all CMs (public for unit testing).
      *
      * @param cm_item[] $cms     CMs keyed by cmid.

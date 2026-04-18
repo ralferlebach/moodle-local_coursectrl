@@ -166,11 +166,27 @@ class textreview_manager {
             $totalskipped += count($result['skipped']);
         }
 
+        // Purge cached hits so the next scan starts from a clean state.
+        $this->purge_hits($courseid);
+
         return [
             'applied' => $totalapplied,
             'skipped' => $totalskipped,
             'errors' => $errors,
         ];
+    }
+
+    /**
+     * Delete all cached text_hit rows for a course.
+     *
+     * Called after any change that modifies activity text fields so the next
+     * call to get_text_hits (rescan=true) starts from a clean slate.
+     *
+     * @param int $courseid Course id.
+     */
+    public function purge_hits(int $courseid): void {
+        global $DB;
+        $DB->delete_records('local_coursectrl_text_hit', ['courseid' => $courseid]);
     }
 
     /**

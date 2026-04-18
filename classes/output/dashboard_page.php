@@ -158,7 +158,7 @@ class dashboard_page implements renderable, templatable {
                 ['courseid' => $course->id]
             ))->out(false),
             'graphurl' => (new \moodle_url(
-                '/local/coursectrl/graph.php',
+                '/local/coursectrl/dependencies.php',
                 ['courseid' => $course->id]
             ))->out(false),
             'simulationurl' => (new \moodle_url(

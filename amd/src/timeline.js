@@ -30,7 +30,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define([], function() {
+define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
 
     // Track whether a structural shift was applied so we reload on close.
     var shiftApplied = false;
@@ -54,19 +54,6 @@ define([], function() {
         });
     };
 
-    /**
-     * Minimally escape a string for safe innerHTML injection.
-     *
-     * @param {string} s Raw string.
-     * @return {string} HTML-escaped string.
-     */
-    var escHtml = function(s) {
-        return String(s)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    };
 
     /**
      * Collect cmids from entry buttons inside a slot card body.
@@ -99,7 +86,8 @@ define([], function() {
             return;
         }
         shiftApplied = false;
-        showStep(1);
+        // Reset the workflow to step 1 before opening.
+        ShiftWorkflow.reset(dialog);
 
         document.getElementById('coursectrl-shift-cmids').value = cmids.join(',');
         document.getElementById('coursectrl-shift-mode').value = mode;
@@ -174,376 +162,21 @@ define([], function() {
 
     // ── Step management ──────────────────────────────────────────────────────
 
-    /**
-     * Toggle between shift modal step 1 (config) and step 2 (AJAX review).
-     *
-     * @param {number} step 1 or 2.
-     */
-    var showStep = function(step) {
-        var s1 = document.getElementById('coursectrl-shift-step1');
-        var s2 = document.getElementById('coursectrl-shift-step2');
-        var inner = document.getElementById('coursectrl-shift-dialog-inner');
-        if (step === 1) {
-            if (s1) {
-                s1.classList.remove('d-none');
-            }
-            if (s2) {
-                s2.classList.add('d-none');
-            }
-            if (inner) {
-                inner.classList.remove('modal-lg');
-            }
-        } else {
-            if (s1) {
-                s1.classList.add('d-none');
-            }
-            if (s2) {
-                s2.classList.remove('d-none');
-            }
-            if (inner) {
-                inner.classList.add('modal-lg');
-            }
-            // Update title to "Textprüfung".
-            var titleEl = document.getElementById('coursectrl-shift-dialog-title');
-            if (titleEl) {
-                titleEl.textContent = titleEl.getAttribute('data-label-review') || 'Textpr\u00fcfung';
-            }
-            // Show loading state.
-            var loading = document.getElementById('coursectrl-shift-loading');
-            var review = document.getElementById('coursectrl-shift-review');
-            var footer = document.getElementById('coursectrl-shift-step2-footer');
-            if (loading) {
-                loading.classList.remove('d-none');
-            }
-            if (review) {
-                review.classList.add('d-none');
-                review.innerHTML = '';
-            }
-            if (footer) {
-                footer.classList.add('d-none');
-            }
-        }
-    };
 
-    /**
-     * Update the loading status message in step 2.
-     *
-     * @param {string} msg Status text.
-     */
-    var setStatus = function(msg) {
-        var el = document.getElementById('coursectrl-shift-statusmsg');
-        if (el) {
-            el.textContent = msg;
-        }
-    };
 
-    /**
-     * Display an error in step 2 with a close button.
-     *
-     * @param {string} msg Error message.
-     */
-    var showError = function(msg) {
-        var loading = document.getElementById('coursectrl-shift-loading');
-        if (!loading) {
-            return;
-        }
-        loading.innerHTML =
-            '<i class="fa fa-exclamation-circle text-danger fa-lg"></i>' +
-            '<p class="mt-2 small text-danger mb-2">' + escHtml(msg) + '</p>' +
-            '<button type="button" class="btn btn-sm btn-secondary" id="ccshift-err-close">Schlie\u00dfen</button>';
-        var btn = document.getElementById('ccshift-err-close');
-        if (btn) {
-            btn.addEventListener('click', closeDialogs);
-        }
-    };
 
     // ── AJAX helpers ─────────────────────────────────────────────────────────
 
-    /**
-     * POST the shift form to shift.php with format=json.
-     *
-     * @param {HTMLFormElement} form Shift form element.
-     * @return {Promise<object>} Resolves {success, batchid, summary}.
-     */
-    var fetchShift = function(form) {
-        var data = new FormData(form);
-        data.set('format', 'json');
-        data.set('scan_text', '0');
-        return fetch(form.action, {method: 'POST', body: data})
-            .then(function(r) {
-                if (!r.ok) {
-                    throw new Error('HTTP ' + r.status);
-                }
-                return r.json();
-            });
-    };
 
-    /**
-     * Fetch fresh text hits via get_text_hits external (triggers rescan).
-     *
-     * @param {number} courseid Course id.
-     * @return {Promise<object>} Resolves {hits, summary}.
-     */
-    var fetchTextHits = function(courseid) {
-        return new Promise(function(resolve, reject) {
-            require(['core/ajax'], function(Ajax) {
-                Ajax.call([{
-                    methodname: 'local_coursectrl_get_text_hits',
-                    args: {courseid: courseid, rescan: true},
-                    done: resolve,
-                    fail: reject,
-                }]);
-            });
-        });
-    };
 
-    /**
-     * Apply selected text-datetime hits via apply_text_changes external.
-     *
-     * @param {number}   courseid Course id.
-     * @param {number[]} hitids   Selected hit ids.
-     * @param {number}   delta    Seconds to shift.
-     * @return {Promise<object>} Resolves {applied, skipped, errors}.
-     */
-    var applyTextChanges = function(courseid, hitids, delta) {
-        return new Promise(function(resolve, reject) {
-            require(['core/ajax'], function(Ajax) {
-                Ajax.call([{
-                    methodname: 'local_coursectrl_apply_text_changes',
-                    args: {courseid: courseid, hitids: hitids, delta: delta},
-                    done: resolve,
-                    fail: reject,
-                }]);
-            });
-        });
-    };
 
     // ── Review panel renderer ────────────────────────────────────────────────
 
-    /**
-     * Populate the review panel with shift result and text hits.
-     *
-     * @param {object}   shiftResult From fetchShift.
-     * @param {object[]} hits        From fetchTextHits.
-     * @param {number}   deltasec    Shift delta in seconds.
-     * @param {number}   courseid    Course id.
-     */
-    var renderReviewPanel = function(shiftResult, hits, deltasec, courseid) {
-        var loading = document.getElementById('coursectrl-shift-loading');
-        var review = document.getElementById('coursectrl-shift-review');
-        var footer = document.getElementById('coursectrl-shift-step2-footer');
-        var applyBtn = document.getElementById('coursectrl-shift-apply-text');
-
-        if (loading) {
-            loading.classList.add('d-none');
-        }
-        if (!review) {
-            return;
-        }
-
-        var s = shiftResult.summary;
-        var conflicts = shiftResult.conflicts || [];
-        var conflictHtml = '';
-        if (conflicts.length > 0) {
-            var conflictLines = conflicts.map(function(c) {
-                return '<li>' + c.field_early + ' liegt nach ' + c.field_late + '</li>';
-            }).join('');
-            conflictHtml =
-                '<div class="alert alert-warning py-2 mb-2 small">' +
-                '<i class="fa fa-exclamation-triangle mr-1"></i>' +
-                '<strong>Datumskonflikte erkannt:</strong><ul class="mb-0 mt-1">' +
-                conflictLines + '</ul></div>';
-        }
-        var summaryHtml =
-            '<div class="alert alert-success py-2 mb-2 small">' +
-            '<i class="fa fa-check-circle mr-1"></i>' +
-            '<strong>' + s.success + '</strong> Termin(e) verschoben' +
-            (s.error > 0 ? ', <strong class="text-danger">' + s.error + '</strong> Fehler' : '') +
-            (s.skipped > 0 ? ', ' + s.skipped + ' \u00fcbersprungen' : '') +
-            '.</div>' + conflictHtml;
-
-        if (!hits || hits.length === 0) {
-            review.innerHTML = summaryHtml +
-                '<p class="text-muted small mb-0">Keine Datumsangaben in Freitexten gefunden.</p>';
-            review.classList.remove('d-none');
-            if (footer) {
-                footer.classList.remove('d-none');
-            }
-            return;
-        }
-
-        var selectable = hits.filter(function(h) {
-            return h.confidence !== 'informational';
-        });
-
-        var rows = hits.map(function(hit) {
-            var ctx = {};
-            try {
-                ctx = hit.contextjson ? JSON.parse(hit.contextjson) : {};
-            } catch (ignore) {
-                ctx = {};
-            }
-            var before = escHtml(ctx.before || '');
-            var after = escHtml(ctx.after || '');
-            var matched = escHtml(hit.matchedtext || '');
-            var isSel = hit.confidence !== 'informational';
-            var checked = hit.confidence === 'safe' ? ' checked' : '';
-            var bc = hit.confidence === 'safe' ? 'badge-success'
-                : (hit.confidence === 'ambiguous' ? 'badge-warning' : 'badge-secondary');
-            var bl = hit.confidence === 'safe' ? 'Sicher'
-                : (hit.confidence === 'ambiguous' ? 'Mehrdeutig' : 'Informativ');
-            var rc = hit.confidence === 'informational' ? ' table-light text-muted' : '';
-            return '<tr class="' + rc + '">' +
-                '<td class="px-2">' +
-                (isSel ? '<input type="checkbox" class="form-check-input coursectrl-hit-cb"' +
-                    ' data-hitid="' + hit.id + '" data-confidence="' + hit.confidence + '"' + checked + '>' : '') +
-                '</td>' +
-                '<td class="small"><code>' + escHtml(hit.entitytype) + ':' + hit.entityid + '</code>' +
-                ' <span class="text-muted">' + escHtml(hit.fieldname) + '</span></td>' +
-                '<td><code>' + matched + '</code></td>' +
-                '<td class="small">\u2026' + before + '<strong>' + matched + '</strong>' + after + '\u2026</td>' +
-                '<td><span class="badge ' + bc + '">' + bl + '</span></td>' +
-                '</tr>';
-        }).join('');
-
-        var selBtnSafe = '<button type="button"' +
-            ' class="btn btn-sm btn-outline-primary py-0 mr-1"' +
-            ' id="ccshift-sel-safe">Alle sicheren w\u00e4hlen</button>';
-        var selBtnDesel = '<button type="button"' +
-            ' class="btn btn-sm btn-outline-secondary py-0"' +
-            ' id="ccshift-desel-all">Alle abw\u00e4hlen</button>';
-        var selHtml = selectable.length > 0
-            ? selBtnSafe + selBtnDesel
-            : '';
-
-        review.innerHTML = summaryHtml +
-            '<div class="d-flex justify-content-between align-items-center mb-2">' +
-            '<strong class="small">' + hits.length + ' Datumsangaben gefunden</strong>' +
-            '<span>' + selHtml + '</span></div>' +
-            '<div class="table-responsive">' +
-            '<table class="table table-sm table-striped mb-0" style="font-size:.85em">' +
-            '<thead><tr><th style="width:34px"></th><th>Ort</th>' +
-            '<th>Text</th><th>Kontext</th><th>Konfidenz</th></tr></thead>' +
-            '<tbody>' + rows + '</tbody></table></div>';
-        review.classList.remove('d-none');
-
-        var selSafe = document.getElementById('ccshift-sel-safe');
-        var deselAll = document.getElementById('ccshift-desel-all');
-        if (selSafe) {
-            selSafe.addEventListener('click', function() {
-                review.querySelectorAll('.coursectrl-hit-cb').forEach(function(cb) {
-                    cb.checked = cb.getAttribute('data-confidence') === 'safe';
-                });
-            });
-        }
-        if (deselAll) {
-            deselAll.addEventListener('click', function() {
-                review.querySelectorAll('.coursectrl-hit-cb').forEach(function(cb) {
-                    cb.checked = false;
-                });
-            });
-        }
-
-        if (footer) {
-            footer.classList.remove('d-none');
-        }
-        if (applyBtn && selectable.length > 0) {
-            applyBtn.classList.remove('d-none');
-            applyBtn.onclick = function() {
-                var ids = [];
-                review.querySelectorAll('.coursectrl-hit-cb:checked').forEach(function(cb) {
-                    ids.push(parseInt(cb.getAttribute('data-hitid'), 10));
-                });
-                if (ids.length === 0) {
-                    closeDialogs();
-                    return;
-                }
-                applyBtn.disabled = true;
-                var spinnerDiv = '<div class="spinner-border spinner-border-sm' +
-                    ' text-primary" role="status"></div>';
-                var statusP = '<p class="mt-2 small text-muted mb-0"' +
-                    ' id="coursectrl-shift-statusmsg">' +
-                    'Text\u00e4nderungen werden angewendet\u2026</p>';
-                loading.innerHTML = spinnerDiv + statusP;
-                loading.classList.remove('d-none');
-                review.classList.add('d-none');
-                footer.classList.add('d-none');
-
-                applyTextChanges(courseid, ids, deltasec)
-                    .then(function(result) {
-                        loading.classList.add('d-none');
-                        review.innerHTML =
-                            '<div class="alert alert-success py-2 small mb-0">' +
-                            '<i class="fa fa-check-circle mr-1"></i>' +
-                            '<strong>' + result.applied + '</strong> Textänderung(en) angewendet' +
-                            (result.skipped > 0 ? ', ' + result.skipped + ' \u00fcbersprungen' : '') + '.' +
-                            '</div>';
-                        review.classList.remove('d-none');
-                        if (footer) {
-                            footer.classList.remove('d-none');
-                        }
-                        if (applyBtn) {
-                            applyBtn.classList.add('d-none');
-                        }
-                    })
-                    .catch(function(err) {
-                        showError('Fehler: ' + (err.message || JSON.stringify(err)));
-                    });
-            };
-        }
-    };
 
     // ── Full AJAX shift flow ─────────────────────────────────────────────────
 
-    /**
-     * Orchestrate the two-phase AJAX shift+textreview flow.
-     *
-     * @param {HTMLFormElement} form     Shift form.
-     * @param {number}          courseid Course id.
-     */
-    var runAjaxShiftFlow = function(form, courseid) {
-        var daysEl = document.getElementById('coursectrl-shift-delta-days');
-        var hoursEl = document.getElementById('coursectrl-shift-delta-hours');
-        var deltadays = parseInt((daysEl && daysEl.value) || '0', 10);
-        var deltahours = parseInt((hoursEl && hoursEl.value) || '0', 10);
-        var deltasec = (deltadays * 86400) + (deltahours * 3600);
 
-        showStep(2);
-        setStatus('Termine werden verschoben\u2026');
-
-        fetchShift(form)
-            .then(function(result) {
-                if (!result.success && result.error === 'nothing_to_do') {
-                    showError('Kein gültiger Delta-Wert \u2014 bitte Tage oder Stunden eingeben.');
-                    return null;
-                }
-                shiftApplied = true;
-                setStatus('Texte werden analysiert\u2026');
-                return fetchTextHits(courseid)
-                    .then(function(data) {
-                        renderReviewPanel(result, data.hits, deltasec, courseid);
-                    })
-                    .catch(function() {
-                        // Scan failed — show shift result only.
-                        var loading = document.getElementById('coursectrl-shift-loading');
-                        var footer = document.getElementById('coursectrl-shift-step2-footer');
-                        if (loading) {
-                            loading.innerHTML =
-                                '<div class="alert alert-success py-2 small mb-0">' +
-                                '<i class="fa fa-check-circle mr-1"></i>' +
-                                result.summary.success + ' Termin(e) verschoben.' +
-                                '</div><p class="small text-muted mt-2 mb-0">Textanalyse nicht verfügbar.</p>';
-                        }
-                        if (footer) {
-                            footer.classList.remove('d-none');
-                        }
-                    });
-            })
-            .catch(function(err) {
-                showError('Verbindungsfehler: ' + (err.message || err));
-            });
-    };
-
+    // ── Component filter
     // ── Component filter dropdown ────────────────────────────────────────────
 
     /**
@@ -627,25 +260,150 @@ define([], function() {
             });
         });
 
-        // Intercept shift form: AJAX path when scan_text is enabled.
-        var shiftForm = document.getElementById('coursectrl-shift-form');
-        var scantextCb = document.getElementById('coursectrl-shift-scantext-cb');
-        var scantextInput = document.getElementById('coursectrl-shift-scantext');
-
-        if (shiftForm) {
-            if (scantextCb && scantextInput) {
-                scantextInput.value = scantextCb.checked ? '1' : '0';
-                scantextCb.addEventListener('change', function() {
-                    scantextInput.value = scantextCb.checked ? '1' : '0';
-                });
-            }
-            shiftForm.addEventListener('submit', function(e) {
-                if (scantextCb && scantextCb.checked) {
-                    e.preventDefault();
-                    runAjaxShiftFlow(shiftForm, courseid);
-                }
-                // scan_text unchecked: normal form submit to shift.php.
+        // Wire shift workflow via shared shift_workflow module.
+        var shiftModal = document.getElementById('coursectrl-shift-dialog');
+        var shiftForm  = document.getElementById('coursectrl-shift-form');
+        if (shiftModal && shiftForm) {
+            ShiftWorkflow.run({
+                modal: shiftModal,
+                form: shiftForm,
+                courseid: courseid,
+                getCmids: function() {
+                    var v = document.getElementById('coursectrl-shift-cmids');
+                    return v ? v.value.split(',').filter(Boolean).map(Number) : [];
+                },
+                getDelta: function() {
+                    var d = parseInt(
+                        (document.getElementById('coursectrl-shift-delta-days') || {}).value || '0',
+                        10
+                    );
+                    var h = parseInt(
+                        (document.getElementById('coursectrl-shift-delta-hours') || {}).value || '0',
+                        10
+                    );
+                    var m = parseInt(
+                        (document.getElementById('coursectrl-shift-delta-minutes') || {}).value || '0',
+                        10
+                    );
+                    return (d * 86400) + (h * 3600) + (m * 60);
+                },
+                getScanText: true,
+                onComplete: function() {
+                    shiftApplied = true;
+                    closeDialogs();
+                    location.reload();
+                },
             });
+        }
+
+        // Textreview tab: "Textänderungen anwenden" → confirmation modal.
+        var applyBtn = document.getElementById('coursectrl-textreview-apply-btn');
+        var trModal  = document.getElementById('coursectrl-textreview-confirm-modal');
+        var trForm   = document.getElementById('coursectrl-textreview-inline-form');
+        if (applyBtn && trModal && trForm) {
+            /**
+             * Open the textreview confirmation modal.
+             */
+            var openTrModal = function() {
+                trModal.style.display = 'flex';
+                trModal.setAttribute('aria-hidden', 'false');
+                trModal.classList.add('show');
+                document.body.classList.add('modal-open');
+                var bd = document.createElement('div');
+                bd.className = 'modal-backdrop fade show';
+                bd.id = 'cctr-modal-bd';
+                document.body.appendChild(bd);
+            };
+            /**
+             * Close the textreview confirmation modal.
+             */
+            var closeTrModal = function() {
+                trModal.style.display = 'none';
+                trModal.setAttribute('aria-hidden', 'true');
+                trModal.classList.remove('show');
+                document.body.classList.remove('modal-open');
+                var bd = document.getElementById('cctr-modal-bd');
+                if (bd) {
+                    bd.remove();
+                }
+            };
+
+            applyBtn.addEventListener('click', function() {
+                var hitids = Array.from(
+                    trForm.querySelectorAll('input[name="hitids[]"]:checked')
+                ).map(function(cb) { return parseInt(cb.value, 10); });
+                if (hitids.length === 0) {
+                    return;
+                }
+                var dD = parseInt(
+                    (trForm.querySelector('[name="delta_days"]') || {}).value || '0', 10
+                );
+                var dH = parseInt(
+                    (trForm.querySelector('[name="delta_hours"]') || {}).value || '0', 10
+                );
+                var dM = parseInt(
+                    (trForm.querySelector('[name="delta_minutes"]') || {}).value || '0', 10
+                );
+                var deltaSec = (dD * 86400) + (dH * 3600) + (dM * 60);
+                var modalBody = document.getElementById('coursectrl-textreview-modal-body');
+                if (modalBody) {
+                    modalBody.innerHTML =
+                        '<div class="text-center py-3">' +
+                        '<div class="spinner-border spinner-border-sm text-primary" role="status"></div>' +
+                        '</div>';
+                }
+                openTrModal();
+                require(['core/ajax'], function(Ajax) {
+                    Ajax.call([{
+                        methodname: 'local_coursectrl_get_text_hits',
+                        args: {courseid: courseid, rescan: false},
+                        done: function(data) {
+                            var selected = (data.hits || []).filter(function(h) {
+                                return hitids.indexOf(h.id) !== -1;
+                            });
+                            if (modalBody) {
+                                modalBody.innerHTML = ShiftWorkflow.renderHits(
+                                    selected, deltaSec, true
+                                );
+                                ShiftWorkflow.wireCtx(modalBody);
+                            }
+                        },
+                        fail: function() {
+                            if (modalBody) {
+                                modalBody.innerHTML =
+                                    '<p class="small text-muted">' +
+                                    hitids.length + ' Einträge ausgewählt.</p>';
+                            }
+                        },
+                    }]);
+                });
+                var modalApplyBtn = document.getElementById('coursectrl-textreview-modal-apply');
+                if (modalApplyBtn) {
+                    modalApplyBtn.disabled = false;
+                    var applyOnce = function() {
+                        modalApplyBtn.disabled = true;
+                        modalApplyBtn.removeEventListener('click', applyOnce);
+                        require(['core/ajax'], function(Ajax) {
+                            Ajax.call([{
+                                methodname: 'local_coursectrl_apply_text_changes',
+                                args: {courseid: courseid, hitids: hitids, delta: deltaSec},
+                                done: function() {
+                                    closeTrModal();
+                                    location.reload();
+                                },
+                                fail: function() {
+                                    modalApplyBtn.disabled = false;
+                                    modalApplyBtn.addEventListener('click', applyOnce);
+                                },
+                            }]);
+                        });
+                    };
+                    modalApplyBtn.addEventListener('click', applyOnce);
+                }
+            });
+            trModal.querySelectorAll('[data-action="close-textreview-modal"]').forEach(
+                function(btn) { btn.addEventListener('click', closeTrModal); }
+            );
         }
 
         // Delete entry dialog.
@@ -663,10 +421,8 @@ define([], function() {
         root.querySelectorAll('[data-action="close-dialog"]').forEach(function(btn) {
             btn.addEventListener('click', closeDialogs);
         });
-        var skipBtn = document.getElementById('coursectrl-shift-skip-text');
-        if (skipBtn) {
-            skipBtn.addEventListener('click', closeDialogs);
-        }
+                // Skip button handled by shift_workflow - no wiring needed here.
+
 
         // Followdeps checkbox → hidden input.
         var followdepsCb = document.getElementById('coursectrl-shift-followdeps-cb');

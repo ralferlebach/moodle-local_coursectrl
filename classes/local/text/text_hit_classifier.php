@@ -73,7 +73,7 @@ class text_hit_classifier {
     public function classify(array $hit, ?string $normalizedvalue): string {
         $pattern = $hit['pattern'] ?? '';
 
-        // No-year patterns are always ambiguous at best.
+        // No-year patterns: ambiguous if we have a normalised value (year assumed).
         if (in_array($pattern, self::AMBIGUOUS_PATTERNS, true)) {
             if ($normalizedvalue !== null) {
                 return text_hit::CONFIDENCE_AMBIGUOUS;

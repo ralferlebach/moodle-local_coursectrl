@@ -204,10 +204,30 @@ class text_datetime_rewriter {
                 }
                 return $result;
 
+            case 'de_dmy_noyear':
+                // Preserve format without year: "17. Mai" or "17. Mai 10:00 Uhr".
+                $result = $day . '. ' . $demonths[$month];
+                if ($time !== '' && str_contains($original, 'Uhr')) {
+                    $result .= ' ' . $time . ' Uhr';
+                } else if ($time !== '') {
+                    $result .= ' ' . $time;
+                }
+                return $result;
+
             case 'de_numeric_full':
                 $result = sprintf('%02d.%02d.%s', $day, $month, $year);
                 if ($time !== '') {
                     $result .= ', ' . $time;
+                }
+                return $result;
+
+            case 'de_numeric_noyear':
+                // Preserve format without year: "19.05." or "19.05. 10:00 Uhr".
+                $result = sprintf('%02d.%02d.', $day, $month);
+                if ($time !== '' && str_contains($original, 'Uhr')) {
+                    $result .= ' ' . $time . ' Uhr';
+                } else if ($time !== '') {
+                    $result .= ' ' . $time;
                 }
                 return $result;
 

@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Smoke tests – verify that local_coursectrl installs and loads cleanly.
+ * Plugin smoke tests – verify that local_coursectrl installs and loads cleanly.
  *
  * @package    local_coursectrl
  * @category   test
@@ -30,7 +30,7 @@ namespace local_coursectrl;
  *
  * @coversNothing
  */
-final class stub_test extends \advanced_testcase {
+final class plugin_smoke_test extends \advanced_testcase {
     /**
      * Verify the plugin version is recorded in the database after installation.
      */
@@ -87,7 +87,6 @@ final class stub_test extends \advanced_testcase {
     public function test_language_strings_en(): void {
         $strings = [
             'pluginname',
-            'stub_placeholder',
             'error_no_course',
             'error_no_capability',
         ];

@@ -76,7 +76,10 @@ class text_datetime_parser {
         $minute = $this->extract_minute($groups);
 
         if ($year === null) {
-            return null;
+            // For no-year patterns: assume the current year so the value is
+            // parseable and can be shifted. The caller is responsible for
+            // indicating to the UI that the year was assumed.
+            $year = (int) date('Y');
         }
         $iso = sprintf('%04d-%02d-%02d', $year, $month, $day);
         if ($hour !== null && $minute !== null) {

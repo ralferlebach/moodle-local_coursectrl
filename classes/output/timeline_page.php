@@ -151,7 +151,7 @@ class timeline_page implements renderable, templatable {
                 'component' => $entry['component'],
                 'field' => $entry['fieldlabel'],
                 'source' => $entry['source'],
-                'deletable' => $entry['source'] === 'adapter',
+                'deletable' => in_array($entry['source'], ['adapter', 'cm', 'availability'], true),
                 'activityurl' => (new \moodle_url(
                     '/mod/' . $entry['modname'] . '/view.php',
                     ['id' => $entry['cmid']]
@@ -250,8 +250,9 @@ class timeline_page implements renderable, templatable {
      * @return array
      */
     private function build_textreview_context(int $courseid): array {
-        $deltadays  = (int) ($this->filters['textreview_delta_days'] ?? 0);
-        $deltahours = (int) ($this->filters['textreview_delta_hours'] ?? 0);
+        $deltadays    = (int) ($this->filters['textreview_delta_days'] ?? 0);
+        $deltahours   = (int) ($this->filters['textreview_delta_hours'] ?? 0);
+        $deltaminutes = (int) ($this->filters['textreview_delta_minutes'] ?? 0);
         $fromshift  = !empty($this->filters['from_shift']);
         $batchid    = (int) ($this->filters['shift_batchid'] ?? 0);
 
@@ -276,6 +277,7 @@ class timeline_page implements renderable, templatable {
                 'textreview_rows' => [],
                 'textreview_delta_days' => $deltadays,
                 'textreview_delta_hours' => $deltahours,
+            'textreview_delta_minutes' => $deltaminutes,
                 'textreview_from_shift' => $fromshift,
                 'textreview_hascollisions' => !empty($collisions),
                 'textreview_collisions' => $collisions,
@@ -286,10 +288,30 @@ class timeline_page implements renderable, templatable {
             $conf = $hit->get('confidence');
             $contextraw = $hit->get('contextjson');
             $ctx = $contextraw ? json_decode($contextraw, true) : [];
+            $hitentitytype = $hit->get('entitytype');
+            $hitentityid   = (int) $hit->get('entityid');
+            $hitcmname  = '';
+            $hitcmurl   = '';
+            $hitmodname = '';
+            if ($hitentitytype === 'cm') {
+                $cmobj = get_coursemodule_from_id('', $hitentityid, 0, false, IGNORE_MISSING);
+                if ($cmobj) {
+                    $hitcmname  = $cmobj->name;
+                    $hitmodname = $cmobj->modname;
+                    $hitcmurl   = (new \moodle_url(
+                        '/mod/' . $hitmodname . '/view.php',
+                        ['id' => $hitentityid]
+                    ))->out(false);
+                }
+            }
             $rows[] = [
                 'id' => $hit->get('id'),
-                'entitytype' => $hit->get('entitytype'),
-                'entityid' => $hit->get('entityid'),
+                'entitytype' => $hitentitytype,
+                'entityid' => $hitentityid,
+                'cmname'  => $hitcmname,
+                'cmurl'   => $hitcmurl,
+                'modname' => $hitmodname,
+                'hascm'   => !empty($hitcmname),
                 'fieldname' => $hit->get('fieldname'),
                 'matchedtext' => $hit->get('matchedtext'),
                 'normalizedvalue' => $hit->get('normalizedvalue'),
@@ -301,13 +323,25 @@ class timeline_page implements renderable, templatable {
                 'isinformational' => $conf === text_hit::CONFIDENCE_INFORMATIONAL,
                 'contextbefore' => $ctx['before'] ?? '',
                 'contextafter' => $ctx['after'] ?? '',
+                'contextbefore_short' => mb_substr($ctx['before'] ?? '', -30),
+                'contextafter_short'  => mb_substr($ctx['after'] ?? '', 0, 30),
+                'normalizedts' => $hit->get('normalizedvalue')
+                    ? (int) strtotime((string) $hit->get('normalizedvalue'))
+                    : 0,
             ];
         }
+        // Sort rows chronologically by normalised date value.
+        usort($rows, function (array $a, array $b): int {
+            $ta = $a['normalizedvalue'] ? strtotime((string)$a['normalizedvalue']) : 0;
+            $tb = $b['normalizedvalue'] ? strtotime((string)$b['normalizedvalue']) : 0;
+            return $ta <=> $tb;
+        });
         return [
             'textreview_hasrows' => count($rows) > 0,
             'textreview_rows' => $rows,
             'textreview_delta_days' => $deltadays,
             'textreview_delta_hours' => $deltahours,
+            'textreview_delta_minutes' => $deltaminutes,
             'textreview_from_shift' => $fromshift,
             'textreview_hascollisions' => !empty($collisions),
             'textreview_collisions' => $collisions,

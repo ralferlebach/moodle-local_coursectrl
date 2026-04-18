@@ -16,112 +16,164 @@
 /**
  * AMD module for the bulk-action management page.
  *
- * Handles select-all/deselect-all, per-section toggle, and
- * dynamic payload panel visibility based on the selected action.
+ * Handles select-all/deselect-all, per-section toggle, and wires
+ * the submit button to the centralised shift_workflow modal.
  *
  * @module     local_coursectrl/manage
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define([], function() {
+define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
+
+    /**
+     * Show the manage shift modal.
+     *
+     * @param {HTMLElement} modalEl Modal root element.
+     */
+    var openModal = function(modalEl) {
+        modalEl.style.display = 'flex';
+        modalEl.setAttribute('aria-hidden', 'false');
+        modalEl.classList.add('show');
+        document.body.classList.add('modal-open');
+        var backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade show';
+        backdrop.id = 'ccmanage-backdrop';
+        document.body.appendChild(backdrop);
+    };
+
+    /**
+     * Close the manage shift modal.
+     *
+     * @param {HTMLElement} modalEl Modal root element.
+     */
+    var closeModal = function(modalEl) {
+        modalEl.style.display = 'none';
+        modalEl.setAttribute('aria-hidden', 'true');
+        modalEl.classList.remove('show');
+        document.body.classList.remove('modal-open');
+        var bd = document.getElementById('ccmanage-backdrop');
+        if (bd) {
+            bd.remove();
+        }
+    };
 
     /**
      * Initialise the manage page JS enhancements.
+     *
+     * @param {string} courseid Course id string.
      */
-    var init = function() {
+    var init = function(courseid) {
         var root = document.querySelector('[data-region="local_coursectrl-manage"]');
         if (!root) {
             return;
         }
 
-        // Select-all supported checkboxes.
-        var selectAllBtn = root.querySelector('[data-action="select-all-supported"]');
+        // Select-all with date fields.
+        var selectAllBtn = root.querySelector('[data-action="select-all-hasdates"]');
         if (selectAllBtn) {
             selectAllBtn.addEventListener('click', function() {
-                var checkboxes = root.querySelectorAll('input[name="cmids[]"]:not(:disabled)');
-                checkboxes.forEach(function(cb) {
+                root.querySelectorAll('input[name="cmids[]"]:not(:disabled)').forEach(function(cb) {
                     cb.checked = true;
                 });
             });
         }
 
-        // Deselect-all checkboxes.
+        // Deselect-all.
         var deselectAllBtn = root.querySelector('[data-action="deselect-all"]');
         if (deselectAllBtn) {
             deselectAllBtn.addEventListener('click', function() {
-                var checkboxes = root.querySelectorAll('input[name="cmids[]"]');
-                checkboxes.forEach(function(cb) {
+                root.querySelectorAll('input[name="cmids[]"]').forEach(function(cb) {
                     cb.checked = false;
                 });
             });
         }
 
-        // Per-section select all.
-        root.querySelectorAll('[data-action="select-section"]').forEach(function(btn) {
+        // Per-section select.
+        root.querySelectorAll('[data-action="select-section-dates"]').forEach(function(btn) {
             btn.addEventListener('click', function() {
-                var sectionId = btn.getAttribute('data-sectionid');
-                var checkboxes = root.querySelectorAll(
-                    'input[name="cmids[]"][data-sectionid="' + sectionId + '"]:not(:disabled)'
-                );
-                checkboxes.forEach(function(cb) {
-                    cb.checked = true;
-                });
+                var sid = btn.getAttribute('data-sectionid');
+                root.querySelectorAll(
+                    'input[name="cmids[]"][data-sectionid="' + sid + '"]:not(:disabled)'
+                ).forEach(function(cb) { cb.checked = true; });
             });
         });
 
-        // Per-section deselect all.
+        // Per-section deselect.
         root.querySelectorAll('[data-action="deselect-section"]').forEach(function(btn) {
             btn.addEventListener('click', function() {
-                var sectionId = btn.getAttribute('data-sectionid');
-                var checkboxes = root.querySelectorAll(
-                    'input[name="cmids[]"][data-sectionid="' + sectionId + '"]'
-                );
-                checkboxes.forEach(function(cb) {
-                    cb.checked = false;
-                });
+                var sid = btn.getAttribute('data-sectionid');
+                root.querySelectorAll(
+                    'input[name="cmids[]"][data-sectionid="' + sid + '"]'
+                ).forEach(function(cb) { cb.checked = false; });
             });
         });
 
-        // Action-dependent payload panel visibility.
-        var actionSelect = root.querySelector('#coursectrl-action');
-        if (actionSelect) {
-            var updatePayloadPanels = function() {
-                var selected = actionSelect.value;
-                var panels = root.querySelectorAll('[data-payload-for]');
-                panels.forEach(function(panel) {
-                    if (panel.getAttribute('data-payload-for') === selected) {
-                        panel.style.display = '';
-                    } else {
-                        panel.style.display = 'none';
-                    }
-                });
-            };
-            actionSelect.addEventListener('change', updatePayloadPanels);
-            // Run on init to set correct state.
-            updatePayloadPanels();
-        }
+        // Section checkbox propagation.
+        root.querySelectorAll('input[name="sectionids[]"]').forEach(function(sectionCb) {
+            sectionCb.addEventListener('change', function() {
+                var sid = sectionCb.getAttribute('data-sectionid');
+                root.querySelectorAll(
+                    'input[name="cmids[]"][data-sectionid="' + sid + '"]:not(:disabled)'
+                ).forEach(function(cb) { cb.checked = sectionCb.checked; });
+            });
+        });
 
-        // Form validation: require at least one CM selected.
-        var form = root.querySelector('#coursectrl-manage-form');
-        if (form) {
-            form.addEventListener('submit', function(e) {
-                var checked = root.querySelectorAll('input[name="cmids[]"]:checked');
-                if (checked.length === 0) {
-                    e.preventDefault();
-                    // Show a notification using Moodle's notification system if available.
-                    require(['core/notification'], function(Notification) {
-                        Notification.addNotification({
-                            message: M.util.get_string(
-                                'manage_no_selection',
-                                'local_coursectrl'
-                            ),
-                            type: 'warning',
-                        });
-                    });
-                    return false;
+        // Submit button → open preview modal via shift_workflow.
+        var submitBtn = root.querySelector('#coursectrl-preview-btn');
+        var shiftForm = root.querySelector('#coursectrl-manage-form');
+        var shiftModal = document.getElementById('coursectrl-manage-shift-dialog');
+
+        if (submitBtn && shiftForm && shiftModal) {
+            // Prevent default form submit and use workflow instead.
+            shiftForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+            });
+
+            submitBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                var selected = Array.from(
+                    root.querySelectorAll('input[name="cmids[]"]:checked')
+                ).map(function(cb) { return parseInt(cb.value, 10); });
+
+                if (selected.length === 0) {
+                    return;
                 }
-                return true;
+
+                var daysEl  = root.querySelector('#coursectrl-delta-days');
+                var hoursEl = root.querySelector('#coursectrl-delta-hours');
+
+                openModal(shiftModal);
+
+                ShiftWorkflow.run({
+                    modal: shiftModal,
+                    form: shiftForm,
+                    courseid: parseInt(courseid, 10),
+                    getCmids: function() {
+                        return Array.from(
+                            root.querySelectorAll('input[name="cmids[]"]:checked')
+                        ).map(function(cb) { return parseInt(cb.value, 10); });
+                    },
+                    getDelta: function() {
+                        var d = parseInt((daysEl && daysEl.value) || '0', 10);
+                        var h = parseInt((hoursEl && hoursEl.value) || '0', 10);
+                        var minutesEl = root.querySelector('#coursectrl-delta-minutes');
+                        var m = parseInt((minutesEl && minutesEl.value) || '0', 10);
+                        return (d * 86400) + (h * 3600) + (m * 60);
+                    },
+                    getScanText: true,
+                    onComplete: function() {
+                        closeModal(shiftModal);
+                        location.reload();
+                    },
+                });
+            });
+
+            // Close modal on cancel buttons.
+            shiftModal.querySelectorAll('[data-action="close-manage-dialog"]').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    closeModal(shiftModal);
+                });
             });
         }
     };

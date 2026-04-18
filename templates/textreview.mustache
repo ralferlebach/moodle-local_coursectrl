@@ -99,6 +99,14 @@
                                         <span class="input-group-text">{{#str}}hours{{/str}}</span>
                                     </div>
                                 </div>
+                                <div class="input-group mb-2">
+                                    <input type="number" name="delta_minutes"
+                                           class="form-control" style="width:80px" value="0"
+                                           min="0" max="59">
+                                    <div class="input-group-append">
+                                        <span class="input-group-text">{{#str}}minutes{{/str}}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -144,7 +152,13 @@
                                         {{/selectable}}
                                     </td>
                                     <td>
-                                        <code class="small">{{entitytype}}:{{entityid}}</code>
+                                        {{#hascm}}
+                                            {{#pix}}monologo, mod_{{modname}}, {{modname}}{{/pix}}
+                                            <a href="{{cmurl}}" target="_blank" rel="noopener noreferrer">{{cmname}}</a>
+                                        {{/hascm}}
+                                        {{^hascm}}
+                                            <code class="small">{{entitytype}}:{{entityid}}</code>
+                                        {{/hascm}}
                                         <span class="text-muted small ml-1">{{fieldname}}</span>
                                     </td>
                                     <td><code>{{matchedtext}}</code></td>

@@ -56,6 +56,39 @@ class dependency_index {
     private availability_parser $parser;
 
     /**
+     * Get forward dependency map filtered for multiple group memberships.
+     *
+     * A CM's edges are included if its group conditions are satisfied by
+     * at least one of the given group ids, or if it has no group conditions.
+     *
+     * @param int[] $groupids Group ids (empty = return all forward deps).
+     * @return array<int, int[]>
+     */
+    public function get_all_forward_for_groups(array $groupids): array {
+        if (empty($groupids)) {
+            return $this->forward;
+        }
+        $filtered = [];
+        foreach ($this->forward as $cmid => $deps) {
+            $parsed = $this->parsed[$cmid] ?? [];
+            $groupconds = $parsed['groupconditions'] ?? [];
+            if (!empty($groupconds)) {
+                $requiredgroups = array_column(
+                    array_filter($groupconds, fn($g) => $g['type'] === 'group'),
+                    'id'
+                );
+                if (!empty($requiredgroups) &&
+                    empty(array_intersect($groupids, $requiredgroups))) {
+                    // None of the selected groups satisfy this condition.
+                    continue;
+                }
+            }
+            $filtered[$cmid] = $deps;
+        }
+        return $filtered;
+    }
+
+    /**
      * Build the index from cm_items.
      *
      * @param cm_item[] $cms Keyed by cmid.
@@ -135,6 +168,43 @@ class dependency_index {
     }
 
     /**
+     * Get the forward dependency map filtered for a specific group.
+     *
+     * When a group id is given, edges whose target CM has availability
+     * conditions requiring membership in a DIFFERENT group are excluded.
+     * This lets the graph show only the dependencies relevant to members
+     * of the selected group.
+     *
+     * @param int $groupid Group id (0 = no filter, returns all forward deps).
+     * @return array<int, int[]>
+     */
+    public function get_all_forward_for_group(int $groupid): array {
+        if ($groupid <= 0) {
+            return $this->forward;
+        }
+        $filtered = [];
+        foreach ($this->forward as $cmid => $deps) {
+            $parsed = $this->parsed[$cmid] ?? [];
+            $groupconds = $parsed['groupconditions'] ?? [];
+            // If the target CM requires a specific group and this group
+            // is not the selected one, hide the dependency edges.
+            if (!empty($groupconds)) {
+                $requiredgroups = array_column(
+                    array_filter($groupconds, fn($g) => $g['type'] === 'group'),
+                    'id'
+                );
+                if (!empty($requiredgroups) && !in_array($groupid, $requiredgroups, true)) {
+                    // This CM is behind a group wall — its deps are invisible
+                    // to non-members; exclude from the filtered graph.
+                    continue;
+                }
+            }
+            $filtered[$cmid] = $deps;
+        }
+        return $filtered;
+    }
+
+    /**
      * Get the complete reverse dependency map.
      *
      * @return array<int, int[]>
@@ -165,6 +235,7 @@ class dependency_index {
         }
         return array_values($circular);
     }
+
 
     /**
      * Build the index from cm_items.

@@ -36,7 +36,8 @@ $actiontype = required_param('action_type', PARAM_ALPHANUMEXT);
 $cmidsraw   = required_param('cmids', PARAM_RAW);
 $followdeps = optional_param('followdeps', 0, PARAM_INT);
 $deltadays  = optional_param('delta_days', 0, PARAM_INT);
-$deltahours = optional_param('delta_hours', 0, PARAM_INT);
+$deltahours   = optional_param('delta_hours', 0, PARAM_INT);
+$deltaminutes = optional_param('delta_minutes', 0, PARAM_INT);
 $fieldsraw  = optional_param('fields', '', PARAM_RAW);
 $shiftfieldsraw = optional_param('shift_fields', '', PARAM_RAW);
 $scantext   = optional_param('scan_text', 0, PARAM_INT);
@@ -95,7 +96,7 @@ if ($followdeps && !empty($cmids)) {
 // Build the payload for the selected action.
 $payload = [];
 if ($actiontype === 'shift_dates') {
-    $payload['delta'] = ($deltadays * 86400) + ($deltahours * 3600);
+    $payload['delta'] = ($deltadays * 86400) + ($deltahours * 3600) + ($deltaminutes * 60);
     // Optional field restriction: only shift the specified fields.
     $shiftfields = array_values(
         array_filter(array_map('trim', explode(',', $shiftfieldsraw)))
@@ -137,6 +138,9 @@ if ($nothingtodo) {
 
 $manager = new \local_coursectrl\manager\batch_manager();
 $batchid = $manager->execute($courseid, $actiontype, $payload, $cmids, (int) $USER->id);
+
+// Purge cached text hits so the next text review sees fresh data.
+(new \local_coursectrl\manager\textreview_manager())->purge_hits($courseid);
 
 $batch = new \local_coursectrl\local\persistent\batch($batchid);
 $items = \local_coursectrl\local\persistent\batch_item::get_records(['batchid' => $batchid]);

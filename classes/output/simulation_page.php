@@ -231,7 +231,7 @@ class simulation_page implements renderable, templatable {
                 ['courseid' => $courseid]
             ))->out(false),
             'graphurl' => (new \moodle_url(
-                '/local/coursectrl/graph.php',
+                '/local/coursectrl/dependencies.php',
                 ['courseid' => $courseid]
             ))->out(false),
             'selfurl' => (new \moodle_url(

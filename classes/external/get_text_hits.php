@@ -63,6 +63,7 @@ class get_text_hits extends external_api {
      * @return array
      */
     public static function execute(int $courseid, bool $rescan = true): array {
+        global $PAGE;
         $params = self::validate_parameters(self::execute_parameters(), [
             'courseid' => $courseid,
             'rescan' => $rescan,
@@ -76,20 +77,66 @@ class get_text_hits extends external_api {
 
         $summary = ['total' => 0, 'safe' => 0, 'ambiguous' => 0, 'informational' => 0];
         if ($params['rescan']) {
-            $summary = $manager->scan_course($params['courseid']);
+            try {
+                $summary = $manager->scan_course($params['courseid']);
+            } catch (\Throwable $e) {
+                debugging(
+                    'local_coursectrl get_text_hits scan failed: ' . $e->getMessage(),
+                    DEBUG_DEVELOPER
+                );
+            }
         }
 
         $rawhits = $manager->get_hits($params['courseid']);
         $hits = [];
         foreach ($rawhits as $hit) {
+            $entitytype = $hit->get('entitytype');
+            $entityid   = (int) $hit->get('entityid');
+            $cmname  = '';
+            $cmurl   = '';
+            $modname = '';
+            $iconurl = '';
+            if ($entitytype === 'cm') {
+                $cmobj = get_coursemodule_from_id('', $entityid, 0, false, IGNORE_MISSING);
+                if ($cmobj) {
+                    $cmname  = $cmobj->name;
+                    $modname = $cmobj->modname;
+                    $cmurl   = (new \moodle_url(
+                        '/mod/' . $modname . '/view.php',
+                        ['id' => $entityid]
+                    ))->out(false);
+                    $iconurl = (new \moodle_url('/theme/image.php', [
+                        'theme'     => isset($PAGE->theme) ? $PAGE->theme->name : 'boost',
+                        'component' => 'mod_' . $modname,
+                        'image'     => 'monologo',
+                        'rev'       => -1,
+                    ]))->out(false);
+                }
+            }
+            $normalizedval = $hit->get('normalizedvalue') ?? '';
+            $contextraw = $hit->get('contextjson') ?? '';
+            $contextdata = $contextraw ? json_decode($contextraw, true) : [];
+            $hitpattern = $contextdata['pattern'] ?? '';
+            $noyearpatterns = ['de_dmy_noyear', 'de_numeric_noyear', 'en_mdy_noyear'];
+            $isnoyear = in_array($hitpattern, $noyearpatterns, true);
+            $assumedyear = ($isnoyear && $normalizedval !== '')
+                ? (int) substr($normalizedval, 0, 4) : 0;
             $hits[] = [
                 'id' => (int) $hit->get('id'),
-                'entitytype' => $hit->get('entitytype'),
-                'entityid' => (int) $hit->get('entityid'),
+                'entitytype' => $entitytype,
+                'entityid' => $entityid,
+                'cmname' => $cmname,
+                'cmurl'  => $cmurl,
+                'modname' => $modname,
+                'iconurl' => $iconurl,
                 'fieldname' => $hit->get('fieldname'),
                 'matchedtext' => $hit->get('matchedtext'),
-                'normalizedvalue' => $hit->get('normalizedvalue') ?? '',
+                'normalizedvalue' => $normalizedval,
+                'normalizedts' => $normalizedval ? (int) strtotime($normalizedval) : 0,
                 'confidence' => $hit->get('confidence'),
+                'noyear' => $isnoyear,
+                'assumedyear' => $assumedyear,
+                'pattern' => $hitpattern,
                 'contextjson' => $hit->get('contextjson') ?? '',
             ];
         }
@@ -112,10 +159,18 @@ class get_text_hits extends external_api {
                     'id' => new external_value(PARAM_INT, 'Text hit row id'),
                     'entitytype' => new external_value(PARAM_ALPHANUMEXT, 'Owner entity type'),
                     'entityid' => new external_value(PARAM_INT, 'Owner entity id'),
+                    'cmname' => new external_value(PARAM_TEXT, 'Activity name', VALUE_OPTIONAL, ''),
+                    'cmurl' => new external_value(PARAM_URL, 'Activity URL', VALUE_OPTIONAL, ''),
+                    'modname' => new external_value(PARAM_ALPHANUMEXT, 'Module name', VALUE_OPTIONAL, ''),
+                    'iconurl' => new external_value(PARAM_URL, 'Module icon URL', VALUE_OPTIONAL, ''),
                     'fieldname' => new external_value(PARAM_ALPHANUMEXT, 'Field name'),
                     'matchedtext' => new external_value(PARAM_RAW, 'Matched date substring'),
                     'normalizedvalue' => new external_value(PARAM_RAW, 'ISO 8601 normalised value'),
+                    'normalizedts' => new external_value(PARAM_INT, 'Unix timestamp of normalised value', VALUE_OPTIONAL, 0),
                     'confidence' => new external_value(PARAM_ALPHANUMEXT, 'Confidence: safe, ambiguous, informational'),
+                    'noyear' => new external_value(PARAM_BOOL, 'True if year was assumed', VALUE_OPTIONAL, false),
+                    'assumedyear' => new external_value(PARAM_INT, 'Assumed year (0 if not applicable)', VALUE_OPTIONAL, 0),
+                    'pattern' => new external_value(PARAM_ALPHANUMEXT, 'Matched pattern name', VALUE_OPTIONAL, ''),
                     'contextjson' => new external_value(PARAM_RAW, 'JSON context with offset and excerpts'),
                 ])
             ),

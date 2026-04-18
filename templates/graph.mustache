@@ -27,6 +27,7 @@
     * hasgroupoptions (bool)
     * graphurl (string)
     * activegroupid (int)
+ * filterbygroup (bool)
     * hideindependents (bool)
 
     Example context (json):
@@ -39,11 +40,6 @@
 
   {{! ── Filter toolbar ─────────────────────────────────────────────────── }}
   <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-
-    <span class="text-muted small">
-      {{graphnodecount}} {{#str}} graph_nodes, local_coursectrl {{/str}},
-      {{graphedgecount}} {{#str}} graph_edges, local_coursectrl {{/str}}
-    </span>
 
     {{! Toggle independent activities }}
     <div class="form-check form-switch mb-0 ms-2">
@@ -65,22 +61,54 @@
       </label>
     </div>
 
-    {{! Group filter }}
+    {{! Group-aware dependency filter: enable checkbox → group checkboxes appear }}
     {{#hasgroupoptions}}
-    <form method="get" action="{{graphurl}}" class="d-flex align-items-center gap-1 mb-0">
+    <form method="get" action="{{graphurl}}" id="coursectrl-depgroup-form"
+          class="d-flex align-items-center gap-2 mb-0 ms-2">
       <input type="hidden" name="courseid" value="{{courseid}}">
-      <label class="form-label mb-0 small text-nowrap">
-        {{#str}} timeline_filter_group, local_coursectrl {{/str}}
-      </label>
-      <select name="groupid" class="form-select form-select-sm"
-              style="width:auto" onchange="this.form.submit()">
-        <option value="0"{{^activegroupid}} selected{{/activegroupid}}>
-          {{#str}} timeline_filter_group_none, local_coursectrl {{/str}}
-        </option>
-        {{#groupoptions}}
-        <option value="{{id}}"{{#selected}} selected{{/selected}}>{{name}}</option>
-        {{/groupoptions}}
-      </select>
+      <input type="hidden" name="hideindependents"
+             value="{{#hideindependents}}1{{/hideindependents}}{{^hideindependents}}0{{/hideindependents}}">
+      {{! Step 1: enable switch }}
+      <div class="form-check form-switch mb-0">
+        <input class="form-check-input" type="checkbox"
+               id="coursectrl-depgroup-enable"
+               name="filterbygroup" value="1"
+               {{#filterbygroup}}checked{{/filterbygroup}}
+               onchange="var b=document.getElementById('coursectrl-depgroup-btn');if(b)b.disabled=!this.checked;if(!this.checked)this.form.submit();">
+        <label class="form-check-label small" for="coursectrl-depgroup-enable">
+          {{#str}} graph_filterbygroup, local_coursectrl {{/str}}
+        </label>
+      </div>
+      {{! Step 2: group checkboxes — disabled when switch is off }}
+      <div id="coursectrl-depgroup-panel"
+           class="position-relative d-inline-block">
+        <button type="button" class="btn btn-sm btn-outline-secondary"
+                id="coursectrl-depgroup-btn"
+                data-action="toggle-depgroupfilter"
+                {{^filterbygroup}}disabled{{/filterbygroup}}>
+          {{#str}} timeline_filter_group, local_coursectrl {{/str}}
+        </button>
+        <div data-region="local_coursectrl-depgroupfilter-menu"
+             class="position-absolute bg-white border rounded shadow-sm p-3 mt-1 d-none"
+             style="z-index:1050;min-width:200px;left:0">
+          <ul style="list-style:none;margin:0;padding-left:0">
+            {{#groupoptions}}
+            <li class="coursectrl-simdrop-item">
+              <input class="form-check-input" type="checkbox"
+                     name="groupids[]" value="{{id}}"
+                     id="depgrp-{{id}}"
+                     {{#selected}}checked{{/selected}}>
+              <label class="form-check-label" for="depgrp-{{id}}">{{name}}</label>
+            </li>
+            {{/groupoptions}}
+          </ul>
+          <div class="mt-2">
+            <button type="submit" class="btn btn-sm btn-primary">
+              {{#str}} apply, core {{/str}}
+            </button>
+          </div>
+        </div>
+      </div>
     </form>
     {{/hasgroupoptions}}
 
@@ -102,4 +130,18 @@
 require(['local_coursectrl/graphview'], function(G) {
     G.init(document.querySelector('[data-region="local_coursectrl-graph"]'));
 });
+(function() {
+    var btn = document.getElementById('coursectrl-depgroup-btn');
+    var menu = document.querySelector('[data-region="local_coursectrl-depgroupfilter-menu"]');
+    if (!btn || !menu) { return; }
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        menu.classList.toggle('d-none');
+    });
+    document.addEventListener('click', function(e) {
+        if (e.target !== btn && !menu.contains(e.target)) {
+            menu.classList.add('d-none');
+        }
+    });
+}());
 {{/js}}

@@ -32,6 +32,7 @@ use local_coursectrl\local\analysis\consistency_runner;
 use local_coursectrl\local\analysis\date_collector;
 use local_coursectrl\local\analysis\dependency_index;
 use local_coursectrl\local\inventory\inventory_snapshot;
+use local_coursectrl\local\analysis\group_resolver;
 use local_coursectrl\local\visualization\gantt_dataset_builder;
 use local_coursectrl\local\visualization\graph_dataset_builder;
 use renderable;
@@ -57,6 +58,8 @@ class graph_page implements renderable, templatable {
         $this->snapshot = $snapshot;
         $this->filters = array_merge([
             'hideindependents' => false,
+            'groupids'         => [],
+            'filterbygroup'    => false,
         ], $filters);
     }
 
@@ -69,6 +72,8 @@ class graph_page implements renderable, templatable {
     public function export_for_template(renderer_base $output): array {
         $course = $this->snapshot->course;
         $cms = $this->snapshot->cms;
+        $groupids = array_filter(array_map('intval', $this->filters['groupids'] ?? []));
+        $filterbygroup = !empty($this->filters['filterbygroup']) && !empty($groupids);
 
         // Build shared analysis structures.
         $depindex = new dependency_index($cms);
@@ -77,9 +82,14 @@ class graph_page implements renderable, templatable {
         $runner = new consistency_runner();
         $warnings = $runner->get_warnings($cms, $depindex, $datesbycm);
 
-        // Graph dataset.
+        // Graph dataset — use group-filtered forward deps if a group is active.
         $graphbuilder = new graph_dataset_builder();
-        $graphdata = $graphbuilder->build($cms, $depindex, $warnings);
+        if ($filterbygroup && !empty($groupids)) {
+            $forwardmap = $depindex->get_all_forward_for_groups($groupids);
+            $graphdata = $graphbuilder->build_with_forward($cms, $depindex, $forwardmap, $warnings);
+        } else {
+            $graphdata = $graphbuilder->build($cms, $depindex, $warnings);
+        }
 
         // Enrich graph nodes with module icon URLs for SVG rendering.
         foreach ($graphdata['nodes'] as &$node) {
@@ -101,7 +111,14 @@ class graph_page implements renderable, templatable {
         }
         unset($row);
 
+        // Load group options for the selector.
         $courseid = $course->id;
+        $resolver = new group_resolver($courseid);
+        $groupoptions = array_map(function($g) use ($groupids) {
+            $g['selected'] = in_array((int) $g['id'], $groupids, true);
+            return $g;
+        }, $resolver->get_groups_for_template());
+
         return [
             'courseid' => $courseid,
             'coursefullname' => format_string($course->fullname),
@@ -113,13 +130,14 @@ class graph_page implements renderable, templatable {
             'graphedgecount' => $graphdata['edgecount'],
             'ganttrowcount' => $ganttdata['rowcount'],
             'graphurl' => (new \moodle_url(
-                '/local/coursectrl/graph.php',
+                '/local/coursectrl/dependencies.php',
                 ['courseid' => $courseid]
             ))->out(false),
             'hideindependents' => !empty($this->filters['hideindependents']),
-            'groupoptions' => [],
-            'hasgroupoptions' => false,
-            'activegroupid' => 0,
+            'filterbygroup' => $filterbygroup,
+            'groupoptions' => $groupoptions,
+            'hasgroupoptions' => !empty($groupoptions),
+            'activegroupids' => $groupids,
             'dashboardurl' => (new \moodle_url(
                 '/local/coursectrl/index.php',
                 ['courseid' => $courseid]

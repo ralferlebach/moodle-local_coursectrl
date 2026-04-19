@@ -31,6 +31,7 @@ namespace local_coursectrl\output;
 
 use local_coursectrl\local\analysis\availability_parser;
 use local_coursectrl\local\analysis\consistency_runner;
+use local_coursectrl\local\analysis\risk_assessment_runner;
 use local_coursectrl\local\analysis\calendar_grid_builder;
 use local_coursectrl\local\analysis\date_collector;
 use local_coursectrl\manager\calendar_manager;
@@ -74,6 +75,21 @@ class dashboard_page implements renderable, templatable {
         $circularset = $this->build_circular_set($circular);
         $runner = new consistency_runner();
         $checkresults = $runner->get_warnings($this->snapshot->cms, $depindex, $datesbycm);
+
+        // Merge persisted risk-assessment findings into the check results so the
+        // dashboard warning/notice counts reflect the last risk-assessment run.
+        $riskitems = risk_assessment_runner::load_last((int)$course->id);
+        foreach ($riskitems as $riskitem) {
+            $severity = $riskitem['severity'] ?? 'notice';
+            $cmid = (int)($riskitem['cmids'][0] ?? 0);
+            if ($cmid > 0 && isset($this->snapshot->cms[$cmid])) {
+                $checkresults[$cmid][] = [
+                    'type'     => $riskitem['type'] ?? 'risk',
+                    'severity' => $severity,
+                    'message'  => $riskitem['message'] ?? '',
+                ];
+            }
+        }
         $dateformat = get_string('strftimedaydatetime', 'core_langconfig');
 
         // Build CM name lookup for cross-linking.
@@ -84,7 +100,6 @@ class dashboard_page implements renderable, templatable {
 
         $cmsbysection = [];
         $totalwarnings = 0;
-        $totalnotices = 0;
         foreach ($this->snapshot->cms as $cm) {
             $cmdata = $this->build_cm_context(
                 $cm,
@@ -97,9 +112,6 @@ class dashboard_page implements renderable, templatable {
             );
             if ($cmdata['haswarnings']) {
                 $totalwarnings++;
-            }
-            if ($cmdata['hasnotices']) {
-                $totalnotices++;
             }
             $cmsbysection[$cm->sectionid][] = $cmdata;
         }
@@ -149,8 +161,6 @@ class dashboard_page implements renderable, templatable {
             'hascalendar' => count($calmonths) > 0,
             'warningcount' => $totalwarnings,
             'haswarnings' => $totalwarnings > 0,
-            'noticecount' => $totalnotices,
-            'hasnotices' => $totalnotices > 0,
             'manageurl' => (new \moodle_url(
                 '/local/coursectrl/manage.php',
                 ['courseid' => $course->id]
@@ -178,6 +188,11 @@ class dashboard_page implements renderable, templatable {
             'upcoming7days'  => $this->count_upcoming_dates($datesbycm, 7),
             'upcoming28days' => $this->count_upcoming_dates($datesbycm, 28),
             'showcalendar' => (bool) get_user_preferences('local_coursectrl_showcalendar', 1),
+            'risksurl' => (new \moodle_url(
+                '/local/coursectrl/risks.php',
+                ['courseid' => $course->id]
+            ))->out(false),
+            'riskslastrun' => risk_assessment_runner::last_run_time((int)$course->id) > 0,
         ];
     }
 
@@ -285,7 +300,6 @@ class dashboard_page implements renderable, templatable {
 
         // Warnings: circular dependency (from dep index) + consistency issues.
         $warnings = [];
-        $notices = [];
         if (isset($circularset[$cm->id])) {
             $warnings[] = [
                 'type' => 'circular',
@@ -295,12 +309,7 @@ class dashboard_page implements renderable, templatable {
         }
         foreach ($checkresults as $issue) {
             $formatted = $this->format_check_result($issue);
-            if (empty($formatted)) {
-                continue;
-            }
-            if (($formatted['severity'] ?? 'warning') === 'notice') {
-                $notices[] = $formatted;
-            } else {
+            if (!empty($formatted)) {
                 $warnings[] = $formatted;
             }
         }
@@ -329,8 +338,6 @@ class dashboard_page implements renderable, templatable {
             'hasdaterestrictions' => count($daterestrictions) > 0,
             'warnings' => $warnings,
             'haswarnings' => count($warnings) > 0,
-            'notices' => $notices,
-            'hasnotices' => count($notices) > 0,
         ];
     }
 
@@ -338,67 +345,31 @@ class dashboard_page implements renderable, templatable {
      * Format a structured consistency-check issue as a template-ready warning array.
      *
      * Returns an empty array for unknown issue types so callers can safely filter.
-     * The returned array always includes a 'severity' key (error/warning/notice).
      *
      * @param array $issue Structured issue from consistency_runner::get_warnings().
-     * @return array Warning array with 'type', 'icon', 'message', 'severity' keys, or [].
+     * @return array Warning array with 'type', 'icon', 'message' keys, or [].
      */
     private function format_check_result(array $issue): array {
         $type = $issue['type'] ?? '';
-        $severity = $issue['severity'] ?? 'warning';
-
-        $iconmap = [
-            'error'   => '❗',
-            'warning' => '⚠️',
-            'notice'  => 'ℹ️',
-        ];
-        $icon = $iconmap[$severity] ?? '⚠️';
-
         if ($type === 'temporal_conflict') {
             return [
-                'type'     => $type,
-                'severity' => $severity,
-                'icon'     => $icon,
-                'message'  => get_string(
+                'type' => 'temporal_conflict',
+                'icon' => '⚠️',
+                'message' => get_string(
                     'warning_temporal_conflict',
                     'local_coursectrl',
                     (object)[
                         'field_early' => $issue['field_early'],
-                        'field_late'  => $issue['field_late'],
+                        'field_late' => $issue['field_late'],
                     ]
-                ),
-            ];
-        }
-        if ($type === 'completionexpected_after_deadline') {
-            return [
-                'type'     => $type,
-                'severity' => 'warning',
-                'icon'     => '⚠️',
-                'message'  => get_string(
-                    'warning_completionexpected_after_deadline',
-                    'local_coursectrl',
-                    (object)['field' => $issue['field_early']]
-                ),
-            ];
-        }
-        if ($type === 'completionexpected_early') {
-            return [
-                'type'     => $type,
-                'severity' => 'notice',
-                'icon'     => 'ℹ️',
-                'message'  => get_string(
-                    'notice_completionexpected_early',
-                    'local_coursectrl',
-                    (object)['field' => $issue['field_late']]
                 ),
             ];
         }
         if ($type === 'dangling_dep') {
             return [
-                'type'     => $type,
-                'severity' => 'error',
-                'icon'     => '❗',
-                'message'  => get_string(
+                'type' => 'dangling_dep',
+                'icon' => '⚠️',
+                'message' => get_string(
                     'warning_dangling_dep',
                     'local_coursectrl',
                     (object)['cmid' => $issue['depcmid']]
@@ -407,37 +378,12 @@ class dashboard_page implements renderable, templatable {
         }
         if ($type === 'impossible_dep') {
             return [
-                'type'     => $type,
-                'severity' => 'warning',
-                'icon'     => '⚠️',
-                'message'  => get_string(
+                'type' => 'impossible_dep',
+                'icon' => '⚠️',
+                'message' => get_string(
                     'warning_impossible_dep',
                     'local_coursectrl',
                     (object)['name' => $issue['depname']]
-                ),
-            ];
-        }
-        if ($type === 'dangling_group') {
-            return [
-                'type'     => $type,
-                'severity' => 'warning',
-                'icon'     => '⚠️',
-                'message'  => get_string(
-                    'warning_dangling_group',
-                    'local_coursectrl',
-                    (object)['groupid' => $issue['groupid']]
-                ),
-            ];
-        }
-        if ($type === 'dangling_grouping') {
-            return [
-                'type'     => $type,
-                'severity' => 'warning',
-                'icon'     => '⚠️',
-                'message'  => get_string(
-                    'warning_dangling_grouping',
-                    'local_coursectrl',
-                    (object)['groupingid' => $issue['groupingid']]
                 ),
             ];
         }

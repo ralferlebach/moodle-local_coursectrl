@@ -51,6 +51,8 @@ class navigation_builder {
     public const KEY_SIMULATION = 'coursectrl_simulation';
     /** @var string Navigation key for the history / logs page. */
     public const KEY_HISTORY = 'coursectrl_history';
+    /** @var string Navigation key for the risk assessment page. */
+    public const KEY_RISKS = 'coursectrl_risks';
 
     /**
      * Create a navigation_bar renderable for the given page.

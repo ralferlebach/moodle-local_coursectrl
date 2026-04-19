@@ -253,4 +253,17 @@ if ($hassiteconfig) {
         'custom',
         PARAM_ALPHANUMEXT
     ));
+    // Risk assessment settings.
+    $settings->add(new admin_setting_heading(
+        'local_coursectrl/risk_heading',
+        get_string('settings_risk_heading', 'local_coursectrl'),
+        get_string('settings_risk_heading_desc', 'local_coursectrl')
+    ));
+    $settings->add(new admin_setting_configtext(
+        'local_coursectrl/risk_maxdepth',
+        get_string('settings_risk_maxdepth', 'local_coursectrl'),
+        get_string('settings_risk_maxdepth_desc', 'local_coursectrl'),
+        '10',
+        PARAM_INT
+    ));
 }

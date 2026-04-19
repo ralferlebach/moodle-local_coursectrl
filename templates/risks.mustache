@@ -1,0 +1,186 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_coursectrl/risks
+
+    Risk assessment result page.
+
+    Context variables:
+      courseid       int     Course id.
+      coursefullname string  Course full name.
+      hasresults     bool    Whether any risk items exist.
+      haslastrun     bool    Whether a previous run exists.
+      lastrundate    string  Human-readable date of last run.
+      totalcount     int     Total number of risk items.
+      errorcount     int     Number of error-severity items.
+      warningcount   int     Number of warning-severity items.
+      noticecount    int     Number of notice-severity items.
+      groups         array   Grouped risk items (see below).
+      hasgroups      bool
+      runurl         string  URL to trigger a fresh run.
+      dashboardurl   string  URL back to dashboard.
+
+    Group item:
+      type           string  Risk type code.
+      label          string  Localised label.
+      icon           string  Unicode icon (❗/⚠️/ℹ️).
+      severity       string  error|warning|notice
+      score          int     0–100
+      findingcount   int
+      findings       array   Individual findings in this group.
+
+    Finding item:
+      cmids          array   [{cmid, name, url}]
+      cascade_cmids  array   [{cmid, name, url}] — additionally unblocked
+      cascade_count  int
+      score          int
+      severity       string
+      probability    float
+      has_escape     bool
+      escape_type    string
+      message        string  For consistency findings.
+
+    Example:
+    {
+      "courseid": 42,
+      "hasresults": true,
+      "errorcount": 2,
+      "warningcount": 3,
+      "noticecount": 1,
+      "groups": []
+    }
+}}
+
+<div data-region="local_coursectrl-risks" class="local_coursectrl_risks">
+
+    {{! ── Header / run button ── }}
+    <div class="d-flex align-items-center justify-content-between mb-3 gap-2 flex-wrap">
+        <div>
+            <h4 class="mb-0">{{#str}} risks_title, local_coursectrl {{/str}}</h4>
+            {{#haslastrun}}
+            <div class="text-muted small mt-1">
+                {{#str}} risks_last_run, local_coursectrl {{/str}}: {{lastrundate}}
+            </div>
+            {{/haslastrun}}
+        </div>
+        <a href="{{runurl}}" class="btn btn-primary btn-sm">
+            <i class="fa fa-refresh fa-fw"></i>
+            {{#str}} risks_run_now, local_coursectrl {{/str}}
+        </a>
+    </div>
+
+    {{! ── Summary badges ── }}
+    {{#hasresults}}
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+        {{#errorcount}}
+        <span class="badge badge-danger py-1 px-2">
+            ❗ {{errorcount}} {{#str}} risks_badge_error, local_coursectrl {{/str}}
+        </span>
+        {{/errorcount}}
+        {{#warningcount}}
+        <span class="badge badge-warning py-1 px-2">
+            ⚠️ {{warningcount}} {{#str}} risks_badge_warning, local_coursectrl {{/str}}
+        </span>
+        {{/warningcount}}
+        {{#noticecount}}
+        <span class="badge badge-info py-1 px-2">
+            ℹ️ {{noticecount}} {{#str}} risks_badge_notice, local_coursectrl {{/str}}
+        </span>
+        {{/noticecount}}
+    </div>
+    {{/hasresults}}
+
+    {{! ── No results state ── }}
+    {{^hasresults}}
+    {{#haslastrun}}
+    <div class="alert alert-success">
+        <i class="fa fa-check-circle me-1"></i>
+        {{#str}} risks_no_issues, local_coursectrl {{/str}}
+    </div>
+    {{/haslastrun}}
+    {{^haslastrun}}
+    <div class="alert alert-info">
+        <i class="fa fa-info-circle me-1"></i>
+        {{#str}} risks_not_run_yet, local_coursectrl {{/str}}
+    </div>
+    {{/haslastrun}}
+    {{/hasresults}}
+
+    {{! ── Grouped findings ── }}
+    {{#hasgroups}}
+    {{#groups}}
+    <div class="card mb-3 border-{{#severity}}{{severity}}{{/severity}}">
+        <div class="card-header d-flex align-items-center justify-content-between py-2">
+            <div class="d-flex align-items-center gap-2">
+                <span>{{icon}}</span>
+                <strong>{{label}}</strong>
+                <span class="badge badge-secondary ms-1">{{findingcount}}</span>
+            </div>
+            <span class="badge badge-light text-muted small">
+                {{#str}} risks_score, local_coursectrl {{/str}}: {{score}}
+            </span>
+        </div>
+        <div class="card-body py-2 small">
+            {{#findings}}
+            <div class="mb-2 pb-2 border-bottom">
+                {{! Affected activities }}
+                {{#hascmids}}
+                <div class="mb-1">
+                    <span class="text-muted">{{#str}} risks_affected, local_coursectrl {{/str}}:</span>
+                    {{#cmids}}
+                    <a href="{{url}}" class="badge badge-light border me-1" target="_blank" rel="noopener">
+                        {{name}}
+                    </a>
+                    {{/cmids}}
+                </div>
+                {{/hascmids}}
+                {{! Message for consistency findings }}
+                {{#hasmessage}}
+                <div class="text-muted mb-1">{{message}}</div>
+                {{/hasmessage}}
+                {{! Escape path }}
+                {{#has_escape}}
+                <div class="text-success small">
+                    <i class="fa fa-wrench fa-fw"></i>
+                    {{#str}} risks_escape_{{escape_type}}, local_coursectrl {{/str}}
+                    {{#hascascade}}
+                    — {{#str}} risks_cascade, local_coursectrl, {{cascade_count}} {{/str}}:
+                    {{#cascade_cmids}}
+                    <a href="{{url}}" class="text-success" target="_blank" rel="noopener">{{name}}</a>{{^last}},{{/last}}
+                    {{/cascade_cmids}}
+                    {{/hascascade}}
+                </div>
+                {{/has_escape}}
+                {{! Score pill }}
+                <div class="mt-1">
+                    <span class="badge badge-light border text-muted" title="{{#str}} risks_score_detail, local_coursectrl {{/str}}">
+                        {{#str}} risks_score, local_coursectrl {{/str}} {{score}}
+                    </span>
+                    {{#probability}}
+                    <span class="badge badge-light border text-muted">
+                        P={{probability}}
+                    </span>
+                    {{/probability}}
+                </div>
+            </div>
+            {{/findings}}
+        </div>
+    </div>
+    {{/groups}}
+    {{/hasgroups}}
+
+</div>

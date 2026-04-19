@@ -125,16 +125,6 @@ class adapter extends abstract_activity_adapter {
     /**
      * Run consistency checks on glossary instances.
      *
-     * Detects assesstimestart after assesstimefinish.
-     *
-     * @param int[] $cmids   Course module ids to check.
-     * @param array $profile Optional check profile (unused).
-     * @return array Check result items.
-     */
-
-    /**
-     * Run consistency checks on glossary instances.
-     *
      * Checks R3 (process logic) rules as defined in docs/rules.md.
      * When the ratings time-restriction feature is active, both
      * assesstimestart and assesstimefinish are mandatory.
@@ -193,5 +183,45 @@ class adapter extends abstract_activity_adapter {
             }
         }
         return $results;
+    }
+
+    /**
+     * Returns the database table name for the trait.
+     *
+     * @return string
+     */
+    protected function get_table_name(): string {
+        return 'glossary';
+    }
+
+    /**
+     * Returns the field_map class name for the trait.
+     *
+     * @return string
+     */
+    protected function get_field_map_class(): string {
+        return field_map::class;
+    }
+
+    /**
+     * Returns the SQL SELECT clause for describe_instance.
+     *
+     * @return string
+     */
+    protected function get_record_select_fields(): string {
+        return 'id, name, assesstimestart, assesstimefinish';
+    }
+
+    /**
+     * Maps a {glossary} record to its date fields.
+     *
+     * @param \stdClass $record Raw {glossary} record.
+     * @return array<string, int>
+     */
+    protected function read_dates_from_record(\stdClass $record): array {
+        return [
+            'assesstimestart'  => (int)$record->assesstimestart,
+            'assesstimefinish' => (int)$record->assesstimefinish,
+        ];
     }
 }

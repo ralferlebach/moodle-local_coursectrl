@@ -95,7 +95,7 @@ class risk_assessment_runner {
         $escapepaths = $this->escapechecker->analyse($findings, $cms, $depindex);
 
         // Phase 3: score and sort.
-        $items = $this->prioritizer->prioritize($findings, $escapepaths);
+        $items = $this->prioritizer->score_and_sort($findings, $depindex);
 
         // Phase 4: merge consistency_runner findings (converted to risk items).
         $consistencywarnings = $this->consistencyrunner->get_warnings($cms, $depindex, $datesbycm);

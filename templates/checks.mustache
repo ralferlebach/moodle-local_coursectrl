@@ -46,7 +46,7 @@
         hasgroups     bool
 
     Example:
-    {"courseid":42,"tab_consistency":true,"checksurl":"...","consistency":{"items":[],"hasitems":false}}
+    {"courseid":42,"tab_consistency":true,"checksurl":"...","consistency":{"items":[],"hasitems":false} }
 }}
 
 <div data-region="local_coursectrl-checks" class="local_coursectrl_checks">
@@ -214,7 +214,7 @@
           {{#has_escape}}
           <div class="text-success small">
             <i class="fa fa-wrench fa-fw"></i>
-            {{#str}} checks_escape_{{escape_type}}, local_coursectrl {{/str}}
+            {{escape_message}}
             {{#hascascade}}
             — {{cascade_count}} {{#str}} checks_cascade_suffix, local_coursectrl {{/str}}:
             {{#cascade_cmids}}

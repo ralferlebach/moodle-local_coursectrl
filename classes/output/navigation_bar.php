@@ -116,11 +116,12 @@ class navigation_bar implements renderable, templatable {
                 ],
             ],
             [
-                'isgroup'    => false,
-                'grouplabel' => '',
-                'groupid'    => '',
-                'options'    => [],
-                'standalone' => [
+                'isgroup'    => true,
+                'grouplabel' => get_string('nav_group_check', 'local_coursectrl'),
+                'groupid'    => $uid . '-g2',
+                'hasstandalone' => false,
+                'standalone' => [],
+                'options'    => [
                     [
                         'oid'      => $uid . '-o' . $n++,
                         'label'    => get_string('nav_checks', 'local_coursectrl'),
@@ -128,15 +129,6 @@ class navigation_bar implements renderable, templatable {
                         'selected' => $active === 'coursectrl_checks',
                         'visible'  => true,
                     ],
-                ],
-                'hasstandalone' => true,
-            ],
-            [
-                'isgroup'    => false,
-                'grouplabel' => '',
-                'groupid'    => '',
-                'options'    => [],
-                'standalone' => [
                     [
                         'oid'      => $uid . '-o' . $n++,
                         'label'    => get_string('nav_history', 'local_coursectrl'),
@@ -145,7 +137,6 @@ class navigation_bar implements renderable, templatable {
                         'visible'  => true,
                     ],
                 ],
-                'hasstandalone' => true,
             ],
         ];
 

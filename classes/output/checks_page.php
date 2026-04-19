@@ -104,7 +104,7 @@ class checks_page implements renderable, templatable {
         ))->out(false);
 
         $svc = new inventory_service();
-        $snapshot = $svc->build($courseid);
+        $snapshot = $svc->build_for_course($courseid);
         $depindex = new dependency_index($snapshot->cms);
         $datecollector = new date_collector();
         $datesbycm = $datecollector->collect_grouped_by_cm($snapshot->cms);
@@ -126,8 +126,10 @@ class checks_page implements renderable, templatable {
             'checksurl'         => $checksurl,
             'tab_consistency'   => $this->activetab === 'consistency',
             'tab_risks'         => $this->activetab === 'risks',
+            'tab_simulation'    => $this->activetab === 'simulation',
             'consistency'       => $this->build_consistency_tab($snapshot->cms, $depindex, $datesbycm, $cmnames, $cmurls),
             'risks'             => $this->build_risks_tab($snapshot->cms, $depindex, $datesbycm, $cmnames, $cmurls, $courseid),
+            'simulation'        => $this->build_simulation_tab($snapshot),
             'runurl'            => (new \moodle_url(
                 '/local/coursectrl/checks.php',
                 ['courseid' => $courseid, 'tab' => 'risks', 'run' => 1]
@@ -320,6 +322,12 @@ class checks_page implements renderable, templatable {
                 'probability'   => $item['probability'] ?? 1.0,
                 'has_escape'    => !empty($item['has_escape']),
                 'escape_type'   => $item['escape_type'] ?? 'none',
+                'escape_message' => get_string(
+                    'checks_escape_' . ($item['escape_type'] ?? 'none'),
+                    'local_coursectrl',
+                    null,
+                    true
+                ) ?: ($item['escape_type'] ?? 'none'),
                 'message'       => $item['message'] ?? '',
                 'hasmessage'    => !empty($item['message']),
             ];

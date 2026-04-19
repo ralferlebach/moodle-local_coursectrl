@@ -30,3 +30,4 @@ $string['field_timeopen']    = 'Open the choice';
 $string['pluginname']         = 'Course Control Hub: Choice Group adapter';
 $string['privacy:metadata']   = 'The Course Control Hub choice group adapter stores no personal data.';
 $string['field_completionexpected'] = 'Expected completion date';
+$string['r7_timeopen_without_timeclose'] = 'Open time without close time';

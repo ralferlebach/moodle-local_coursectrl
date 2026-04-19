@@ -224,6 +224,33 @@ class adapter extends abstract_activity_adapter {
                     get_string('check_studentquiz_submissionclose_after_answeringopen', 'local_coursectrl')
                 );
             }
+            // R7: opensubmissionfrom set without closesubmissionfrom.
+            $plugin = 'coursectrlmod_studentquiz';
+            $r7defaults = [
+                'opensubmission_without_closesubmission' => 'notice',
+                'openanswering_without_closeanswering'   => 'notice',
+            ];
+            $sev = $this->r7_severity($plugin, 'opensubmission_without_closesubmission', $r7defaults);
+            if ($sev && $opsubm > 0 && $clsubm === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    $sev,
+                    'studentquiz_opensubmission_without_closesubmission',
+                    get_string('check_studentquiz_opensubmission_without_closesubmission', 'local_coursectrl')
+                );
+            }
+            // R7: openansweringfrom set without closeansweringfrom.
+            $sev = $this->r7_severity($plugin, 'openanswering_without_closeanswering', $r7defaults);
+            if ($sev && $opans > 0 && $clans === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    $sev,
+                    'studentquiz_openanswering_without_closeanswering',
+                    get_string('check_studentquiz_openanswering_without_closeanswering', 'local_coursectrl')
+                );
+            }
         }
         return $results;
     }

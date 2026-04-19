@@ -201,6 +201,19 @@ class adapter extends abstract_activity_adapter {
                     get_string('check_questionnaire_open_after_close', 'local_coursectrl')
                 );
             }
+            // R7: opendate set without closedate.
+            $plugin = 'coursectrlmod_questionnaire';
+            $r7defaults = ['opendate_without_closedate' => 'notice'];
+            $sev = $this->r7_severity($plugin, 'opendate_without_closedate', $r7defaults);
+            if ($sev && (int)$rec->opendate > 0 && (int)$rec->closedate === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $rec->name,
+                    $sev,
+                    'questionnaire_opendate_without_closedate',
+                    get_string('check_questionnaire_opendate_without_closedate', 'local_coursectrl')
+                );
+            }
         }
         return $results;
     }

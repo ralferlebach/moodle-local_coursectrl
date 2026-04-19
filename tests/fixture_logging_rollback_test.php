@@ -313,7 +313,8 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
 
         $afterr2 = (int) $DB->get_field('assign', 'duedate', ['id' => $data['assigniid']]);
         $this->assertSame(
-            $original + self::WEEK, $afterr2,
+            $original + self::WEEK,
+            $afterr2,
             'After rolling back batch 2, value should be back to +1 week'
         );
 

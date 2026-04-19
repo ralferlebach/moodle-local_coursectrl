@@ -201,6 +201,19 @@ class adapter extends abstract_activity_adapter {
                     get_string('check_choicegroup_open_after_close', 'local_coursectrl')
                 );
             }
+            // R7: timeopen set without timeclose.
+            $plugin = 'coursectrlmod_choicegroup';
+            $r7defaults = ['timeopen_without_timeclose' => 'notice'];
+            $sev = $this->r7_severity($plugin, 'timeopen_without_timeclose', $r7defaults);
+            if ($sev && (int)$rec->timeopen > 0 && (int)$rec->timeclose === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $rec->name,
+                    $sev,
+                    'choicegroup_timeopen_without_timeclose',
+                    get_string('check_choicegroup_timeopen_without_timeclose', 'local_coursectrl')
+                );
+            }
         }
         return $results;
     }

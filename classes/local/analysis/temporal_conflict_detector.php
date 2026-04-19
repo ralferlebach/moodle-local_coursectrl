@@ -26,6 +26,13 @@
  * detector does not evaluate availability-date conditions or completionexpected
  * because those are not orderable against each other in a well-defined way.
  *
+ * R2 — completionexpected window: the expected-completion reminder should sit
+ *       within a reasonable window before the activity's primary deadline.
+ *       - completionexpected after primary deadline          → warning
+ *       - gap to primary deadline > configured threshold     → notice
+ *       - For multi-phase activities (workshop, studentquiz) the notice
+ *         threshold applies to the last deadline only.
+ *
  * R3 — ordering rules: [early_field, late_field] — early must be ≤ late.
  * R4 — coupling rules: [anchor_field, following_field, min_gap_days] —
  *       following must be ≥ anchor + min_gap_days. A gap of 0 means following
@@ -46,6 +53,34 @@ use local_coursectrl\local\entity\cm_item;
  * Detects date-ordering conflicts and coupling violations within course modules.
  */
 class temporal_conflict_detector {
+    /**
+     * R2: primary deadline field per component (for completionexpected window check).
+     *
+     * @var array<string, string>
+     */
+    private const R2_DEADLINE = [
+        'mod_assign'       => 'duedate',
+        'mod_quiz'         => 'timeclose',
+        'mod_feedback'     => 'timeclose',
+        'mod_forum'        => 'duedate',
+        'mod_lesson'       => 'deadline',
+        'mod_workshop'     => 'assessmentend',
+        'mod_choice'       => 'timeclose',
+        'mod_scorm'        => 'timeclose',
+        'mod_capquiz'      => 'timedue',
+        'mod_choicegroup'  => 'timeclose',
+        'mod_questionnaire' => 'closedate',
+        'mod_studentquiz'  => 'closeansweringfrom',
+    ];
+
+    /**
+     * R2: components whose completionexpected notice threshold is relaxed
+     * (multi-phase: workshop, studentquiz).
+     *
+     * @var string[]
+     */
+    private const R2_MULTIPHASE = ['mod_workshop', 'mod_studentquiz'];
+
     /**
      * R3 ordering rules per component.
      *
@@ -129,6 +164,10 @@ class temporal_conflict_detector {
         $r4mingapdays = max(0, (int)get_config('local_coursectrl', 'r4_min_gap_days'));
         $r4mingapsecs = $r4mingapdays * DAYSECS;
 
+        $r2warningoffset = 0; // completionexpected after deadline → always warning.
+        $cfgr2 = (int)get_config('local_coursectrl', 'r2_notice_offset_days');
+        $r2noticeoffset = ($cfgr2 > 0 ? $cfgr2 : 3) * DAYSECS;
+
         $result = [];
         foreach ($cms as $cm) {
             $component = $cm->get_component();
@@ -154,8 +193,87 @@ class temporal_conflict_detector {
                     $result[$cm->id][] = array_merge($coupling, ['issue_class' => 'date_coupling']);
                 }
             }
+
+            // R2: completionexpected window check.
+            if ($cm->completionexpected > 0) {
+                $r2issues = $this->check_r2($cm, $fieldmap, $r2warningoffset, $r2noticeoffset);
+                foreach ($r2issues as $r2issue) {
+                    $result[$cm->id][] = array_merge($r2issue, ['issue_class' => 'completionexpected_window']);
+                }
+            }
         }
         return $result;
+    }
+
+    /**
+     * R2: Check whether completionexpected sits within the allowed window.
+     *
+     * Rules (from rules.md):
+     *   - completionexpected > primary deadline                      → warning
+     *   - completionexpected < primary deadline, gap > notice_offset → notice
+     *     (for multi-phase activities notice is never raised — the multi-phase
+     *      span makes large gaps expected)
+     *
+     * @param cm_item            $cm            The course module.
+     * @param array<string, int> $fieldmap      Adapter-sourced field → timestamp map.
+     * @param int                $warningoffset Unused (kept for symmetry; warning fires at 0).
+     * @param int                $noticeoffset  Seconds before deadline that trigger notice.
+     * @return array[] Issue arrays (empty if no issue).
+     */
+    private function check_r2(
+        cm_item $cm,
+        array $fieldmap,
+        int $warningoffset,
+        int $noticeoffset
+    ): array {
+        $component = $cm->get_component();
+        $deadlinefield = self::R2_DEADLINE[$component] ?? null;
+        if ($deadlinefield === null) {
+            return [];
+        }
+        $deadline = $fieldmap[$deadlinefield] ?? 0;
+        if ($deadline <= 0) {
+            // No primary deadline set for this CM — R2 does not apply.
+            return [];
+        }
+        $expected = (int) $cm->completionexpected;
+        if ($expected <= 0) {
+            return [];
+        }
+
+        // R2a: completionexpected is after the primary deadline → warning.
+        if ($expected > $deadline) {
+            return [[
+                'type'              => 'completionexpected_after_deadline',
+                'severity'          => 'warning',
+                'field'             => 'completionexpected',
+                'field_deadline'    => $deadlinefield,
+                'ts_completionexpected' => $expected,
+                'ts_deadline'       => $deadline,
+                'message'           => 'completionexpected_after_deadline',
+            ]];
+        }
+
+        // R2b: completionexpected is more than $noticeoffset before deadline → notice.
+        // For multi-phase activities this notice is suppressed.
+        if (!in_array($component, self::R2_MULTIPHASE, true)) {
+            $gap = $deadline - $expected;
+            if ($gap > $noticeoffset) {
+                return [[
+                    'type'              => 'completionexpected_gap_exceeds_threshold',
+                    'severity'          => 'notice',
+                    'field'             => 'completionexpected',
+                    'field_deadline'    => $deadlinefield,
+                    'ts_completionexpected' => $expected,
+                    'ts_deadline'       => $deadline,
+                    'gap_days'          => (int) round($gap / DAYSECS),
+                    'threshold_days'    => (int) round($noticeoffset / DAYSECS),
+                    'message'           => 'completionexpected_gap_exceeds_threshold',
+                ]];
+            }
+        }
+
+        return [];
     }
 
     /**

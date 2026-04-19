@@ -301,6 +301,20 @@ if ($hassiteconfig) {
         ]
     ));
 
+    // ── R2: completionexpected window ─────────────────────────────────────
+    $settings->add(new admin_setting_heading(
+        'local_coursectrl/r2_heading',
+        get_string('settings_r2_heading', 'local_coursectrl'),
+        get_string('settings_r2_heading_desc', 'local_coursectrl')
+    ));
+    $settings->add(new admin_setting_configtext(
+        'local_coursectrl/r2_notice_offset_days',
+        get_string('settings_r2_notice_offset_days', 'local_coursectrl'),
+        get_string('settings_r2_notice_offset_days_desc', 'local_coursectrl'),
+        '3',
+        PARAM_INT
+    ));
+
     // ── R4: date coupling checks ───────────────────────────────────────────
     $settings->add(new admin_setting_heading(
         'local_coursectrl/r4_heading',
@@ -352,6 +366,19 @@ if ($hassiteconfig) {
             'assessmentstart_without_assessmentend' => 'notice',
             'assessmentend_without_assessmentstart' => 'notice',
             'assessment_without_submissionend'      => 'warning',
+        ],
+        'coursectrlmod_scorm' => [
+            'timeopen_without_timeclose' => 'notice',
+        ],
+        'coursectrlmod_questionnaire' => [
+            'opendate_without_closedate' => 'notice',
+        ],
+        'coursectrlmod_choicegroup' => [
+            'timeopen_without_timeclose' => 'notice',
+        ],
+        'coursectrlmod_studentquiz' => [
+            'opensubmission_without_closesubmission' => 'notice',
+            'openanswering_without_closeanswering'   => 'notice',
         ],
     ];
     foreach ($r7checks as $plugin => $checks) {

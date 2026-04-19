@@ -25,12 +25,14 @@
 namespace coursectrlmod_scorm;
 
 use local_coursectrl\local\contract\abstract_activity_adapter;
+use local_coursectrl\local\contract\check_helper;
 use local_coursectrl\local\contract\shift_dates_executor;
 
 /**
  * Activity adapter wrapping mod_scorm.
  */
 class adapter extends abstract_activity_adapter {
+    use check_helper;
     use shift_dates_executor;
 
     /**
@@ -155,6 +157,19 @@ class adapter extends abstract_activity_adapter {
                     'code'     => 'scorm_open_after_close',
                     'message'  => get_string('check_scorm_open_after_close', 'local_coursectrl'),
                 ];
+            }
+            // R7: timeopen set without timeclose.
+            $plugin = 'coursectrlmod_scorm';
+            $r7defaults = ['timeopen_without_timeclose' => 'notice'];
+            $sev = $this->r7_severity($plugin, 'timeopen_without_timeclose', $r7defaults);
+            if ($sev && $open > 0 && $close === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $scorm->name,
+                    $sev,
+                    'scorm_timeopen_without_timeclose',
+                    get_string('check_scorm_timeopen_without_timeclose', 'local_coursectrl')
+                );
             }
         }
         return $results;

@@ -29,3 +29,4 @@ $string['field_timeclose']    = 'Close access';
 $string['field_timeopen']     = 'Open access';
 $string['pluginname']         = 'Course Control Hub: SCORM adapter';
 $string['privacy:metadata']   = 'The Course Control Hub SCORM adapter does not store any personal data. It operates on SCORM package configuration on behalf of the local_coursectrl plugin and delegates all persistence to it.';
+$string['r7_timeopen_without_timeclose'] = 'Open time without close time';

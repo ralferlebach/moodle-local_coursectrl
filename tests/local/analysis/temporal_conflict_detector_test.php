@@ -256,4 +256,172 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
         $result = $detector->detect($cms, $dates);
         $this->assertEmpty($result);
     }
+
+    // ── R2: completionexpected window ─────────────────────────────────────────
+
+    /**
+     * Build a cm_item with completionexpected set.
+     *
+     * @param int    $cmid
+     * @param string $modname
+     * @param int    $completionexpected
+     * @return cm_item
+     */
+    private function make_cm_with_expected(int $cmid, string $modname, int $completionexpected): cm_item {
+        return new cm_item(
+            $cmid,
+            1,
+            10,
+            $modname,
+            $cmid,
+            'Activity ' . $cmid,
+            true,
+            null,
+            2,
+            $completionexpected
+        );
+    }
+
+    /**
+     * R2a: completionexpected after duedate → warning completionexpected_after_deadline.
+     */
+    public function test_r2a_completionexpected_after_duedate(): void {
+        $this->resetAfterTest();
+        $detector = new temporal_conflict_detector();
+        // completionexpected = T3, duedate = T1 → expected is AFTER deadline.
+        $cm = $this->make_cm_with_expected(1, 'assign', self::T3);
+        $dates = [1 => [$this->make_entry(1, 'duedate', self::T1)]];
+        $result = $detector->detect([1 => $cm], $dates);
+        $this->assertArrayHasKey(1, $result);
+        $types = array_column($result[1], 'type');
+        $this->assertContains('completionexpected_after_deadline', $types);
+        $issue = current(array_filter($result[1], fn($i) => $i['type'] === 'completionexpected_after_deadline'));
+        $this->assertSame('warning', $issue['severity']);
+        $this->assertSame('completionexpected_window', $issue['issue_class']);
+    }
+
+    /**
+     * R2b: completionexpected more than 3 days before duedate → notice (default threshold).
+     */
+    public function test_r2b_gap_exceeds_threshold(): void {
+        $this->resetAfterTest();
+        set_config('r2_notice_offset_days', '3', 'local_coursectrl');
+        $detector = new temporal_conflict_detector();
+        // duedate = T3, expected = T1 → gap = 14 days > 3 day threshold.
+        $cm = $this->make_cm_with_expected(1, 'assign', self::T1);
+        $dates = [1 => [$this->make_entry(1, 'duedate', self::T3)]];
+        $result = $detector->detect([1 => $cm], $dates);
+        $this->assertArrayHasKey(1, $result);
+        $types = array_column($result[1], 'type');
+        $this->assertContains('completionexpected_gap_exceeds_threshold', $types);
+        $issue = current(array_filter($result[1], fn($i) => $i['type'] === 'completionexpected_gap_exceeds_threshold'));
+        $this->assertSame('notice', $issue['severity']);
+        $this->assertGreaterThan(3, $issue['gap_days']);
+    }
+
+    /**
+     * R2 valid: completionexpected 1 day before duedate → no finding (within threshold).
+     */
+    public function test_r2_within_threshold_no_finding(): void {
+        $this->resetAfterTest();
+        set_config('r2_notice_offset_days', '3', 'local_coursectrl');
+        $detector = new temporal_conflict_detector();
+        // duedate = T2, expected = T2 - 1 day → gap = 1 day < 3 day threshold.
+        $cm = $this->make_cm_with_expected(1, 'assign', self::T2 - DAYSECS);
+        $dates = [1 => [$this->make_entry(1, 'duedate', self::T2)]];
+        $result = $detector->detect([1 => $cm], $dates);
+        if (isset($result[1])) {
+            $types = array_column($result[1], 'type');
+            $this->assertNotContains('completionexpected_after_deadline', $types);
+            $this->assertNotContains('completionexpected_gap_exceeds_threshold', $types);
+        } else {
+            $this->assertArrayNotHasKey(1, $result);
+        }
+    }
+
+    /**
+     * R2: quiz uses timeclose as primary deadline.
+     */
+    public function test_r2_quiz_uses_timeclose(): void {
+        $this->resetAfterTest();
+        $detector = new temporal_conflict_detector();
+        // completionexpected after timeclose → R2a warning.
+        $cm = $this->make_cm_with_expected(1, 'quiz', self::T3);
+        $dates = [1 => [$this->make_entry(1, 'timeclose', self::T1)]];
+        $result = $detector->detect([1 => $cm], $dates);
+        $this->assertArrayHasKey(1, $result);
+        $types = array_column($result[1], 'type');
+        $this->assertContains('completionexpected_after_deadline', $types);
+    }
+
+    /**
+     * R2: workshop is multi-phase — gap notice is suppressed.
+     */
+    public function test_r2_workshop_multiphase_no_gap_notice(): void {
+        $this->resetAfterTest();
+        set_config('r2_notice_offset_days', '3', 'local_coursectrl');
+        $detector = new temporal_conflict_detector();
+        // large gap (14 days) — should NOT raise notice for workshop.
+        $cm = $this->make_cm_with_expected(1, 'workshop', self::T1);
+        $dates = [1 => [$this->make_entry(1, 'assessmentend', self::T3)]];
+        $result = $detector->detect([1 => $cm], $dates);
+        if (isset($result[1])) {
+            $types = array_column($result[1], 'type');
+            $this->assertNotContains('completionexpected_gap_exceeds_threshold', $types);
+        } else {
+            $this->assertArrayNotHasKey(1, $result);
+        }
+    }
+
+    /**
+     * R2: workshop with completionexpected after assessmentend → warning still fires.
+     */
+    public function test_r2_workshop_after_deadline_still_warns(): void {
+        $this->resetAfterTest();
+        $detector = new temporal_conflict_detector();
+        // completionexpected = T3, assessmentend = T1 → expected after deadline.
+        $cm = $this->make_cm_with_expected(1, 'workshop', self::T3);
+        $dates = [1 => [$this->make_entry(1, 'assessmentend', self::T1)]];
+        $result = $detector->detect([1 => $cm], $dates);
+        $this->assertArrayHasKey(1, $result);
+        $types = array_column($result[1], 'type');
+        $this->assertContains('completionexpected_after_deadline', $types);
+    }
+
+    /**
+     * R2: completionexpected=0 (not set) → no R2 finding.
+     */
+    public function test_r2_not_set_no_finding(): void {
+        $this->resetAfterTest();
+        $detector = new temporal_conflict_detector();
+        // completionexpected = 0 → no check.
+        $cm = $this->make_cm(1, 'assign');
+        $dates = [1 => [$this->make_entry(1, 'duedate', self::T1)]];
+        $result = $detector->detect([1 => $cm], $dates);
+        if (isset($result[1])) {
+            $types = array_column($result[1], 'type');
+            $this->assertNotContains('completionexpected_after_deadline', $types);
+            $this->assertNotContains('completionexpected_gap_exceeds_threshold', $types);
+        } else {
+            $this->assertArrayNotHasKey(1, $result);
+        }
+    }
+
+    /**
+     * R2: no deadline field set for the component → no R2 finding.
+     */
+    public function test_r2_no_deadline_field_no_finding(): void {
+        $this->resetAfterTest();
+        $detector = new temporal_conflict_detector();
+        // assign with expected set but no duedate entry.
+        $cm = $this->make_cm_with_expected(1, 'assign', self::T1);
+        $dates = [1 => []];
+        $result = $detector->detect([1 => $cm], $dates);
+        if (isset($result[1])) {
+            $types = array_column($result[1], 'type');
+            $this->assertNotContains('completionexpected_after_deadline', $types);
+        } else {
+            $this->assertArrayNotHasKey(1, $result);
+        }
+    }
 }

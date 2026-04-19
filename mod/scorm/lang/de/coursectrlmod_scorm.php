@@ -29,3 +29,4 @@ $string['field_timeclose']    = 'Zugang schließen';
 $string['field_timeopen']     = 'Zugang öffnen';
 $string['pluginname']         = 'Kursablauf-Zentrale: SCORM-Adapter';
 $string['privacy:metadata']   = 'Der SCORM-Adapter der Kursablauf-Zentrale speichert keine personenbezogenen Daten. Er arbeitet im Auftrag des Plugins local_coursectrl auf den Konfigurationsdaten von SCORM-Paketen und überlässt diesem die gesamte Persistenz.';
+$string['r7_timeopen_without_timeclose'] = 'Öffnungszeit ohne Schließzeit';

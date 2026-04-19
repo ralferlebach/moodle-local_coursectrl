@@ -32,3 +32,5 @@ $string['field_opensubmissionfrom']    = 'Einreichungen ab';
 $string['pluginname']         = 'Kursablauf-Zentrale: StudentQuiz-Adapter';
 $string['privacy:metadata']   = 'Der StudentQuiz-Adapter der Kursablauf-Zentrale speichert keine personenbezogenen Daten.';
 $string['field_completionexpected'] = 'Abschluss erwartet bis';
+$string['r7_opensubmission_without_closesubmission'] = 'Abgabe-Öffnung ohne Schließung';
+$string['r7_openanswering_without_closeanswering']   = 'Antwort-Öffnung ohne Schließung';

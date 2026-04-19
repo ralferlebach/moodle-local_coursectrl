@@ -383,6 +383,16 @@ if ($hassiteconfig) {
     ];
     foreach ($r7checks as $plugin => $checks) {
         $modname = str_replace('coursectrlmod_', '', $plugin);
+
+        // Guard: only add settings for this adapter if the underlying Moodle
+        // module is actually installed. Calling get_string('modulename', 'mod_X')
+        // on an uninstalled module produces a debugging() call that breaks CI.
+        $pluginmanager = core_plugin_manager::instance();
+        $modinfo = $pluginmanager->get_plugin_info('mod_' . $modname);
+        if ($modinfo === null) {
+            continue;
+        }
+
         $settings->add(new admin_setting_heading(
             'local_coursectrl/r7_mod_' . $modname,
             get_string('modulename', 'mod_' . $modname, null, true) ?: $modname,

@@ -122,6 +122,24 @@ jobs:
             --db-name  moodle \
             --branch   MOODLE_405_STABLE
 
+      - name: Checkout third-party activity plugins
+        run: |
+          MOODLE_DIR="${{ github.workspace }}/moodle"
+          clone_plugin() {
+            local repo="$1" dest="$2"
+            git clone --depth=1 "$repo" "$dest" 2>/dev/null \
+              && echo "  OK: $dest" \
+              || echo "  SKIP (not available): $dest"
+          }
+          clone_plugin https://github.com/PoetOS/moodle-mod_questionnaire \
+            "$MOODLE_DIR/mod/questionnaire"
+          clone_plugin https://github.com/ndunand/moodle-mod_choicegroup \
+            "$MOODLE_DIR/mod/choicegroup"
+          clone_plugin https://github.com/studentquiz/moodle-mod_studentquiz \
+            "$MOODLE_DIR/mod/studentquiz"
+          clone_plugin https://github.com/KQMATH/moodle-mod_capquiz \
+            "$MOODLE_DIR/mod/capquiz"
+
       - name: Install Node dependencies
         run: npm install
         working-directory: ${{ github.workspace }}/moodle
@@ -239,6 +257,27 @@ jobs:
             --db-name  moodle \
             --branch   ${{ matrix.moodle }}
 
+      - name: Checkout third-party activity plugins
+        run: |
+          # These plugins are required by coursectrl adapters but are not part
+          # of Moodle core. We check out the most recent stable-compatible tag.
+          # Failures are non-fatal so CI continues even if a repo moves.
+          MOODLE_DIR="${{ github.workspace }}/moodle"
+          clone_plugin() {
+            local repo="$1" dest="$2"
+            git clone --depth=1 "$repo" "$dest" 2>/dev/null \
+              && echo "  OK: $dest" \
+              || echo "  SKIP (not available): $dest"
+          }
+          clone_plugin https://github.com/PoetOS/moodle-mod_questionnaire \
+            "$MOODLE_DIR/mod/questionnaire"
+          clone_plugin https://github.com/ndunand/moodle-mod_choicegroup \
+            "$MOODLE_DIR/mod/choicegroup"
+          clone_plugin https://github.com/studentquiz/moodle-mod_studentquiz \
+            "$MOODLE_DIR/mod/studentquiz"
+          clone_plugin https://github.com/KQMATH/moodle-mod_capquiz \
+            "$MOODLE_DIR/mod/capquiz"
+
       - name: PHPUnit – all tests
         run: moodle-plugin-ci phpunit
 
@@ -315,6 +354,24 @@ jobs:
             --db-pass  root \
             --db-name  moodle \
             --branch   ${{ matrix.moodle }}
+
+      - name: Checkout third-party activity plugins
+        run: |
+          MOODLE_DIR="${{ github.workspace }}/moodle"
+          clone_plugin() {
+            local repo="$1" dest="$2"
+            git clone --depth=1 "$repo" "$dest" 2>/dev/null \
+              && echo "  OK: $dest" \
+              || echo "  SKIP (not available): $dest"
+          }
+          clone_plugin https://github.com/PoetOS/moodle-mod_questionnaire \
+            "$MOODLE_DIR/mod/questionnaire"
+          clone_plugin https://github.com/ndunand/moodle-mod_choicegroup \
+            "$MOODLE_DIR/mod/choicegroup"
+          clone_plugin https://github.com/studentquiz/moodle-mod_studentquiz \
+            "$MOODLE_DIR/mod/studentquiz"
+          clone_plugin https://github.com/KQMATH/moodle-mod_capquiz \
+            "$MOODLE_DIR/mod/capquiz"
 
       - name: Behat – all plugin scenarios
         run: |

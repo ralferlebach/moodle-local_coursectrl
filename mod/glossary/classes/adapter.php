@@ -25,12 +25,14 @@
 namespace coursectrlmod_glossary;
 
 use local_coursectrl\local\contract\abstract_activity_adapter;
+use local_coursectrl\local\contract\check_helper;
 use local_coursectrl\local\contract\shift_dates_executor;
 
 /**
  * Activity adapter wrapping mod_glossary.
  */
 class adapter extends abstract_activity_adapter {
+    use check_helper;
     use shift_dates_executor;
 
     /**
@@ -129,6 +131,18 @@ class adapter extends abstract_activity_adapter {
      * @param array $profile Optional check profile (unused).
      * @return array Check result items.
      */
+
+    /**
+     * Run consistency checks on glossary instances.
+     *
+     * Checks R3 (process logic) rules as defined in docs/rules.md.
+     * When the ratings time-restriction feature is active, both
+     * assesstimestart and assesstimefinish are mandatory.
+     *
+     * @param int[] $cmids   Course module ids to check.
+     * @param array $profile Optional check profile (unused).
+     * @return array Check result items.
+     */
     public function run_checks(array $cmids, array $profile = []): array {
         global $DB;
         $results = [];
@@ -136,7 +150,7 @@ class adapter extends abstract_activity_adapter {
             $cmid = (int)$rawcmid;
             try {
                 $cm = get_coursemodule_from_id('glossary', $cmid, 0, false, MUST_EXIST);
-                $glossary = $DB->get_record(
+                $rec = $DB->get_record(
                     'glossary',
                     ['id' => $cm->instance],
                     'id, name, assesstimestart, assesstimefinish',
@@ -145,61 +159,39 @@ class adapter extends abstract_activity_adapter {
             } catch (\Throwable $e) {
                 continue;
             }
-            $start = (int)$glossary->assesstimestart;
-            $finish = (int)$glossary->assesstimefinish;
+            $start = (int)$rec->assesstimestart;
+            $finish = (int)$rec->assesstimefinish;
+            $name = $rec->name;
+            // R3: start must not be after finish.
             if ($start > 0 && $finish > 0 && $start > $finish) {
-                $results[] = [
-                    'cmid'     => $cmid,
-                    'name'     => $glossary->name,
-                    'severity' => 'error',
-                    'code'     => 'glossary_assess_start_after_finish',
-                    'message'  => get_string(
-                        'check_glossary_assess_start_after_finish',
-                        'local_coursectrl'
-                    ),
-                ];
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    'error',
+                    'glossary_assess_start_after_finish',
+                    get_string('check_glossary_assess_start_after_finish', 'local_coursectrl')
+                );
+            }
+            // R3: both fields mandatory when feature is active.
+            if ($start > 0 && $finish === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    'error',
+                    'glossary_assesstimestart_without_finish',
+                    get_string('check_glossary_assesstimestart_without_finish', 'local_coursectrl')
+                );
+            }
+            if ($finish > 0 && $start === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    'error',
+                    'glossary_assesstimefinish_without_start',
+                    get_string('check_glossary_assesstimefinish_without_start', 'local_coursectrl')
+                );
             }
         }
         return $results;
-    }
-
-    /**
-     * Returns the database table name for the trait.
-     *
-     * @return string
-     */
-    protected function get_table_name(): string {
-        return 'glossary';
-    }
-
-    /**
-     * Returns the field_map class name for the trait.
-     *
-     * @return string
-     */
-    protected function get_field_map_class(): string {
-        return field_map::class;
-    }
-
-    /**
-     * Returns the SQL SELECT clause for describe_instance.
-     *
-     * @return string
-     */
-    protected function get_record_select_fields(): string {
-        return 'id, name, assesstimestart, assesstimefinish';
-    }
-
-    /**
-     * Maps a {glossary} record to its date fields.
-     *
-     * @param \stdClass $record Raw {glossary} record.
-     * @return array<string, int>
-     */
-    protected function read_dates_from_record(\stdClass $record): array {
-        return [
-            'assesstimestart'  => (int)$record->assesstimestart,
-            'assesstimefinish' => (int)$record->assesstimefinish,
-        ];
     }
 }

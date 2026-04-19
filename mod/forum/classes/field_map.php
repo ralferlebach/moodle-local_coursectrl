@@ -49,6 +49,20 @@ final class field_map {
                 'shiftable'     => true,
                 'nullable_zero' => true,
             ],
+            'assesstimestart' => [
+                'name'          => 'assesstimestart',
+                'label_key'     => 'field_assesstimestart',
+                'sql_column'    => 'assesstimestart',
+                'shiftable'     => true,
+                'nullable_zero' => true,
+            ],
+            'assesstimefinish' => [
+                'name'          => 'assesstimefinish',
+                'label_key'     => 'field_assesstimefinish',
+                'sql_column'    => 'assesstimefinish',
+                'shiftable'     => true,
+                'nullable_zero' => true,
+            ],
         ];
     }
 

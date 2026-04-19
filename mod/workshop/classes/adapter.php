@@ -25,6 +25,7 @@
 namespace coursectrlmod_workshop;
 
 use local_coursectrl\local\contract\abstract_activity_adapter;
+use local_coursectrl\local\contract\check_helper;
 use local_coursectrl\local\contract\shift_dates_executor;
 
 /**
@@ -32,6 +33,7 @@ use local_coursectrl\local\contract\shift_dates_executor;
  */
 class adapter extends abstract_activity_adapter {
     use shift_dates_executor;
+    use check_helper;
 
     /**
      * Returns the frankenstyle component name of the wrapped module.
@@ -183,5 +185,109 @@ class adapter extends abstract_activity_adapter {
             'assessmentstart' => (int)$record->assessmentstart,
             'assessmentend' => (int)$record->assessmentend,
         ];
+    }
+
+    /**
+     * Run consistency checks on workshop instances.
+     *
+     * Checks R3 (process logic) and R7 (missing counterpart fields) rules
+     * as defined in docs/rules.md.
+     *
+     * @param int[] $cmids   Course module ids to check.
+     * @param array $profile Optional check profile (unused).
+     * @return array Check result items.
+     */
+    public function run_checks(array $cmids, array $profile = []): array {
+        global $DB;
+        $results = [];
+        $plugin = 'coursectrlmod_workshop';
+        $r7defaults = [
+            'assessmentstart_without_assessmentend' => 'warning',
+            'assessmentend_without_assessmentstart' => 'notice',
+            'assessment_without_submissionend'      => 'warning',
+        ];
+        foreach ($cmids as $rawcmid) {
+            $cmid = (int)$rawcmid;
+            try {
+                $cm = get_coursemodule_from_id('workshop', $cmid, 0, false, MUST_EXIST);
+                $rec = $DB->get_record(
+                    'workshop',
+                    ['id' => $cm->instance],
+                    'id, name, submissionstart, submissionend, assessmentstart, assessmentend',
+                    MUST_EXIST
+                );
+            } catch (\Throwable $e) {
+                continue;
+            }
+            $substart = (int)$rec->submissionstart;
+            $subend = (int)$rec->submissionend;
+            $assstart = (int)$rec->assessmentstart;
+            $assend = (int)$rec->assessmentend;
+            $name = $rec->name;
+            // R3: submission phase ordering.
+            if ($substart > 0 && $subend > 0 && $substart > $subend) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    'error',
+                    'workshop_submissionstart_after_submissionend',
+                    get_string('check_workshop_submissionstart_after_submissionend', 'local_coursectrl')
+                );
+            }
+            // R3: assessment phase ordering.
+            if ($assstart > 0 && $assend > 0 && $assstart > $assend) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    'error',
+                    'workshop_assessmentstart_after_assessmentend',
+                    get_string('check_workshop_assessmentstart_after_assessmentend', 'local_coursectrl')
+                );
+            }
+            // R3: assessment must not start before submission ends.
+            if ($subend > 0 && $assstart > 0 && $subend > $assstart) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    'error',
+                    'workshop_submissionend_after_assessmentstart',
+                    get_string('check_workshop_submissionend_after_assessmentstart', 'local_coursectrl')
+                );
+            }
+            // R7: assessmentstart without assessmentend.
+            $sev = $this->r7_severity($plugin, 'assessmentstart_without_assessmentend', $r7defaults);
+            if ($sev && $assstart > 0 && $assend === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    $sev,
+                    'workshop_assessmentstart_without_assessmentend',
+                    get_string('check_workshop_assessmentstart_without_assessmentend', 'local_coursectrl')
+                );
+            }
+            // R7: assessmentend without assessmentstart.
+            $sev = $this->r7_severity($plugin, 'assessmentend_without_assessmentstart', $r7defaults);
+            if ($sev && $assend > 0 && $assstart === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    $sev,
+                    'workshop_assessmentend_without_assessmentstart',
+                    get_string('check_workshop_assessmentend_without_assessmentstart', 'local_coursectrl')
+                );
+            }
+            // R7: assessment phase defined but submissionend not set.
+            $sev = $this->r7_severity($plugin, 'assessment_without_submissionend', $r7defaults);
+            if ($sev && ($assstart > 0 || $assend > 0) && $subend === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    $sev,
+                    'workshop_assessment_without_submissionend',
+                    get_string('check_workshop_assessment_without_submissionend', 'local_coursectrl')
+                );
+            }
+        }
+        return $results;
     }
 }

@@ -25,6 +25,7 @@
 namespace coursectrlmod_forum;
 
 use local_coursectrl\local\contract\abstract_activity_adapter;
+use local_coursectrl\local\contract\check_helper;
 use local_coursectrl\local\contract\shift_dates_executor;
 
 /**
@@ -32,6 +33,7 @@ use local_coursectrl\local\contract\shift_dates_executor;
  */
 class adapter extends abstract_activity_adapter {
     use shift_dates_executor;
+    use check_helper;
 
     /**
      * Returns the frankenstyle component name of the wrapped module.
@@ -107,7 +109,7 @@ class adapter extends abstract_activity_adapter {
         $forumrecord = $DB->get_record(
             'forum',
             ['id' => $cm->instance],
-            'id, name, cutoffdate, duedate',
+            'id, name, cutoffdate, duedate, assesstimestart, assesstimefinish',
             MUST_EXIST
         );
         return [
@@ -144,7 +146,7 @@ class adapter extends abstract_activity_adapter {
      * @return string
      */
     protected function get_record_select_fields(): string {
-        return 'id, name, cutoffdate, duedate';
+        return 'id, name, cutoffdate, duedate, assesstimestart, assesstimefinish';
     }
 
     /**
@@ -155,8 +157,111 @@ class adapter extends abstract_activity_adapter {
      */
     protected function read_dates_from_record(\stdClass $record): array {
         return [
-            'cutoffdate' => (int)$record->cutoffdate,
-            'duedate' => (int)$record->duedate,
+            'cutoffdate'       => (int)$record->cutoffdate,
+            'duedate'           => (int)$record->duedate,
+            'assesstimestart'  => (int)$record->assesstimestart,
+            'assesstimefinish' => (int)$record->assesstimefinish,
         ];
+    }
+
+    /**
+     * Run consistency checks on forum instances.
+     *
+     * Checks R3 (process logic) and R7 (missing counterpart fields) rules
+     * as defined in docs/rules.md.
+     *
+     * @param int[] $cmids   Course module ids to check.
+     * @param array $profile Optional check profile (unused).
+     * @return array Check result items.
+     */
+    public function run_checks(array $cmids, array $profile = []): array {
+        global $DB;
+        $results = [];
+        $plugin = 'coursectrlmod_forum';
+        $r7defaults = [
+            'duedate_without_cutoffdate' => 'warning',
+            'cutoffdate_without_duedate' => 'notice',
+        ];
+        foreach ($cmids as $rawcmid) {
+            $cmid = (int)$rawcmid;
+            try {
+                $cm = get_coursemodule_from_id('forum', $cmid, 0, false, MUST_EXIST);
+                $rec = $DB->get_record(
+                    'forum',
+                    ['id' => $cm->instance],
+                    'id, name, duedate, cutoffdate, assesstimestart, assesstimefinish',
+                    MUST_EXIST
+                );
+            } catch (\Throwable $e) {
+                continue;
+            }
+            $due = (int)$rec->duedate;
+            $cutoff = (int)$rec->cutoffdate;
+            $assstart = (int)$rec->assesstimestart;
+            $assfinish = (int)$rec->assesstimefinish;
+            $name = $rec->name;
+            // R3: assesstimestart must not be after assesstimefinish.
+            if ($assstart > 0 && $assfinish > 0 && $assstart > $assfinish) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    'error',
+                    'forum_assesstimestart_after_assesstimefinish',
+                    get_string('check_forum_assesstimestart_after_assesstimefinish', 'local_coursectrl')
+                );
+            }
+            // R3: when ratings time restriction is active, both fields are mandatory.
+            if ($assstart > 0 && $assfinish === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    'error',
+                    'forum_assesstimestart_without_assesstimefinish',
+                    get_string('check_forum_assesstimestart_without_assesstimefinish', 'local_coursectrl')
+                );
+            }
+            if ($assfinish > 0 && $assstart === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    'error',
+                    'forum_assesstimefinish_without_assesstimestart',
+                    get_string('check_forum_assesstimefinish_without_assesstimestart', 'local_coursectrl')
+                );
+            }
+            // R3: assess window must not extend beyond duedate.
+            if ($assfinish > 0 && $due > 0 && $assfinish > $due) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    'warning',
+                    'forum_assesstimefinish_after_duedate',
+                    get_string('check_forum_assesstimefinish_after_duedate', 'local_coursectrl')
+                );
+            }
+            // R7: duedate without cutoffdate.
+            $sev = $this->r7_severity($plugin, 'duedate_without_cutoffdate', $r7defaults);
+            if ($sev && $due > 0 && $cutoff === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    $sev,
+                    'forum_duedate_without_cutoffdate',
+                    get_string('check_forum_duedate_without_cutoffdate', 'local_coursectrl')
+                );
+            }
+            // R7: cutoffdate without duedate.
+            $sev = $this->r7_severity($plugin, 'cutoffdate_without_duedate', $r7defaults);
+            if ($sev && $cutoff > 0 && $due === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    $sev,
+                    'forum_cutoffdate_without_duedate',
+                    get_string('check_forum_cutoffdate_without_duedate', 'local_coursectrl')
+                );
+            }
+        }
+        return $results;
     }
 }

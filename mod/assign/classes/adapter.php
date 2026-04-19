@@ -30,12 +30,14 @@ namespace coursectrlmod_assign;
 
 use local_coursectrl\local\contract\abstract_activity_adapter;
 use local_coursectrl\local\contract\shift_dates_executor;
+use local_coursectrl\local\contract\check_helper;
 
 /**
  * Activity adapter wrapping mod_assign.
  */
 class adapter extends abstract_activity_adapter {
     use shift_dates_executor;
+    use check_helper;
 
     /**
      * Returns the frankenstyle component name of the wrapped module.
@@ -206,99 +208,6 @@ class adapter extends abstract_activity_adapter {
      * @param array $profile Optional check profile (unused).
      * @return array Check result items.
      */
-    public function run_checks(array $cmids, array $profile = []): array {
-        global $DB;
-        $results = [];
-        foreach ($cmids as $rawcmid) {
-            $cmid = (int)$rawcmid;
-            try {
-                $cm = get_coursemodule_from_id('assign', $cmid, 0, false, MUST_EXIST);
-                $assign = $DB->get_record(
-                    'assign',
-                    ['id' => $cm->instance],
-                    'id, name, duedate, allowsubmissionsfromdate, cutoffdate',
-                    MUST_EXIST
-                );
-            } catch (\Throwable $e) {
-                continue;
-            }
-
-            $due = (int)$assign->duedate;
-            $fromdate = (int)$assign->allowsubmissionsfromdate;
-            $cutoff = (int)$assign->cutoffdate;
-
-            // Opening date must not be after due date.
-            if ($fromdate > 0 && $due > 0 && $fromdate > $due) {
-                $results[] = [
-                    'cmid' => $cmid,
-                    'name' => $assign->name,
-                    'severity' => 'error',
-                    'code' => 'assign_from_after_due',
-                    'message' => get_string(
-                        'check_assign_from_after_due',
-                        'local_coursectrl'
-                    ),
-                ];
-            }
-
-            // Opening date should not be after completionexpected.
-            try {
-                $cmobj = get_coursemodule_from_id('assign', $cmid, 0, false, MUST_EXIST);
-                $compexp = (int)$cmobj->completionexpected;
-            } catch (\Throwable $e) {
-                $compexp = 0;
-            }
-            if ($fromdate > 0 && $compexp > 0 && $fromdate > $compexp) {
-                $results[] = [
-                    'cmid' => $cmid,
-                    'name' => $assign->name,
-                    'severity' => 'warning',
-                    'code' => 'assign_from_after_completionexpected',
-                    'message' => get_string(
-                        'check_assign_from_after_completionexpected',
-                        'local_coursectrl'
-                    ),
-                ];
-            }
-
-            // Cut-off date should not be before due date.
-            if ($cutoff > 0 && $due > 0 && $cutoff < $due) {
-                $results[] = [
-                    'cmid' => $cmid,
-                    'name' => $assign->name,
-                    'severity' => 'warning',
-                    'code' => 'assign_cutoff_before_due',
-                    'message' => get_string(
-                        'check_assign_cutoff_before_due',
-                        'local_coursectrl'
-                    ),
-                ];
-            }
-
-            // CompletionExpected should not be before allowsubmissionsfromdate.
-            // The CM-level completionexpected field is in course_modules, not {assign}.
-            $cmrec = $DB->get_record(
-                'course_modules',
-                ['id' => $cmid],
-                'completionexpected',
-                IGNORE_MISSING
-            );
-            $compexp = $cmrec ? (int)$cmrec->completionexpected : 0;
-            if ($compexp > 0 && $fromdate > 0 && $compexp < $fromdate) {
-                $results[] = [
-                    'cmid' => $cmid,
-                    'name' => $assign->name,
-                    'severity' => 'warning',
-                    'code' => 'assign_completionexpected_before_from',
-                    'message' => get_string(
-                        'check_assign_completionexpected_before_from',
-                        'local_coursectrl'
-                    ),
-                ];
-            }
-        }
-        return $results;
-    }
 
     /**
      * Resolve the distinct course ids that contain the given cmids of the
@@ -308,16 +217,99 @@ class adapter extends abstract_activity_adapter {
      * @param string $modname module name (e.g. 'assign').
      * @return int[]
      */
-    private function collect_courseids_for_cmids(array $cmids, string $modname): array {
-        $result = [];
-        foreach ($cmids as $cmid) {
+
+    /**
+     * Run consistency checks on assign instances.
+     *
+     * Checks R3 (process logic) and R7 (missing counterpart fields) rules
+     * as defined in docs/rules.md.
+     *
+     * @param int[] $cmids   Course module ids to check.
+     * @param array $profile Optional check profile (unused).
+     * @return array Check result items.
+     */
+    public function run_checks(array $cmids, array $profile = []): array {
+        global $DB;
+        $results = [];
+        $plugin = 'coursectrlmod_assign';
+        $r7defaults = [
+            'allowsubmissionsfromdate_without_duedate' => 'notice',
+            'cutoffdate_without_duedate'               => 'warning',
+            'gradingduedate_without_duedate'           => 'warning',
+        ];
+        foreach ($cmids as $rawcmid) {
+            $cmid = (int)$rawcmid;
             try {
-                $cm = get_coursemodule_from_id($modname, (int)$cmid, 0, false, MUST_EXIST);
-                $result[(int)$cm->course] = true;
+                $cm = get_coursemodule_from_id('assign', $cmid, 0, false, MUST_EXIST);
+                $assign = $DB->get_record(
+                    'assign',
+                    ['id' => $cm->instance],
+                    'id, name, duedate, allowsubmissionsfromdate, cutoffdate, gradingduedate',
+                    MUST_EXIST
+                );
             } catch (\Throwable $e) {
                 continue;
             }
+            $due = (int)$assign->duedate;
+            $fromdate = (int)$assign->allowsubmissionsfromdate;
+            $cutoff = (int)$assign->cutoffdate;
+            $gradingdue = (int)$assign->gradingduedate;
+            $name = $assign->name;
+
+            // R3: opening date must not be after due date.
+            if ($fromdate > 0 && $due > 0 && $fromdate > $due) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    'error',
+                    'assign_from_after_due',
+                    get_string('check_assign_from_after_due', 'local_coursectrl')
+                );
+            }
+            // R3: cut-off must not be before due date.
+            if ($cutoff > 0 && $due > 0 && $cutoff < $due) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    'warning',
+                    'assign_cutoff_before_due',
+                    get_string('check_assign_cutoff_before_due', 'local_coursectrl')
+                );
+            }
+            // R7: allowsubmissionsfromdate without duedate.
+            $sev = $this->r7_severity($plugin, 'allowsubmissionsfromdate_without_duedate', $r7defaults);
+            if ($sev && $fromdate > 0 && $due === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    $sev,
+                    'assign_allowsubmissionsfromdate_without_duedate',
+                    get_string('check_assign_allowsubmissionsfromdate_without_duedate', 'local_coursectrl')
+                );
+            }
+            // R7: cutoffdate without duedate.
+            $sev = $this->r7_severity($plugin, 'cutoffdate_without_duedate', $r7defaults);
+            if ($sev && $cutoff > 0 && $due === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    $sev,
+                    'assign_cutoffdate_without_duedate',
+                    get_string('check_assign_cutoffdate_without_duedate', 'local_coursectrl')
+                );
+            }
+            // R7: gradingduedate without duedate or cutoffdate.
+            $sev = $this->r7_severity($plugin, 'gradingduedate_without_duedate', $r7defaults);
+            if ($sev && $gradingdue > 0 && $due === 0 && $cutoff === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    $sev,
+                    'assign_gradingduedate_without_duedate',
+                    get_string('check_assign_gradingduedate_without_duedate', 'local_coursectrl')
+                );
+            }
         }
-        return array_keys($result);
+        return $results;
     }
 }

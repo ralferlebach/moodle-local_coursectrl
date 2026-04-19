@@ -28,6 +28,7 @@
 namespace coursectrlmod_quiz;
 
 use local_coursectrl\local\contract\abstract_activity_adapter;
+use local_coursectrl\local\contract\check_helper;
 use local_coursectrl\local\contract\shift_dates_executor;
 
 /**
@@ -35,6 +36,7 @@ use local_coursectrl\local\contract\shift_dates_executor;
  */
 class adapter extends abstract_activity_adapter {
     use shift_dates_executor;
+    use check_helper;
 
     /**
      * Returns the frankenstyle component name of the wrapped module.
@@ -197,5 +199,72 @@ class adapter extends abstract_activity_adapter {
             'timeopen'  => (int)$record->timeopen,
             'timeclose' => (int)$record->timeclose,
         ];
+    }
+
+    /**
+     * Run consistency checks on quiz instances.
+     *
+     * Checks R3 (process logic) and R7 (missing counterpart fields) rules
+     * as defined in docs/rules.md.
+     *
+     * @param int[] $cmids   Course module ids to check.
+     * @param array $profile Optional check profile (unused).
+     * @return array Check result items.
+     */
+    public function run_checks(array $cmids, array $profile = []): array {
+        global $DB;
+        $results = [];
+        $plugin = 'coursectrlmod_quiz';
+        $r7defaults = ['timeopen_without_timeclose' => 'notice'];
+        foreach ($cmids as $rawcmid) {
+            $cmid = (int)$rawcmid;
+            try {
+                $cm = get_coursemodule_from_id('quiz', $cmid, 0, false, MUST_EXIST);
+                $quiz = $DB->get_record(
+                    'quiz',
+                    ['id' => $cm->instance],
+                    'id, name, timeopen, timeclose, timelimit',
+                    MUST_EXIST
+                );
+            } catch (\Throwable $e) {
+                continue;
+            }
+            $open = (int)$quiz->timeopen;
+            $close = (int)$quiz->timeclose;
+            $limit = (int)$quiz->timelimit;
+            $name = $quiz->name;
+            // R3: open must not be after close.
+            if ($open > 0 && $close > 0 && $open > $close) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    'error',
+                    'quiz_open_after_close',
+                    get_string('check_quiz_open_after_close', 'local_coursectrl')
+                );
+            }
+            // R3: timelimit must not exceed the open window.
+            if ($limit > 0 && $open > 0 && $close > 0 && $limit > ($close - $open)) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    'error',
+                    'quiz_timelimit_exceeds_window',
+                    get_string('check_quiz_timelimit_exceeds_window', 'local_coursectrl')
+                );
+            }
+            // R7: timeopen without timeclose.
+            $sev = $this->r7_severity($plugin, 'timeopen_without_timeclose', $r7defaults);
+            if ($sev && $open > 0 && $close === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    $sev,
+                    'quiz_timeopen_without_timeclose',
+                    get_string('check_quiz_timeopen_without_timeclose', 'local_coursectrl')
+                );
+            }
+        }
+        return $results;
     }
 }

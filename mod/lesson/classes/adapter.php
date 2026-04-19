@@ -25,6 +25,7 @@
 namespace coursectrlmod_lesson;
 
 use local_coursectrl\local\contract\abstract_activity_adapter;
+use local_coursectrl\local\contract\check_helper;
 use local_coursectrl\local\contract\shift_dates_executor;
 
 /**
@@ -32,6 +33,7 @@ use local_coursectrl\local\contract\shift_dates_executor;
  */
 class adapter extends abstract_activity_adapter {
     use shift_dates_executor;
+    use check_helper;
 
     /**
      * Returns the frankenstyle component name of the wrapped module.
@@ -181,5 +183,61 @@ class adapter extends abstract_activity_adapter {
             'available' => (int)$record->available,
             'deadline' => (int)$record->deadline,
         ];
+    }
+
+    /**
+     * Run consistency checks on lesson instances.
+     *
+     * Checks R3 (process logic) and R7 (missing counterpart fields) rules
+     * as defined in docs/rules.md.
+     *
+     * @param int[] $cmids   Course module ids to check.
+     * @param array $profile Optional check profile (unused).
+     * @return array Check result items.
+     */
+    public function run_checks(array $cmids, array $profile = []): array {
+        global $DB;
+        $results = [];
+        $plugin = 'coursectrlmod_lesson';
+        $r7defaults = ['available_without_deadline' => 'notice'];
+        foreach ($cmids as $rawcmid) {
+            $cmid = (int)$rawcmid;
+            try {
+                $cm = get_coursemodule_from_id('lesson', $cmid, 0, false, MUST_EXIST);
+                $rec = $DB->get_record(
+                    'lesson',
+                    ['id' => $cm->instance],
+                    'id, name, available, deadline',
+                    MUST_EXIST
+                );
+            } catch (\Throwable $e) {
+                continue;
+            }
+            $avail = (int)$rec->available;
+            $dead = (int)$rec->deadline;
+            $name = $rec->name;
+            // R3: available must not be after deadline.
+            if ($avail > 0 && $dead > 0 && $avail > $dead) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    'error',
+                    'lesson_available_after_deadline',
+                    get_string('check_lesson_available_after_deadline', 'local_coursectrl')
+                );
+            }
+            // R7: available set but no deadline.
+            $sev = $this->r7_severity($plugin, 'available_without_deadline', $r7defaults);
+            if ($sev && $avail > 0 && $dead === 0) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    $sev,
+                    'lesson_available_without_deadline',
+                    get_string('check_lesson_available_without_deadline', 'local_coursectrl')
+                );
+            }
+        }
+        return $results;
     }
 }

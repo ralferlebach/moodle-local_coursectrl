@@ -28,6 +28,7 @@
 namespace coursectrlmod_feedback;
 
 use local_coursectrl\local\contract\abstract_activity_adapter;
+use local_coursectrl\local\contract\check_helper;
 use local_coursectrl\local\contract\shift_dates_executor;
 
 /**
@@ -35,6 +36,7 @@ use local_coursectrl\local\contract\shift_dates_executor;
  */
 class adapter extends abstract_activity_adapter {
     use shift_dates_executor;
+    use check_helper;
 
     /**
      * Returns the frankenstyle component name of the wrapped module.
@@ -186,5 +188,49 @@ class adapter extends abstract_activity_adapter {
             'timeopen'  => (int)$record->timeopen,
             'timeclose' => (int)$record->timeclose,
         ];
+    }
+
+    /**
+     * Run consistency checks on feedback instances.
+     *
+     * Checks R3 (process logic) rules as defined in docs/rules.md.
+     * R7 checks are disabled by default for this module type.
+     *
+     * @param int[] $cmids   Course module ids to check.
+     * @param array $profile Optional check profile (unused).
+     * @return array Check result items.
+     */
+    public function run_checks(array $cmids, array $profile = []): array {
+        global $DB;
+        $results = [];
+        foreach ($cmids as $rawcmid) {
+            $cmid = (int)$rawcmid;
+            try {
+                $cm = get_coursemodule_from_id('feedback', $cmid, 0, false, MUST_EXIST);
+                $rec = $DB->get_record(
+                    'feedback',
+                    ['id' => $cm->instance],
+                    'id, name, timeopen, timeclose',
+                    MUST_EXIST
+                );
+            } catch (\Throwable $e) {
+                continue;
+            }
+            // R3: open must not be after close.
+            if (
+                (int)$rec->timeopen > 0
+                && (int)$rec->timeclose > 0
+                && (int)$rec->timeopen > (int)$rec->timeclose
+            ) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $rec->name,
+                    'error',
+                    'feedback_open_after_close',
+                    get_string('check_feedback_open_after_close', 'local_coursectrl')
+                );
+            }
+        }
+        return $results;
     }
 }

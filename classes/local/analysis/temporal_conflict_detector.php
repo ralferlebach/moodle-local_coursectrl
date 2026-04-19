@@ -75,6 +75,7 @@ class temporal_conflict_detector {
         ],
         'mod_forum' => [
             // No enforced ordering between cutoffdate and duedate in Moodle.
+            ['assesstimestart', 'assesstimefinish'],
         ],
         'mod_glossary' => [
             ['assesstimestart', 'assesstimefinish'],
@@ -125,6 +126,10 @@ class temporal_conflict_detector {
         'mod_quiz'        => 'timeclose',
         'mod_scorm'       => 'timeclose',
         'mod_workshop'    => 'assessmentend',
+        'mod_capquiz'     => 'timedue',
+        'mod_choicegroup' => 'timeclose',
+        'mod_questionnaire' => 'closedate',
+        'mod_studentquiz' => 'closeansweringfrom',
     ];
 
     /**

@@ -25,6 +25,7 @@
 namespace coursectrlmod_studentquiz;
 
 use local_coursectrl\local\contract\abstract_activity_adapter;
+use local_coursectrl\local\contract\check_helper;
 use local_coursectrl\local\contract\shift_dates_executor;
 
 /**
@@ -32,6 +33,7 @@ use local_coursectrl\local\contract\shift_dates_executor;
  */
 class adapter extends abstract_activity_adapter {
     use shift_dates_executor;
+    use check_helper;
 
     /**
      * Returns the frankenstyle component name of the wrapped module.
@@ -160,5 +162,69 @@ class adapter extends abstract_activity_adapter {
             'openansweringfrom' => (int)$record->openansweringfrom,
             'closeansweringfrom' => (int)$record->closeansweringfrom,
         ];
+    }
+
+    /**
+     * Run consistency checks on studentquiz instances.
+     *
+     * Checks R3 (process logic) rules as defined in docs/rules.md.
+     *
+     * @param int[] $cmids   Course module ids to check.
+     * @param array $profile Optional check profile (unused).
+     * @return array Check result items.
+     */
+    public function run_checks(array $cmids, array $profile = []): array {
+        global $DB;
+        $results = [];
+        foreach ($cmids as $rawcmid) {
+            $cmid = (int)$rawcmid;
+            try {
+                $cm = get_coursemodule_from_id('studentquiz', $cmid, 0, false, MUST_EXIST);
+                $rec = $DB->get_record(
+                    'studentquiz',
+                    ['id' => $cm->instance],
+                    'id, name, opensubmissionfrom, closesubmissionfrom, openansweringfrom, closeansweringfrom',
+                    MUST_EXIST
+                );
+            } catch (\Throwable $e) {
+                continue;
+            }
+            $opsubm = (int)$rec->opensubmissionfrom;
+            $clsubm = (int)$rec->closesubmissionfrom;
+            $opans = (int)$rec->openansweringfrom;
+            $clans = (int)$rec->closeansweringfrom;
+            $name = $rec->name;
+            // R3: submission phase ordering.
+            if ($opsubm > 0 && $clsubm > 0 && $opsubm > $clsubm) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    'error',
+                    'studentquiz_submissionopen_after_close',
+                    get_string('check_studentquiz_submissionopen_after_close', 'local_coursectrl')
+                );
+            }
+            // R3: answering phase ordering.
+            if ($opans > 0 && $clans > 0 && $opans > $clans) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    'error',
+                    'studentquiz_answeringopen_after_close',
+                    get_string('check_studentquiz_answeringopen_after_close', 'local_coursectrl')
+                );
+            }
+            // R3: submission must close before answering opens.
+            if ($clsubm > 0 && $opans > 0 && $clsubm > $opans) {
+                $results[] = $this->check_result(
+                    $cmid,
+                    $name,
+                    'error',
+                    'studentquiz_submissionclose_after_answeringopen',
+                    get_string('check_studentquiz_submissionclose_after_answeringopen', 'local_coursectrl')
+                );
+            }
+        }
+        return $results;
     }
 }

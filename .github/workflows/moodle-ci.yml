@@ -6,14 +6,14 @@
 #   PHP:     8.2, 8.3, 8.4  (8.4 excluded for Moodle < 5.1)
 #   DB:      MariaDB 10.11  |  PostgreSQL 16
 #
-# Moodle 5.2 (MOODLE_502_STABLE) wird ergänzt, sobald der Branch
-# im moodle/moodle-Repository verfügbar ist (~Mai 2026).
+# Third-party plugins (not in Moodle core, required by coursectrl adapters):
+#   mod_questionnaire  github.com/PoetOS/moodle-mod_questionnaire
+#   mod_choicegroup    github.com/ndunand/moodle-mod_choicegroup
+#   mod_studentquiz    github.com/studentquiz/moodle-mod_studentquiz
+#   mod_capquiz        github.com/KQMATH/moodle-mod_capquiz
 #
-# Job-Parallelität:
-#   lint-php ──┐
-#              ├──► phpunit  (MariaDB + PostgreSQL)
-#   lint-js  ──┘
-#              └──► behat    (MariaDB only, parallel zu phpunit)
+# Strategy: clone Moodle and third-party plugins BEFORE moodle-plugin-ci install
+# so that phpunit/behat init discover all plugins in a single pass.
 ##############################################################################
 
 name: Moodle Plugin CI
@@ -94,7 +94,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install en_AU.UTF-8 locale (Moodle bootstrap requirement)
+      - name: Install en_AU.UTF-8 locale
         run: |
           sudo locale-gen en_AU.UTF-8
           sudo update-locale
@@ -105,40 +105,36 @@ jobs:
           echo "$GITHUB_WORKSPACE/ci/bin"        >> "$GITHUB_PATH"
           echo "$GITHUB_WORKSPACE/ci/vendor/bin" >> "$GITHUB_PATH"
 
-      - name: Set TRAVIS_BRANCH for moodle-plugin-ci
+      - name: Set TRAVIS_BRANCH
         run: |
           BRANCH_NAME=${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}
           echo "TRAVIS_BRANCH=${BRANCH_NAME:-main}" >> "$GITHUB_ENV"
 
-      - name: Install Moodle (grunt config baseline – 4.5)
+      - name: Clone Moodle and third-party plugins
+        run: |
+          git clone --depth=1 --branch MOODLE_405_STABLE \
+            https://github.com/moodle/moodle.git \
+            "${{ github.workspace }}/moodle"
+          MOODLE_DIR="${{ github.workspace }}/moodle"
+          clone_p() { git clone --depth=1 "$1" "$2" 2>/dev/null && echo "OK: $2" || echo "SKIP: $2"; }
+          clone_p https://github.com/PoetOS/moodle-mod_questionnaire  "$MOODLE_DIR/mod/questionnaire"
+          clone_p https://github.com/ndunand/moodle-mod_choicegroup    "$MOODLE_DIR/mod/choicegroup"
+          clone_p https://github.com/studentquiz/moodle-mod_studentquiz "$MOODLE_DIR/mod/studentquiz"
+          clone_p https://github.com/KQMATH/moodle-mod_capquiz          "$MOODLE_DIR/mod/capquiz"
+
+      - name: Install Moodle (grunt baseline)
         run: |
           moodle-plugin-ci install \
-            --plugin   ./plugin \
-            --db-type  mariadb \
-            --db-host  127.0.0.1 \
-            --db-port  3306 \
-            --db-user  root \
-            --db-pass  root \
-            --db-name  moodle \
-            --branch   MOODLE_405_STABLE
-
-      - name: Checkout third-party activity plugins
-        run: |
-          MOODLE_DIR="${{ github.workspace }}/moodle"
-          clone_plugin() {
-            local repo="$1" dest="$2"
-            git clone --depth=1 "$repo" "$dest" 2>/dev/null \
-              && echo "  OK: $dest" \
-              || echo "  SKIP (not available): $dest"
-          }
-          clone_plugin https://github.com/PoetOS/moodle-mod_questionnaire \
-            "$MOODLE_DIR/mod/questionnaire"
-          clone_plugin https://github.com/ndunand/moodle-mod_choicegroup \
-            "$MOODLE_DIR/mod/choicegroup"
-          clone_plugin https://github.com/studentquiz/moodle-mod_studentquiz \
-            "$MOODLE_DIR/mod/studentquiz"
-          clone_plugin https://github.com/KQMATH/moodle-mod_capquiz \
-            "$MOODLE_DIR/mod/capquiz"
+            --plugin  ./plugin \
+            --moodle  "${{ github.workspace }}/moodle" \
+            --branch  MOODLE_405_STABLE \
+            --db-type mariadb \
+            --db-host 127.0.0.1 \
+            --db-port 3306 \
+            --db-user root \
+            --db-pass root \
+            --db-name moodle \
+            --no-init
 
       - name: Install Node dependencies
         run: npm install
@@ -154,22 +150,14 @@ jobs:
       - name: Verify AMD build artefacts
         run: |
           if ! ls plugin/amd/src/*.js 2>/dev/null | grep -q .; then
-            echo "No AMD source files found – skipping build check."
-            exit 0
+            echo "No AMD source files — skipping."; exit 0
           fi
           MISSING=0
           for src in plugin/amd/src/*.js; do
             base=$(basename "$src" .js)
-            [ -f "plugin/amd/build/${base}.min.js" ] || {
-              echo "MISSING: amd/build/${base}.min.js"
-              MISSING=$((MISSING+1))
-            }
+            [ -f "plugin/amd/build/${base}.min.js" ] || { echo "MISSING: $base.min.js"; MISSING=$((MISSING+1)); }
           done
-          if [ "$MISSING" -gt 0 ]; then
-            echo "ERROR: $MISSING AMD build file(s) missing – run 'grunt amd'."
-            exit 1
-          fi
-          echo "AMD build OK."
+          [ "$MISSING" -eq 0 ] && echo "AMD OK." || { echo "ERROR: $MISSING file(s) missing."; exit 1; }
 
   # ── 2. PHPUnit ────────────────────────────────────────────────────────────
   phpunit:
@@ -188,7 +176,6 @@ jobs:
           - { engine: mariadb, type: mariadb, port: 3306, user: root,   pass: root   }
           - { engine: pgsql,   type: pgsql,   port: 5432, user: moodle, pass: moodle }
         exclude:
-          # PHP 8.4 not officially supported on Moodle < 5.1.
           - { moodle: MOODLE_405_STABLE, php: '8.4' }
           - { moodle: MOODLE_500_STABLE, php: '8.4' }
 
@@ -229,7 +216,7 @@ jobs:
           ini-values: max_input_vars=5000
           coverage: none
 
-      - name: Install en_AU.UTF-8 locale (Moodle PHPUnit bootstrap requirement)
+      - name: Install en_AU.UTF-8 locale
         run: |
           sudo locale-gen en_AU.UTF-8
           sudo update-locale
@@ -240,49 +227,40 @@ jobs:
           echo "$GITHUB_WORKSPACE/ci/bin"        >> "$GITHUB_PATH"
           echo "$GITHUB_WORKSPACE/ci/vendor/bin" >> "$GITHUB_PATH"
 
-      - name: Set TRAVIS_BRANCH for moodle-plugin-ci
+      - name: Set TRAVIS_BRANCH
         run: |
           BRANCH_NAME=${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}
           echo "TRAVIS_BRANCH=${BRANCH_NAME:-main}" >> "$GITHUB_ENV"
 
+      - name: Clone Moodle and third-party plugins
+        run: |
+          git clone --depth=1 --branch ${{ matrix.moodle }} \
+            https://github.com/moodle/moodle.git \
+            "${{ github.workspace }}/moodle"
+          MOODLE_DIR="${{ github.workspace }}/moodle"
+          clone_p() { git clone --depth=1 "$1" "$2" 2>/dev/null && echo "OK: $2" || echo "SKIP: $2"; }
+          clone_p https://github.com/PoetOS/moodle-mod_questionnaire   "$MOODLE_DIR/mod/questionnaire"
+          clone_p https://github.com/ndunand/moodle-mod_choicegroup     "$MOODLE_DIR/mod/choicegroup"
+          clone_p https://github.com/studentquiz/moodle-mod_studentquiz "$MOODLE_DIR/mod/studentquiz"
+          clone_p https://github.com/KQMATH/moodle-mod_capquiz           "$MOODLE_DIR/mod/capquiz"
+
       - name: Install Moodle ${{ matrix.moodle }}
         run: |
           moodle-plugin-ci install \
-            --plugin   ./plugin \
-            --db-type  ${{ matrix.db.type }} \
-            --db-host  127.0.0.1 \
-            --db-port  ${{ matrix.db.port }} \
-            --db-user  ${{ matrix.db.user }} \
-            --db-pass  ${{ matrix.db.pass }} \
-            --db-name  moodle \
-            --branch   ${{ matrix.moodle }}
-
-      - name: Checkout third-party activity plugins
-        run: |
-          # These plugins are required by coursectrl adapters but are not part
-          # of Moodle core. We check out the most recent stable-compatible tag.
-          # Failures are non-fatal so CI continues even if a repo moves.
-          MOODLE_DIR="${{ github.workspace }}/moodle"
-          clone_plugin() {
-            local repo="$1" dest="$2"
-            git clone --depth=1 "$repo" "$dest" 2>/dev/null \
-              && echo "  OK: $dest" \
-              || echo "  SKIP (not available): $dest"
-          }
-          clone_plugin https://github.com/PoetOS/moodle-mod_questionnaire \
-            "$MOODLE_DIR/mod/questionnaire"
-          clone_plugin https://github.com/ndunand/moodle-mod_choicegroup \
-            "$MOODLE_DIR/mod/choicegroup"
-          clone_plugin https://github.com/studentquiz/moodle-mod_studentquiz \
-            "$MOODLE_DIR/mod/studentquiz"
-          clone_plugin https://github.com/KQMATH/moodle-mod_capquiz \
-            "$MOODLE_DIR/mod/capquiz"
+            --plugin  ./plugin \
+            --moodle  "${{ github.workspace }}/moodle" \
+            --branch  ${{ matrix.moodle }} \
+            --db-type ${{ matrix.db.type }} \
+            --db-host 127.0.0.1 \
+            --db-port ${{ matrix.db.port }} \
+            --db-user ${{ matrix.db.user }} \
+            --db-pass ${{ matrix.db.pass }} \
+            --db-name moodle
 
       - name: PHPUnit – all tests
         run: moodle-plugin-ci phpunit
 
   # ── 3. Behat ─────────────────────────────────────────────────────────────
-  # Läuft PARALLEL zu phpunit (beide brauchen nur lint als Voraussetzung).
   behat:
     name: "Behat (${{ matrix.moodle }} / PHP 8.2 / Chrome)"
     runs-on: ubuntu-24.04
@@ -296,15 +274,6 @@ jobs:
           - MOODLE_501_STABLE
 
     services:
-      selenium:
-        image: selenium/standalone-chrome:latest
-        options: >-
-          --shm-size=2g
-          --health-cmd="curl -sf http://localhost:4444/status"
-          --health-interval=15s
-          --health-retries=5
-        ports: ['4444:4444']
-
       mariadb:
         image: mariadb:10.11
         env:
@@ -327,7 +296,7 @@ jobs:
           ini-values: max_input_vars=5000
           coverage: none
 
-      - name: Install en_AU.UTF-8 locale (Moodle Behat bootstrap requirement)
+      - name: Install en_AU.UTF-8 locale
         run: |
           sudo locale-gen en_AU.UTF-8
           sudo update-locale
@@ -338,46 +307,42 @@ jobs:
           echo "$GITHUB_WORKSPACE/ci/bin"        >> "$GITHUB_PATH"
           echo "$GITHUB_WORKSPACE/ci/vendor/bin" >> "$GITHUB_PATH"
 
-      - name: Set TRAVIS_BRANCH for moodle-plugin-ci
+      - name: Set TRAVIS_BRANCH
         run: |
           BRANCH_NAME=${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}
           echo "TRAVIS_BRANCH=${BRANCH_NAME:-main}" >> "$GITHUB_ENV"
 
+      - name: Clone Moodle and third-party plugins
+        run: |
+          git clone --depth=1 --branch ${{ matrix.moodle }} \
+            https://github.com/moodle/moodle.git \
+            "${{ github.workspace }}/moodle"
+          MOODLE_DIR="${{ github.workspace }}/moodle"
+          clone_p() { git clone --depth=1 "$1" "$2" 2>/dev/null && echo "OK: $2" || echo "SKIP: $2"; }
+          clone_p https://github.com/PoetOS/moodle-mod_questionnaire   "$MOODLE_DIR/mod/questionnaire"
+          clone_p https://github.com/ndunand/moodle-mod_choicegroup     "$MOODLE_DIR/mod/choicegroup"
+          clone_p https://github.com/studentquiz/moodle-mod_studentquiz "$MOODLE_DIR/mod/studentquiz"
+          clone_p https://github.com/KQMATH/moodle-mod_capquiz           "$MOODLE_DIR/mod/capquiz"
+
       - name: Install Moodle ${{ matrix.moodle }}
         run: |
           moodle-plugin-ci install \
-            --plugin   ./plugin \
-            --db-type  mariadb \
-            --db-host  127.0.0.1 \
-            --db-port  3306 \
-            --db-user  root \
-            --db-pass  root \
-            --db-name  moodle \
-            --branch   ${{ matrix.moodle }}
-
-      - name: Checkout third-party activity plugins
-        run: |
-          MOODLE_DIR="${{ github.workspace }}/moodle"
-          clone_plugin() {
-            local repo="$1" dest="$2"
-            git clone --depth=1 "$repo" "$dest" 2>/dev/null \
-              && echo "  OK: $dest" \
-              || echo "  SKIP (not available): $dest"
-          }
-          clone_plugin https://github.com/PoetOS/moodle-mod_questionnaire \
-            "$MOODLE_DIR/mod/questionnaire"
-          clone_plugin https://github.com/ndunand/moodle-mod_choicegroup \
-            "$MOODLE_DIR/mod/choicegroup"
-          clone_plugin https://github.com/studentquiz/moodle-mod_studentquiz \
-            "$MOODLE_DIR/mod/studentquiz"
-          clone_plugin https://github.com/KQMATH/moodle-mod_capquiz \
-            "$MOODLE_DIR/mod/capquiz"
+            --plugin  ./plugin \
+            --moodle  "${{ github.workspace }}/moodle" \
+            --branch  ${{ matrix.moodle }} \
+            --db-type mariadb \
+            --db-host 127.0.0.1 \
+            --db-port 3306 \
+            --db-user root \
+            --db-pass root \
+            --db-name moodle
 
       - name: Behat – all plugin scenarios
         run: |
           moodle-plugin-ci behat \
             --profile chrome \
-            --tags "@local_coursectrl and not @broken"
+            --tags "@local_coursectrl and not @broken" \
+            --start-servers
 
       - name: Upload failure screenshots
         if: failure()

@@ -163,9 +163,19 @@ final class risk_assessment_runner_test extends \advanced_testcase {
      */
     public function test_consistency_warnings_merged_into_output(): void {
         $this->resetAfterTest();
-        // Quiz with timeopen > timeclose → temporal_conflict.
-        $cm = $this->make_cm(10, true, null, 2);
-        $cms = [10 => $cm];
+        // Use a quiz CM so timeopen/timeclose R3 rule applies.
+        $quizcm = new \local_coursectrl\local\entity\cm_item(
+            10,
+            self::COURSE_ID,
+            1,
+            'quiz',
+            10,
+            'CM 10',
+            true,
+            null,
+            2
+        );
+        $cms = [10 => $quizcm];
         $depindex = new dependency_index($cms);
         $t1 = 1748736000; // 2026-06-01
         $t2 = 1749340800; // 2026-06-08

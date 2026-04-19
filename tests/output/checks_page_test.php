@@ -261,10 +261,21 @@ final class checks_page_test extends \advanced_testcase {
     /**
      * freshrun=true triggers a fresh risk assessment; haslastrun becomes true
      * on next export (the run persists to DB).
+     *
+     * An assign with a past duedate ensures at least one risk row is persisted,
+     * so last_run_time() returns a positive value on the subsequent load.
      */
     public function test_freshrun_persists_results(): void {
         $this->resetAfterTest();
         $course = $this->create_course();
+
+        // Create an activity with a past duedate + completion so the runner
+        // produces at least one risk item that gets persisted.
+        $this->getDataGenerator()->get_plugin_generator('mod_assign')->create_instance([
+            'course' => $course->id,
+            'duedate' => mktime(0, 0, 0, 1, 1, 2020),
+            'completion' => 2,
+        ]);
 
         // Run with freshrun=true.
         $this->export($course, 'risks', true);

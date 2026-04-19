@@ -28,7 +28,7 @@
 
 namespace local_coursectrl\tests;
 
-use local_coursectrl\local\registry;
+use local_coursectrl\manager\registry;
 
 /**
  * Tests for run_checks() across assign, quiz, forum, and workshop adapters.

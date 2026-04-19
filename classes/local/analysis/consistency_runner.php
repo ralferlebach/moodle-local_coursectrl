@@ -55,6 +55,7 @@ namespace local_coursectrl\local\analysis;
 
 use local_coursectrl\local\entity\cm_item;
 use local_coursectrl\local\inventory\course_item;
+use local_coursectrl\local\analysis\accessibility_checker;
 
 /**
  * Orchestrates all transient consistency checks for a course.
@@ -68,6 +69,9 @@ class consistency_runner {
 
     /** @var course_frame_checker */
     private course_frame_checker $framechecker;
+
+    /** @var accessibility_checker */
+    private accessibility_checker $accessibilitychecker;
 
     /**
      * Constructor.
@@ -83,6 +87,7 @@ class consistency_runner {
         $this->conflictdetector = $conflictdetector ?? new temporal_conflict_detector();
         $this->reachabilityanalyzer = $reachabilityanalyzer ?? new reachability_analyzer();
         $this->framechecker = $framechecker ?? new course_frame_checker();
+        $this->accessibilitychecker = new accessibility_checker();
     }
 
     /**
@@ -116,14 +121,24 @@ class consistency_runner {
             }
         }
 
+        // R1: accessibility check (mode-dependent, see r1_mode admin setting).
+        foreach ($this->accessibilitychecker->check($cms) as $cmid => $r1issues) {
+            foreach ($r1issues as $issue) {
+                $warnings[$cmid][] = $issue;
+            }
+        }
+
         foreach ($this->conflictdetector->detect($cms, $datesbycm) as $cmid => $conflicts) {
             foreach ($conflicts as $conflict) {
+                $issueclass = $conflict['issue_class'] ?? 'temporal_conflict';
                 $warnings[$cmid][] = [
-                    'type' => 'temporal_conflict',
+                    'type'        => $issueclass,
+                    'severity'    => $conflict['severity'] ?? 'error',
                     'field_early' => $conflict['field_early'],
-                    'field_late' => $conflict['field_late'],
-                    'ts_early' => $conflict['ts_early'],
-                    'ts_late' => $conflict['ts_late'],
+                    'field_late'  => $conflict['field_late'],
+                    'ts_early'    => $conflict['ts_early'],
+                    'ts_late'     => $conflict['ts_late'],
+                    'min_gap_days' => $conflict['min_gap_days'] ?? 0,
                 ];
             }
         }

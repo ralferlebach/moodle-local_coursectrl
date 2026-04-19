@@ -341,7 +341,38 @@ class checks_page implements renderable, templatable {
             );
             $consequence = get_string('consistency_consequence_r0_deadline_past', 'local_coursectrl');
             $action = get_string('consistency_action_r0_deadline_past', 'local_coursectrl');
-        } else if ($type === 'dangling_dep') {
+        } else if ($type === 'date_coupling') {
+            $fearly = $issue['field_early'] ?? '';
+            $flate = $issue['field_late'] ?? '';
+            $tsearly = (int)($issue['ts_early'] ?? 0);
+            $tslate = (int)($issue['ts_late'] ?? 0);
+            $gapdays = (int)($issue['min_gap_days'] ?? 0);
+            $learly = $this->field_label($fearly, $cm);
+            $llate = $this->field_label($flate, $cm);
+            $headline = get_string('consistency_headline_date_coupling', 'local_coursectrl');
+            $detail = get_string(
+                $gapdays > 0 ? 'consistency_detail_date_coupling_gap' : 'consistency_detail_date_coupling',
+                'local_coursectrl',
+                (object)[
+                    'field_anchor'   => $learly,
+                    'date_anchor'    => $tsearly > 0 ? userdate($tsearly, $dateformat) : '–',
+                    'field_follow'   => $llate,
+                    'date_follow'    => $tslate > 0 ? userdate($tslate, $dateformat) : '–',
+                    'gap_days'       => $gapdays,
+                ]
+            );
+            $consequence = get_string('consistency_consequence_date_coupling', 'local_coursectrl');
+            $action = get_string('consistency_action_date_coupling', 'local_coursectrl');
+        } else if ($type === 'r1_hidden') {
+            $headline = get_string('consistency_headline_r1_hidden', 'local_coursectrl');
+            $detail = get_string('consistency_detail_r1_hidden', 'local_coursectrl');
+            $consequence = get_string('consistency_consequence_r1_hidden', 'local_coursectrl');
+            $action = get_string('consistency_action_r1_hidden', 'local_coursectrl');
+        } else if ($type === 'r1_not_accessible') {
+            $headline = get_string('consistency_headline_r1_not_accessible', 'local_coursectrl');
+            $detail = get_string('consistency_detail_r1_not_accessible', 'local_coursectrl');
+            $consequence = get_string('consistency_consequence_r1_not_accessible', 'local_coursectrl');
+            $action = get_string('consistency_action_r1_not_accessible', 'local_coursectrl');
             $depcmid = (int)($issue['depcmid'] ?? 0);
             $headline = get_string('consistency_headline_dangling_dep', 'local_coursectrl');
             $detail = get_string(
@@ -406,24 +437,19 @@ class checks_page implements renderable, templatable {
      * @return string
      */
     private function field_label(string $field, $cm): string {
-        if ($field === '') {
-            return '';
-        }
         if ($cm !== null) {
             $component = $cm->get_component();
             // Subplugin component: 'mod_assign' → 'coursectrlmod_assign'.
             $subplugin = str_replace('mod_', 'coursectrlmod_', $component);
             $label = get_string('field_' . $field, $subplugin, null, true);
-            // Moodle 4.x returns '[[identifier]]' (not false) when string missing.
-            if ($label !== false && $label !== '' && strpos($label, '[[') !== 0) {
+            if ($label !== false && $label !== '') {
                 return $label;
             }
         }
         $label = get_string('field_' . $field, 'local_coursectrl', null, true);
-        if ($label !== false && $label !== '' && strpos($label, '[[') !== 0) {
+        if ($label !== false && $label !== '') {
             return $label;
         }
-        // Final fallback: return the raw field name.
         return $field;
     }
 

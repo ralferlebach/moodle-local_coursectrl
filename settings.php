@@ -253,7 +253,8 @@ if ($hassiteconfig) {
         'custom',
         PARAM_ALPHANUMEXT
     ));
-    // Risk assessment settings.
+
+    // ── Risk assessment ────────────────────────────────────────────────────
     $settings->add(new admin_setting_heading(
         'local_coursectrl/risk_heading',
         get_string('settings_risk_heading', 'local_coursectrl'),
@@ -266,4 +267,110 @@ if ($hassiteconfig) {
         '10',
         PARAM_INT
     ));
+
+    // ── R1: accessibility checks ───────────────────────────────────────────
+    $settings->add(new admin_setting_heading(
+        'local_coursectrl/r1_heading',
+        get_string('settings_r1_heading', 'local_coursectrl'),
+        get_string('settings_r1_heading_desc', 'local_coursectrl')
+    ));
+    $severopts = [
+        'off'     => get_string('settings_r7_opt_off', 'local_coursectrl'),
+        'notice'  => get_string('settings_r7_opt_notice', 'local_coursectrl'),
+        'warning' => get_string('settings_r7_opt_warning', 'local_coursectrl'),
+    ];
+    $settings->add(new admin_setting_configselect(
+        'local_coursectrl/r1_mode',
+        get_string('settings_r1_mode', 'local_coursectrl'),
+        get_string('settings_r1_mode_desc', 'local_coursectrl'),
+        'simulation',
+        [
+            'off'        => get_string('settings_r1_mode_off', 'local_coursectrl'),
+            'static'     => get_string('settings_r1_mode_static', 'local_coursectrl'),
+            'simulation' => get_string('settings_r1_mode_simulation', 'local_coursectrl'),
+        ]
+    ));
+    $settings->add(new admin_setting_configselect(
+        'local_coursectrl/r1_severity',
+        get_string('settings_r1_severity', 'local_coursectrl'),
+        get_string('settings_r1_severity_desc', 'local_coursectrl'),
+        'notice',
+        [
+            'notice'  => get_string('settings_r7_opt_notice', 'local_coursectrl'),
+            'warning' => get_string('settings_r7_opt_warning', 'local_coursectrl'),
+        ]
+    ));
+
+    // ── R4: date coupling checks ───────────────────────────────────────────
+    $settings->add(new admin_setting_heading(
+        'local_coursectrl/r4_heading',
+        get_string('settings_r4_heading', 'local_coursectrl'),
+        get_string('settings_r4_heading_desc', 'local_coursectrl')
+    ));
+    $settings->add(new admin_setting_configselect(
+        'local_coursectrl/r4_severity',
+        get_string('settings_r4_severity', 'local_coursectrl'),
+        get_string('settings_r4_severity_desc', 'local_coursectrl'),
+        'notice',
+        [
+            'off'     => get_string('settings_r7_opt_off', 'local_coursectrl'),
+            'notice'  => get_string('settings_r7_opt_notice', 'local_coursectrl'),
+            'warning' => get_string('settings_r7_opt_warning', 'local_coursectrl'),
+        ]
+    ));
+    $settings->add(new admin_setting_configtext(
+        'local_coursectrl/r4_min_gap_days',
+        get_string('settings_r4_min_gap_days', 'local_coursectrl'),
+        get_string('settings_r4_min_gap_days_desc', 'local_coursectrl'),
+        '3',
+        PARAM_INT
+    ));
+
+    // ── R7: counterpart checks ─────────────────────────────────────────────
+    $settings->add(new admin_setting_heading(
+        'local_coursectrl/r7_heading',
+        get_string('settings_r7_heading', 'local_coursectrl'),
+        get_string('settings_r7_heading_desc', 'local_coursectrl')
+    ));
+    $r7checks = [
+        'coursectrlmod_assign' => [
+            'allowsubmissionsfromdate_without_duedate' => 'notice',
+            'cutoffdate_without_duedate'               => 'notice',
+            'gradingduedate_without_duedate'           => 'notice',
+        ],
+        'coursectrlmod_forum' => [
+            'duedate_without_cutoffdate' => 'off',
+            'cutoffdate_without_duedate' => 'off',
+        ],
+        'coursectrlmod_lesson' => [
+            'available_without_deadline' => 'notice',
+        ],
+        'coursectrlmod_quiz' => [
+            'timeopen_without_timeclose' => 'notice',
+        ],
+        'coursectrlmod_workshop' => [
+            'assessmentstart_without_assessmentend' => 'notice',
+            'assessmentend_without_assessmentstart' => 'notice',
+            'assessment_without_submissionend'      => 'warning',
+        ],
+    ];
+    foreach ($r7checks as $plugin => $checks) {
+        $modname = str_replace('coursectrlmod_', '', $plugin);
+        $settings->add(new admin_setting_heading(
+            'local_coursectrl/r7_mod_' . $modname,
+            get_string('modulename', 'mod_' . $modname, null, true) ?: $modname,
+            ''
+        ));
+        foreach ($checks as $code => $default) {
+            $labelkey = 'settings_r7_' . $modname . '_' . $code;
+            $label = get_string($labelkey, 'local_coursectrl', null, true) ?: $code;
+            $settings->add(new admin_setting_configselect(
+                $plugin . '/r7_' . $code,
+                $label,
+                '',
+                $default,
+                $severopts
+            ));
+        }
+    }
 }

@@ -22,14 +22,14 @@
  * Rules are defined statically per component and applied to the per-CM
  * date map produced by date_collector.
  *
- * Only adapter-sourced entries (source === 'adapter') are considered for
- * ordering conflicts. The completionexpected field from course_modules is
- * evaluated separately to produce notice-level hints.
+ * Only adapter-sourced entries (source === 'adapter') are considered; the
+ * detector does not evaluate availability-date conditions or completionexpected
+ * because those are not orderable against each other in a well-defined way.
  *
- * Severity levels:
- *   error  — logically invalid ordering that Moodle itself would reject.
- *   warning — ordering that is unusual and likely unintentional.
- *   notice  — advisory hint, e.g. completionexpected far before the due date.
+ * R3 — ordering rules: [early_field, late_field] — early must be ≤ late.
+ * R4 — coupling rules: [anchor_field, following_field, min_gap_days] —
+ *       following must be ≥ anchor + min_gap_days. A gap of 0 means following
+ *       must simply not be before anchor (same as an R3 rule but advisory).
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -38,26 +38,18 @@
 
 namespace local_coursectrl\local\analysis;
 
+defined('MOODLE_INTERNAL') || die();
+
 use local_coursectrl\local\entity\cm_item;
 
 /**
- * Detects date-ordering conflicts and advisory notices within course modules.
+ * Detects date-ordering conflicts and coupling violations within course modules.
  */
 class temporal_conflict_detector {
     /**
-     * Number of seconds in one week, used for completionexpected notice threshold.
+     * R3 ordering rules per component.
      *
-     * @var int
-     */
-    private const WEEK_SECONDS = 604800;
-
-    /**
-     * Ordering rules per component.
-     *
-     * Each rule is a two-element array [earlier_field, later_field], meaning
-     * earlier_field must have a timestamp <= later_field. Both fields must be
-     * set (> 0) for the rule to be evaluated; if either is zero the module has
-     * intentionally left that field unset and no conflict is raised.
+     * Each rule is [earlier_field, later_field].
      *
      * @var array<string, array<int, string[]>>
      */
@@ -67,7 +59,7 @@ class temporal_conflict_detector {
             ['duedate', 'cutoffdate'],
             ['duedate', 'gradingduedate'],
         ],
-        'mod_choice' => [
+        'mod_quiz' => [
             ['timeopen', 'timeclose'],
         ],
         'mod_feedback' => [
@@ -75,30 +67,20 @@ class temporal_conflict_detector {
         ],
         'mod_forum' => [
             // No enforced ordering between cutoffdate and duedate in Moodle.
-            ['assesstimestart', 'assesstimefinish'],
-        ],
-        'mod_glossary' => [
-            ['assesstimestart', 'assesstimefinish'],
         ],
         'mod_lesson' => [
             ['available', 'deadline'],
-        ],
-        'mod_quiz' => [
-            ['timeopen', 'timeclose'],
-        ],
-        'mod_scorm' => [
-            ['timeopen', 'timeclose'],
         ],
         'mod_workshop' => [
             ['submissionstart', 'submissionend'],
             ['assessmentstart', 'assessmentend'],
             ['submissionend', 'assessmentstart'],
         ],
-        'mod_choicegroup' => [
-            ['timeopen', 'timeclose'],
-        ],
         'mod_questionnaire' => [
             ['opendate', 'closedate'],
+        ],
+        'mod_choicegroup' => [
+            ['timeopen', 'timeclose'],
         ],
         'mod_studentquiz' => [
             ['opensubmissionfrom', 'closesubmissionfrom'],
@@ -108,84 +90,69 @@ class temporal_conflict_detector {
     ];
 
     /**
-     * The primary deadline field per component, used for completionexpected checks.
+     * R4 coupling rules per component.
      *
-     * When a CM has a completionexpected timestamp and this deadline field is set,
-     * the detector checks whether completionexpected is more than one week before
-     * the deadline (notice) or after the deadline (warning).
+     * Each rule is [anchor_field, following_field]: the following field
+     * must be >= anchor + configured minimum gap. A gap of 0 is a soft
+     * coupling (following should not precede anchor).
      *
-     * @var array<string, string>
+     * @var array<string, array<int, string[]>>
      */
-    private const DEADLINE_FIELD = [
-        'mod_assign'      => 'duedate',
-        'mod_choice'      => 'timeclose',
-        'mod_feedback'    => 'timeclose',
-        'mod_forum'       => 'duedate',
-        'mod_glossary'    => 'assesstimefinish',
-        'mod_lesson'      => 'deadline',
-        'mod_quiz'        => 'timeclose',
-        'mod_scorm'       => 'timeclose',
-        'mod_workshop'    => 'assessmentend',
-        'mod_capquiz'     => 'timedue',
-        'mod_choicegroup' => 'timeclose',
-        'mod_questionnaire' => 'closedate',
-        'mod_studentquiz' => 'closeansweringfrom',
+    private const COUPLING_RULES = [
+        'mod_assign' => [
+            ['duedate', 'cutoffdate'],
+            ['cutoffdate', 'gradingduedate'],
+        ],
+        'mod_workshop' => [
+            ['submissionend', 'assessmentend'],
+        ],
+        'mod_lesson' => [
+            ['available', 'deadline'],
+        ],
+        'mod_quiz' => [
+            ['timeopen', 'timeclose'],
+        ],
     ];
 
     /**
-     * Detect temporal conflicts and advisory notices for a set of CMs.
+     * Detect temporal conflicts for a set of CMs.
      *
      * @param cm_item[] $cms       Course modules keyed by cmid.
-     * @param array     $datesbycm Per-CM date entries from date_collector::collect_grouped_by_cm().
-     * @return array<int, array[]> cmid → list of conflict/notice arrays.
+     * @param array     $datesbycm Per-CM date entries from date_collector.
+     * @return array<int, array[]> cmid → list of conflict arrays.
      */
     public function detect(array $cms, array $datesbycm): array {
+        $r4severity = (string)get_config('local_coursectrl', 'r4_severity');
+        if ($r4severity === false || $r4severity === '') {
+            $r4severity = 'notice';
+        }
+        $r4mingapdays = max(0, (int)get_config('local_coursectrl', 'r4_min_gap_days'));
+        $r4mingapsecs = $r4mingapdays * DAYSECS;
+
         $result = [];
         foreach ($cms as $cm) {
             $component = $cm->get_component();
             $fieldmap = $this->build_field_map($datesbycm[$cm->id] ?? []);
-            $issues = [];
 
-            // Ordering conflict rules.
+            // R3: strict ordering violations → error.
             if (array_key_exists($component, self::RULES)) {
-                $issues = array_merge(
-                    $issues,
-                    $this->apply_rules(self::RULES[$component], $fieldmap)
-                );
-            }
-
-            // completionexpected advisory checks.
-            $compexp = $cm->completionexpected;
-            if ($compexp > 0 && array_key_exists($component, self::DEADLINE_FIELD)) {
-                $deadlinefield = self::DEADLINE_FIELD[$component];
-                $deadline = $fieldmap[$deadlinefield] ?? 0;
-                if ($deadline > 0) {
-                    if ($compexp > $deadline) {
-                        // Completion expected after the module deadline is a warning.
-                        $issues[] = [
-                            'field_early'  => $deadlinefield,
-                            'field_late'   => 'completionexpected',
-                            'ts_early'     => $deadline,
-                            'ts_late'      => $compexp,
-                            'severity'     => 'warning',
-                            'type_override' => 'completionexpected_after_deadline',
-                        ];
-                    } else if (($deadline - $compexp) > self::WEEK_SECONDS) {
-                        // Completion expected more than one week before deadline is a notice.
-                        $issues[] = [
-                            'field_early'  => 'completionexpected',
-                            'field_late'   => $deadlinefield,
-                            'ts_early'     => $compexp,
-                            'ts_late'      => $deadline,
-                            'severity'     => 'notice',
-                            'type_override' => 'completionexpected_early',
-                        ];
-                    }
+                $conflicts = $this->apply_rules(self::RULES[$component], $fieldmap);
+                foreach ($conflicts as $conflict) {
+                    $result[$cm->id][] = array_merge($conflict, ['issue_class' => 'temporal_conflict']);
                 }
             }
 
-            if (!empty($issues)) {
-                $result[$cm->id] = $issues;
+            // R4: coupling violations → configurable severity.
+            if ($r4severity !== 'off' && array_key_exists($component, self::COUPLING_RULES)) {
+                $couplings = $this->apply_coupling_rules(
+                    self::COUPLING_RULES[$component],
+                    $fieldmap,
+                    $r4mingapsecs,
+                    $r4severity
+                );
+                foreach ($couplings as $coupling) {
+                    $result[$cm->id][] = array_merge($coupling, ['issue_class' => 'date_coupling']);
+                }
             }
         }
         return $result;
@@ -195,24 +162,24 @@ class temporal_conflict_detector {
      * Build a field-name → timestamp lookup from adapter-sourced date entries.
      *
      * @param array $entries Date entries for a single CM.
-     * @return array<string, int> Field name → unix timestamp.
+     * @return array<string, int>
      */
     private function build_field_map(array $entries): array {
         $map = [];
         foreach ($entries as $entry) {
             if (($entry['source'] ?? '') === 'adapter') {
-                $map[$entry['field']] = (int) $entry['timestamp'];
+                $map[$entry['field']] = (int)$entry['timestamp'];
             }
         }
         return $map;
     }
 
     /**
-     * Apply ordering rules against a field map.
+     * Apply R3 ordering rules against a field map.
      *
-     * @param array<int, string[]> $rules    Rules for this component.
-     * @param array<string, int>   $fieldmap Field → timestamp.
-     * @return array[] List of conflict arrays with severity 'error'.
+     * @param array<int, string[]> $rules
+     * @param array<string, int>   $fieldmap
+     * @return array[]
      */
     private function apply_rules(array $rules, array $fieldmap): array {
         $conflicts = [];
@@ -230,5 +197,45 @@ class temporal_conflict_detector {
             }
         }
         return $conflicts;
+    }
+
+    /**
+     * Apply R4 coupling rules against a field map.
+     *
+     * A coupling rule is advisory: [anchor, following] means following
+     * should be >= anchor + min_gap_seconds. Only fires when both fields
+     * are set and following < anchor + min_gap_seconds.
+     *
+     * @param array<int, string[]> $rules
+     * @param array<string, int>   $fieldmap
+     * @param int                  $mingapsecs Configured minimum gap in seconds.
+     * @param string               $severity   Configured severity ('notice'|'warning').
+     * @return array[]
+     */
+    private function apply_coupling_rules(
+        array $rules,
+        array $fieldmap,
+        int $mingapsecs,
+        string $severity
+    ): array {
+        $couplings = [];
+        foreach ($rules as [$anchor, $following]) {
+            $tsanchor = $fieldmap[$anchor] ?? 0;
+            $tsfollowing = $fieldmap[$following] ?? 0;
+            if ($tsanchor > 0 && $tsfollowing > 0) {
+                $required = $tsanchor + $mingapsecs;
+                if ($tsfollowing < $required) {
+                    $couplings[] = [
+                        'field_early'  => $anchor,
+                        'field_late'   => $following,
+                        'ts_early'     => $tsanchor,
+                        'ts_late'      => $tsfollowing,
+                        'min_gap_days' => (int)($mingapsecs / DAYSECS),
+                        'severity'     => $severity,
+                    ];
+                }
+            }
+        }
+        return $couplings;
     }
 }

@@ -29,3 +29,4 @@ $string['field_available']    = 'Verfügbar ab';
 $string['field_deadline']    = 'Abgabetermin';
 $string['pluginname']         = 'Kursablauf-Zentrale: Lektion-Adapter';
 $string['privacy:metadata']   = 'Der Lektion-Adapter der Kursablauf-Zentrale speichert keine personenbezogenen Daten.';
+$string['field_completionexpected'] = 'Abschluss erwartet bis';

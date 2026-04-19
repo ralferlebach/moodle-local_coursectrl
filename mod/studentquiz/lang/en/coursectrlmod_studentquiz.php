@@ -31,3 +31,4 @@ $string['field_openansweringfrom']    = 'Answering open from';
 $string['field_opensubmissionfrom']    = 'Submissions open from';
 $string['pluginname']         = 'Course Control Hub: StudentQuiz adapter';
 $string['privacy:metadata']   = 'The Course Control Hub StudentQuiz adapter stores no personal data.';
+$string['field_completionexpected'] = 'Expected completion date';

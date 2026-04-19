@@ -29,3 +29,4 @@ $string['field_timeclose']    = 'Allow answers until';
 $string['field_timeopen']     = 'Allow answers from';
 $string['pluginname']         = 'Course Control Hub: Feedback adapter';
 $string['privacy:metadata']   = 'The Course Control Hub feedback adapter does not store any personal data. It operates on feedback configuration on behalf of the local_coursectrl plugin and delegates all persistence to it.';
+$string['field_completionexpected'] = 'Expected completion date';

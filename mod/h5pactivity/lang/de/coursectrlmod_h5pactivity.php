@@ -26,3 +26,4 @@ defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname']         = 'Kursablauf-Zentrale: H5P-Aktivität-Adapter';
 $string['privacy:metadata']   = 'Der H5P-Aktivität-Adapter der Kursablauf-Zentrale speichert keine personenbezogenen Daten.';
+$string['field_completionexpected'] = 'Abschluss erwartet bis';

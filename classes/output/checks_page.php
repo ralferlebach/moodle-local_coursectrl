@@ -66,16 +66,9 @@ class checks_page implements renderable, templatable {
     /**
      * Constructor.
      *
-     * @param object $course    Course record.
-     * @param string $activetab Active tab identifier ('consistency'|'risks').
-     * @param bool   $freshrun  True to trigger a fresh risk assessment run.
-     */
-    /**
-     * Constructor.
-     *
-     * @param object            $course    Course record.
-     * @param string            $activetab Active tab identifier.
-     * @param bool              $freshrun  True to trigger a fresh risk assessment run.
+     * @param object             $course    Course record.
+     * @param string             $activetab Active tab identifier.
+     * @param bool               $freshrun  True to trigger a fresh risk assessment run.
      * @param learner_state|null $simstate  Learner state for simulation tab, or null.
      */
     public function __construct(
@@ -341,38 +334,7 @@ class checks_page implements renderable, templatable {
             );
             $consequence = get_string('consistency_consequence_r0_deadline_past', 'local_coursectrl');
             $action = get_string('consistency_action_r0_deadline_past', 'local_coursectrl');
-        } else if ($type === 'date_coupling') {
-            $fearly = $issue['field_early'] ?? '';
-            $flate = $issue['field_late'] ?? '';
-            $tsearly = (int)($issue['ts_early'] ?? 0);
-            $tslate = (int)($issue['ts_late'] ?? 0);
-            $gapdays = (int)($issue['min_gap_days'] ?? 0);
-            $learly = $this->field_label($fearly, $cm);
-            $llate = $this->field_label($flate, $cm);
-            $headline = get_string('consistency_headline_date_coupling', 'local_coursectrl');
-            $detail = get_string(
-                $gapdays > 0 ? 'consistency_detail_date_coupling_gap' : 'consistency_detail_date_coupling',
-                'local_coursectrl',
-                (object)[
-                    'field_anchor'   => $learly,
-                    'date_anchor'    => $tsearly > 0 ? userdate($tsearly, $dateformat) : '–',
-                    'field_follow'   => $llate,
-                    'date_follow'    => $tslate > 0 ? userdate($tslate, $dateformat) : '–',
-                    'gap_days'       => $gapdays,
-                ]
-            );
-            $consequence = get_string('consistency_consequence_date_coupling', 'local_coursectrl');
-            $action = get_string('consistency_action_date_coupling', 'local_coursectrl');
-        } else if ($type === 'r1_hidden') {
-            $headline = get_string('consistency_headline_r1_hidden', 'local_coursectrl');
-            $detail = get_string('consistency_detail_r1_hidden', 'local_coursectrl');
-            $consequence = get_string('consistency_consequence_r1_hidden', 'local_coursectrl');
-            $action = get_string('consistency_action_r1_hidden', 'local_coursectrl');
-        } else if ($type === 'r1_not_accessible') {
-            $headline = get_string('consistency_headline_r1_not_accessible', 'local_coursectrl');
-            $detail = get_string('consistency_detail_r1_not_accessible', 'local_coursectrl');
-            $consequence = get_string('consistency_consequence_r1_not_accessible', 'local_coursectrl');
-            $action = get_string('consistency_action_r1_not_accessible', 'local_coursectrl');
+        } else if ($type === 'dangling_dep') {
             $depcmid = (int)($issue['depcmid'] ?? 0);
             $headline = get_string('consistency_headline_dangling_dep', 'local_coursectrl');
             $detail = get_string(
@@ -423,6 +385,10 @@ class checks_page implements renderable, templatable {
             'action'         => $action,
             'hasaction'      => $action !== '',
             'simurl'         => $simurl,
+            'fix_type'       => $this->fix_type_for($type),
+            'fix_url'        => $this->fix_url_for($type, $cmid, $cm, $courseid, 'consistency'),
+            'fix_label'      => $this->fix_label_for($type),
+            'has_fix'        => $this->fix_type_for($type) !== '',
         ];
     }
 
@@ -488,7 +454,7 @@ class checks_page implements renderable, templatable {
         $warningcount = count(array_filter($items, fn ($i) => ($i['severity'] ?? '') === 'warning'));
         $noticecount = count(array_filter($items, fn ($i) => ($i['severity'] ?? '') === 'notice'));
 
-        $groups = $this->group_risk_items($items, $cmnames, $cmurls, $cmobjects);
+        $groups = $this->group_risk_items($items, $cmnames, $cmurls, $cmobjects, $courseid);
 
         return [
             'hasresults'   => !empty($items),
@@ -513,10 +479,17 @@ class checks_page implements renderable, templatable {
      * @param array[] $items
      * @param array   $cmnames
      * @param array   $cmurls
-     * @param array   $cms    Full cm_item objects keyed by cmid.
+     * @param array   $cms      Full cm_item objects keyed by cmid.
+     * @param int     $courseid Course id (required for fix URLs).
      * @return array[]
      */
-    private function group_risk_items(array $items, array $cmnames, array $cmurls, array $cms = []): array {
+    private function group_risk_items(
+        array $items,
+        array $cmnames,
+        array $cmurls,
+        array $cms = [],
+        int $courseid = 0
+    ): array {
         $severityicon = ['error' => '❗', 'warning' => '⚠️', 'notice' => 'ℹ️'];
         $dateformat = get_string('strftimedatetimeshort', 'langconfig');
 
@@ -590,6 +563,10 @@ class checks_page implements renderable, templatable {
                 'hascascade'    => !empty($cascadelinked),
                 'cascade_count' => count($cascadelinked),
                 'simurl'        => $simurl,
+                'fix_type'      => $this->fix_type_for($type),
+                'fix_url'       => $this->fix_url_for($type, $primarycmid, $cm, $courseid, 'risks'),
+                'fix_label'     => $this->fix_label_for($type),
+                'has_fix'       => $this->fix_type_for($type) !== '',
                 'escape_message' => get_string(
                     'checks_escape_' . ($item['escape_type'] ?? 'none'),
                     'local_coursectrl',
@@ -682,9 +659,92 @@ class checks_page implements renderable, templatable {
     }
 
     /**
-     * Build the simulation tab context by delegating to simulation_page.
+     * Return the fix type code for a given issue type, or '' if no one-click fix exists.
      *
-     * @param \local_coursectrl\local\inventory\inventory_snapshot $snapshot
+     * @param string $type Issue type.
+     * @return string 'unhide_cm' | 'modedit_availability' | 'timeline' | 'dependencies' | ''
+     */
+    private function fix_type_for(string $type): string {
+        $map = [
+            'dep_on_hidden'           => 'unhide_cm',
+            'hidden_with_dependents'  => 'unhide_cm',
+            'r1_hidden'               => 'unhide_cm',
+            'dangling_dep'            => 'modedit_availability',
+            'impossible_dep'          => 'modedit_availability',
+            'dangling_group'          => 'modedit_availability',
+            'dangling_grouping'       => 'modedit_availability',
+            'temporal_conflict'       => 'timeline',
+            'date_coupling'           => 'timeline',
+            'r0_after_course_end'     => 'timeline',
+            'r0_before_course_start'  => 'timeline',
+            'r0_deadline_in_past'     => 'timeline',
+            'circular_dep'            => 'modedit_availability',
+            'circular_dep_transitive' => 'modedit_availability',
+        ];
+        return $map[$type] ?? '';
+    }
+
+    /**
+     * Build the fix action URL for a given issue type and CM.
+     *
+     * @param string   $type      Issue type.
+     * @param int      $cmid      Primary CM id.
+     * @param mixed    $cm        CM item object or null.
+     * @param int      $courseid  Course id.
+     * @param string   $tab       Checks tab to return to after fix.
+     * @return string URL or empty string.
+     */
+    private function fix_url_for(string $type, int $cmid, $cm, int $courseid, string $tab): string {
+        $fixtype = $this->fix_type_for($type);
+        if ($fixtype === '') {
+            return '';
+        }
+        if ($fixtype === 'unhide_cm') {
+            return (new \moodle_url(
+                '/local/coursectrl/fix_action.php',
+                [
+                    'courseid' => $courseid,
+                    'action'   => 'unhide_cm',
+                    'cmid'     => $cmid,
+                    'tab'      => $tab,
+                    'sesskey'  => sesskey(),
+                ]
+            ))->out(false);
+        }
+        if ($fixtype === 'modedit_availability') {
+            return (new \moodle_url(
+                '/course/modedit.php',
+                ['update' => $cmid, 'return' => 1]
+            ))->out(false) . '#id_availabilityconditionsjson';
+        }
+        if ($fixtype === 'timeline') {
+            return (new \moodle_url(
+                '/local/coursectrl/timeline.php',
+                ['courseid' => $courseid, 'focus' => $cmid]
+            ))->out(false);
+        }
+        return '';
+    }
+
+    /**
+     * Return the label for the fix button for a given issue type.
+     *
+     * @param string $type Issue type.
+     * @return string Localised label, or empty string.
+     */
+    private function fix_label_for(string $type): string {
+        $fixtype = $this->fix_type_for($type);
+        $key = 'fix_label_' . $fixtype;
+        if ($fixtype === '' || $key === 'fix_label_') {
+            return '';
+        }
+        return get_string($key, 'local_coursectrl', null, true) ?: $fixtype;
+    }
+
+    /**
+     * Build the template context array for the simulation tab.
+     *
+     * @param \local_coursectrl\local\inventory\inventory_snapshot $snapshot Current inventory snapshot.
      * @return array Template context from simulation_page::export_for_template().
      */
     private function build_simulation_tab(

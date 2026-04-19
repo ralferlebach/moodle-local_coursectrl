@@ -29,3 +29,4 @@ $string['field_closedate']    = 'Close date';
 $string['field_opendate']    = 'Open date';
 $string['pluginname']         = 'Course Control Hub: Questionnaire adapter';
 $string['privacy:metadata']   = 'The Course Control Hub questionnaire adapter stores no personal data.';
+$string['field_completionexpected'] = 'Expected completion date';

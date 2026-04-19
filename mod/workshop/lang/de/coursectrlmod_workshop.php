@@ -31,3 +31,4 @@ $string['field_submissionend']    = 'Einreichungen bis';
 $string['field_submissionstart']    = 'Einreichungen ab';
 $string['pluginname']         = 'Kursablauf-Zentrale: Workshop-Adapter';
 $string['privacy:metadata']   = 'Der Workshop-Adapter der Kursablauf-Zentrale speichert keine personenbezogenen Daten.';
+$string['field_completionexpected'] = 'Abschluss erwartet bis';

@@ -121,8 +121,25 @@ class consistency_runner {
             }
         }
 
+        // Reachability (structural dependency checks) must run before R1 so that
+        // dangling_dep / impossible_dep issues appear first. R1 is suppressed for
+        // CMs that already carry a structural dependency issue, since those make
+        // the R1 result misleading (the CM may be inaccessible solely because the
+        // prerequisite no longer exists, not because of a policy decision).
+        $structuralcmids = [];
+        foreach ($this->reachabilityanalyzer->analyze($cms, $depindex, $groups) as $cmid => $issues) {
+            foreach ($issues as $issue) {
+                $warnings[$cmid][] = array_merge(['type' => $issue['issuetype']], $issue);
+            }
+            $structuralcmids[$cmid] = true;
+        }
+
         // R1: accessibility check (mode-dependent, see r1_mode admin setting).
+        // Skip CMs already flagged with a structural dependency issue.
         foreach ($this->accessibilitychecker->check($cms) as $cmid => $r1issues) {
+            if (isset($structuralcmids[$cmid])) {
+                continue;
+            }
             foreach ($r1issues as $issue) {
                 $warnings[$cmid][] = $issue;
             }
@@ -140,12 +157,6 @@ class consistency_runner {
                     'ts_late'     => $conflict['ts_late'],
                     'min_gap_days' => $conflict['min_gap_days'] ?? 0,
                 ];
-            }
-        }
-
-        foreach ($this->reachabilityanalyzer->analyze($cms, $depindex, $groups) as $cmid => $issues) {
-            foreach ($issues as $issue) {
-                $warnings[$cmid][] = array_merge(['type' => $issue['issuetype']], $issue);
             }
         }
 

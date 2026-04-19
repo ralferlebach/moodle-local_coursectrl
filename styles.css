@@ -148,7 +148,12 @@
 }
 
 .coursectrl-simdrop-item .form-check-label {
-    margin: 0 0 0 20px !important;
+    margin: 0 0 0 20px;
+    line-height: 1.4;
+}
+
+.local_coursectrl_simulation .coursectrl-simdrop-item .form-check-label {
+    margin: 0 0 0 20px;
     line-height: 1.4;
 }
 
@@ -175,8 +180,9 @@
  * Ensure dropdown UL containers never add extra left padding
  * regardless of Bootstrap's list-related utilities.
  */
-[data-region="local_coursectrl-simdropdown-menu"] {
-    padding-left: 0 !important;
+[data-region="local_coursectrl-simdropdown-menu"],
+[data-region="local_coursectrl-simdropdown-menu"] ul {
+    padding-left: 0;
 }
 
 /**

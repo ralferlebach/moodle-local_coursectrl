@@ -26,3 +26,4 @@ defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname']         = 'Course Control Hub: H5P Activity adapter';
 $string['privacy:metadata']   = 'The Course Control Hub H5P activity adapter stores no personal data.';
+$string['field_completionexpected'] = 'Expected completion date';

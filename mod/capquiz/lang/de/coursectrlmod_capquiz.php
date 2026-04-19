@@ -28,3 +28,4 @@ $string['action_shift_dates'] = 'Termine verschieben';
 $string['field_timedue']    = 'Fälligkeitsdatum';
 $string['pluginname']         = 'Kursablauf-Zentrale: CAPQuiz-Adapter';
 $string['privacy:metadata']   = 'Der CAPQuiz-Adapter der Kursablauf-Zentrale speichert keine personenbezogenen Daten.';
+$string['field_completionexpected'] = 'Abschluss erwartet bis';

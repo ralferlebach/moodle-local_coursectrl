@@ -29,3 +29,4 @@ $string['field_available']    = 'Available from';
 $string['field_deadline']    = 'Deadline';
 $string['pluginname']         = 'Course Control Hub: Lesson adapter';
 $string['privacy:metadata']   = 'The Course Control Hub lesson adapter stores no personal data.';
+$string['field_completionexpected'] = 'Expected completion date';

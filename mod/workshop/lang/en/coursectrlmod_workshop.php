@@ -31,3 +31,4 @@ $string['field_submissionend']    = 'Submissions close';
 $string['field_submissionstart']    = 'Submissions open';
 $string['pluginname']         = 'Course Control Hub: Workshop adapter';
 $string['privacy:metadata']   = 'The Course Control Hub workshop adapter stores no personal data.';
+$string['field_completionexpected'] = 'Expected completion date';

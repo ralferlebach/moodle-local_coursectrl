@@ -29,3 +29,4 @@ $string['field_timeclose']    = 'Antworten möglich bis';
 $string['field_timeopen']     = 'Antworten möglich ab';
 $string['pluginname']         = 'Kursablauf-Zentrale: Feedback-Adapter';
 $string['privacy:metadata']   = 'Der Feedback-Adapter der Kursablauf-Zentrale speichert keine personenbezogenen Daten. Er arbeitet im Auftrag des Plugins local_coursectrl auf den Konfigurationsdaten von Feedbacks und überlässt diesem die gesamte Persistenz.';
+$string['field_completionexpected'] = 'Abschluss erwartet bis';

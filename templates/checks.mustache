@@ -71,6 +71,12 @@
         {{/totalcount}}{{/risks}}
       </a>
     </li>
+    <li class="nav-item">
+      <a class="nav-link{{#tab_simulation}} active{{/tab_simulation}}"
+         href="{{checksurl}}&amp;tab=simulation">
+        {{#str}} tab_simulation, local_coursectrl {{/str}}
+      </a>
+    </li>
   </ul>
 
   {{! ══════════════════════════════════════════════════════════════════════ }}
@@ -232,5 +238,17 @@
   </div>
   {{/risks}}
   {{/tab_risks}}
+
+
+  {{! ════════════════════════════════════════════════════════════════════ }}
+  {{! Tab: Simulation                                                       }}
+  {{! ════════════════════════════════════════════════════════════════════ }}
+  {{#tab_simulation}}
+  {{#simulation}}
+  <div data-region="panel-simulation">
+    {{{simulationhtml}}}
+  </div>
+  {{/simulation}}
+  {{/tab_simulation}}
 
 </div>

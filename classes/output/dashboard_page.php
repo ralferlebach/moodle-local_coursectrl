@@ -74,22 +74,7 @@ class dashboard_page implements renderable, templatable {
         $circular = $depindex->find_circular_deps();
         $circularset = $this->build_circular_set($circular);
         $runner = new consistency_runner();
-        $checkresults = $runner->get_warnings($this->snapshot->cms, $depindex, $datesbycm);
-
-        // Merge persisted risk-assessment findings into the check results so the
-        // dashboard warning/notice counts reflect the last risk-assessment run.
-        $riskitems = risk_assessment_runner::load_last((int)$course->id);
-        foreach ($riskitems as $riskitem) {
-            $severity = $riskitem['severity'] ?? 'notice';
-            $cmid = (int)($riskitem['cmids'][0] ?? 0);
-            if ($cmid > 0 && isset($this->snapshot->cms[$cmid])) {
-                $checkresults[$cmid][] = [
-                    'type'     => $riskitem['type'] ?? 'risk',
-                    'severity' => $severity,
-                    'message'  => $riskitem['message'] ?? '',
-                ];
-            }
-        }
+        $checkresults = $runner->get_warnings($this->snapshot->cms, $depindex, $datesbycm, null, $course);
         $dateformat = get_string('strftimedaydatetime', 'core_langconfig');
 
         // Build CM name lookup for cross-linking.
@@ -188,11 +173,6 @@ class dashboard_page implements renderable, templatable {
             'upcoming7days'  => $this->count_upcoming_dates($datesbycm, 7),
             'upcoming28days' => $this->count_upcoming_dates($datesbycm, 28),
             'showcalendar' => (bool) get_user_preferences('local_coursectrl_showcalendar', 1),
-            'risksurl' => (new \moodle_url(
-                '/local/coursectrl/risks.php',
-                ['courseid' => $course->id]
-            ))->out(false),
-            'riskslastrun' => risk_assessment_runner::last_run_time((int)$course->id) > 0,
         ];
     }
 

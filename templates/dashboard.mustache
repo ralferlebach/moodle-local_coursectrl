@@ -136,32 +136,20 @@
     {{! Warning detail panel — shown below calendar when warnings exist }}
     {{#haswarnings}}
     <div class="alert alert-danger py-2 mb-3 small" id="coursectrl-warnings">
-        <i class="fa fa-exclamation-triangle me-1"></i>
-        <strong>{{warningcount}} {{#str}} dashboard_warning_detail_title, local_coursectrl {{/str}}</strong>
-        <ul class="mb-0 mt-1 ps-3">
-            {{#sections}}{{#cms}}{{#haswarnings}}{{#warnings}}
-            <li>
-                <a href="{{../activityurl}}" class="alert-link">{{../name}}</a>:
-                {{message}}
-            </li>
-            {{/warnings}}{{/haswarnings}}{{/cms}}{{/sections}}
-        </ul>
+        <div>
+                <i class="fa fa-exclamation-triangle me-1"></i>
+                <strong>{{warningcount}} {{#str}} dashboard_warning_detail_title, local_coursectrl {{/str}}</strong>
+                <ul class="mb-0 mt-1 ps-3">
+                    {{#sections}}{{#cms}}{{#haswarnings}}{{#warnings}}
+                    <li>
+                        <a href="{{../activityurl}}" class="alert-link">{{../name}}</a>:
+                        {{message}}
+                    </li>
+                    {{/warnings}}{{/haswarnings}}{{/cms}}{{/sections}}
+                </ul>
+            </div>
     </div>
     {{/haswarnings}}
-    {{#hasnotices}}
-    <div class="alert alert-info py-2 mb-3 small">
-        <i class="fa fa-info-circle me-1"></i>
-        <strong>{{#str}} dashboard_notice_detail_title, local_coursectrl {{/str}}</strong>
-        <ul class="mb-0 mt-1 ps-3">
-            {{#sections}}{{#cms}}{{#hasnotices}}{{#notices}}
-            <li>
-                <a href="{{../activityurl}}" class="alert-link">{{../name}}</a>:
-                {{message}}
-            </li>
-            {{/notices}}{{/hasnotices}}{{/cms}}{{/sections}}
-        </ul>
-    </div>
-    {{/hasnotices}}
 
     {{! ---- Inventory ---- }}
     {{#hassections}}
@@ -185,7 +173,7 @@
                                 {{! ---- Row 1: Name + badges + links ---- }}
                                 <div class="d-flex align-items-center justify-content-between mb-1">
                                     <div>
-                                        {{#haswarnings}}{{#warnings}}<span title="{{message}}">{{icon}}</span> {{/warnings}}{{/haswarnings}}{{#hasnotices}}{{#notices}}<span title="{{message}}">{{icon}}</span> {{/notices}}{{/hasnotices}}
+                                        {{#haswarnings}}{{#warnings}}<span title="{{message}}">{{icon}}</span> {{/warnings}}{{/haswarnings}}
                                         {{#pix}}monologo, mod_{{modname}}, {{modname}}{{/pix}}
                                         <a href="{{activityurl}}" class="font-weight-bold">{{name}}</a>
                                         {{^visible}}<span class="badge badge-secondary ml-1">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>{{/visible}}

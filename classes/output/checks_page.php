@@ -26,6 +26,9 @@
  *                 escape paths, priority scores).
  *                 Uses the last persisted assessment; run on demand via ?run=1.
  *
+ *   simulation  — Learner simulation (visibility and accessibility from a
+ *                 defined learner perspective). Delegates to simulation_page.
+ *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -41,6 +44,8 @@ use local_coursectrl\local\analysis\date_collector;
 use local_coursectrl\local\analysis\dependency_index;
 use local_coursectrl\local\analysis\risk_assessment_runner;
 use local_coursectrl\local\inventory\inventory_service;
+use local_coursectrl\local\simulation\learner_state;
+use local_coursectrl\manager\registry;
 
 /**
  * Renderable for the unified checks page (consistency + risk assessment).
@@ -52,6 +57,9 @@ class checks_page implements renderable, templatable {
     /** @var bool True when a fresh risk assessment run was requested. */
     private bool $freshrun;
 
+    /** @var learner_state|null Simulation state from submitted form. */
+    private ?learner_state $simstate;
+
     /** @var object Course record. */
     private object $course;
 
@@ -62,10 +70,24 @@ class checks_page implements renderable, templatable {
      * @param string $activetab Active tab identifier ('consistency'|'risks').
      * @param bool   $freshrun  True to trigger a fresh risk assessment run.
      */
-    public function __construct(object $course, string $activetab = 'consistency', bool $freshrun = false) {
+    /**
+     * Constructor.
+     *
+     * @param object            $course    Course record.
+     * @param string            $activetab Active tab identifier.
+     * @param bool              $freshrun  True to trigger a fresh risk assessment run.
+     * @param learner_state|null $simstate  Learner state for simulation tab, or null.
+     */
+    public function __construct(
+        object $course,
+        string $activetab = 'consistency',
+        bool $freshrun = false,
+        ?learner_state $simstate = null
+    ) {
         $this->course = $course;
-        $this->activetab = in_array($activetab, ['consistency', 'risks']) ? $activetab : 'consistency';
+        $this->activetab = in_array($activetab, ['consistency', 'risks', 'simulation']) ? $activetab : 'consistency';
         $this->freshrun = $freshrun;
+        $this->simstate = $simstate;
     }
 
     /**
@@ -131,7 +153,24 @@ class checks_page implements renderable, templatable {
         array $cmurls
     ): array {
         $runner = new consistency_runner();
-        $warnings = $runner->get_warnings($cms, $depindex, $datesbycm);
+        $warnings = $runner->get_warnings($cms, $depindex, $datesbycm, null, $this->course);
+
+        // Merge adapter-specific R3/R7 check results into the consistency list.
+        $adapterreg = new registry();
+        foreach ($cms as $cm) {
+            $adapter = $adapterreg->get_for_component($cm->get_component());
+            if ($adapter === null) {
+                continue;
+            }
+            foreach ($adapter->run_checks([$cm->id]) as $result) {
+                $severity = $result['severity'] ?? 'warning';
+                $warnings[$cm->id][] = [
+                    'type'     => $result['code'] ?? 'adapter_check',
+                    'severity' => $severity,
+                    'message'  => $result['message'] ?? '',
+                ];
+            }
+        }
 
         $severityicon = ['error' => '❗', 'warning' => '⚠️', 'notice' => 'ℹ️'];
         $items = [];
@@ -298,5 +337,23 @@ class checks_page implements renderable, templatable {
             $result[] = $group;
         }
         return $result;
+    }
+
+    /**
+     * Build the simulation tab context by delegating to simulation_page.
+     *
+     * @param \local_coursectrl\local\inventory\inventory_snapshot $snapshot
+     * @return array Template context from simulation_page::export_for_template().
+     */
+    private function build_simulation_tab(
+        \local_coursectrl\local\inventory\inventory_snapshot $snapshot
+    ): array {
+        global $OUTPUT, $PAGE;
+        $simpage = new simulation_page($snapshot, $this->simstate);
+        $renderer = $PAGE->get_renderer('local_coursectrl');
+        // Render the simulation template and pass as pre-rendered HTML so
+        // checks.mustache can include it without a nested template call.
+        $html = $renderer->render_simulation_page($simpage);
+        return ['simulationhtml' => $html];
     }
 }

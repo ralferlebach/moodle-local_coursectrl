@@ -239,8 +239,8 @@ class simulation_page implements renderable, templatable {
             'graphurl_sim' => $this->build_sim_graph_url($courseid, $blockedids, $nextstepids),
             'hasgraphurl_sim' => $this->state !== null,
             'selfurl' => (new \moodle_url(
-                '/local/coursectrl/simulation.php',
-                ['courseid' => $courseid]
+                '/local/coursectrl/checks.php',
+                ['courseid' => $courseid, 'tab' => 'simulation']
             ))->out(false),
         ];
     }

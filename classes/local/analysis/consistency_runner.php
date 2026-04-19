@@ -24,37 +24,27 @@
  * layer is responsible for converting issue types to localised warning strings
  * so this class stays free of Moodle i18n calls and remains easily testable.
  *
- * Severity levels used across issue types:
- *   error   — logically invalid state (e.g. open date after close date).
- *   warning — unusual ordering that is likely unintentional.
- *   notice  — advisory hint that may or may not need action.
- *
  * Supported issue types returned by get_warnings():
  *
- *   temporal_conflict              — Two adapter date fields have an inverted ordering.
- *                                    Extra keys: field_early, field_late, ts_early, ts_late,
- *                                    severity ('error').
+ *   temporal_conflict  — Two date fields within the same CM have an inverted
+ *                        ordering.
+ *                        Extra keys: field_early, field_late, ts_early, ts_late.
  *
- *   completionexpected_after_deadline — completionexpected is set after the module deadline.
- *                                    Extra keys: field_early, field_late, ts_early, ts_late,
- *                                    severity ('warning').
+ *   dangling_dep       — An availability condition references a cmid that no
+ *                        longer exists in the course inventory.
+ *                        Extra keys: depcmid (int).
  *
- *   completionexpected_early       — completionexpected is more than one week before deadline.
- *                                    Extra keys: field_early, field_late, ts_early, ts_late,
- *                                    severity ('notice').
+ *   impossible_dep     — An availability condition requires completion of an
+ *                        activity that has completion tracking disabled.
+ *                        Extra keys: depcmid (int), depname (string).
  *
- *   dangling_dep                   — Availability condition references a missing cmid.
- *                                    Extra keys: depcmid (int). Severity: error.
+ *   dangling_group     — An availability condition references a group id that
+ *                        does not exist in the course.
+ *                        Extra keys: groupid (int).
  *
- *   impossible_dep                 — Availability requires completion of an activity with
- *                                    completion tracking disabled.
- *                                    Extra keys: depcmid (int), depname (string). Severity: warning.
- *
- *   dangling_group                 — Availability references a non-existent group.
- *                                    Extra keys: groupid (int). Severity: warning.
- *
- *   dangling_grouping              — Availability references a non-existent grouping.
- *                                    Extra keys: groupingid (int). Severity: warning.
+ *   dangling_grouping  — An availability condition references a grouping id
+ *                        that does not exist in the course.
+ *                        Extra keys: groupingid (int).
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -64,6 +54,7 @@
 namespace local_coursectrl\local\analysis;
 
 use local_coursectrl\local\entity\cm_item;
+use local_coursectrl\local\inventory\course_item;
 
 /**
  * Orchestrates all transient consistency checks for a course.
@@ -75,18 +66,23 @@ class consistency_runner {
     /** @var reachability_analyzer */
     private reachability_analyzer $reachabilityanalyzer;
 
+    /** @var course_frame_checker */
+    private course_frame_checker $framechecker;
+
     /**
      * Constructor.
      *
-     * @param temporal_conflict_detector|null $conflictdetector     Optional override.
+     * @param temporal_conflict_detector|null $conflictdetector   Optional override.
      * @param reachability_analyzer|null      $reachabilityanalyzer Optional override.
      */
     public function __construct(
         ?temporal_conflict_detector $conflictdetector = null,
-        ?reachability_analyzer $reachabilityanalyzer = null
+        ?reachability_analyzer $reachabilityanalyzer = null,
+        ?course_frame_checker $framechecker = null
     ) {
         $this->conflictdetector = $conflictdetector ?? new temporal_conflict_detector();
         $this->reachabilityanalyzer = $reachabilityanalyzer ?? new reachability_analyzer();
+        $this->framechecker = $framechecker ?? new course_frame_checker();
     }
 
     /**
@@ -104,22 +100,32 @@ class consistency_runner {
         array $cms,
         dependency_index $depindex,
         array $datesbycm,
-        ?group_resolver $groups = null
+        ?group_resolver $groups = null,
+        ?object $course = null
     ): array {
         $warnings = [];
 
+        // R0: course-frame plausibility (before any other checks).
+        if ($course !== null) {
+            foreach ($this->framechecker->check($cms, $datesbycm, $course) as $cmid => $r0issues) {
+                foreach ($r0issues as $issue) {
+                    $warnings[$cmid][] = [
+                        'type'     => $issue['type'],
+                        'severity' => $issue['severity'],
+                        'message'  => get_string($issue['type'], 'local_coursectrl'),
+                    ];
+                }
+            }
+        }
+
         foreach ($this->conflictdetector->detect($cms, $datesbycm) as $cmid => $conflicts) {
             foreach ($conflicts as $conflict) {
-                // Use type_override when the detector supplies one (e.g. completionexpected checks),
-                // otherwise fall back to the generic 'temporal_conflict' type.
-                $type = $conflict['type_override'] ?? 'temporal_conflict';
                 $warnings[$cmid][] = [
-                    'type'        => $type,
-                    'severity'    => $conflict['severity'] ?? 'error',
+                    'type' => 'temporal_conflict',
                     'field_early' => $conflict['field_early'],
-                    'field_late'  => $conflict['field_late'],
-                    'ts_early'    => $conflict['ts_early'],
-                    'ts_late'     => $conflict['ts_late'],
+                    'field_late' => $conflict['field_late'],
+                    'ts_early' => $conflict['ts_early'],
+                    'ts_late' => $conflict['ts_late'],
                 ];
             }
         }

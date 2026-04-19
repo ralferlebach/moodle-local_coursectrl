@@ -116,24 +116,27 @@ class navigation_bar implements renderable, templatable {
                 ],
             ],
             [
-                'isgroup'    => true,
-                'grouplabel' => get_string('nav_group_check', 'local_coursectrl'),
-                'groupid'    => $uid . '-g2',
-                'hasstandalone' => false,
-                'standalone' => [],
-                'options'    => [
+                'isgroup'    => false,
+                'grouplabel' => '',
+                'groupid'    => '',
+                'options'    => [],
+                'standalone' => [
                     [
                         'oid'      => $uid . '-o' . $n++,
-                        'label'    => get_string('nav_simulation', 'local_coursectrl'),
-                        'value'    => $this->u('simulation.php'),
-                        'selected' => $active === 'coursectrl_simulation',
-                        'visible'  => $this->can('local/coursectrl:simulate'),
-                    ],
-                    [
                         'label'    => get_string('nav_checks', 'local_coursectrl'),
-                        'url'      => $this->u('checks.php'),
+                        'value'    => $this->u('checks.php'),
                         'selected' => $active === 'coursectrl_checks',
+                        'visible'  => true,
                     ],
+                ],
+                'hasstandalone' => true,
+            ],
+            [
+                'isgroup'    => false,
+                'grouplabel' => '',
+                'groupid'    => '',
+                'options'    => [],
+                'standalone' => [
                     [
                         'oid'      => $uid . '-o' . $n++,
                         'label'    => get_string('nav_history', 'local_coursectrl'),
@@ -142,6 +145,7 @@ class navigation_bar implements renderable, templatable {
                         'visible'  => true,
                     ],
                 ],
+                'hasstandalone' => true,
             ],
         ];
 
@@ -211,7 +215,7 @@ class navigation_bar implements renderable, templatable {
             'coursectrl_timeline'    => 'timeline.php',
             'coursectrl_graph'       => 'dependencies.php',
             'coursectrl_manage'      => 'manage.php',
-            'coursectrl_simulation'  => 'simulation.php',
+            'coursectrl_simulation'  => 'checks.php',
             'coursectrl_checks'      => 'checks.php',
             'coursectrl_history'     => 'history.php',
         ];

@@ -51,7 +51,7 @@ class navigation_builder {
     public const KEY_SIMULATION = 'coursectrl_simulation';
     /** @var string Navigation key for the history / logs page. */
     public const KEY_HISTORY = 'coursectrl_history';
-    /** @var string Navigation key for the checks page (consistency + risks). */
+    /** @var string Navigation key for the checks page (consistency, risks, simulation). */
     public const KEY_CHECKS = 'coursectrl_checks';
 
     /**

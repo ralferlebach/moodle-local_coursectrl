@@ -238,7 +238,12 @@ jobs:
 
       - name: Install third-party plugins and re-initialise PHPUnit
         run: |
-          MOODLE_DIR="${{ github.workspace }}/moodle"
+          # Detect Moodle root (Moodle 5+ uses a public/ subdirectory).
+          if [ -d "${{ github.workspace }}/moodle/public" ]; then
+            MOODLE_DIR="${{ github.workspace }}/moodle/public"
+          else
+            MOODLE_DIR="${{ github.workspace }}/moodle"
+          fi
           PHP=/usr/bin/php
 
           # Clone third-party modules (non-fatal if unavailable).
@@ -250,7 +255,10 @@ jobs:
           clone_p https://github.com/PoetOS/moodle-mod_questionnaire   "$MOODLE_DIR/mod/questionnaire"
           clone_p https://github.com/ndunand/moodle-mod_choicegroup     "$MOODLE_DIR/mod/choicegroup"
           clone_p https://github.com/studentquiz/moodle-mod_studentquiz "$MOODLE_DIR/mod/studentquiz"
-          clone_p https://github.com/KQMATH/moodle-mod_capquiz           "$MOODLE_DIR/mod/capquiz"
+          # capquiz requires Moodle >= 5.0 — skip on 4.5.
+          if [ "${{ matrix.moodle }}" != "MOODLE_405_STABLE" ]; then
+            clone_p https://github.com/KQMATH/moodle-mod_capquiz "$MOODLE_DIR/mod/capquiz"
+          fi
 
           # Re-run PHPUnit init so new plugins are registered in the test DB.
           cd "$MOODLE_DIR"
@@ -326,7 +334,12 @@ jobs:
 
       - name: Install third-party plugins and re-initialise Behat
         run: |
-          MOODLE_DIR="${{ github.workspace }}/moodle"
+          # Detect Moodle root (Moodle 5+ uses a public/ subdirectory).
+          if [ -d "${{ github.workspace }}/moodle/public" ]; then
+            MOODLE_DIR="${{ github.workspace }}/moodle/public"
+          else
+            MOODLE_DIR="${{ github.workspace }}/moodle"
+          fi
           PHP=/usr/bin/php
 
           clone_p() {
@@ -337,7 +350,10 @@ jobs:
           clone_p https://github.com/PoetOS/moodle-mod_questionnaire   "$MOODLE_DIR/mod/questionnaire"
           clone_p https://github.com/ndunand/moodle-mod_choicegroup     "$MOODLE_DIR/mod/choicegroup"
           clone_p https://github.com/studentquiz/moodle-mod_studentquiz "$MOODLE_DIR/mod/studentquiz"
-          clone_p https://github.com/KQMATH/moodle-mod_capquiz           "$MOODLE_DIR/mod/capquiz"
+          # capquiz requires Moodle >= 5.0 — skip on 4.5.
+          if [ "${{ matrix.moodle }}" != "MOODLE_405_STABLE" ]; then
+            clone_p https://github.com/KQMATH/moodle-mod_capquiz "$MOODLE_DIR/mod/capquiz"
+          fi
 
           # Re-run Behat init so new plugins are registered.
           cd "$MOODLE_DIR"

@@ -251,6 +251,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
      */
     public function test_forum_r7_duedate_without_cutoff(): void {
         $this->resetAfterTest();
+        $this->setAdminUser();
         $course = $this->getDataGenerator()->create_course();
         $forum = $this->getDataGenerator()->get_plugin_generator('mod_forum')
             ->create_instance([
@@ -269,6 +270,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
      */
     public function test_forum_r7_cutoff_without_duedate(): void {
         $this->resetAfterTest();
+        $this->setAdminUser();
         $course = $this->getDataGenerator()->create_course();
         $forum = $this->getDataGenerator()->get_plugin_generator('mod_forum')
             ->create_instance([
@@ -286,6 +288,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
      */
     public function test_forum_clean_no_r7(): void {
         $this->resetAfterTest();
+        $this->setAdminUser();
         $course = $this->getDataGenerator()->create_course();
         $forum = $this->getDataGenerator()->get_plugin_generator('mod_forum')
             ->create_instance([

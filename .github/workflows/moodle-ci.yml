@@ -12,8 +12,10 @@
 #   mod_studentquiz    github.com/studentquiz/moodle-mod_studentquiz
 #   mod_capquiz        github.com/KQMATH/moodle-mod_capquiz
 #
-# Strategy: clone Moodle and third-party plugins BEFORE moodle-plugin-ci install
-# so that phpunit/behat init discover all plugins in a single pass.
+# Strategy:
+#   1. moodle-plugin-ci install clones Moodle and runs phpunit/behat init.
+#   2. Third-party plugins are cloned into moodle/mod/ after install.
+#   3. phpunit/behat init is re-run so the new plugins are registered.
 ##############################################################################
 
 name: Moodle Plugin CI
@@ -110,23 +112,10 @@ jobs:
           BRANCH_NAME=${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}
           echo "TRAVIS_BRANCH=${BRANCH_NAME:-main}" >> "$GITHUB_ENV"
 
-      - name: Clone Moodle and third-party plugins
-        run: |
-          git clone --depth=1 --branch MOODLE_405_STABLE \
-            https://github.com/moodle/moodle.git \
-            "${{ github.workspace }}/moodle"
-          MOODLE_DIR="${{ github.workspace }}/moodle"
-          clone_p() { git clone --depth=1 "$1" "$2" 2>/dev/null && echo "OK: $2" || echo "SKIP: $2"; }
-          clone_p https://github.com/PoetOS/moodle-mod_questionnaire  "$MOODLE_DIR/mod/questionnaire"
-          clone_p https://github.com/ndunand/moodle-mod_choicegroup    "$MOODLE_DIR/mod/choicegroup"
-          clone_p https://github.com/studentquiz/moodle-mod_studentquiz "$MOODLE_DIR/mod/studentquiz"
-          clone_p https://github.com/KQMATH/moodle-mod_capquiz          "$MOODLE_DIR/mod/capquiz"
-
-      - name: Install Moodle (grunt baseline)
+      - name: Install Moodle (grunt baseline – 4.5)
         run: |
           moodle-plugin-ci install \
             --plugin  ./plugin \
-            --moodle  "${{ github.workspace }}/moodle" \
             --branch  MOODLE_405_STABLE \
             --db-type mariadb \
             --db-host 127.0.0.1 \
@@ -155,7 +144,9 @@ jobs:
           MISSING=0
           for src in plugin/amd/src/*.js; do
             base=$(basename "$src" .js)
-            [ -f "plugin/amd/build/${base}.min.js" ] || { echo "MISSING: $base.min.js"; MISSING=$((MISSING+1)); }
+            [ -f "plugin/amd/build/${base}.min.js" ] || {
+              echo "MISSING: $base.min.js"; MISSING=$((MISSING+1))
+            }
           done
           [ "$MISSING" -eq 0 ] && echo "AMD OK." || { echo "ERROR: $MISSING file(s) missing."; exit 1; }
 
@@ -232,30 +223,38 @@ jobs:
           BRANCH_NAME=${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}
           echo "TRAVIS_BRANCH=${BRANCH_NAME:-main}" >> "$GITHUB_ENV"
 
-      - name: Clone Moodle and third-party plugins
-        run: |
-          git clone --depth=1 --branch ${{ matrix.moodle }} \
-            https://github.com/moodle/moodle.git \
-            "${{ github.workspace }}/moodle"
-          MOODLE_DIR="${{ github.workspace }}/moodle"
-          clone_p() { git clone --depth=1 "$1" "$2" 2>/dev/null && echo "OK: $2" || echo "SKIP: $2"; }
-          clone_p https://github.com/PoetOS/moodle-mod_questionnaire   "$MOODLE_DIR/mod/questionnaire"
-          clone_p https://github.com/ndunand/moodle-mod_choicegroup     "$MOODLE_DIR/mod/choicegroup"
-          clone_p https://github.com/studentquiz/moodle-mod_studentquiz "$MOODLE_DIR/mod/studentquiz"
-          clone_p https://github.com/KQMATH/moodle-mod_capquiz           "$MOODLE_DIR/mod/capquiz"
-
       - name: Install Moodle ${{ matrix.moodle }}
         run: |
           moodle-plugin-ci install \
             --plugin  ./plugin \
-            --moodle  "${{ github.workspace }}/moodle" \
             --branch  ${{ matrix.moodle }} \
             --db-type ${{ matrix.db.type }} \
             --db-host 127.0.0.1 \
             --db-port ${{ matrix.db.port }} \
             --db-user ${{ matrix.db.user }} \
             --db-pass ${{ matrix.db.pass }} \
-            --db-name moodle
+            --db-name moodle \
+            --no-init
+
+      - name: Install third-party plugins and re-initialise PHPUnit
+        run: |
+          MOODLE_DIR="${{ github.workspace }}/moodle"
+          PHP=/usr/bin/php
+
+          # Clone third-party modules (non-fatal if unavailable).
+          clone_p() {
+            git clone --depth=1 "$1" "$2" 2>/dev/null \
+              && echo "  cloned: $2" \
+              || echo "  skipped (unavailable): $2"
+          }
+          clone_p https://github.com/PoetOS/moodle-mod_questionnaire   "$MOODLE_DIR/mod/questionnaire"
+          clone_p https://github.com/ndunand/moodle-mod_choicegroup     "$MOODLE_DIR/mod/choicegroup"
+          clone_p https://github.com/studentquiz/moodle-mod_studentquiz "$MOODLE_DIR/mod/studentquiz"
+          clone_p https://github.com/KQMATH/moodle-mod_capquiz           "$MOODLE_DIR/mod/capquiz"
+
+          # Re-run PHPUnit init so new plugins are registered in the test DB.
+          cd "$MOODLE_DIR"
+          $PHP admin/tool/phpunit/cli/init.php
 
       - name: PHPUnit – all tests
         run: moodle-plugin-ci phpunit
@@ -312,30 +311,37 @@ jobs:
           BRANCH_NAME=${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}
           echo "TRAVIS_BRANCH=${BRANCH_NAME:-main}" >> "$GITHUB_ENV"
 
-      - name: Clone Moodle and third-party plugins
-        run: |
-          git clone --depth=1 --branch ${{ matrix.moodle }} \
-            https://github.com/moodle/moodle.git \
-            "${{ github.workspace }}/moodle"
-          MOODLE_DIR="${{ github.workspace }}/moodle"
-          clone_p() { git clone --depth=1 "$1" "$2" 2>/dev/null && echo "OK: $2" || echo "SKIP: $2"; }
-          clone_p https://github.com/PoetOS/moodle-mod_questionnaire   "$MOODLE_DIR/mod/questionnaire"
-          clone_p https://github.com/ndunand/moodle-mod_choicegroup     "$MOODLE_DIR/mod/choicegroup"
-          clone_p https://github.com/studentquiz/moodle-mod_studentquiz "$MOODLE_DIR/mod/studentquiz"
-          clone_p https://github.com/KQMATH/moodle-mod_capquiz           "$MOODLE_DIR/mod/capquiz"
-
       - name: Install Moodle ${{ matrix.moodle }}
         run: |
           moodle-plugin-ci install \
             --plugin  ./plugin \
-            --moodle  "${{ github.workspace }}/moodle" \
             --branch  ${{ matrix.moodle }} \
             --db-type mariadb \
             --db-host 127.0.0.1 \
             --db-port 3306 \
             --db-user root \
             --db-pass root \
-            --db-name moodle
+            --db-name moodle \
+            --no-init
+
+      - name: Install third-party plugins and re-initialise Behat
+        run: |
+          MOODLE_DIR="${{ github.workspace }}/moodle"
+          PHP=/usr/bin/php
+
+          clone_p() {
+            git clone --depth=1 "$1" "$2" 2>/dev/null \
+              && echo "  cloned: $2" \
+              || echo "  skipped (unavailable): $2"
+          }
+          clone_p https://github.com/PoetOS/moodle-mod_questionnaire   "$MOODLE_DIR/mod/questionnaire"
+          clone_p https://github.com/ndunand/moodle-mod_choicegroup     "$MOODLE_DIR/mod/choicegroup"
+          clone_p https://github.com/studentquiz/moodle-mod_studentquiz "$MOODLE_DIR/mod/studentquiz"
+          clone_p https://github.com/KQMATH/moodle-mod_capquiz           "$MOODLE_DIR/mod/capquiz"
+
+          # Re-run Behat init so new plugins are registered.
+          cd "$MOODLE_DIR"
+          $PHP admin/tool/behat/cli/init.php
 
       - name: Behat – all plugin scenarios
         run: |

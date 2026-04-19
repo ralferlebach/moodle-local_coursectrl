@@ -83,19 +83,17 @@ class course_frame_checker {
                 continue;
             }
 
-            // Build a flat timestamp list for R0a/R0b.
-            $timestamps = array_column(
-                array_filter($entries, fn ($e) => ($e['timestamp'] ?? 0) > 0),
-                'timestamp'
-            );
-
             // R0a: Any date after course end (only when course end is set).
             if ($courseend > 0) {
-                foreach ($timestamps as $ts) {
-                    if ($ts > $courseend) {
+                foreach ($entries as $entry) {
+                    $ts = (int)($entry['timestamp'] ?? 0);
+                    if ($ts > 0 && $ts > $courseend) {
                         $issues[$cm->id][] = [
-                            'type'     => 'r0_after_course_end',
-                            'severity' => 'error',
+                            'type'        => 'r0_after_course_end',
+                            'severity'    => 'error',
+                            'field'       => $entry['field'] ?? '',
+                            'ts_field'    => $ts,
+                            'ts_boundary' => $courseend,
                         ];
                         break;
                     }
@@ -104,11 +102,15 @@ class course_frame_checker {
 
             // R0b: Any date before course start (only when course start is set).
             if ($coursestart > 0) {
-                foreach ($timestamps as $ts) {
-                    if ($ts < $coursestart) {
+                foreach ($entries as $entry) {
+                    $ts = (int)($entry['timestamp'] ?? 0);
+                    if ($ts > 0 && $ts < $coursestart) {
                         $issues[$cm->id][] = [
-                            'type'     => 'r0_before_course_start',
-                            'severity' => 'error',
+                            'type'        => 'r0_before_course_start',
+                            'severity'    => 'error',
+                            'field'       => $entry['field'] ?? '',
+                            'ts_field'    => $ts,
+                            'ts_boundary' => $coursestart,
                         ];
                         break;
                     }
@@ -130,6 +132,8 @@ class course_frame_checker {
                             $issues[$cm->id][] = [
                                 'type'     => 'r0_deadline_in_past',
                                 'severity' => 'warning',
+                                'field'    => $deadlinefield,
+                                'ts_field' => (int)$entry['timestamp'],
                             ];
                             break;
                         }

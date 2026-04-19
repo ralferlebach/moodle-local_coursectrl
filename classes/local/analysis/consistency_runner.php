@@ -109,11 +109,9 @@ class consistency_runner {
         if ($course !== null) {
             foreach ($this->framechecker->check($cms, $datesbycm, $course) as $cmid => $r0issues) {
                 foreach ($r0issues as $issue) {
-                    $warnings[$cmid][] = [
-                        'type'     => $issue['type'],
-                        'severity' => $issue['severity'],
-                        'message'  => get_string($issue['type'], 'local_coursectrl'),
-                    ];
+                    // Pass the full issue array so format_consistency_item()
+                    // has access to 'field', 'ts_field', 'ts_boundary'.
+                    $warnings[$cmid][] = $issue;
                 }
             }
         }

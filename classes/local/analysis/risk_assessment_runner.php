@@ -205,7 +205,10 @@ class risk_assessment_runner {
         foreach ($warnings as $cmid => $issues) {
             foreach ($issues as $issue) {
                 $severity = $issue['severity'] ?? 'warning';
-                $items[] = [
+                // Merge the full issue array first so type-specific extra fields
+                // (field_early, field_late, ts_early, ts_late, field, ts_field …)
+                // are preserved for display in the risk tab UI.
+                $items[] = array_merge($issue, [
                     'type'          => $issue['type'] ?? 'consistency',
                     'cmids'         => [$cmid],
                     'probability'   => 1.0,
@@ -222,7 +225,7 @@ class risk_assessment_runner {
                         'overlap_penalty'    => 0,
                     ],
                     'message'       => $issue['message'] ?? '',
-                ];
+                ]);
             }
         }
         return $items;

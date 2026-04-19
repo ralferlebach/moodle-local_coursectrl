@@ -203,4 +203,27 @@ abstract class abstract_activity_adapter implements activity_adapter {
         // No-op by default; adapters that mutate state via direct DB writes
         // override this method.
     }
+
+    /**
+     * Resolve the distinct course ids that contain the given cmids.
+     *
+     * Utility for refresh_calendar_for_cmids() implementations in concrete adapters.
+     * Silently skips cmids that cannot be resolved.
+     *
+     * @param int[]  $cmids   Course module ids.
+     * @param string $modname Module name (e.g. 'assign').
+     * @return int[] Distinct course ids.
+     */
+    protected function collect_courseids_for_cmids(array $cmids, string $modname): array {
+        $result = [];
+        foreach ($cmids as $cmid) {
+            try {
+                $cm = get_coursemodule_from_id($modname, (int)$cmid, 0, false, MUST_EXIST);
+                $result[(int)$cm->course] = true;
+            } catch (\Throwable $e) {
+                continue;
+            }
+        }
+        return array_keys($result);
+    }
 }

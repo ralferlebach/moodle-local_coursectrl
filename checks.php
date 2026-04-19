@@ -15,10 +15,11 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Risk assessment page for the Course Control Hub.
+ * Checks page for the Course Control Hub.
  *
- * Shows scored, grouped dead-end and consistency findings for a course.
- * Pass ?run=1 to trigger a fresh assessment run.
+ * Unified page with two tabs:
+ *   - Consistency (plausibility and collision checks, transient)
+ *   - Risk Assessment (structural dead-end analysis, on demand)
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -28,9 +29,10 @@
 require_once(__DIR__ . '/../../config.php');
 
 use local_coursectrl\local\navigation\navigation_builder;
-use local_coursectrl\output\risk_page;
+use local_coursectrl\output\checks_page;
 
 $courseid = required_param('courseid', PARAM_INT);
+$tab = optional_param('tab', 'consistency', PARAM_ALPHANUMEXT);
 $run = optional_param('run', 0, PARAM_INT);
 
 $course = get_course($courseid);
@@ -40,11 +42,13 @@ require_capability('local/coursectrl:view', $context);
 
 $PAGE->set_course($course);
 $PAGE->set_context($context);
-$PAGE->set_url(new moodle_url('/local/coursectrl/risks.php', ['courseid' => $courseid]));
+$PAGE->set_url(
+    new moodle_url('/local/coursectrl/checks.php', ['courseid' => $courseid, 'tab' => $tab])
+);
 $PAGE->set_title(
     format_string($course->fullname) . ' - ' .
     get_string('pluginname', 'local_coursectrl') . ' - ' .
-    get_string('risks_title', 'local_coursectrl')
+    get_string('checks_title', 'local_coursectrl')
 );
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_pagelayout('incourse');
@@ -53,15 +57,13 @@ $PAGE->navbar->add(
     get_string('pluginname', 'local_coursectrl'),
     new moodle_url('/local/coursectrl/index.php', ['courseid' => $courseid])
 );
-$PAGE->navbar->add(get_string('risks_title', 'local_coursectrl'));
+$PAGE->navbar->add(get_string('checks_title', 'local_coursectrl'));
 
-$navbar = navigation_builder::make($courseid, navigation_builder::KEY_RISKS);
-
-$renderable = new risk_page($course, (bool)$run);
-
+$navbar = navigation_builder::make($courseid, navigation_builder::KEY_CHECKS);
+$renderable = new checks_page($course, $tab, (bool)$run);
 $renderer = $PAGE->get_renderer('local_coursectrl');
 
 echo $OUTPUT->header();
 echo $OUTPUT->render($navbar);
-echo $renderer->render_risk_page($renderable);
+echo $renderer->render_checks_page($renderable);
 echo $OUTPUT->footer();

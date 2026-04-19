@@ -139,4 +139,15 @@ class renderer extends plugin_renderer_base {
         $data = $page->export_for_template($this);
         return $this->render_from_template('local_coursectrl/simulation', $data);
     }
+
+    /**
+     * Render the checks page (consistency and risk assessment tabs).
+     *
+     * @param checks_page $page The checks renderable.
+     * @return string HTML.
+     */
+    public function render_checks_page(checks_page $page): string {
+        $data = $page->export_for_template($this);
+        return $this->render_from_template('local_coursectrl/checks', $data);
+    }
 }

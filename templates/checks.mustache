@@ -1,0 +1,236 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_coursectrl/checks
+
+    Unified checks page with two tabs: Consistency and Risk Assessment.
+
+    Context variables:
+      courseid        int     Course id.
+      checksurl       string  Base URL for this page.
+      tab_consistency bool    Whether the consistency tab is active.
+      tab_risks       bool    Whether the risks tab is active.
+      runurl          string  URL to trigger a fresh risk assessment.
+
+      consistency     object  Consistency tab data:
+        items         array   [{icon, severity, cmid, cmname, cmurl, message, type}]
+        hasitems      bool
+        errorcount    int
+        warningcount  int
+        noticecount   int
+        totalcount    int
+
+      risks           object  Risk assessment tab data:
+        hasresults    bool
+        haslastrun    bool
+        lastrundate   string
+        totalcount    int
+        errorcount    int
+        warningcount  int
+        noticecount   int
+        groups        array   Grouped risk findings.
+        hasgroups     bool
+
+    Example:
+    {"courseid":42,"tab_consistency":true,"checksurl":"...","consistency":{"items":[],"hasitems":false}}
+}}
+
+<div data-region="local_coursectrl-checks" class="local_coursectrl_checks">
+
+  {{! ── Tab navigation ── }}
+  <ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item">
+      <a class="nav-link{{#tab_consistency}} active{{/tab_consistency}}"
+         href="{{checksurl}}&amp;tab=consistency">
+        {{#str}} tab_consistency, local_coursectrl {{/str}}
+        {{#consistency}}{{#totalcount}}
+        <span class="badge badge-secondary ms-1">{{totalcount}}</span>
+        {{/totalcount}}{{/consistency}}
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link{{#tab_risks}} active{{/tab_risks}}"
+         href="{{checksurl}}&amp;tab=risks">
+        {{#str}} tab_risks, local_coursectrl {{/str}}
+        {{#risks}}{{#totalcount}}
+        <span class="badge badge-secondary ms-1">{{totalcount}}</span>
+        {{/totalcount}}{{/risks}}
+      </a>
+    </li>
+  </ul>
+
+  {{! ══════════════════════════════════════════════════════════════════════ }}
+  {{! Tab: Consistency                                                        }}
+  {{! ══════════════════════════════════════════════════════════════════════ }}
+  {{#tab_consistency}}
+  {{#consistency}}
+  <div data-region="panel-consistency">
+
+    {{! Summary badges }}
+    {{#hasitems}}
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+      {{#errorcount}}
+      <span class="badge badge-danger py-1 px-2">❗ {{errorcount}} {{#str}} checks_badge_error, local_coursectrl {{/str}}</span>
+      {{/errorcount}}
+      {{#warningcount}}
+      <span class="badge badge-warning py-1 px-2">⚠️ {{warningcount}} {{#str}} checks_badge_warning, local_coursectrl {{/str}}</span>
+      {{/warningcount}}
+      {{#noticecount}}
+      <span class="badge badge-info py-1 px-2">ℹ️ {{noticecount}} {{#str}} checks_badge_notice, local_coursectrl {{/str}}</span>
+      {{/noticecount}}
+    </div>
+    {{/hasitems}}
+
+    {{! No issues }}
+    {{^hasitems}}
+    <div class="alert alert-success">
+      <i class="fa fa-check-circle me-1"></i>
+      {{#str}} checks_consistency_ok, local_coursectrl {{/str}}
+    </div>
+    {{/hasitems}}
+
+    {{! Issue list }}
+    {{#hasitems}}
+    <div class="list-group">
+      {{#items}}
+      <div class="list-group-item list-group-item-action py-2">
+        <div class="d-flex align-items-start gap-2">
+          <span class="mt-1">{{icon}}</span>
+          <div class="flex-grow-1">
+            <a href="{{cmurl}}" class="fw-semibold text-decoration-none" target="_blank" rel="noopener">{{cmname}}</a>:
+            <span class="text-muted small">{{message}}</span>
+          </div>
+        </div>
+      </div>
+      {{/items}}
+    </div>
+    {{/hasitems}}
+
+  </div>
+  {{/consistency}}
+  {{/tab_consistency}}
+
+  {{! ══════════════════════════════════════════════════════════════════════ }}
+  {{! Tab: Risk Assessment                                                    }}
+  {{! ══════════════════════════════════════════════════════════════════════ }}
+  {{#tab_risks}}
+  {{#risks}}
+  <div data-region="panel-risks">
+
+    {{! Run button + last-run info }}
+    <div class="d-flex align-items-center justify-content-between mb-3 gap-2 flex-wrap">
+      <div>
+        {{#haslastrun}}
+        <span class="text-muted small">
+          {{#str}} checks_last_run, local_coursectrl {{/str}}: {{lastrundate}}
+        </span>
+        {{/haslastrun}}
+      </div>
+      <a href="{{runurl}}" class="btn btn-primary btn-sm">
+        <i class="fa fa-refresh fa-fw"></i>
+        {{#str}} checks_run_now, local_coursectrl {{/str}}
+      </a>
+    </div>
+
+    {{! Summary badges }}
+    {{#hasresults}}
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+      {{#errorcount}}
+      <span class="badge badge-danger py-1 px-2">❗ {{errorcount}} {{#str}} checks_badge_error, local_coursectrl {{/str}}</span>
+      {{/errorcount}}
+      {{#warningcount}}
+      <span class="badge badge-warning py-1 px-2">⚠️ {{warningcount}} {{#str}} checks_badge_warning, local_coursectrl {{/str}}</span>
+      {{/warningcount}}
+      {{#noticecount}}
+      <span class="badge badge-info py-1 px-2">ℹ️ {{noticecount}} {{#str}} checks_badge_notice, local_coursectrl {{/str}}</span>
+      {{/noticecount}}
+    </div>
+    {{/hasresults}}
+
+    {{! No results }}
+    {{^hasresults}}
+    {{#haslastrun}}
+    <div class="alert alert-success">
+      <i class="fa fa-check-circle me-1"></i>
+      {{#str}} checks_risks_ok, local_coursectrl {{/str}}
+    </div>
+    {{/haslastrun}}
+    {{^haslastrun}}
+    <div class="alert alert-info">
+      <i class="fa fa-info-circle me-1"></i>
+      {{#str}} checks_not_run_yet, local_coursectrl {{/str}}
+    </div>
+    {{/haslastrun}}
+    {{/hasresults}}
+
+    {{! Grouped findings }}
+    {{#hasgroups}}
+    {{#groups}}
+    <div class="card mb-3">
+      <div class="card-header d-flex align-items-center justify-content-between py-2">
+        <div class="d-flex align-items-center gap-2">
+          <span>{{icon}}</span>
+          <strong>{{label}}</strong>
+          <span class="badge badge-secondary ms-1">{{findingcount}}</span>
+        </div>
+        <span class="badge badge-light text-muted small">
+          {{#str}} checks_score, local_coursectrl {{/str}} {{score}}
+        </span>
+      </div>
+      <div class="card-body py-2 small">
+        {{#findings}}
+        <div class="mb-2 pb-2 border-bottom">
+          {{#hascmids}}
+          <div class="mb-1">
+            <span class="text-muted">{{#str}} checks_affected, local_coursectrl {{/str}}:</span>
+            {{#cmids}}
+            <a href="{{url}}" class="badge badge-light border me-1" target="_blank" rel="noopener">{{name}}</a>
+            {{/cmids}}
+          </div>
+          {{/hascmids}}
+          {{#hasmessage}}
+          <div class="text-muted mb-1">{{message}}</div>
+          {{/hasmessage}}
+          {{#has_escape}}
+          <div class="text-success small">
+            <i class="fa fa-wrench fa-fw"></i>
+            {{#str}} checks_escape_{{escape_type}}, local_coursectrl {{/str}}
+            {{#hascascade}}
+            — {{cascade_count}} {{#str}} checks_cascade_suffix, local_coursectrl {{/str}}:
+            {{#cascade_cmids}}
+            <a href="{{url}}" class="text-success" target="_blank" rel="noopener">{{name}}</a>
+            {{/cascade_cmids}}
+            {{/hascascade}}
+          </div>
+          {{/has_escape}}
+          <div class="mt-1">
+            <span class="badge badge-light border text-muted">
+              {{#str}} checks_score, local_coursectrl {{/str}} {{score}}
+            </span>
+          </div>
+        </div>
+        {{/findings}}
+      </div>
+    </div>
+    {{/groups}}
+    {{/hasgroups}}
+
+  </div>
+  {{/risks}}
+  {{/tab_risks}}
+
+</div>

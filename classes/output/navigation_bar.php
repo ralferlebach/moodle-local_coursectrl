@@ -130,6 +130,11 @@ class navigation_bar implements renderable, templatable {
                         'visible'  => $this->can('local/coursectrl:simulate'),
                     ],
                     [
+                        'label'    => get_string('nav_checks', 'local_coursectrl'),
+                        'url'      => $this->u('checks.php'),
+                        'selected' => $active === 'coursectrl_checks',
+                    ],
+                    [
                         'oid'      => $uid . '-o' . $n++,
                         'label'    => get_string('nav_history', 'local_coursectrl'),
                         'value'    => $this->u('history.php'),
@@ -188,6 +193,7 @@ class navigation_bar implements renderable, templatable {
             'coursectrl_graph'       => 'nav_dependencies',
             'coursectrl_manage'      => 'nav_manage',
             'coursectrl_simulation'  => 'nav_simulation',
+            'coursectrl_checks'      => 'nav_checks',
             'coursectrl_history'     => 'nav_history',
         ];
         return get_string($map[$key] ?? 'nav_dashboard', 'local_coursectrl');
@@ -206,6 +212,7 @@ class navigation_bar implements renderable, templatable {
             'coursectrl_graph'       => 'dependencies.php',
             'coursectrl_manage'      => 'manage.php',
             'coursectrl_simulation'  => 'simulation.php',
+            'coursectrl_checks'      => 'checks.php',
             'coursectrl_history'     => 'history.php',
         ];
         return $map[$key] ?? 'index.php';

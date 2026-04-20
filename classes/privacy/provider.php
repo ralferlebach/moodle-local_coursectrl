@@ -273,12 +273,12 @@ class provider implements
             return;
         }
         foreach ($userlist->get_userids() as $userid) {
-            $fakelist = new approved_contextlist(
+            $singlecontextlist = new approved_contextlist(
                 \core_user::get_user($userid),
                 'local_coursectrl',
                 [$context->id]
             );
-            static::delete_data_for_user($fakelist);
+            static::delete_data_for_user($singlecontextlist);
         }
     }
 }

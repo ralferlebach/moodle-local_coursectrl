@@ -20,19 +20,14 @@
  * Orchestrates the full execute path:
  *   1. Persist a batch row with status 'pending'.
  *   2. Open a delegated transaction.
- *   3. For each cmid, route to the responsible adapter, capture a snapshot
- *      via export_state(), persist the snapshot, then call execute_action.
- *   4. Persist a batch_item per cmid with the resulting status and result.
+ *   3. For each adapter group, run the adapter's execute_action once and
+ *      persist one snapshot and one batch_item per affected cmid.
+ *   4. For cmids without an adapter on shift_dates, apply system-level
+ *      shifts (completionexpected, availability date conditions).
  *   5. Commit the transaction.
- *   6. Update the batch row status to 'executed' (or 'failed' if any
- *      adapter call returned errors at the batch level).
- *   7. Trigger refresh_calendar_for_cmids on each adapter that processed
- *      cmids successfully.
+ *   6. Update the batch row status to 'executed' or 'failed'.
+ *   7. Trigger refresh_calendar_for_cmids on each adapter with successes.
  *   8. Fire the batch_executed event.
- *
- * Capability gating is intentionally NOT performed here; it lives one
- * layer up in the external function wrapper and is checked against
- * 'local/coursectrl:bulkaction'. The batch_manager trusts its caller.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -41,6 +36,7 @@
 
 namespace local_coursectrl\manager;
 
+use core\persistent;
 use local_coursectrl\event\batch_executed;
 use local_coursectrl\local\contract\activity_adapter;
 use local_coursectrl\local\persistent\batch;
@@ -101,9 +97,9 @@ class batch_manager {
         }
 
         $batch = $this->create_batch_row($courseid, $userid, $action, $payload);
-        $batchid = (int)$batch->get('id');
+        $batchid = (int) $batch->get('id');
 
-        $byadapter = $this->group_cmids_by_adapter($cmids, $action);
+        $grouping = $this->registry->group_cmids_by_component($cmids, $action);
         $hasanyfailure = false;
         $successfulbyadapter = [];
         $summary = [
@@ -116,26 +112,15 @@ class batch_manager {
 
         $transaction = $DB->start_delegated_transaction();
         try {
-            foreach ($byadapter['skipped'] as $skip) {
-                $reason = $skip['reason'] ?? 'no_adapter';
-                // For no-adapter CMs, apply system-level CM field shifts instead
-                // of simply skipping them. These CMs can still have completionexpected
-                // and availability date conditions that should be shifted.
-                if ($reason === 'no_adapter' && $action === 'shift_dates') {
-                    $delta = (int) ($payload['delta'] ?? 0);
-                    $syscmid = (int) $skip['cmid'];
-                    if ($delta !== 0) {
-                        $this->shift_cm_level_dates($syscmid, $delta, $batchid, $summary);
-                    } else {
-                        $this->persist_skipped_item($batchid, $syscmid, $skip);
-                        $summary['skipped']++;
-                    }
-                } else {
-                    $this->persist_skipped_item($batchid, (int)$skip['cmid'], $skip);
-                    $summary['skipped']++;
-                }
-            }
-            foreach ($byadapter['routed'] as $component => $entry) {
+            $this->process_skipped_cmids(
+                $grouping['skipped'],
+                $action,
+                $payload,
+                $batchid,
+                $summary,
+                $hasanyfailure
+            );
+            foreach ($grouping['routed'] as $component => $entry) {
                 /** @var activity_adapter $adapter */
                 $adapter = $entry['adapter'];
                 $adaptercmids = $entry['cmids'];
@@ -143,25 +128,13 @@ class batch_manager {
                 if (!empty($result['errors'])) {
                     $hasanyfailure = true;
                 }
-                $itemresults = $result['items'] ?? [];
-                $successfulcmids = [];
-                foreach ($itemresults as $item) {
-                    $cmid = (int)$item['cmid'];
-                    $status = (string)($item['status'] ?? 'failed');
-                    if (in_array($status, ['ok', 'noop'], true) && !empty($item['snapshot'])) {
-                        $this->persist_snapshot($batchid, $cmid, $component, $item['snapshot']);
-                    }
-                    $this->persist_executed_item($batchid, $cmid, $component, $status, $item);
-                    if ($status === 'ok') {
-                        $summary['success']++;
-                        $successfulcmids[] = $cmid;
-                    } else if ($status === 'noop') {
-                        $summary['noop']++;
-                    } else {
-                        $summary['error']++;
-                        $hasanyfailure = true;
-                    }
-                }
+                $successfulcmids = $this->persist_adapter_results(
+                    $batchid,
+                    $component,
+                    $result['items'] ?? [],
+                    $summary,
+                    $hasanyfailure
+                );
                 if (!empty($successfulcmids)) {
                     $successfulbyadapter[$component] = [
                         'adapter' => $adapter,
@@ -180,16 +153,7 @@ class batch_manager {
         $batch->set('status', $hasanyfailure ? batch::STATUS_FAILED : batch::STATUS_EXECUTED);
         $batch->update();
 
-        foreach ($successfulbyadapter as $entry) {
-            try {
-                $entry['adapter']->refresh_calendar_for_cmids($entry['cmids']);
-            } catch (\Throwable $e) {
-                debugging(
-                    'Course Control Hub: calendar refresh failed for batch ' . $batchid . ': ' . $e->getMessage(),
-                    DEBUG_DEVELOPER
-                );
-            }
-        }
+        $this->refresh_calendars($successfulbyadapter, $batchid);
 
         $event = batch_executed::create([
             'context'  => \context_course::instance($courseid),
@@ -207,6 +171,105 @@ class batch_manager {
     }
 
     /**
+     * Process cmids for which no adapter is responsible.
+     *
+     * On shift_dates, the CM-level fields (completionexpected, availability
+     * date conditions) are shifted directly. Everything else is persisted
+     * as a skipped batch_item.
+     *
+     * @param array[] $skipped        Skip descriptors from registry.
+     * @param string  $action         Canonical action identifier.
+     * @param array   $payload        Action payload.
+     * @param int     $batchid        Parent batch id.
+     * @param array   $summary        Summary counters (by reference).
+     * @param bool    $hasanyfailure  Failure flag (by reference).
+     * @return void
+     */
+    private function process_skipped_cmids(
+        array $skipped,
+        string $action,
+        array $payload,
+        int $batchid,
+        array &$summary,
+        bool &$hasanyfailure
+    ): void {
+        foreach ($skipped as $skip) {
+            $reason = $skip['reason'] ?? 'no_adapter';
+            $cmid = (int) $skip['cmid'];
+            if ($reason === 'no_adapter' && $action === 'shift_dates') {
+                $delta = (int) ($payload['delta'] ?? 0);
+                if ($delta !== 0) {
+                    $this->shift_cm_level_dates($cmid, $delta, $batchid, $summary, $hasanyfailure);
+                    continue;
+                }
+            }
+            $this->persist_skipped_item($batchid, $cmid, $skip);
+            $summary['skipped']++;
+        }
+    }
+
+    /**
+     * Persist snapshot and batch_item rows for the items returned by one adapter.
+     *
+     * @param int     $batchid       Parent batch id.
+     * @param string  $component     Frankenstyle component name.
+     * @param array[] $items         Items from adapter::execute_action().
+     * @param array   $summary       Summary counters (by reference).
+     * @param bool    $hasanyfailure Failure flag (by reference).
+     * @return int[] Cmids reported as 'ok' (for calendar refresh).
+     */
+    private function persist_adapter_results(
+        int $batchid,
+        string $component,
+        array $items,
+        array &$summary,
+        bool &$hasanyfailure
+    ): array {
+        $successfulcmids = [];
+        foreach ($items as $item) {
+            $cmid = (int) $item['cmid'];
+            $status = (string) ($item['status'] ?? 'failed');
+            if (in_array($status, ['ok', 'noop'], true) && !empty($item['snapshot'])) {
+                $this->persist_snapshot($batchid, $cmid, $component, $item['snapshot']);
+            }
+            $this->persist_executed_item($batchid, $cmid, $component, $status, $item);
+            if ($status === 'ok') {
+                $summary['success']++;
+                $successfulcmids[] = $cmid;
+            } else if ($status === 'noop') {
+                $summary['noop']++;
+            } else {
+                $summary['error']++;
+                $hasanyfailure = true;
+            }
+        }
+        return $successfulcmids;
+    }
+
+    /**
+     * Trigger calendar refresh for every adapter that produced successes.
+     *
+     * Failures are swallowed with a debug message so a broken calendar
+     * handler cannot abort an otherwise successful batch.
+     *
+     * @param array $successfulbyadapter Map of component -> {adapter, cmids}.
+     * @param int   $batchid             Parent batch id (for debug output).
+     * @return void
+     */
+    private function refresh_calendars(array $successfulbyadapter, int $batchid): void {
+        foreach ($successfulbyadapter as $entry) {
+            try {
+                $entry['adapter']->refresh_calendar_for_cmids($entry['cmids']);
+            } catch (\Throwable $e) {
+                debugging(
+                    'Course Control Hub: calendar refresh failed for batch ' . $batchid . ': ' . $e->getMessage(),
+                    DEBUG_DEVELOPER
+                );
+            }
+        }
+    }
+
+    /**
      * Persist the head batch row in pending status.
      *
      * @param int    $courseid target course id.
@@ -216,63 +279,61 @@ class batch_manager {
      * @return batch
      */
     private function create_batch_row(int $courseid, int $userid, string $action, array $payload): batch {
-        $data = (object)[
+        $data = (object) [
             'courseid'    => $courseid,
             'userid'      => $userid,
             'action'      => $action,
             'payloadjson' => json_encode($payload),
         ];
-        return (new batch(0, $data))->create();
+        return $this->persist_row(batch::class, $data);
     }
 
     /**
      * Persist a skipped batch_item row.
      *
-     * @param int   $batchid parent batch id.
-     * @param int   $cmid    course module id.
-     * @param array $skip    skip descriptor with 'reason' and optional 'component'.
+     * @param int   $batchid Parent batch id.
+     * @param int   $cmid    Course module id.
+     * @param array $skip    Skip descriptor with 'reason' and optional 'component'.
      * @return void
      */
     private function persist_skipped_item(int $batchid, int $cmid, array $skip): void {
-        $data = (object)[
+        $this->persist_row(batch_item::class, (object) [
             'batchid'    => $batchid,
             'entitytype' => 'cm',
             'entityid'   => $cmid,
             'component'  => $skip['component'] ?? null,
             'status'     => batch_item::STATUS_SKIPPED,
             'resultjson' => json_encode(['reason' => $skip['reason'] ?? 'unknown']),
-        ];
-        (new batch_item(0, $data))->create();
+        ]);
     }
 
     /**
      * Persist a snapshot row for one cmid.
      *
-     * @param int    $batchid   parent batch id.
-     * @param int    $cmid      course module id.
-     * @param string $component frankenstyle component name.
-     * @param array  $state     snapshot payload.
+     * @param int    $batchid   Parent batch id.
+     * @param int    $cmid      Course module id.
+     * @param string $component Frankenstyle component name.
+     * @param array  $state     Snapshot payload.
      * @return void
      */
     private function persist_snapshot(int $batchid, int $cmid, string $component, array $state): void {
-        $data = (object)[
+        $this->persist_row(snapshot::class, (object) [
             'batchid'    => $batchid,
             'entitytype' => 'cm',
             'entityid'   => $cmid,
             'component'  => $component,
             'statejson'  => json_encode($state),
-        ];
-        (new snapshot(0, $data))->create();
+        ]);
     }
 
     /**
      * Persist an executed batch_item row.
      *
-     * @param int    $batchid   parent batch id.
-     * @param int    $cmid      course module id.
-     * @param string $component frankenstyle component name.
-     * @param string $status    one of 'ok', 'noop', 'failed'.
-     * @param array  $item      raw adapter item result.
+     * @param int    $batchid   Parent batch id.
+     * @param int    $cmid      Course module id.
+     * @param string $component Frankenstyle component name.
+     * @param string $status    One of 'ok', 'noop', 'failed'.
+     * @param array  $item      Raw adapter item result.
      * @return void
      */
     private function persist_executed_item(
@@ -285,15 +346,28 @@ class batch_manager {
         $itemstatus = ($status === 'ok' || $status === 'noop')
             ? batch_item::STATUS_SUCCESS
             : batch_item::STATUS_ERROR;
-        $data = (object)[
+        $this->persist_row(batch_item::class, (object) [
             'batchid'    => $batchid,
             'entitytype' => 'cm',
             'entityid'   => $cmid,
             'component'  => $component,
             'status'     => $itemstatus,
             'resultjson' => json_encode($item),
-        ];
-        (new batch_item(0, $data))->create();
+        ]);
+    }
+
+    /**
+     * Create and persist a persistent row.
+     *
+     * Single helper for all persistent instantiations in this manager so the
+     * (new class(0, $data))->create() pattern is written only once.
+     *
+     * @param class-string<persistent> $class Persistent subclass name.
+     * @param \stdClass                $data  Row data.
+     * @return persistent The created instance.
+     */
+    private function persist_row(string $class, \stdClass $data): persistent {
+        return (new $class(0, $data))->create();
     }
 
     /**
@@ -301,20 +375,23 @@ class batch_manager {
      *
      * Handles the two system-level date fields that apply to ALL activity types:
      *   - completionexpected  in {course_modules}
-     *   - Availability date conditions in {course_modules}.availability (JSON)
+     *   - availability date conditions in {course_modules}.availability (JSON)
      *
-     * Creates a batch_item and snapshot so the shift can be rolled back.
+     * Persists a batch_item and snapshot so the shift can be rolled back.
      *
-     * @param int   $cmid    Course module id.
-     * @param int   $delta   Seconds to shift (positive = forward).
-     * @param int   $batchid Parent batch id.
-     * @param array $summary Reference to summary counters.
+     * @param int   $cmid          Course module id.
+     * @param int   $delta         Seconds to shift (positive = forward).
+     * @param int   $batchid       Parent batch id.
+     * @param array $summary       Reference to summary counters.
+     * @param bool  $hasanyfailure Failure flag (by reference).
+     * @return void
      */
     private function shift_cm_level_dates(
         int $cmid,
         int $delta,
         int $batchid,
-        array &$summary
+        array &$summary,
+        bool &$hasanyfailure
     ): void {
         global $DB;
 
@@ -328,32 +405,28 @@ class batch_manager {
             return;
         }
 
-        $changed = [];
-        $snapshot = [
-            'completionexpected' => (int)$cm->completionexpected,
-            'availability' => (string)($cm->availability ?? ''),
+        $snapshotstate = [
+            'completionexpected' => (int) $cm->completionexpected,
+            'availability'       => (string) ($cm->availability ?? ''),
         ];
 
         $update = new \stdClass();
         $update->id = $cmid;
+        $changed = [];
 
-        // Shift completionexpected.
-        if ((int)$cm->completionexpected > 0) {
-            $update->completionexpected = (int)$cm->completionexpected + $delta;
+        if ((int) $cm->completionexpected > 0) {
+            $update->completionexpected = (int) $cm->completionexpected + $delta;
             $changed[] = 'completionexpected';
         }
-
-        // Shift date conditions within availability JSON.
         if (!empty($cm->availability)) {
-            $newavail = $this->shift_availability_dates((string)$cm->availability, $delta);
-            if ($newavail !== (string)$cm->availability) {
+            $newavail = $this->shift_availability_dates((string) $cm->availability, $delta);
+            if ($newavail !== (string) $cm->availability) {
                 $update->availability = $newavail;
                 $changed[] = 'availability';
             }
         }
 
         if (empty($changed)) {
-            // Nothing to shift — no batch_item needed.
             return;
         }
 
@@ -365,29 +438,19 @@ class batch_manager {
                 ': ' . $e->getMessage(),
                 DEBUG_DEVELOPER
             );
+            $hasanyfailure = true;
             return;
         }
 
-        // Persist snapshot for rollback.
-        $snapdata = (object)[
-            'batchid'    => $batchid,
-            'entitytype' => 'cm',
-            'entityid'   => $cmid,
-            'component'  => 'core_coursemodule',
-            'statejson'  => json_encode($snapshot),
-        ];
-        (new \local_coursectrl\local\persistent\snapshot(0, $snapdata))->create();
-
-        // Persist batch_item as success.
-        $itemdata = (object)[
+        $this->persist_snapshot($batchid, $cmid, 'core_coursemodule', $snapshotstate);
+        $this->persist_row(batch_item::class, (object) [
             'batchid'    => $batchid,
             'entitytype' => 'cm',
             'entityid'   => $cmid,
             'component'  => 'core_coursemodule',
             'status'     => batch_item::STATUS_SUCCESS,
             'resultjson' => json_encode(['changed' => $changed, 'delta' => $delta]),
-        ];
-        (new batch_item(0, $itemdata))->create();
+        ]);
         $summary['success']++;
     }
 
@@ -395,7 +458,8 @@ class batch_manager {
      * Shift all date timestamps within a Moodle availability JSON string.
      *
      * Walks the condition tree and adds $delta to every node with
-     * type === 'date' and a 't' (timestamp) value greater than zero.
+     * type === 'date' and a 't' (timestamp) value greater than zero. No new
+     * nodes are inserted; only existing timestamp values are rewritten.
      *
      * @param string $json  Raw availability JSON from {course_modules}.availability.
      * @param int    $delta Seconds to add.
@@ -419,8 +483,8 @@ class batch_manager {
      * @return array Modified node.
      */
     private function walk_availability_node(array $node, int $delta): array {
-        if (($node['type'] ?? '') === 'date' && isset($node['t']) && (int)$node['t'] > 0) {
-            $node['t'] = (int)$node['t'] + $delta;
+        if (($node['type'] ?? '') === 'date' && isset($node['t']) && (int) $node['t'] > 0) {
+            $node['t'] = (int) $node['t'] + $delta;
             return $node;
         }
         if (isset($node['c']) && is_array($node['c'])) {
@@ -434,49 +498,6 @@ class batch_manager {
     }
 
     /**
-     * Group the input cmids by responsible adapter.
-     *
-     * @param int[]  $cmids  input cmid list.
-     * @param string $action canonical action identifier.
-     * @return array{routed: array, skipped: array}
-     */
-    private function group_cmids_by_adapter(array $cmids, string $action): array {
-        $routed  = [];
-        $skipped = [];
-        foreach ($cmids as $rawcmid) {
-            $cmid = (int)$rawcmid;
-            $adapter = $this->registry->get_for_cmid($cmid);
-            if ($adapter === null) {
-                $skipped[] = [
-                    'cmid'   => $cmid,
-                    'reason' => 'no_adapter',
-                ];
-                continue;
-            }
-            if (!in_array($action, $adapter->get_supported_actions(), true)) {
-                $skipped[] = [
-                    'cmid'      => $cmid,
-                    'component' => $adapter::component(),
-                    'reason'    => 'unsupported_action',
-                ];
-                continue;
-            }
-            $component = $adapter::component();
-            if (!isset($routed[$component])) {
-                $routed[$component] = [
-                    'adapter' => $adapter,
-                    'cmids'   => [],
-                ];
-            }
-            $routed[$component]['cmids'][] = $cmid;
-        }
-        return [
-            'routed'  => $routed,
-            'skipped' => $skipped,
-        ];
-    }
-
-    /**
      * Collect every cmid in the course whose component has a registered adapter.
      *
      * @param int $courseid target course id.
@@ -487,7 +508,7 @@ class batch_manager {
         foreach ($this->registry->get_all() as $adapter) {
             $instances = $adapter->get_instances_for_course($courseid);
             foreach ($instances as $entry) {
-                $result[] = (int)$entry['cmid'];
+                $result[] = (int) $entry['cmid'];
             }
         }
         sort($result, SORT_NUMERIC);

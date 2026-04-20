@@ -175,26 +175,14 @@ class adapter extends abstract_activity_adapter {
      * @return array Check result items.
      */
     public function run_checks(array $cmids, array $profile = []): array {
-        global $DB;
         $results = [];
         $plugin = 'coursectrlmod_forum';
         $r7defaults = [
             'duedate_without_cutoffdate' => 'warning',
             'cutoffdate_without_duedate' => 'notice',
         ];
-        foreach ($cmids as $rawcmid) {
-            $cmid = (int)$rawcmid;
-            try {
-                $cm = get_coursemodule_from_id('forum', $cmid, 0, false, MUST_EXIST);
-                $rec = $DB->get_record(
-                    'forum',
-                    ['id' => $cm->instance],
-                    'id, name, duedate, cutoffdate, assesstimestart, assesstimefinish',
-                    MUST_EXIST
-                );
-            } catch (\Throwable $e) {
-                continue;
-            }
+        $records = $this->load_check_records($cmids, 'forum', 'id, name, duedate, cutoffdate, assesstimestart, assesstimefinish');
+        foreach ($records as $cmid => $rec) {
             $due = (int)$rec->duedate;
             $cutoff = (int)$rec->cutoffdate;
             $assstart = (int)$rec->assesstimestart;

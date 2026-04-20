@@ -19,10 +19,7 @@
  *
  * Every activity adapter shipped under local/coursectrl/mod/* must implement
  * this interface. The signatures defined here are binding for the lifetime
- * of the 0.x series; additive changes (such as the patch-026 addition of
- * refresh_calendar_for_cmids) are allowed and require a default no-op
- * implementation in abstract_activity_adapter so existing subplugins
- * continue to work without modification.
+ * of the 0.x series.
  *
  * The interface is derived from the Pflichtenheft / Lastenheft, section
  * "Standardisierte Adapter-Schnittstelle", and backs the following functional

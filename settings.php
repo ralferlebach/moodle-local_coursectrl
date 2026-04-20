@@ -86,6 +86,46 @@ if ($hassiteconfig) {
         1
     ));
 
+
+    // Dashboard display settings.
+    $settings->add(new admin_setting_heading(
+        'local_coursectrl/dashboard_heading',
+        get_string('settings_dashboard_heading', 'local_coursectrl'),
+        ''
+    ));
+    $settings->add(new admin_setting_configselect(
+        'local_coursectrl/dashboard_inventory',
+        get_string('settings_dashboard_inventory', 'local_coursectrl'),
+        get_string('settings_dashboard_inventory_desc', 'local_coursectrl'),
+        'admin_only',
+        [
+            'hide'       => get_string('settings_dashboard_inventory_hide', 'local_coursectrl'),
+            'admin_only' => get_string('settings_dashboard_inventory_adminonly', 'local_coursectrl'),
+            'show'       => get_string('settings_dashboard_inventory_show', 'local_coursectrl'),
+        ]
+    ));
+    $settings->add(new admin_setting_configtext(
+        'local_coursectrl/dashboard_upcoming_count',
+        get_string('settings_dashboard_upcoming_count', 'local_coursectrl'),
+        get_string('settings_dashboard_upcoming_count_desc', 'local_coursectrl'),
+        '7',
+        PARAM_INT
+    ));
+    $settings->add(new admin_setting_configtext(
+        'local_coursectrl/dashboard_warning_cap',
+        get_string('settings_dashboard_warning_cap', 'local_coursectrl'),
+        get_string('settings_dashboard_warning_cap_desc', 'local_coursectrl'),
+        '0',
+        PARAM_INT
+    ));
+    $settings->add(new admin_setting_configtext(
+        'local_coursectrl/dashboard_textfind_count',
+        get_string('settings_dashboard_textfind_count', 'local_coursectrl'),
+        get_string('settings_dashboard_textfind_count_desc', 'local_coursectrl'),
+        '0',
+        PARAM_INT
+    ));
+
     // History / Audit settings.
     $settings->add(new admin_setting_heading(
         'local_coursectrl/history_heading',

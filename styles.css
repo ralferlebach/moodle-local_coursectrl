@@ -198,6 +198,32 @@
 }
 
 /**
+ * Manage page: CM and section selection checkboxes.
+ * Use flexbox layout so the checkbox sits cleanly beside the activity icon
+ * without relying on Bootstrap's float-based form-check positioning.
+ */
+.local-coursectrl-manage .form-check {
+    display: flex;
+    align-items: center;
+    padding-left: 0;
+    gap: 0.5rem;
+    margin-bottom: 0;
+}
+
+.local-coursectrl-manage .form-check .form-check-input {
+    float: none;
+    margin: 0;
+    flex-shrink: 0;
+    position: static;
+}
+
+.local-coursectrl-manage .form-check .form-check-label {
+    margin: 0;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+/**
  * Native checkbox inside shift-workflow hit table — no Bootstrap overrides.
  */
 .ccwf-hit-table input[type="checkbox"] {

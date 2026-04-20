@@ -15,12 +15,13 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Renderable for the Course Control Hub course dashboard (v2).
+ * Renderable for the Course Control Hub dashboard (Modell D).
  *
- * Enriched version that includes per-CM dates, availability conditions,
- * completion settings, dependency cross-links and light-weight warnings.
- * Warnings are produced transiently via consistency_runner; nothing is
- * persisted to the database.
+ * Cockpit layout:
+ *   1. Stat tiles + collapsible calendar.
+ *   2. Problem summary (errors / warnings / notices) — if any exist.
+ *   3. Upcoming structured dates (left) + text hits (right).
+ *   4. Full course inventory — visibility controlled by dashboard_inventory setting.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -29,21 +30,19 @@
 
 namespace local_coursectrl\output;
 
-use local_coursectrl\local\analysis\availability_parser;
-use local_coursectrl\local\analysis\consistency_runner;
-use local_coursectrl\local\analysis\risk_assessment_runner;
 use local_coursectrl\local\analysis\calendar_grid_builder;
+use local_coursectrl\local\analysis\consistency_runner;
 use local_coursectrl\local\analysis\date_collector;
-use local_coursectrl\manager\calendar_manager;
 use local_coursectrl\local\analysis\dependency_index;
 use local_coursectrl\local\inventory\inventory_snapshot;
+use local_coursectrl\manager\calendar_manager;
 use local_coursectrl\manager\registry;
 use renderable;
 use renderer_base;
 use templatable;
 
 /**
- * Enriched dashboard renderable with dates, deps and warnings.
+ * Dashboard renderable (Modell D cockpit layout).
  */
 class dashboard_page implements renderable, templatable {
     /** @var inventory_snapshot The snapshot to render. */
@@ -61,11 +60,29 @@ class dashboard_page implements renderable, templatable {
     /**
      * Build the template context for templates/dashboard.mustache.
      *
-     * @param renderer_base $output Renderer for any nested components.
+     * @param renderer_base $output Renderer for nested components.
      * @return array<string,mixed>
      */
     public function export_for_template(renderer_base $output): array {
+        global $DB;
+
         $course = $this->snapshot->course;
+        $courseid = (int)$course->id;
+
+        // Read settings.
+        $upcomingcount = max(1, (int)(get_config('local_coursectrl', 'dashboard_upcoming_count') ?: 7));
+        $warningcap = (int)(get_config('local_coursectrl', 'dashboard_warning_cap') ?: 0);
+        $textfindcount = (int)(get_config('local_coursectrl', 'dashboard_textfind_count') ?: 0);
+        $inventorysetting = get_config('local_coursectrl', 'dashboard_inventory') ?: 'admin_only';
+
+        // Resolve effective caps (0 = same as upcoming).
+        $effectivewarncap = $warningcap > 0 ? $warningcap : $upcomingcount;
+        $effectivetextcount = $textfindcount > 0 ? $textfindcount : $upcomingcount;
+
+        // Inventory visibility.
+        $isadmin = has_capability('moodle/site:config', \context_system::instance());
+        $showinventory = ($inventorysetting === 'show')
+            || ($inventorysetting === 'admin_only' && $isadmin);
 
         // Build analysis structures.
         $depindex = new dependency_index($this->snapshot->cms);
@@ -74,140 +91,386 @@ class dashboard_page implements renderable, templatable {
         $circular = $depindex->find_circular_deps();
         $circularset = $this->build_circular_set($circular);
         $runner = new consistency_runner();
-        $checkresults = $runner->get_warnings($this->snapshot->cms, $depindex, $datesbycm, null, $course);
+        $allwarnings = $runner->get_warnings(
+            $this->snapshot->cms,
+            $depindex,
+            $datesbycm,
+            null,
+            $course
+        );
         $dateformat = get_string('strftimedaydatetime', 'core_langconfig');
 
-        // Build CM name lookup for cross-linking.
+        // Build URL helpers.
+        $checksurl = (new \moodle_url(
+            '/local/coursectrl/checks.php',
+            ['courseid' => $courseid]
+        ))->out(false);
+        $deepurl = (new \moodle_url(
+            '/local/coursectrl/checks.php',
+            ['courseid' => $courseid, 'tab' => 'risks', 'run' => '1']
+        ))->out(false);
+        $timelineurl = (new \moodle_url(
+            '/local/coursectrl/timeline.php',
+            ['courseid' => $courseid]
+        ))->out(false);
+        $textreviewurl = (new \moodle_url(
+            '/local/coursectrl/timeline.php',
+            ['courseid' => $courseid, 'tab' => 'textreview']
+        ))->out(false);
+
+        // Build CM url/name/modname lookups.
+        $cmurls = [];
         $cmnames = [];
+        $cmmodnames = [];
         foreach ($this->snapshot->cms as $cm) {
             $cmnames[$cm->id] = $cm->name;
+            $cmmodnames[$cm->id] = $cm->modname;
+            $cmurls[$cm->id] = (new \moodle_url(
+                '/mod/' . $cm->modname . '/view.php',
+                ['id' => $cm->id]
+            ))->out(false);
         }
 
-        $cmsbysection = [];
-        $totalwarnings = 0;
-        foreach ($this->snapshot->cms as $cm) {
-            $cmdata = $this->build_cm_context(
-                $cm,
-                $depindex,
-                $datesbycm[$cm->id] ?? [],
-                $cmnames,
-                $circularset,
-                $checkresults[$cm->id] ?? [],
-                $dateformat
-            );
-            if ($cmdata['haswarnings']) {
-                $totalwarnings++;
+        // Problem summary.
+        $errorrows = [];
+        $warningrows = [];
+        $noticerows = [];
+        $errorcount = 0;
+        $warningcount = 0;
+        $noticecount = 0;
+
+        foreach ($circularset as $cmid => $unused) {
+            $errorcount++;
+            if (count($errorrows) < $effectivewarncap) {
+                $errorrows[] = $this->build_problem_row(
+                    (int)$cmid,
+                    $cmnames,
+                    $cmurls,
+                    $cmmodnames,
+                    get_string('warning_circular_dep', 'local_coursectrl')
+                );
             }
-            $cmsbysection[$cm->sectionid][] = $cmdata;
         }
 
-        $sections = [];
-        foreach ($this->snapshot->sections as $section) {
-            $sectioncms = $cmsbysection[$section->id] ?? [];
-            $sections[] = [
-                'id' => $section->id,
-                'sectionnum' => $section->sectionnum,
-                'name' => $section->name ?? '',
-                'hasname' => $section->name !== null && $section->name !== '',
-                'visible' => $section->visible,
-                'hassummary' => $section->summary !== '',
-                'cms' => $sectioncms,
-                'cmcount' => count($sectioncms),
-                'hascms' => count($sectioncms) > 0,
-            ];
+        foreach ($allwarnings as $cmid => $issues) {
+            foreach ($issues as $issue) {
+                $severity = $issue['severity'] ?? 'warning';
+                $msg = $this->format_issue_message($issue);
+                if ($msg === '') {
+                    continue;
+                }
+                $row = $this->build_problem_row(
+                    (int)$cmid,
+                    $cmnames,
+                    $cmurls,
+                    $cmmodnames,
+                    $msg
+                );
+                if ($severity === 'error') {
+                    $errorcount++;
+                    if (count($errorrows) < $effectivewarncap) {
+                        $errorrows[] = $row;
+                    }
+                } else if ($severity === 'notice') {
+                    $noticecount++;
+                    if (count($noticerows) < $effectivewarncap) {
+                        $noticerows[] = $row;
+                    }
+                } else {
+                    $warningcount++;
+                    if (count($warningrows) < $effectivewarncap) {
+                        $warningrows[] = $row;
+                    }
+                }
+            }
         }
 
-        // Build calendar grid for dashboard.
+        $totalproblems = $errorcount + $warningcount + $noticecount;
+        $errormore = max(0, $errorcount - count($errorrows));
+        $warningmore = max(0, $warningcount - count($warningrows));
+        $noticemore = max(0, $noticecount - count($noticerows));
+
+        // Upcoming structured dates.
+        $upcomingdates = $this->build_upcoming_dates(
+            $datesbycm,
+            $cmnames,
+            $cmurls,
+            $cmmodnames,
+            $upcomingcount,
+            $dateformat
+        );
+
+        // Text hits from DB.
+        $texthits = $this->build_text_hits(
+            $DB,
+            $courseid,
+            $effectivetextcount,
+            $cmnames,
+            $cmurls
+        );
+        $texthitsscanned = $DB->record_exists(
+            'local_coursectrl_text_hit',
+            ['courseid' => $courseid]
+        );
+
+        // Calendar.
         $calbuilder = new calendar_grid_builder();
         $calman = new calendar_manager();
         $allentries = $datecollector->collect($this->snapshot->cms);
         $calmonths = $calbuilder->build(
-            (int) $course->startdate,
-            (int) ($course->enddate ?: 0),
+            (int)$course->startdate,
+            (int)($course->enddate ?: 0),
             $allentries,
             time(),
             $calman
         );
 
+        // Inventory (conditional).
+        $sections = [];
+        if ($showinventory) {
+            $cmsbysection = [];
+            foreach ($this->snapshot->cms as $cm) {
+                $cmdata = $this->build_cm_context(
+                    $cm,
+                    $depindex,
+                    $datesbycm[$cm->id] ?? [],
+                    $cmnames,
+                    $circularset,
+                    $allwarnings[$cm->id] ?? [],
+                    $dateformat
+                );
+                $cmsbysection[$cm->sectionid][] = $cmdata;
+            }
+            foreach ($this->snapshot->sections as $section) {
+                $sectioncms = $cmsbysection[$section->id] ?? [];
+                $sections[] = [
+                    'id' => $section->id,
+                    'sectionnum' => $section->sectionnum,
+                    'name' => $section->name ?? '',
+                    'hasname' => $section->name !== null && $section->name !== '',
+                    'visible' => $section->visible,
+                    'cms' => $sectioncms,
+                    'cmcount' => count($sectioncms),
+                    'hascms' => count($sectioncms) > 0,
+                ];
+            }
+        }
+
         return [
-            'courseid' => $course->id,
-            'coursefullname' => $course->fullname,
+            'courseid' => $courseid,
+            'coursefullname' => format_string($course->fullname),
             'courseshortname' => $course->shortname,
             'coursestartdate' => $course->startdate,
             'courseenddate' => $course->enddate,
-            'hasenddate' => $course->enddate !== null && $course->enddate > 0,
+            'hasenddate' => !empty($course->enddate),
             'coursevisible' => $course->visible,
             'sectioncount' => $this->snapshot->count_sections(),
             'cmcount' => $this->snapshot->count_cms(),
             'textcount' => $this->snapshot->count_texts(),
-            'sections' => $sections,
-            'hassections' => count($sections) > 0,
             'months' => $calmonths,
             'hascalendar' => count($calmonths) > 0,
-            'warningcount' => $totalwarnings,
-            'haswarnings' => $totalwarnings > 0,
+            'showcalendar' => (bool)get_user_preferences('local_coursectrl_showcalendar', 1),
+            'hasproblems' => $totalproblems > 0,
+            'totalproblems' => $totalproblems,
+            'errorcount' => $errorcount,
+            'warningcount' => $warningcount,
+            'noticecount' => $noticecount,
+            'haserrors' => $errorcount > 0,
+            'haswarnings' => $warningcount > 0,
+            'hasnotices' => $noticecount > 0,
+            'errorrows' => $errorrows,
+            'warningrows' => $warningrows,
+            'noticerows' => $noticerows,
+            'errormore' => $errormore,
+            'warningmore' => $warningmore,
+            'noticemore' => $noticemore,
+            'haserrormore' => $errormore > 0,
+            'haswarningmore' => $warningmore > 0,
+            'hasnoticemore' => $noticemore > 0,
+            'checksurl' => $checksurl,
+            'deepanalysisurl' => $deepurl,
+            'upcomingdates' => $upcomingdates,
+            'hasupcomingdates' => count($upcomingdates) > 0,
+            'texthits' => $texthits,
+            'hastexthits' => count($texthits) > 0,
+            'texthitsscanned' => $texthitsscanned,
+            'textreviewurl' => $textreviewurl,
+            'timelineurl' => $timelineurl,
             'manageurl' => (new \moodle_url(
                 '/local/coursectrl/manage.php',
-                ['courseid' => $course->id]
-            ))->out(false),
-            'textreviewurl' => (new \moodle_url(
-                '/local/coursectrl/textreview.php',
-                ['courseid' => $course->id]
-            ))->out(false),
-            'timelineurl' => (new \moodle_url(
-                '/local/coursectrl/timeline.php',
-                ['courseid' => $course->id]
+                ['courseid' => $courseid]
             ))->out(false),
             'graphurl' => (new \moodle_url(
                 '/local/coursectrl/dependencies.php',
-                ['courseid' => $course->id]
-            ))->out(false),
-            'simulationurl' => (new \moodle_url(
-                '/local/coursectrl/simulation.php',
-                ['courseid' => $course->id]
+                ['courseid' => $courseid]
             ))->out(false),
             'historyurl' => (new \moodle_url(
                 '/local/coursectrl/history.php',
-                ['courseid' => $course->id]
+                ['courseid' => $courseid]
             ))->out(false),
-            'upcoming7days'  => $this->count_upcoming_dates($datesbycm, 7),
-            'upcoming28days' => $this->count_upcoming_dates($datesbycm, 28),
-            'showcalendar' => (bool) get_user_preferences('local_coursectrl_showcalendar', 1),
+            'showinventory' => $showinventory,
+            'isinventoryadmin' => $isadmin && $inventorysetting === 'admin_only',
+            'sections' => $sections,
+            'hassections' => count($sections) > 0,
         ];
     }
 
     /**
-     * Count distinct CMs with at least one date in the next N days.
+     * Build a single problem row for the warning summary panel.
      *
-     * @param array $datesbycm Date entries keyed by cmid.
-     * @param int   $days      Number of days ahead.
-     * @return int
+     * @param int    $cmid       Course module id.
+     * @param array  $cmnames    Lookup: cmid → name.
+     * @param array  $cmurls     Lookup: cmid → url.
+     * @param array  $cmmodnames Lookup: cmid → modname.
+     * @param string $message    Warning message.
+     * @return array
      */
-    private function count_upcoming_dates(array $datesbycm, int $days): int {
-        $now = time();
-        $cutoff = $now + ($days * 86400);
-        $count = 0;
-        foreach ($datesbycm as $cmid => $entries) {
-            foreach ($entries as $entry) {
-                if ($entry['timestamp'] >= $now && $entry['timestamp'] <= $cutoff) {
-                    $count++;
-                    break;
-                }
-            }
-        }
-        return $count;
+    private function build_problem_row(
+        int $cmid,
+        array $cmnames,
+        array $cmurls,
+        array $cmmodnames,
+        string $message
+    ): array {
+        return [
+            'cmid' => $cmid,
+            'cmname' => $cmnames[$cmid] ?? 'ID ' . $cmid,
+            'cmurl' => $cmurls[$cmid] ?? '#',
+            'modname' => $cmmodnames[$cmid] ?? '',
+            'message' => $message,
+        ];
     }
 
     /**
-     * Build template context for a single CM.
+     * Format a structured warning issue to a display string.
      *
-     * @param \local_coursectrl\local\entity\cm_item $cm           The CM entity.
+     * @param array $issue Issue array from consistency_runner.
+     * @return string Empty string for unknown types.
+     */
+    private function format_issue_message(array $issue): string {
+        $type = $issue['type'] ?? '';
+        if ($type === 'temporal_conflict') {
+            return get_string(
+                'warning_temporal_conflict',
+                'local_coursectrl',
+                (object)[
+                    'field_early' => $issue['field_early'] ?? '',
+                    'field_late' => $issue['field_late'] ?? '',
+                ]
+            );
+        }
+        if ($type === 'dangling_dep') {
+            return get_string(
+                'warning_dangling_dep',
+                'local_coursectrl',
+                (object)['cmid' => $issue['depcmid'] ?? 0]
+            );
+        }
+        if ($type === 'impossible_dep') {
+            return get_string(
+                'warning_impossible_dep',
+                'local_coursectrl',
+                (object)['name' => $issue['depname'] ?? '']
+            );
+        }
+        return (string)($issue['message'] ?? '');
+    }
+
+    /**
+     * Build upcoming structured dates, sorted ascending, limited to count.
+     *
+     * @param array  $datesbycm   Date entries keyed by cmid.
+     * @param array  $cmnames     Lookup: cmid → name.
+     * @param array  $cmurls      Lookup: cmid → url.
+     * @param array  $cmmodnames  Lookup: cmid → modname.
+     * @param int    $count       Maximum entries to return.
+     * @param string $dateformat  Moodle date format string.
+     * @return array
+     */
+    private function build_upcoming_dates(
+        array $datesbycm,
+        array $cmnames,
+        array $cmurls,
+        array $cmmodnames,
+        int $count,
+        string $dateformat
+    ): array {
+        $now = time();
+        $flat = [];
+        foreach ($datesbycm as $cmid => $entries) {
+            foreach ($entries as $entry) {
+                $ts = (int)($entry['timestamp'] ?? 0);
+                if ($ts < $now) {
+                    continue;
+                }
+                $flat[] = [
+                    'cmid' => (int)$cmid,
+                    'cmname' => $cmnames[$cmid] ?? 'ID ' . $cmid,
+                    'cmurl' => $cmurls[$cmid] ?? '#',
+                    'modname' => $cmmodnames[$cmid] ?? '',
+                    'field' => $entry['fieldlabel'] ?? $entry['field'] ?? '',
+                    'timeformatted' => userdate($ts, $dateformat),
+                    'timestamp' => $ts,
+                ];
+            }
+        }
+        usort($flat, fn($a, $b) => $a['timestamp'] <=> $b['timestamp']);
+        return array_slice($flat, 0, $count);
+    }
+
+    /**
+     * Read text hits from DB and return template-ready rows.
+     *
+     * @param \moodle_database $db        DB connection.
+     * @param int              $courseid  Course id.
+     * @param int              $count     Maximum rows to return.
+     * @param array            $cmnames   Lookup: cmid → name.
+     * @param array            $cmurls    Lookup: cmid → url.
+     * @return array
+     */
+    private function build_text_hits(
+        \moodle_database $db,
+        int $courseid,
+        int $count,
+        array $cmnames,
+        array $cmurls
+    ): array {
+        $records = $db->get_records(
+            'local_coursectrl_text_hit',
+            ['courseid' => $courseid],
+            'id ASC',
+            '*',
+            0,
+            $count
+        );
+        $rows = [];
+        foreach ($records as $rec) {
+            $entityid = (int)$rec->entityid;
+            $rows[] = [
+                'matchedtext' => (string)$rec->matchedtext,
+                'normalizedvalue' => (string)($rec->normalizedvalue ?? ''),
+                'hasnormalized' => !empty($rec->normalizedvalue),
+                'entitytype' => (string)$rec->entitytype,
+                'entityid' => $entityid,
+                'fieldname' => (string)$rec->fieldname,
+                'cmname' => $cmnames[$entityid] ?? '',
+                'cmurl' => $cmurls[$entityid] ?? '#',
+                'hascm' => isset($cmnames[$entityid]),
+            ];
+        }
+        return $rows;
+    }
+
+    /**
+     * Build template context for a single CM (for the inventory section).
+     *
+     * @param \local_coursectrl\local\entity\cm_item $cm           CM entity.
      * @param dependency_index                       $depindex     Dependency index.
      * @param array                                  $dates        Date entries for this CM.
      * @param array                                  $cmnames      Lookup: cmid → name.
      * @param array                                  $circularset  Set of cmids in circular deps.
      * @param array                                  $checkresults Consistency issues for this CM.
-     * @param string                                 $dateformat   Moodle date format string.
+     * @param string                                 $dateformat   Date format string.
      * @return array
      */
     private function build_cm_context(
@@ -219,14 +482,15 @@ class dashboard_page implements renderable, templatable {
         array $checkresults,
         string $dateformat
     ): array {
-        // Activity URL and edit URL.
-        $activityurl = (new \moodle_url('/mod/' . $cm->modname . '/view.php', ['id' => $cm->id]))->out(false);
+        $activityurl = (new \moodle_url(
+            '/mod/' . $cm->modname . '/view.php',
+            ['id' => $cm->id]
+        ))->out(false);
         $editurl = (new \moodle_url(
             '/course/modedit.php',
             ['update' => $cm->id, 'return' => 1]
         ))->out(false);
 
-        // Format dates.
         $formatteddates = [];
         foreach ($dates as $entry) {
             $formatteddates[] = [
@@ -238,7 +502,6 @@ class dashboard_page implements renderable, templatable {
             ];
         }
 
-        // Prerequisites (activities this CM depends on).
         $prerequisites = [];
         foreach ($depindex->get_prerequisites($cm->id) as $depcmid) {
             $prerequisites[] = [
@@ -248,7 +511,6 @@ class dashboard_page implements renderable, templatable {
             ];
         }
 
-        // Dependents (activities that depend on this CM).
         $dependents = [];
         foreach ($depindex->get_dependents($cm->id) as $depcmid) {
             $dependents[] = [
@@ -258,7 +520,6 @@ class dashboard_page implements renderable, templatable {
             ];
         }
 
-        // Date-based availability restrictions.
         $daterestrictions = [];
         foreach ($depindex->get_date_restrictions($cm->id) as $cond) {
             if ($cond['timestamp'] > 0) {
@@ -270,7 +531,6 @@ class dashboard_page implements renderable, templatable {
             }
         }
 
-        // Completion info.
         $completionlabel = '';
         if ($cm->completion === 1) {
             $completionlabel = get_string('dashboard_completion_manual', 'local_coursectrl');
@@ -278,19 +538,26 @@ class dashboard_page implements renderable, templatable {
             $completionlabel = get_string('dashboard_completion_auto', 'local_coursectrl');
         }
 
-        // Warnings: circular dependency (from dep index) + consistency issues.
         $warnings = [];
         if (isset($circularset[$cm->id])) {
             $warnings[] = [
                 'type' => 'circular',
                 'icon' => '❗',
                 'message' => get_string('warning_circular_dep', 'local_coursectrl'),
+                'cmname' => $cm->name,
+                'cmurl' => $activityurl,
             ];
         }
         foreach ($checkresults as $issue) {
-            $formatted = $this->format_check_result($issue);
-            if (!empty($formatted)) {
-                $warnings[] = $formatted;
+            $msg = $this->format_issue_message($issue);
+            if ($msg !== '') {
+                $warnings[] = [
+                    'type' => $issue['type'] ?? 'check',
+                    'icon' => '⚠️',
+                    'message' => $msg,
+                    'cmname' => $cm->name,
+                    'cmurl' => $activityurl,
+                ];
             }
         }
 
@@ -322,59 +589,10 @@ class dashboard_page implements renderable, templatable {
     }
 
     /**
-     * Format a structured consistency-check issue as a template-ready warning array.
-     *
-     * Returns an empty array for unknown issue types so callers can safely filter.
-     *
-     * @param array $issue Structured issue from consistency_runner::get_warnings().
-     * @return array Warning array with 'type', 'icon', 'message' keys, or [].
-     */
-    private function format_check_result(array $issue): array {
-        $type = $issue['type'] ?? '';
-        if ($type === 'temporal_conflict') {
-            return [
-                'type' => 'temporal_conflict',
-                'icon' => '⚠️',
-                'message' => get_string(
-                    'warning_temporal_conflict',
-                    'local_coursectrl',
-                    (object)[
-                        'field_early' => $issue['field_early'],
-                        'field_late' => $issue['field_late'],
-                    ]
-                ),
-            ];
-        }
-        if ($type === 'dangling_dep') {
-            return [
-                'type' => 'dangling_dep',
-                'icon' => '⚠️',
-                'message' => get_string(
-                    'warning_dangling_dep',
-                    'local_coursectrl',
-                    (object)['cmid' => $issue['depcmid']]
-                ),
-            ];
-        }
-        if ($type === 'impossible_dep') {
-            return [
-                'type' => 'impossible_dep',
-                'icon' => '⚠️',
-                'message' => get_string(
-                    'warning_impossible_dep',
-                    'local_coursectrl',
-                    (object)['name' => $issue['depname']]
-                ),
-            ];
-        }
-        return [];
-    }
-
-    /**
      * Build a lookup set of cmids involved in circular dependencies.
      *
      * @param array $circular Circular pairs from dependency_index.
-     * @return array<int, true> cmid → true.
+     * @return array<int,true>
      */
     private function build_circular_set(array $circular): array {
         $set = [];

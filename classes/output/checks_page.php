@@ -95,6 +95,10 @@ class checks_page implements renderable, templatable {
             '/local/coursectrl/checks.php',
             ['courseid' => $courseid]
         ))->out(false);
+        $deepanalysisurl = (new \moodle_url(
+            '/local/coursectrl/checks.php',
+            ['courseid' => $courseid, 'tab' => 'risks', 'run' => '1']
+        ))->out(false);
 
         $svc = new inventory_service();
         $snapshot = $svc->build_for_course($courseid);
@@ -117,6 +121,7 @@ class checks_page implements renderable, templatable {
             'courseid'          => $courseid,
             'coursefullname'    => $this->course->fullname,
             'checksurl'         => $checksurl,
+            'deepanalysisurl'   => $deepanalysisurl,
             'tab_consistency'   => $this->activetab === 'consistency',
             'tab_risks'         => $this->activetab === 'risks',
             'tab_simulation'    => $this->activetab === 'simulation',
@@ -674,20 +679,29 @@ class checks_page implements renderable, templatable {
      */
     private function fix_type_for(string $type): string {
         $map = [
-            'dep_on_hidden'           => 'unhide_cm',
-            'hidden_with_dependents'  => 'unhide_cm',
-            'r1_hidden'               => 'unhide_cm',
-            'dangling_dep'            => 'modedit_availability',
-            'impossible_dep'          => 'modedit_availability',
-            'dangling_group'          => 'modedit_availability',
-            'dangling_grouping'       => 'modedit_availability',
-            'temporal_conflict'       => 'timeline',
-            'date_coupling'           => 'timeline',
-            'r0_after_course_end'     => 'timeline',
-            'r0_before_course_start'  => 'timeline',
-            'r0_deadline_in_past'     => 'timeline',
-            'circular_dep'            => 'modedit_availability',
-            'circular_dep_transitive' => 'modedit_availability',
+            // Option 1 — visibility fix.
+            'dep_on_hidden'                   => 'unhide_cm',
+            'hidden_with_dependents'          => 'unhide_cm',
+            'r1_hidden'                       => 'unhide_cm',
+            // Option 1 — edit availability conditions.
+            'dangling_dep'                    => 'modedit_availability',
+            'impossible_dep'                  => 'modedit_availability',
+            'dangling_group'                  => 'modedit_availability',
+            'dangling_grouping'               => 'modedit_availability',
+            // Option 1 — edit completion tracking.
+            'completion_required_no_tracking' => 'modedit_completion',
+            'completion_no_tracking'          => 'modedit_completion',
+            // Option 2 — shift dates on timeline.
+            'temporal_conflict'               => 'timeline',
+            'date_coupling'                   => 'timeline',
+            'r0_after_course_end'             => 'timeline',
+            'r0_before_course_start'          => 'timeline',
+            'r0_deadline_in_past'             => 'timeline',
+            'deadline_before_dep_window'      => 'timeline',
+            // Option 3 — navigate to dependency graph.
+            'circular_dep'                    => 'dependencies',
+            'circular_dep_transitive'         => 'dependencies',
+            'long_dep_chain'                  => 'dependencies',
         ];
         return $map[$type] ?? '';
     }
@@ -731,6 +745,18 @@ class checks_page implements renderable, templatable {
                 ['courseid' => $courseid, 'focus' => $cmid]
             ))->out(false);
         }
+        if ($fixtype === 'modedit_completion') {
+            return (new \moodle_url(
+                '/course/modedit.php',
+                ['update' => $cmid, 'return' => 1]
+            ))->out(false) . '#id_completion';
+        }
+        if ($fixtype === 'dependencies') {
+            return (new \moodle_url(
+                '/local/coursectrl/dependencies.php',
+                ['courseid' => $courseid]
+            ))->out(false);
+        }
         return '';
     }
 
@@ -761,8 +787,7 @@ class checks_page implements renderable, templatable {
         global $OUTPUT, $PAGE;
         $simpage = new simulation_page($snapshot, $this->simstate);
         $renderer = $PAGE->get_renderer('local_coursectrl');
-        // Render the simulation template and pass as pre-rendered HTML so
-        // checks.mustache can include it without a nested template call.
+        // Render simulation template as pre-rendered HTML for checks.mustache.
         $html = $renderer->render_simulation_page($simpage);
         return ['simulationhtml' => $html];
     }

@@ -30,7 +30,7 @@
     * showcalendar, showpast, onlywithdeps (bool)
     * componentoptions (array), hascomponentoptions (bool)
     * groupoptions (array), hasgroupoptions (bool)
-    * shifturl, timelineurl, textreviewurl (string)
+    * shifturl, timelineurl (string)
     * gantt_json (string)
 
     Example context (json):
@@ -406,7 +406,7 @@
   {{! ── TAB: Textprüfung ───────────────────────────────────────────────── }}
   {{#tab_textreview}}
   <div id="tab-textreview" data-region="local_coursectrl-textreview-panel"
-       data-courseid="{{courseid}}" data-textreviewurl="{{textreviewurl}}">
+       data-courseid="{{courseid}}">
 
     {{! Workflow-Hinweis: Textprüfung ist Teil des Terminverschiebe-Workflows }}
     {{#textreview_from_shift}}
@@ -429,7 +429,7 @@
     {{/textreview_from_shift}}
 
     {{#textreview_hasrows}}
-    <form method="post" action="{{textreviewurl}}"
+    <form method="post" action="{{timelineurl}}&amp;tab=textreview"
           id="coursectrl-textreview-inline-form">
       <input type="hidden" name="sesskey" value="{{sesskey}}">
       <input type="hidden" name="courseid" value="{{courseid}}">
@@ -745,11 +745,6 @@
     <div class="alert alert-info">
       {{#str}} textreview_no_hits, local_coursectrl {{/str}}
     </div>
-    <p>
-      <a href="{{timelineurl}}&amp;tab=timeline" class="btn btn-sm btn-secondary">
-        &larr; {{#str}} tab_timeline, local_coursectrl {{/str}}
-      </a>
-    </p>
     {{/textreview_hasrows}}
   </div>
   {{/tab_textreview}}

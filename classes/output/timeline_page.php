@@ -229,10 +229,6 @@ class timeline_page implements renderable, templatable {
                 '/local/coursectrl/timeline.php',
                 ['courseid' => $course->id]
             ))->out(false),
-            'textreviewurl' => (new \moodle_url(
-                '/local/coursectrl/textreview.php',
-                ['courseid' => $course->id]
-            ))->out(false),
             'shifturl' => (new \moodle_url(
                 '/local/coursectrl/shift.php',
                 ['courseid' => $course->id]

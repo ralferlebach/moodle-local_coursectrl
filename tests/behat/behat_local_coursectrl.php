@@ -79,4 +79,48 @@ class behat_local_coursectrl extends behat_base {
         $this->getSession()->visit($this->locate_path($url->out_as_local_url(false)));
         $this->wait_for_pending_js();
     }
+    /**
+     * Navigate to the Course Control Hub dashboard for a course.
+     *
+     * @Given I am on the coursectrl dashboard for course :shortname
+     * @param string $shortname Course shortname.
+     */
+    public function i_am_on_the_coursectrl_dashboard_for_course(string $shortname): void {
+        global $DB;
+        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $url = new moodle_url('/local/coursectrl/index.php', ['courseid' => $course->id]);
+        $this->getSession()->visit($this->locate_path($url->out_as_local_url(false)));
+        $this->wait_for_pending_js();
+    }
+
+    /**
+     * Navigate to the timeline page for a course with an optional tab.
+     *
+     * @Given I am on the timeline page for course :shortname
+     * @param string $shortname Course shortname.
+     */
+    public function i_am_on_the_timeline_page_for_course(string $shortname): void {
+        global $DB;
+        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $url = new moodle_url('/local/coursectrl/timeline.php', ['courseid' => $course->id]);
+        $this->getSession()->visit($this->locate_path($url->out_as_local_url(false)));
+        $this->wait_for_pending_js();
+    }
+
+    /**
+     * Navigate to the timeline textreview tab for a course.
+     *
+     * @Given I am on the textreview tab for course :shortname
+     * @param string $shortname Course shortname.
+     */
+    public function i_am_on_the_textreview_tab_for_course(string $shortname): void {
+        global $DB;
+        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $url = new moodle_url(
+            '/local/coursectrl/timeline.php',
+            ['courseid' => $course->id, 'tab' => 'textreview']
+        );
+        $this->getSession()->visit($this->locate_path($url->out_as_local_url(false)));
+        $this->wait_for_pending_js();
+    }
 }

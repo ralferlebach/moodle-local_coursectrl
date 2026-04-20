@@ -1,5 +1,5 @@
 {{!
-    This file is part of Moodle - http://moodle.org/
+    This file is part of Moodle - https://moodle.org/
 
     Moodle is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,228 +17,338 @@
 {{!
     @template local_coursectrl/dashboard
 
-    Course Control Hub dashboard v2 with enriched activity data.
+    Course Control Hub dashboard — Modell D cockpit layout.
 
     Context variables required for this template:
-    * courseid, coursefullname, courseshortname
-    * coursestartdate, courseenddate, hasenddate, coursevisible
-    * sectioncount, cmcount, textcount, hassections
-    * warningcount, haswarnings
-    * manageurl, textreviewurl, graphurl
-    * sections - array with enriched cms
+    * courseid, sectioncount, cmcount, textcount
+    * hascalendar, showcalendar, months (array)
+    * hasproblems, totalproblems, errorcount, warningcount, noticecount
+    * haserrors, haswarnings, hasnotices
+    * errorrows, warningrows, noticerows [{cmid,cmname,cmurl,modname,message}]
+    * haserrormore, haswarningmore, hasnoticemore, errormore, warningmore, noticemore
+    * checksurl, deepanalysisurl, timelineurl, textreviewurl
+    * hasupcomingdates, upcomingdates [{cmname,cmurl,modname,field,timeformatted}]
+    * hastexthits, texthitsscanned, texthits [{matchedtext,normalizedvalue,hasnormalized,cmname,cmurl,fieldname,hascm}]
+    * showinventory, isinventoryadmin, hassections, sections (array)
+
+    Example context (json):
+    {"courseid":2,"sectioncount":3,"cmcount":12,"textcount":4,
+     "hasproblems":false,"hasupcomingdates":false,"hastexthits":false,
+     "showinventory":false}
 }}
-<div class="local-coursectrl-dashboard" data-region="local_coursectrl-dashboard" data-courseid="{{courseid}}">
 
-    {{! ---- Course header card ---- }}
-    <div class="card mb-4">
-        <div class="card-body py-3">
-            <div class="d-flex align-items-start justify-content-between">
-                <div>
-                    <h2 class="h4 mb-0">{{coursefullname}}</h2>
-                    <span class="text-muted small">{{courseshortname}}</span>
-                </div>
-                <div class="text-right small text-muted">
-                    {{#userdate}}{{coursestartdate}}, {{#str}}strftimedaydate, core_langconfig{{/str}}{{/userdate}}
-                    {{#hasenddate}} – {{#userdate}}{{courseenddate}}, {{#str}}strftimedaydate, core_langconfig{{/str}}{{/userdate}}{{/hasenddate}}
-                    {{^coursevisible}} · <span class="badge badge-secondary">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>{{/coursevisible}}
-                </div>
-            </div>
-        </div>
+<div class="local-coursectrl-dashboard" data-region="local_coursectrl-dashboard"
+     data-courseid="{{courseid}}">
+
+  {{! ── 1. Stat tiles ──────────────────────────────────────────────────── }}
+  <div class="row g-2 mb-3">
+    <div class="col-6 col-md-3">
+      <div class="card text-center h-100"><div class="card-body py-2">
+        <div class="h4 mb-0">{{sectioncount}}</div>
+        <div class="text-muted small">{{#str}}dashboard_sections, local_coursectrl{{/str}}</div>
+      </div></div>
     </div>
-
-    {{! ---- Stat counters ---- }}
-    <div class="row mb-3">
-        <div class="col-md-3">
-            <div class="card text-center h-100"><div class="card-body py-2">
-                <div class="h4 mb-0">{{sectioncount}}</div>
-                <div class="text-muted small">{{#str}}dashboard_sections, local_coursectrl{{/str}}</div>
-            </div></div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center h-100"><div class="card-body py-2">
-                <div class="h4 mb-0">{{cmcount}}</div>
-                <div class="text-muted small">{{#str}}dashboard_activities, local_coursectrl{{/str}}</div>
-            </div></div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center h-100"><div class="card-body py-2">
-                <div class="h4 mb-0">{{textcount}}</div>
-                <div class="text-muted small">{{#str}}dashboard_texts, local_coursectrl{{/str}}</div>
-            </div></div>
-        </div>
-        <div class="col-md-3">
-            {{#haswarnings}}
-            <a href="#coursectrl-warnings" class="text-decoration-none">
-            {{/haswarnings}}
-            <div class="card text-center h-100 {{#haswarnings}}border-danger{{/haswarnings}}"><div class="card-body py-2">
-                <div class="h4 mb-0 {{#haswarnings}}text-danger{{/haswarnings}}">{{warningcount}}</div>
-                <div class="text-muted small">{{#str}}dashboard_warnings, local_coursectrl{{/str}}</div>
-            </div></div>
-            {{#haswarnings}}
-            </a>
-            {{/haswarnings}}
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center h-100 border-info"><div class="card-body py-2">
-                <div class="h4 mb-0 text-info">{{upcoming7days}}</div>
-                <div class="text-muted small">{{#str}}dashboard_upcoming7, local_coursectrl{{/str}}</div>
-            </div></div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center h-100 border-info"><div class="card-body py-2">
-                <div class="h4 mb-0 text-info">{{upcoming28days}}</div>
-                <div class="text-muted small">{{#str}}dashboard_upcoming28, local_coursectrl{{/str}}</div>
-            </div></div>
-        </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center h-100"><div class="card-body py-2">
+        <div class="h4 mb-0">{{cmcount}}</div>
+        <div class="text-muted small">{{#str}}dashboard_activities, local_coursectrl{{/str}}</div>
+      </div></div>
     </div>
-
-    {{! ---- Collapsible calendar block ---- }}
-    <div class="mb-3">
-        <button type="button"
-                class="btn btn-sm btn-outline-secondary mb-2"
-                data-action="toggle-calendar"
-                data-label-show="{{#str}}cal_show, local_coursectrl{{/str}}"
-                data-label-hide="{{#str}}cal_hide, local_coursectrl{{/str}}"
-                data-courseid="{{courseid}}">
-            <i class="fa fa-calendar fa-fw"></i>
-            <span data-cal-label>
-                {{#showcalendar}}{{#str}}cal_hide, local_coursectrl{{/str}}{{/showcalendar}}
-                {{^showcalendar}}{{#str}}cal_show, local_coursectrl{{/str}}{{/showcalendar}}
-            </span>
-        </button>
-        <div class="local_coursectrl_calblock{{^showcalendar}} d-none{{/showcalendar}}"
-             data-region="local_coursectrl-calwrapper">
-            <div class="d-flex flex-nowrap overflow-auto gap-2 pb-1"
-                 data-region="local_coursectrl-calrow" style="-webkit-overflow-scrolling:touch">
-                {{#months}}
-                <div class="coursectrl-cal-month{{#iscurrentmonth}} month-current{{/iscurrentmonth}}"
-                     data-monthkey="{{monthkey}}">
-                    <div class="small fw-semibold py-1">
-                        <a href="{{timelineurl}}&amp;tab=timeline" class="text-decoration-none">{{monthlabel}}</a>
-                    </div>
-                    {{#weeks}}
-                    <div class="coursectrl-cal-week">
-                        {{#days}}
-                        <div class="{{cellclass}}"
-                             {{#hasentries}}data-action="jump-to-day" data-daykey="{{daykey}}"{{/hasentries}}
-                             {{#hasholidays}}title="{{#holidaynames}}{{name}} {{/holidaynames}}"{{/hasholidays}}>
-                            {{#inmonth}}{{#hasentries}}<a href="{{timelineurl}}&amp;tab=timeline#day-{{daykey}}" target="_blank" rel="noopener">{{day}}</a>{{/hasentries}}{{^hasentries}}{{day}}{{/hasentries}}{{/inmonth}}{{^inmonth}}&nbsp;{{/inmonth}}
-                        </div>
-                        {{/days}}
-                    </div>
-                    {{/weeks}}
-                </div>
-                {{/months}}
-            </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center h-100"><div class="card-body py-2">
+        <div class="h4 mb-0">{{textcount}}</div>
+        <div class="text-muted small">{{#str}}dashboard_texts, local_coursectrl{{/str}}</div>
+      </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="{{checksurl}}" class="text-decoration-none">
+        <div class="card text-center h-100{{#hasproblems}} border-danger{{/hasproblems}}">
+          <div class="card-body py-2">
+            <div class="h4 mb-0{{#hasproblems}} text-danger{{/hasproblems}}">{{totalproblems}}</div>
+            <div class="text-muted small">{{#str}}dashboard_warnings, local_coursectrl{{/str}}</div>
+          </div>
         </div>
+      </a>
     </div>
+  </div>
 
-    {{! Warning detail panel — shown below calendar when warnings exist }}
-    {{#haswarnings}}
-    <div class="alert alert-danger py-2 mb-3 small" id="coursectrl-warnings">
-        <div>
-                <i class="fa fa-exclamation-triangle me-1"></i>
-                <strong>{{warningcount}} {{#str}} dashboard_warning_detail_title, local_coursectrl {{/str}}</strong>
-                <ul class="mb-0 mt-1 ps-3">
-                    {{#sections}}{{#cms}}{{#haswarnings}}{{#warnings}}
-                    <li>
-                        <a href="{{../activityurl}}" class="alert-link">{{../name}}</a>:
-                        {{message}}
-                    </li>
-                    {{/warnings}}{{/haswarnings}}{{/cms}}{{/sections}}
-                </ul>
+  {{! ── 2. Calendar ─────────────────────────────────────────────────────── }}
+  {{#hascalendar}}
+  <div class="mb-3">
+    <button type="button"
+            class="btn btn-sm btn-outline-secondary mb-2"
+            data-action="toggle-calendar"
+            data-label-show="{{#str}}cal_show, local_coursectrl{{/str}}"
+            data-label-hide="{{#str}}cal_hide, local_coursectrl{{/str}}"
+            data-courseid="{{courseid}}">
+      <i class="fa fa-calendar fa-fw"></i>
+      <span data-cal-label>
+        {{#showcalendar}}{{#str}}cal_hide, local_coursectrl{{/str}}{{/showcalendar}}
+        {{^showcalendar}}{{#str}}cal_show, local_coursectrl{{/str}}{{/showcalendar}}
+      </span>
+    </button>
+    <div class="local_coursectrl_calblock{{^showcalendar}} d-none{{/showcalendar}}"
+         data-region="local_coursectrl-calwrapper">
+      <div class="d-flex flex-nowrap overflow-auto gap-2 pb-1"
+           data-region="local_coursectrl-calrow"
+           style="-webkit-overflow-scrolling:touch">
+        {{#months}}
+        <div class="coursectrl-cal-month{{#iscurrentmonth}} month-current{{/iscurrentmonth}}"
+             data-monthkey="{{monthkey}}">
+          <div class="small fw-semibold py-1">
+            <a href="{{timelineurl}}&amp;tab=timeline" class="text-decoration-none">{{monthlabel}}</a>
+          </div>
+          {{#weeks}}
+          <div class="coursectrl-cal-week">
+            {{#days}}
+            <div class="{{cellclass}}"
+                 {{#hasentries}}data-action="jump-to-day" data-daykey="{{daykey}}"{{/hasentries}}
+                 {{#hasholidays}}title="{{#holidaynames}}{{name}} {{/holidaynames}}"{{/hasholidays}}>
+              {{#inmonth}}{{#hasentries}}<a href="{{timelineurl}}&amp;tab=timeline#day-{{daykey}}" target="_blank" rel="noopener">{{day}}</a>{{/hasentries}}{{^hasentries}}{{day}}{{/hasentries}}{{/inmonth}}{{^inmonth}}&nbsp;{{/inmonth}}
             </div>
+            {{/days}}
+          </div>
+          {{/weeks}}
+        </div>
+        {{/months}}
+      </div>
     </div>
-    {{/haswarnings}}
+  </div>
+  {{/hascalendar}}
 
-    {{! ---- Inventory ---- }}
-    {{#hassections}}
-        {{#sections}}
-            <div class="card mb-3">
-                <div class="card-header py-2 d-flex align-items-center justify-content-between">
-                    <span>
-                        <strong>{{#str}}dashboard_section, local_coursectrl{{/str}} {{sectionnum}}</strong>
-                        {{#hasname}}<span class="text-muted ml-2">{{name}}</span>{{/hasname}}
-                    </span>
-                    <span>
-                        {{^visible}}<span class="badge badge-secondary mr-1">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>{{/visible}}
-                        <span class="badge badge-light">{{cmcount}}</span>
-                    </span>
-                </div>
-                {{#hascms}}
-                    <div class="list-group list-group-flush">
-                        {{#cms}}
-                            <div class="list-group-item py-2 px-3" id="cm-{{cmid}}">
+  {{! ── 3. Problem summary ──────────────────────────────────────────────── }}
+  {{#hasproblems}}
+  <div class="mb-3">
+    <div class="d-flex gap-2 flex-wrap mb-2">
+      {{#haserrors}}
+      <span class="badge cc-badge-danger py-2 px-3">
+        ❗ {{errorcount}} {{#str}}dashboard_errors_title, local_coursectrl{{/str}}
+      </span>
+      {{/haserrors}}
+      {{#haswarnings}}
+      <span class="badge cc-badge-warning py-2 px-3">
+        ⚠️ {{warningcount}} {{#str}}dashboard_warnings_title, local_coursectrl{{/str}}
+      </span>
+      {{/haswarnings}}
+      {{#hasnotices}}
+      <span class="badge cc-badge-info py-2 px-3">
+        ℹ️ {{noticecount}} {{#str}}dashboard_hints_title, local_coursectrl{{/str}}
+      </span>
+      {{/hasnotices}}
+    </div>
+    <div class="row g-2 mb-2">
+      {{#haserrors}}
+      <div class="col-md-4">
+        <div class="card border-danger h-100">
+          <div class="card-header py-1 small fw-semibold text-danger">
+            ❗ {{#str}}dashboard_errors_title, local_coursectrl{{/str}}
+          </div>
+          <ul class="list-group list-group-flush">
+            {{#errorrows}}
+            <li class="list-group-item py-1 px-2 small">
+              {{#modname}}{{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}} {{/modname}}
+              <a href="{{cmurl}}" target="_blank" rel="noopener" class="fw-semibold text-danger">{{cmname}}</a>
+              <div class="text-muted" style="font-size:.8em">{{message}}</div>
+            </li>
+            {{/errorrows}}
+          </ul>
+          {{#haserrormore}}
+          <div class="card-footer py-1 small text-muted">
+            {{#str}}dashboard_warning_cap_hint, local_coursectrl, {{errormore}}{{/str}}
+          </div>
+          {{/haserrormore}}
+        </div>
+      </div>
+      {{/haserrors}}
+      {{#haswarnings}}
+      <div class="col-md-4">
+        <div class="card border-warning h-100">
+          <div class="card-header py-1 small fw-semibold">
+            ⚠️ {{#str}}dashboard_warnings_title, local_coursectrl{{/str}}
+          </div>
+          <ul class="list-group list-group-flush">
+            {{#warningrows}}
+            <li class="list-group-item py-1 px-2 small">
+              {{#modname}}{{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}} {{/modname}}
+              <a href="{{cmurl}}" target="_blank" rel="noopener" class="fw-semibold">{{cmname}}</a>
+              <div class="text-muted" style="font-size:.8em">{{message}}</div>
+            </li>
+            {{/warningrows}}
+          </ul>
+          {{#haswarningmore}}
+          <div class="card-footer py-1 small text-muted">
+            {{#str}}dashboard_warning_cap_hint, local_coursectrl, {{warningmore}}{{/str}}
+          </div>
+          {{/haswarningmore}}
+        </div>
+      </div>
+      {{/haswarnings}}
+      {{#hasnotices}}
+      <div class="col-md-4">
+        <div class="card border-info h-100">
+          <div class="card-header py-1 small fw-semibold text-info">
+            ℹ️ {{#str}}dashboard_hints_title, local_coursectrl{{/str}}
+          </div>
+          <ul class="list-group list-group-flush">
+            {{#noticerows}}
+            <li class="list-group-item py-1 px-2 small">
+              {{#modname}}{{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}} {{/modname}}
+              <a href="{{cmurl}}" target="_blank" rel="noopener" class="fw-semibold">{{cmname}}</a>
+              <div class="text-muted" style="font-size:.8em">{{message}}</div>
+            </li>
+            {{/noticerows}}
+          </ul>
+          {{#hasnoticemore}}
+          <div class="card-footer py-1 small text-muted">
+            {{#str}}dashboard_warning_cap_hint, local_coursectrl, {{noticemore}}{{/str}}
+          </div>
+          {{/hasnoticemore}}
+        </div>
+      </div>
+      {{/hasnotices}}
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{{checksurl}}" class="btn btn-sm btn-outline-danger">
+        <i class="fa fa-search fa-fw me-1"></i>
+        {{#str}}dashboard_problems_btn, local_coursectrl{{/str}}
+      </a>
+      <a href="{{deepanalysisurl}}" class="btn btn-sm btn-outline-secondary">
+        <i class="fa fa-microscope fa-fw me-1"></i>
+        {{#str}}dashboard_deepanalysis_btn, local_coursectrl{{/str}}
+      </a>
+    </div>
+  </div>
+  {{/hasproblems}}
 
-                                {{! ---- Row 1: Name + badges + links ---- }}
-                                <div class="d-flex align-items-center justify-content-between mb-1">
-                                    <div>
-                                        {{#haswarnings}}{{#warnings}}<span title="{{message}}">{{icon}}</span> {{/warnings}}{{/haswarnings}}
-                                        {{#pix}}monologo, mod_{{modname}}, {{modname}}{{/pix}}
-                                        <a href="{{activityurl}}" class="font-weight-bold">{{name}}</a>
-                                        {{^visible}}<span class="badge badge-secondary ml-1">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>{{/visible}}
-                                    </div>
-                                    <div>
-                                        <a href="{{editurl}}" class="btn btn-outline-secondary btn-sm py-0 px-1"
-                                           title="{{#str}}edit{{/str}}">{{#pix}}t/edit, core{{/pix}}</a>
-                                    </div>
-                                </div>
-
-                                {{! ---- Row 2: Compact detail line ---- }}
-                                <div class="small text-muted">
-
-                                    {{! Dates ---- }}
-                                    {{#hasdates}}
-                                        {{#dates}}
-                                            <span class="mr-2 {{#ispast}}text-decoration-line-through{{/ispast}}">
-                                                <strong>{{field}}</strong> {{formatted}}
-                                            </span>
-                                        {{/dates}}
-                                    {{/hasdates}}
-
-                                    {{! Completion expected ---- }}
-                                    {{#hascompletionexpected}}
-                                        <span class="mr-2">⏰ {{completionexpected}}</span>
-                                    {{/hascompletionexpected}}
-
-                                    {{! Completion tracking ---- }}
-                                    {{#hascompletion}}
-                                        <span class="badge badge-info mr-1">{{completionlabel}}</span>
-                                    {{/hascompletion}}
-
-                                    {{! Date restrictions ---- }}
-                                    {{#hasdaterestrictions}}
-                                        {{#daterestrictions}}
-                                            <span class="badge badge-warning mr-1">🔒 {{direction}} {{formatted}}</span>
-                                        {{/daterestrictions}}
-                                    {{/hasdaterestrictions}}
-
-                                    {{! Prerequisites (what this depends on) ---- }}
-                                    {{#hasprerequisites}}
-                                        <span class="mr-1">{{#str}}dashboard_requires, local_coursectrl{{/str}}</span>
-                                        {{#prerequisites}}
-                                            <a href="{{anchor}}" class="badge badge-outline-primary mr-1" title="cmid {{cmid}}">⬆ {{name}}</a>
-                                        {{/prerequisites}}
-                                    {{/hasprerequisites}}
-
-                                    {{! Dependents (what depends on this) ---- }}
-                                    {{#hasdependents}}
-                                        <span class="mr-1">{{#str}}dashboard_unlocks, local_coursectrl{{/str}}</span>
-                                        {{#dependents}}
-                                            <a href="{{anchor}}" class="badge badge-outline-secondary mr-1" title="cmid {{cmid}}">⬇ {{name}}</a>
-                                        {{/dependents}}
-                                    {{/hasdependents}}
-                                </div>
-                            </div>
-                        {{/cms}}
-                    </div>
-                {{/hascms}}
+  {{! ── 4. Upcoming dates + Text hits ──────────────────────────────────── }}
+  <div class="row g-3 mb-3">
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header py-2 fw-semibold small">
+          <i class="fa fa-calendar-day fa-fw me-1"></i>
+          {{#str}}dashboard_upcoming_title, local_coursectrl{{/str}}
+        </div>
+        {{#hasupcomingdates}}
+        <ul class="list-group list-group-flush">
+          {{#upcomingdates}}
+          <li class="list-group-item py-1 px-2 small">
+            <div class="d-flex align-items-start justify-content-between gap-1">
+              <span>
+                {{#modname}}{{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}} {{/modname}}
+                <a href="{{cmurl}}" target="_blank" rel="noopener">{{cmname}}</a>
+                <span class="badge bg-light border text-muted ms-1">{{field}}</span>
+              </span>
+              <span class="text-muted text-nowrap">{{timeformatted}}</span>
             </div>
-        {{/sections}}
-    {{/hassections}}
-    {{^hassections}}
-        <div class="alert alert-info">{{#str}}dashboard_empty, local_coursectrl{{/str}}</div>
-    {{/hassections}}
+          </li>
+          {{/upcomingdates}}
+        </ul>
+        {{/hasupcomingdates}}
+        {{^hasupcomingdates}}
+        <div class="card-body py-2 small text-muted">
+          {{#str}}no_dates_found, local_coursectrl{{/str}}
+        </div>
+        {{/hasupcomingdates}}
+        <div class="card-footer py-2">
+          <a href="{{timelineurl}}&amp;tab=timeline" class="btn btn-sm btn-outline-primary">
+            <i class="fa fa-calendar-week fa-fw me-1"></i>
+            {{#str}}dashboard_timeline_btn, local_coursectrl{{/str}}
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header py-2 fw-semibold small">
+          <i class="fa fa-file-alt fa-fw me-1"></i>
+          {{#str}}dashboard_texthits_title, local_coursectrl{{/str}}
+        </div>
+        {{#hastexthits}}
+        <ul class="list-group list-group-flush">
+          {{#texthits}}
+          <li class="list-group-item py-1 px-2 small">
+            <code class="me-1">{{matchedtext}}</code>
+            {{#hasnormalized}}<span class="text-muted">→ {{normalizedvalue}}</span>{{/hasnormalized}}
+            {{#hascm}}
+            <div class="text-muted" style="font-size:.8em">
+              <a href="{{cmurl}}" target="_blank" rel="noopener">{{cmname}}</a>
+              · {{fieldname}}
+            </div>
+            {{/hascm}}
+          </li>
+          {{/texthits}}
+        </ul>
+        {{/hastexthits}}
+        {{^hastexthits}}
+        <div class="card-body py-2 small text-muted">
+          {{#texthitsscanned}}{{#str}}no_dates_found, local_coursectrl{{/str}}{{/texthitsscanned}}
+          {{^texthitsscanned}}{{#str}}dashboard_texthits_none, local_coursectrl{{/str}}{{/texthitsscanned}}
+        </div>
+        {{/hastexthits}}
+        <div class="card-footer py-2">
+          <a href="{{textreviewurl}}" class="btn btn-sm btn-outline-primary">
+            <i class="fa fa-pen fa-fw me-1"></i>
+            {{#str}}dashboard_textreview_btn, local_coursectrl{{/str}}
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {{! ── 5. Course inventory (conditional) ──────────────────────────────── }}
+  {{#showinventory}}
+  <hr class="my-3">
+  {{#isinventoryadmin}}
+  <p class="text-muted small mb-2">
+    <i class="fa fa-info-circle me-1"></i>
+    {{#str}}dashboard_inventory_admin_note, local_coursectrl{{/str}}
+  </p>
+  {{/isinventoryadmin}}
+  {{#hassections}}
+  {{#sections}}
+  <div class="card mb-3">
+    <div class="card-header py-2 d-flex align-items-center justify-content-between">
+      <span>
+        <strong>{{#str}}dashboard_section, local_coursectrl{{/str}} {{sectionnum}}</strong>
+        {{#hasname}}<span class="text-muted ms-2">{{name}}</span>{{/hasname}}
+      </span>
+      <span>
+        {{^visible}}<span class="badge bg-secondary me-1">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>{{/visible}}
+        <span class="badge bg-light border text-muted">{{cmcount}}</span>
+      </span>
+    </div>
+    {{#hascms}}
+    <div class="list-group list-group-flush">
+      {{#cms}}
+      <div class="list-group-item py-2 px-3" id="cm-{{cmid}}">
+        <div class="d-flex align-items-center justify-content-between mb-1">
+          <div>
+            {{#haswarnings}}{{#warnings}}<span title="{{message}}">{{icon}}</span> {{/warnings}}{{/haswarnings}}
+            {{#pix}}monologo, mod_{{modname}}, {{modname}}{{/pix}}
+            <a href="{{activityurl}}" class="fw-semibold">{{name}}</a>
+            {{^visible}}<span class="badge bg-secondary ms-1">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>{{/visible}}
+          </div>
+          <a href="{{editurl}}" class="btn btn-outline-secondary btn-sm py-0 px-1"
+             title="{{#str}}edit{{/str}}">{{#pix}}t/edit, core{{/pix}}</a>
+        </div>
+        <div class="small text-muted">
+          {{#hasdates}}{{#dates}}<span class="me-2{{#ispast}} text-decoration-line-through{{/ispast}}"><strong>{{field}}</strong> {{formatted}}</span>{{/dates}}{{/hasdates}}
+          {{#hascompletion}}<span class="badge bg-info me-1">{{completionlabel}}</span>{{/hascompletion}}
+          {{#hasprerequisites}}<span class="me-1">{{#str}}dashboard_requires, local_coursectrl{{/str}}</span>{{#prerequisites}}<a href="{{anchor}}" class="badge bg-light border text-dark me-1">⬆ {{name}}</a>{{/prerequisites}}{{/hasprerequisites}}
+          {{#hasdependents}}<span class="me-1">{{#str}}dashboard_unlocks, local_coursectrl{{/str}}</span>{{#dependents}}<a href="{{anchor}}" class="badge bg-light border text-dark me-1">⬇ {{name}}</a>{{/dependents}}{{/hasdependents}}
+        </div>
+      </div>
+      {{/cms}}
+    </div>
+    {{/hascms}}
+  </div>
+  {{/sections}}
+  {{/hassections}}
+  {{^hassections}}
+  <div class="alert alert-info">{{#str}}dashboard_empty, local_coursectrl{{/str}}</div>
+  {{/hassections}}
+  {{/showinventory}}
+
 </div>
 
 {{#js}}

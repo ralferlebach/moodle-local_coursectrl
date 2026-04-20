@@ -32,8 +32,16 @@ use local_coursectrl\local\entity\cm_item;
  * @covers \local_coursectrl\local\analysis\escape_path_checker
  */
 final class escape_path_checker_test extends \advanced_testcase {
-    // ── helpers ───────────────────────────────────────────────────────────────
-
+    // Helpers.
+    /**
+     * Build a minimal cm_item for testing.
+     *
+     * @param int $cmid Cm id.
+     * @param bool $visible Visible flag.
+     * @param string|null $avail Availability JSON.
+     * @param int $completion Completion mode.
+     * @return cm_item
+     */
     private function make_cm(
         int $cmid,
         bool $visible = true,
@@ -42,7 +50,12 @@ final class escape_path_checker_test extends \advanced_testcase {
     ): cm_item {
         return new cm_item($cmid, 1, 1, 'assign', $cmid, "CM $cmid", $visible, $avail, $completion);
     }
-
+    /**
+     * Build completion availability JSON.
+     *
+     * @param int $requirecmid Required cmid.
+     * @return string
+     */
     private function avail_requires(int $requirecmid): string {
         return json_encode([
             'op' => '&',
@@ -50,7 +63,13 @@ final class escape_path_checker_test extends \advanced_testcase {
             'showc' => [true],
         ]);
     }
-
+    /**
+     * Build a minimal finding array for testing.
+     *
+     * @param string $type Finding type string.
+     * @param array $cmids Array of cmids.
+     * @return array
+     */
     private function make_finding(string $type, array $cmids): array {
         return [
             'type'           => $type,
@@ -64,7 +83,7 @@ final class escape_path_checker_test extends \advanced_testcase {
         ];
     }
 
-    // ── tests: empty input ────────────────────────────────────────────────────
+    // Tests: empty input.
 
     /**
      * No findings → no results.
@@ -76,7 +95,7 @@ final class escape_path_checker_test extends \advanced_testcase {
         $this->assertSame([], $result);
     }
 
-    // ── tests: circular_dep ───────────────────────────────────────────────────
+    // Tests: circular_dep.
 
     /**
      * A circular_dep finding gets escape_type='break_cycle', has_escape=true.
@@ -119,18 +138,18 @@ final class escape_path_checker_test extends \advanced_testcase {
         $this->assertContains(3, $results[0]['cascade_cmids']);
     }
 
-    // ── tests: dep_on_hidden ──────────────────────────────────────────────────
+    // Tests: dep_on_hidden.
 
     /**
      * dep_on_hidden finding → escape_type='unhide_cm', has_escape=true.
      */
     public function test_dep_on_hidden_escape_unhide(): void {
         $this->resetAfterTest();
-        $cma = $this->make_cm(1, false, null); // hidden.
+        $cma = $this->make_cm(1, false, null); // Hidden.
         $cmb = $this->make_cm(2, true, $this->avail_requires(1));
         $cms = [1 => $cma, 2 => $cmb];
         $depindex = new dependency_index($cms);
-        $finding = $this->make_finding('dep_on_hidden', [2, 1]); // [dependent, hidden]
+        $finding = $this->make_finding('dep_on_hidden', [2, 1]); // Cmids: dependent cm=2, hidden cm=1.
 
         $checker = new escape_path_checker();
         $results = $checker->analyse([$finding], $cms, $depindex);
@@ -161,18 +180,18 @@ final class escape_path_checker_test extends \advanced_testcase {
         $this->assertGreaterThanOrEqual(1, $results[0]['cascade_count']);
     }
 
-    // ── tests: completion_no_tracking ─────────────────────────────────────────
+    // Tests: completion_no_tracking.
 
     /**
      * completion_no_tracking finding → escape_type='enable_completion', has_escape=true.
      */
     public function test_completion_no_tracking_escape_enable(): void {
         $this->resetAfterTest();
-        $cma = $this->make_cm(1, true, null, 0); // no completion tracking.
+        $cma = $this->make_cm(1, true, null, 0); // No completion tracking.
         $cmb = $this->make_cm(2, true, $this->avail_requires(1));
         $cms = [1 => $cma, 2 => $cmb];
         $depindex = new dependency_index($cms);
-        $finding = $this->make_finding('completion_no_tracking', [2, 1]); // [dependent, prereq]
+        $finding = $this->make_finding('completion_no_tracking', [2, 1]); // Cmids: dependent cm=2, prereq cm=1.
 
         $checker = new escape_path_checker();
         $results = $checker->analyse([$finding], $cms, $depindex);
@@ -183,7 +202,7 @@ final class escape_path_checker_test extends \advanced_testcase {
         $this->assertSame('enable_completion', $r['escape_type']);
     }
 
-    // ── tests: unknown finding type ───────────────────────────────────────────
+    // Tests: unknown finding type.
 
     /**
      * Unknown finding type → has_escape=false, escape_type='none'.
@@ -199,7 +218,7 @@ final class escape_path_checker_test extends \advanced_testcase {
         $this->assertSame(0, $r['cascade_count']);
     }
 
-    // ── tests: result shape ───────────────────────────────────────────────────
+    // Tests: result shape.
 
     /**
      * Every result has the required keys.
@@ -241,7 +260,7 @@ final class escape_path_checker_test extends \advanced_testcase {
         $this->resetAfterTest();
         $cma = $this->make_cm(1, true, $this->avail_requires(2));
         $cmb = $this->make_cm(2, true, $this->avail_requires(1));
-        $cmc = $this->make_cm(3, true, $this->avail_requires(1)); // downstream
+        $cmc = $this->make_cm(3, true, $this->avail_requires(1)); // Downstream.
         $cms = [1 => $cma, 2 => $cmb, 3 => $cmc];
         $depindex = new dependency_index($cms);
         $finding = $this->make_finding('circular_dep', [1, 2]);

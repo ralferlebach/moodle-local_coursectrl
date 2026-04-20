@@ -172,6 +172,18 @@ class text_datetime_extractor {
                 . '(?P<day>[0-3]?\d)(?:st|nd|rd|th)?(?!\s*,?\s*\d{4})'
                 . $timeopten . '/iu',
 
+            // English DMY: 10 May 2026 [at 14:00] (day then month then year, no comma).
+            'en_dmy_full' => '/\b(?P<day>[0-3]?\d)(?:st|nd|rd|th)?\s+'
+                . '(?P<monthname>' . $enmonths . ')\s+'
+                . '(?P<year>\d{4})'
+                . $timeopten . '/iu',
+
+            // German month-year (no day): Juli 1947, März 2026.
+            // Matches historical years (4 digits) as well as 20xx.
+            // No lookahead needed: a month name before the year is unambiguous.
+            'de_my_full' => '/\b(?P<monthname>' . $demonths . ')\s+'
+                . '(?P<year>\d{4})\b/iu',
+
             // US numeric: 04/15/2026 or 4/15/2026.
             'us_numeric_full' => '/\b(?P<month>0?[1-9]|1[0-2])\/(?P<day>[0-3]?\d)\/(?P<year>20\d{2})/u',
         ];

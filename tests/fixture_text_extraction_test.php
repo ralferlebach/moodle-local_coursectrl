@@ -25,7 +25,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_coursectrl\tests;
+namespace local_coursectrl;
 
 use local_coursectrl\local\text\text_datetime_extractor;
 use local_coursectrl\local\text\text_datetime_parser;
@@ -59,7 +59,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
         $this->classifier = new text_hit_classifier();
     }
 
-    // ── helpers ───────────────────────────────────────────────────────────────
+    // Helpers.
 
     /**
      * Extract and return only the matched strings.
@@ -71,7 +71,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
         return array_column($this->extractor->extract($text), 'match');
     }
 
-    // ── LB_TXT1: Deutsche und ISO-Formate ────────────────────────────────────
+    // LB_TXT1: Deutsche und ISO-Formate.
 
     /**
      * Deutsches Langformat "1. Mai 2026" wird erkannt.
@@ -140,7 +140,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
         $this->assertNotEmpty($hits, 'Historische Jahreszahlen sollten erkannt werden');
     }
 
-    // ── PA_TXT2: Englische und internationale Formate ─────────────────────────
+    // PA_TXT2: Englische und internationale Formate.
 
     /**
      * Englisches Format "May 1, 2026" wird erkannt.
@@ -181,7 +181,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
         }
     }
 
-    // ── URL_TXT3: Gemischte Formate, gleiches Datum viermal ──────────────────
+    // URL_TXT3: Gemischte Formate, gleiches Datum viermal.
 
     /**
      * Dasselbe Datum in vier Schreibweisen — mindestens 3 werden erkannt.
@@ -197,7 +197,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
         );
     }
 
-    // ── AS_TXT4: Historische und technische Referenzdaten ────────────────────
+    // AS_TXT4: Historische und technische Referenzdaten.
 
     /**
      * Datum "01.01.2000" (Y2K) wird erkannt.
@@ -219,7 +219,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
         $this->assertNotEmpty($hits);
     }
 
-    // ── Parser ────────────────────────────────────────────────────────────────
+    // Parser.
 
     /**
      * Parser normalisiert ISO-Datum zu "2026-10-15".
@@ -245,7 +245,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
         $this->assertStringContainsString('2026-10-15', $normalized);
     }
 
-    // ── Klassifizierung ───────────────────────────────────────────────────────
+    // Klassifizierung.
 
     /**
      * ISO-Datum mit vollständigem Jahr → Klassifizierung 'safe'.

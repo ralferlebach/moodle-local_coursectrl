@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['pluginname']       = 'Course Control Hub: Manual Free Days';
+$string['privacy:metadata'] = 'The manual calendar adapter stores no personal data. Entered dates are plugin configuration.';
 $string['setting_enabled']       = 'Enable manual free-day provider';
 $string['setting_entries']       = 'Free day entries';
 $string['setting_entries_desc']  = 'One per line: YYYY-MM-DD,Name,category or YYYY-MM-DD/YYYY-MM-DD,Name,category. Categories: public_holiday, school_holiday, custom. Lines starting with # are comments.';
-$string['pluginname']       = 'Course Control Hub: Manual Free Days';
-$string['privacy:metadata'] = 'The manual calendar adapter stores no personal data. Entered dates are plugin configuration.';

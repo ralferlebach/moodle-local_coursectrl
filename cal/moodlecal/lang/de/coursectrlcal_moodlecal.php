@@ -24,6 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['pluginname']       = 'Kursablauf-Zentrale: Moodle-Kalender-Leser';
+$string['privacy:metadata'] = 'Der Moodle-Kalender-Adapter liest vorhandene Moodle-Ereignisse und speichert keine zusätzlichen Daten.';
 $string['setting_category']          = 'Kategorie zuweisen';
 $string['setting_category_desc']     = 'Kategorie für gefundene Ereignisse: public_holiday, school_holiday oder custom.';
 $string['setting_enabled']           = 'Moodle-Kalender-Leser aktivieren';
@@ -31,5 +33,3 @@ $string['setting_eventtype']         = 'Einzuschließende Ereignistypen';
 $string['setting_eventtype_desc']    = 'Kommagetrennte Moodle-Ereignistypen: site, category, user. Standard: site. Typ course vermeiden (Zirkelbezüge durch Abgabetermine usw.).';
 $string['setting_namepattern']       = 'Namensfilter (Regex)';
 $string['setting_namepattern_desc']  = 'Optionaler PHP-Regex für den Ereignisnamen, z.B. /Ferien|Feiertag/i. Leer = alle Ereignisse des gewählten Typs.';
-$string['pluginname']       = 'Kursablauf-Zentrale: Moodle-Kalender-Leser';
-$string['privacy:metadata'] = 'Der Moodle-Kalender-Adapter liest vorhandene Moodle-Ereignisse und speichert keine zusätzlichen Daten.';

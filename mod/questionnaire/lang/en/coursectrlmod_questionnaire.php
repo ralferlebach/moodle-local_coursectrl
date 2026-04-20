@@ -26,8 +26,8 @@ defined('MOODLE_INTERNAL') || die();
 
 $string['action_shift_dates'] = 'Shift dates';
 $string['field_closedate']    = 'Close date';
+$string['field_completionexpected'] = 'Expected completion date';
 $string['field_opendate']    = 'Open date';
 $string['pluginname']         = 'Course Control Hub: Questionnaire adapter';
 $string['privacy:metadata']   = 'The Course Control Hub questionnaire adapter stores no personal data.';
-$string['field_completionexpected'] = 'Expected completion date';
 $string['r7_opendate_without_closedate'] = 'Open date without close date';

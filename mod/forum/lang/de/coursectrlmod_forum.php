@@ -25,8 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['action_shift_dates'] = 'Termine verschieben';
+$string['field_completionexpected'] = 'Abschluss erwartet bis';
 $string['field_cutoffdate']    = 'Einsendeschluss';
 $string['field_duedate']    = 'Fälligkeitsdatum';
 $string['pluginname']         = 'Kursablauf-Zentrale: Forum-Adapter';
 $string['privacy:metadata']   = 'Der Forum-Adapter der Kursablauf-Zentrale speichert keine personenbezogenen Daten.';
-$string['field_completionexpected'] = 'Abschluss erwartet bis';

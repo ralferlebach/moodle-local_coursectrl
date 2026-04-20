@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['action_shift_dates'] = 'Shift dates';
+$string['field_completionexpected'] = 'Expected completion date';
 $string['field_timedue']    = 'Due date';
 $string['pluginname']         = 'Course Control Hub: CAPQuiz adapter';
 $string['privacy:metadata']   = 'The Course Control Hub CAPQuiz adapter stores no personal data.';
-$string['field_completionexpected'] = 'Expected completion date';

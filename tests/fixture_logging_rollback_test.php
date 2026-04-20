@@ -25,7 +25,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_coursectrl\tests;
+namespace local_coursectrl;
 
 use local_coursectrl\local\persistent\batch;
 use local_coursectrl\manager\batch_manager;
@@ -46,7 +46,7 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
     /** @var int 7 Tage in Sekunden */
     private const WEEK = 604800;
 
-    // ── helpers ───────────────────────────────────────────────────────────────
+    // Helpers.
 
     /**
      * Erstelle Kurs mit Assign und Quiz.
@@ -78,7 +78,7 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
         ];
     }
 
-    // ── Logging: Batch-Persistierung ─────────────────────────────────────────
+    // Logging: Batch-Persistierung.
 
     /**
      * execute() erzeugt eine Batch-Zeile mit Status 'executed'.
@@ -178,7 +178,7 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
         $this->assertTrue($batches[0]['can_rollback'], 'Batch should be rollbackable');
     }
 
-    // ── Rollback ──────────────────────────────────────────────────────────────
+    // Rollback.
 
     /**
      * rollback_batch stellt den ursprünglichen duedate-Wert wieder her.

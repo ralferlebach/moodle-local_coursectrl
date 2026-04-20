@@ -125,7 +125,7 @@ if ($hassiteconfig) {
     } else {
         $adapterhtml = html_writer::tag('em', get_string('settings_adapters_none', 'local_coursectrl'));
     }
-    // TODO: Uncomment to link to Moodle.org once the plugin collection is published.
+    // Note: Uncomment to link to Moodle.org once the plugin collection is published.
     $settings->add(new admin_setting_description(
         'local_coursectrl/adapters_list',
         get_string('settings_adapters_installed', 'local_coursectrl'),
@@ -254,7 +254,7 @@ if ($hassiteconfig) {
         PARAM_ALPHANUMEXT
     ));
 
-    // ── Risk assessment ────────────────────────────────────────────────────
+    // Risk assessment.
     $settings->add(new admin_setting_heading(
         'local_coursectrl/risk_heading',
         get_string('settings_risk_heading', 'local_coursectrl'),
@@ -268,7 +268,7 @@ if ($hassiteconfig) {
         PARAM_INT
     ));
 
-    // ── R1: accessibility checks ───────────────────────────────────────────
+    // R1: accessibility checks.
     $settings->add(new admin_setting_heading(
         'local_coursectrl/r1_heading',
         get_string('settings_r1_heading', 'local_coursectrl'),
@@ -301,7 +301,7 @@ if ($hassiteconfig) {
         ]
     ));
 
-    // ── R2: completionexpected window ─────────────────────────────────────
+    // R2: completionexpected window.
     $settings->add(new admin_setting_heading(
         'local_coursectrl/r2_heading',
         get_string('settings_r2_heading', 'local_coursectrl'),
@@ -315,7 +315,7 @@ if ($hassiteconfig) {
         PARAM_INT
     ));
 
-    // ── R4: date coupling checks ───────────────────────────────────────────
+    // R4: date coupling checks.
     $settings->add(new admin_setting_heading(
         'local_coursectrl/r4_heading',
         get_string('settings_r4_heading', 'local_coursectrl'),
@@ -340,7 +340,7 @@ if ($hassiteconfig) {
         PARAM_INT
     ));
 
-    // ── R7: counterpart checks ─────────────────────────────────────────────
+    // R7: counterpart checks.
     $settings->add(new admin_setting_heading(
         'local_coursectrl/r7_heading',
         get_string('settings_r7_heading', 'local_coursectrl'),
@@ -384,9 +384,9 @@ if ($hassiteconfig) {
     foreach ($r7checks as $plugin => $checks) {
         $modname = str_replace('coursectrlmod_', '', $plugin);
 
-        // Guard: only add settings for this adapter if the underlying Moodle
-        // module is actually installed. Calling get_string('modulename', 'mod_X')
-        // on an uninstalled module produces a debugging() call that breaks CI.
+        // Guard: only add settings for this adapter if the underlying Moodle.
+        // Module is actually installed. Calling get_string('modulename', 'mod_X').
+        // On an uninstalled module produces a debugging() call that breaks CI.
         $pluginmanager = core_plugin_manager::instance();
         $modinfo = $pluginmanager->get_plugin_info('mod_' . $modname);
         if ($modinfo === null) {

@@ -54,7 +54,7 @@ final class course_frame_checker_test extends \advanced_testcase {
     /** @var int A timestamp safely in the past (2020-01-01). */
     private const DATE_PAST = 1577836800;
 
-    // ── helpers ──────────────────────────────────────────────────────────────
+    // Helpers.
 
     /**
      * Build a minimal cm_item.
@@ -104,7 +104,7 @@ final class course_frame_checker_test extends \advanced_testcase {
                 'timestamp' => $ts, 'source' => $source];
     }
 
-    // ── tests ─────────────────────────────────────────────────────────────────
+    // Tests.
 
     /**
      * Empty input produces empty output.
@@ -134,8 +134,12 @@ final class course_frame_checker_test extends \advanced_testcase {
         $this->resetAfterTest();
         $checker = new course_frame_checker();
         $cm = $this->make_cm(10, 'assign', 2);
-        $dates = [10 => [$this->make_date(10, 'duedate', self::DATE_INSIDE)]];
-        $result = $checker->check([10 => $cm], $dates, $this->make_course(self::COURSE_START, self::COURSE_END));
+        // Use a future date (30 days from now) so R0c (past deadline) does not fire.
+        $future = time() + 30 * 86400;
+        $start  = time() - 30 * 86400;
+        $end    = time() + 180 * 86400;
+        $dates  = [10 => [$this->make_date(10, 'duedate', $future)]];
+        $result = $checker->check([10 => $cm], $dates, $this->make_course($start, $end));
         $this->assertArrayNotHasKey(10, $result);
     }
 
@@ -205,7 +209,7 @@ final class course_frame_checker_test extends \advanced_testcase {
     public function test_r0c_deadline_in_past_with_completion(): void {
         $this->resetAfterTest();
         $checker = new course_frame_checker();
-        // completion=2 (COMPLETION_TRACKING_AUTOMATIC).
+        // Completion mode is automatic tracking (Moodle constant value 2).
         $cm = $this->make_cm(30, 'assign', 2);
         $dates = [30 => [$this->make_date(30, 'duedate', self::DATE_PAST)]];
         $result = $checker->check([30 => $cm], $dates, $this->make_course(0, 0));
@@ -223,7 +227,7 @@ final class course_frame_checker_test extends \advanced_testcase {
     public function test_r0c_skipped_without_completion_tracking(): void {
         $this->resetAfterTest();
         $checker = new course_frame_checker();
-        $cm = $this->make_cm(30, 'assign', 0); // no completion tracking.
+        $cm = $this->make_cm(30, 'assign', 0); // No completion tracking.
         $dates = [30 => [$this->make_date(30, 'duedate', self::DATE_PAST)]];
         $result = $checker->check([30 => $cm], $dates, $this->make_course(0, 0));
 
@@ -267,9 +271,9 @@ final class course_frame_checker_test extends \advanced_testcase {
         $cm30 = $this->make_cm(30, 'forum', 0);
 
         $dates = [
-            10 => [$this->make_date(10, 'duedate', self::DATE_AFTER_END)], // R0a
-            20 => [$this->make_date(20, 'timeopen', self::DATE_BEFORE_START)], // R0b
-            30 => [$this->make_date(30, 'duedate', self::DATE_INSIDE)], // valid
+            10 => [$this->make_date(10, 'duedate', self::DATE_AFTER_END)], // R0a.
+            20 => [$this->make_date(20, 'timeopen', self::DATE_BEFORE_START)], // R0b.
+            30 => [$this->make_date(30, 'duedate', self::DATE_INSIDE)], // Valid.
         ];
 
         $cms = [10 => $cm10, 20 => $cm20, 30 => $cm30];

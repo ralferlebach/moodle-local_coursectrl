@@ -45,8 +45,6 @@
 
 namespace local_coursectrl\local\analysis;
 
-defined('MOODLE_INTERNAL') || die();
-
 use local_coursectrl\local\entity\cm_item;
 
 /**
@@ -164,7 +162,7 @@ class temporal_conflict_detector {
         $r4mingapdays = max(0, (int)get_config('local_coursectrl', 'r4_min_gap_days'));
         $r4mingapsecs = $r4mingapdays * DAYSECS;
 
-        $r2warningoffset = 0; // completionexpected after deadline → always warning.
+        $r2warningoffset = 0; // Completionexpected after deadline → always warning.
         $cfgr2 = (int)get_config('local_coursectrl', 'r2_notice_offset_days');
         $r2noticeoffset = ($cfgr2 > 0 ? $cfgr2 : 3) * DAYSECS;
 

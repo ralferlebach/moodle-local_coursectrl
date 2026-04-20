@@ -32,7 +32,7 @@ use local_coursectrl\local\entity\cm_item;
  * @covers \local_coursectrl\local\analysis\dead_end_detector
  */
 final class dead_end_detector_test extends \advanced_testcase {
-    // ── helpers ───────────────────────────────────────────────────────────────
+    // Helpers.
 
     /**
      * Build a cm_item with optional availability JSON and completion.
@@ -81,7 +81,7 @@ final class dead_end_detector_test extends \advanced_testcase {
         ]);
     }
 
-    // ── tests: no issues ──────────────────────────────────────────────────────
+    // Tests: no issues.
 
     /**
      * Empty CMs produce no findings.
@@ -109,7 +109,7 @@ final class dead_end_detector_test extends \advanced_testcase {
         $this->assertNotContains('circular_dep_transitive', $types);
     }
 
-    // ── tests: circular_dep_transitive ────────────────────────────────────────
+    // Tests: circular_dep_transitive.
 
     /**
      * 2-node cycle A↔B → circular_dep_transitive.
@@ -168,8 +168,8 @@ final class dead_end_detector_test extends \advanced_testcase {
     public function test_isolated_cm_not_flagged_as_cycle(): void {
         $this->resetAfterTest();
         $cma = $this->make_cm(1, true, $this->avail_requires(2));
-        $cmb = $this->make_cm(2, true, $this->avail_requires(1)); // cycle with A
-        $cmc = $this->make_cm(3, true, null);                      // isolated
+        $cmb = $this->make_cm(2, true, $this->avail_requires(1)); // Cycle with A.
+        $cmc = $this->make_cm(3, true, null);                      // Isolated.
         $cms = [1 => $cma, 2 => $cmb, 3 => $cmc];
         $depindex = new dependency_index($cms);
         $detector = new dead_end_detector(10);
@@ -180,14 +180,14 @@ final class dead_end_detector_test extends \advanced_testcase {
         }
     }
 
-    // ── tests: dep_on_hidden / hidden_with_dependents ─────────────────────────
+    // Tests: dep_on_hidden / hidden_with_dependents.
 
     /**
      * CM B depends on hidden CM A → dep_on_hidden (error).
      */
     public function test_dep_on_hidden_detected(): void {
         $this->resetAfterTest();
-        $cma = $this->make_cm(1, false, null); // hidden.
+        $cma = $this->make_cm(1, false, null); // Hidden.
         $cmb = $this->make_cm(2, true, $this->avail_requires(1));
         $cms = [1 => $cma, 2 => $cmb];
         $depindex = new dependency_index($cms);
@@ -205,7 +205,7 @@ final class dead_end_detector_test extends \advanced_testcase {
      */
     public function test_hidden_with_dependents_detected(): void {
         $this->resetAfterTest();
-        $cma = $this->make_cm(1, false, null); // hidden, has dependents.
+        $cma = $this->make_cm(1, false, null); // Hidden, has dependents.
         $cmb = $this->make_cm(2, true, $this->avail_requires(1));
         $cms = [1 => $cma, 2 => $cmb];
         $depindex = new dependency_index($cms);
@@ -234,14 +234,14 @@ final class dead_end_detector_test extends \advanced_testcase {
         $this->assertNotContains('hidden_with_dependents', $types);
     }
 
-    // ── tests: completion_required_no_tracking ────────────────────────────────
+    // Tests: completion_required_no_tracking.
 
     /**
      * completionexpected set but completion=0 → completion_required_no_tracking.
      */
     public function test_completionexpected_without_tracking(): void {
         $this->resetAfterTest();
-        $cm = $this->make_cm(1, true, null, 0, 1748736000); // completion=0, expected set.
+        $cm = $this->make_cm(1, true, null, 0, 1748736000); // Completion disabled (0) but expected date set.
         $cms = [1 => $cm];
         $depindex = new dependency_index($cms);
         $detector = new dead_end_detector(10);
@@ -271,7 +271,7 @@ final class dead_end_detector_test extends \advanced_testcase {
      */
     public function test_completionexpected_with_tracking_no_mismatch(): void {
         $this->resetAfterTest();
-        $cm = $this->make_cm(1, true, null, 2, 1748736000); // completion=2 (auto).
+        $cm = $this->make_cm(1, true, null, 2, 1748736000); // Completion mode is automatic tracking (value 2).
         $cms = [1 => $cm];
         $depindex = new dependency_index($cms);
         $detector = new dead_end_detector(10);
@@ -280,21 +280,21 @@ final class dead_end_detector_test extends \advanced_testcase {
         $this->assertNotContains('completion_required_no_tracking', $types);
     }
 
-    // ── tests: long_dep_chain ─────────────────────────────────────────────────
+    // Tests: long_dep_chain.
 
     /**
      * Chain longer than maxchaindepth → long_dep_chain notice.
      */
     public function test_long_chain_detected(): void {
         $this->resetAfterTest();
-        // Build chain: 1→2→3→4→5, limit=3.
+        // Chain has 5 nodes; max-depth limit is 3.
         $cms = [];
         $cms[1] = $this->make_cm(1, true, null);
         for ($i = 2; $i <= 5; $i++) {
             $cms[$i] = $this->make_cm($i, true, $this->avail_requires($i - 1));
         }
         $depindex = new dependency_index($cms);
-        $detector = new dead_end_detector(3); // limit = 3.
+        $detector = new dead_end_detector(3); // Max-depth limit set to 3.
         $risks = $detector->detect($cms, $depindex);
         $types = array_column($risks, 'type');
         $this->assertContains('long_dep_chain', $types);
@@ -307,7 +307,7 @@ final class dead_end_detector_test extends \advanced_testcase {
      */
     public function test_short_chain_no_long_dep(): void {
         $this->resetAfterTest();
-        // Chain: 1→2→3, limit=10.
+        // Short chain of 3 nodes; limit of 10 allows full traversal.
         $cms[1] = $this->make_cm(1, true, null);
         $cms[2] = $this->make_cm(2, true, $this->avail_requires(1));
         $cms[3] = $this->make_cm(3, true, $this->avail_requires(2));
@@ -327,13 +327,13 @@ final class dead_end_detector_test extends \advanced_testcase {
         $cms[2] = $this->make_cm(2, true, $this->avail_requires(1));
         $cms[3] = $this->make_cm(3, true, $this->avail_requires(2));
         $depindex = new dependency_index($cms);
-        $detector = new dead_end_detector(0); // disabled.
+        $detector = new dead_end_detector(0); // Disabled.
         $risks = $detector->detect($cms, $depindex);
         $types = array_column($risks, 'type');
         $this->assertNotContains('long_dep_chain', $types);
     }
 
-    // ── tests: combinations ───────────────────────────────────────────────────
+    // Tests: combinations.
 
     /**
      * A course with both a cycle and a hidden-dep issue produces both findings.

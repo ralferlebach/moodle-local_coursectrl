@@ -88,6 +88,8 @@ class risk_assessment_runner {
         array $datesbycm,
         int $courseid
     ): array {
+        global $DB;
+
         // Phase 1: structural dead-ends.
         $findings = $this->deadenddetector->detect($cms, $depindex);
 
@@ -98,7 +100,15 @@ class risk_assessment_runner {
         $items = $this->prioritizer->score_and_sort($findings, $depindex);
 
         // Phase 4: merge consistency_runner findings (converted to risk items).
-        $consistencywarnings = $this->consistencyrunner->get_warnings($cms, $depindex, $datesbycm);
+        // Load the course record so R0 (course-frame) checks are included.
+        $course = $DB->get_record('course', ['id' => $courseid]) ?: null;
+        $consistencywarnings = $this->consistencyrunner->get_warnings(
+            $cms,
+            $depindex,
+            $datesbycm,
+            null,
+            $course
+        );
         $items = array_merge($items, $this->convert_consistency_warnings($consistencywarnings, $cms));
 
         // Re-sort after merge.

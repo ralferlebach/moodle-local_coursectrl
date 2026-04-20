@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['pluginname']       = 'Kursablauf-Zentrale: Nager.Date (Gesetzliche Feiertage)';
+$string['privacy:metadata'] = 'Der Nager.Date-Adapter ruft öffentliche Daten ab und speichert keine personenbezogenen Daten.';
 $string['setting_countrycode']      = 'Ländercode (ISO 3166-1 alpha-2)';
 $string['setting_countrycode_desc'] = 'Z.B. DE, AT, CH, FR, US. Verfügbare Länder: https://date.nager.at.';
 $string['setting_enabled']          = 'Nager.Date-Anbieter aktivieren';
-$string['pluginname']       = 'Kursablauf-Zentrale: Nager.Date (Gesetzliche Feiertage)';
-$string['privacy:metadata'] = 'Der Nager.Date-Adapter ruft öffentliche Daten ab und speichert keine personenbezogenen Daten.';

@@ -24,6 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['pluginname']       = 'Course Control Hub: Moodle Calendar Reader';
+$string['privacy:metadata'] = 'The Moodle calendar adapter reads existing Moodle events and stores no additional personal data.';
 $string['setting_category']          = 'Assign category';
 $string['setting_category_desc']     = 'Category to assign to matched events: public_holiday, school_holiday, or custom.';
 $string['setting_enabled']           = 'Enable Moodle calendar reader';
@@ -31,5 +33,3 @@ $string['setting_eventtype']         = 'Event types to include';
 $string['setting_eventtype_desc']    = 'Comma-separated Moodle event types: site, category, user. Default: site. Avoid course to prevent circular references with activity deadlines.';
 $string['setting_namepattern']       = 'Name filter (regex)';
 $string['setting_namepattern_desc']  = 'Optional PHP regex applied to event name, e.g. /Ferien|Holiday/i. Leave empty to include all events of the selected type.';
-$string['pluginname']       = 'Course Control Hub: Moodle Calendar Reader';
-$string['privacy:metadata'] = 'The Moodle calendar adapter reads existing Moodle events and stores no additional personal data.';

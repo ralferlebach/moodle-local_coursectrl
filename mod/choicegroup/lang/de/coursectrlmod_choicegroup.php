@@ -25,9 +25,9 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['action_shift_dates'] = 'Termine verschieben';
+$string['field_completionexpected'] = 'Abschluss erwartet bis';
 $string['field_timeclose']    = 'Wahl schließen';
 $string['field_timeopen']    = 'Wahl öffnen';
 $string['pluginname']         = 'Kursablauf-Zentrale: Gruppenauswahl-Adapter';
 $string['privacy:metadata']   = 'Der Gruppenauswahl-Adapter der Kursablauf-Zentrale speichert keine personenbezogenen Daten.';
-$string['field_completionexpected'] = 'Abschluss erwartet bis';
 $string['r7_timeopen_without_timeclose'] = 'Öffnungszeit ohne Schließzeit';

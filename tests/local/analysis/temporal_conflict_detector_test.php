@@ -257,7 +257,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
         $this->assertEmpty($result);
     }
 
-    // ── R2: completionexpected window ─────────────────────────────────────────
+    // R2: completionexpected window.
 
     /**
      * Build a cm_item with completionexpected set.
@@ -288,7 +288,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
     public function test_r2a_completionexpected_after_duedate(): void {
         $this->resetAfterTest();
         $detector = new temporal_conflict_detector();
-        // completionexpected = T3, duedate = T1 → expected is AFTER deadline.
+        // Completionexpected = T3, duedate = T1 → expected is AFTER deadline.
         $cm = $this->make_cm_with_expected(1, 'assign', self::T3);
         $dates = [1 => [$this->make_entry(1, 'duedate', self::T1)]];
         $result = $detector->detect([1 => $cm], $dates);
@@ -307,7 +307,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
         $this->resetAfterTest();
         set_config('r2_notice_offset_days', '3', 'local_coursectrl');
         $detector = new temporal_conflict_detector();
-        // duedate = T3, expected = T1 → gap = 14 days > 3 day threshold.
+        // Duedate = T3, expected = T1 → gap = 14 days > 3 day threshold.
         $cm = $this->make_cm_with_expected(1, 'assign', self::T1);
         $dates = [1 => [$this->make_entry(1, 'duedate', self::T3)]];
         $result = $detector->detect([1 => $cm], $dates);
@@ -326,7 +326,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
         $this->resetAfterTest();
         set_config('r2_notice_offset_days', '3', 'local_coursectrl');
         $detector = new temporal_conflict_detector();
-        // duedate = T2, expected = T2 - 1 day → gap = 1 day < 3 day threshold.
+        // Duedate = T2, expected = T2 - 1 day → gap = 1 day < 3 day threshold.
         $cm = $this->make_cm_with_expected(1, 'assign', self::T2 - DAYSECS);
         $dates = [1 => [$this->make_entry(1, 'duedate', self::T2)]];
         $result = $detector->detect([1 => $cm], $dates);
@@ -345,7 +345,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
     public function test_r2_quiz_uses_timeclose(): void {
         $this->resetAfterTest();
         $detector = new temporal_conflict_detector();
-        // completionexpected after timeclose → R2a warning.
+        // Completionexpected after timeclose → R2a warning.
         $cm = $this->make_cm_with_expected(1, 'quiz', self::T3);
         $dates = [1 => [$this->make_entry(1, 'timeclose', self::T1)]];
         $result = $detector->detect([1 => $cm], $dates);
@@ -361,7 +361,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
         $this->resetAfterTest();
         set_config('r2_notice_offset_days', '3', 'local_coursectrl');
         $detector = new temporal_conflict_detector();
-        // large gap (14 days) — should NOT raise notice for workshop.
+        // Large gap (14 days) — should NOT raise notice for workshop.
         $cm = $this->make_cm_with_expected(1, 'workshop', self::T1);
         $dates = [1 => [$this->make_entry(1, 'assessmentend', self::T3)]];
         $result = $detector->detect([1 => $cm], $dates);
@@ -379,7 +379,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
     public function test_r2_workshop_after_deadline_still_warns(): void {
         $this->resetAfterTest();
         $detector = new temporal_conflict_detector();
-        // completionexpected = T3, assessmentend = T1 → expected after deadline.
+        // Completionexpected = T3, assessmentend = T1 → expected after deadline.
         $cm = $this->make_cm_with_expected(1, 'workshop', self::T3);
         $dates = [1 => [$this->make_entry(1, 'assessmentend', self::T1)]];
         $result = $detector->detect([1 => $cm], $dates);
@@ -394,7 +394,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
     public function test_r2_not_set_no_finding(): void {
         $this->resetAfterTest();
         $detector = new temporal_conflict_detector();
-        // completionexpected = 0 → no check.
+        // Completionexpected = 0 → no check.
         $cm = $this->make_cm(1, 'assign');
         $dates = [1 => [$this->make_entry(1, 'duedate', self::T1)]];
         $result = $detector->detect([1 => $cm], $dates);
@@ -413,7 +413,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
     public function test_r2_no_deadline_field_no_finding(): void {
         $this->resetAfterTest();
         $detector = new temporal_conflict_detector();
-        // assign with expected set but no duedate entry.
+        // Assign with expected set but no duedate entry.
         $cm = $this->make_cm_with_expected(1, 'assign', self::T1);
         $dates = [1 => []];
         $result = $detector->detect([1 => $cm], $dates);

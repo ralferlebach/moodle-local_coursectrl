@@ -24,6 +24,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['field_completionexpected'] = 'Abschluss erwartet bis';
 $string['pluginname']         = 'Kursablauf-Zentrale: Seite-Adapter';
 $string['privacy:metadata']   = 'Der Seite-Adapter der Kursablauf-Zentrale speichert keine personenbezogenen Daten.';
-$string['field_completionexpected'] = 'Abschluss erwartet bis';

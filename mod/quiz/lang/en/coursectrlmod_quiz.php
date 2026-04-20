@@ -25,8 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['action_shift_dates'] = 'Shift dates';
+$string['field_completionexpected'] = 'Expected completion date';
 $string['field_timeclose']    = 'Close the quiz';
 $string['field_timeopen']     = 'Open the quiz';
 $string['pluginname']         = 'Course Control Hub: Quiz adapter';
 $string['privacy:metadata']   = 'The Course Control Hub quiz adapter does not store any personal data. It operates on quiz configuration on behalf of the local_coursectrl plugin and delegates all persistence to it.';
-$string['field_completionexpected'] = 'Expected completion date';

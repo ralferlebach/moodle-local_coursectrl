@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['pluginname']       = 'Course Control Hub: Nager.Date (Public Holidays)';
+$string['privacy:metadata'] = 'The Nager.Date adapter fetches public data and stores no personal data.';
 $string['setting_countrycode']      = 'Country code (ISO 3166-1 alpha-2)';
 $string['setting_countrycode_desc'] = 'E.g. DE, AT, CH, FR, US. See https://date.nager.at for supported countries.';
 $string['setting_enabled']          = 'Enable Nager.Date provider';
-$string['pluginname']       = 'Course Control Hub: Nager.Date (Public Holidays)';
-$string['privacy:metadata'] = 'The Nager.Date adapter fetches public data and stores no personal data.';

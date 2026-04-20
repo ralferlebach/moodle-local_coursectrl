@@ -24,6 +24,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['field_completionexpected'] = 'Expected completion date';
 $string['pluginname']         = 'Course Control Hub: Page adapter';
 $string['privacy:metadata']   = 'The Course Control Hub page adapter stores no personal data.';
-$string['field_completionexpected'] = 'Expected completion date';

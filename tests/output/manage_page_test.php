@@ -104,7 +104,7 @@ final class manage_page_test extends \advanced_testcase {
         $page = new manage_page($this->build_snapshot());
         $data = $page->export_for_template($PAGE->get_renderer('core'));
 
-        // assign has completion=2 (auto) → date fields; quiz has completion=1 (manual).
+        // Assign has completion=2 (auto) → date fields; quiz has completion=1 (manual).
         // The count reflects CMs whose modname carries recognised date fields.
         $this->assertArrayHasKey('withdatescount', $data);
         $this->assertIsInt($data['withdatescount']);

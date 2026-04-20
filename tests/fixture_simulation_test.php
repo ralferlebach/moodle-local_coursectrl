@@ -25,7 +25,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_coursectrl\tests;
+namespace local_coursectrl;
 
 use local_coursectrl\local\simulation\visibility_simulator;
 use local_coursectrl\local\simulation\learner_state;
@@ -46,7 +46,7 @@ final class fixture_simulation_test extends \advanced_testcase {
     /** @var int Past timestamp (2020-01-01) */
     private const T_PAST = 1577836800;
 
-    // ── helpers ───────────────────────────────────────────────────────────────
+    // Helpers.
 
     /**
      * Build cms array from course via inventory_service.
@@ -101,7 +101,7 @@ final class fixture_simulation_test extends \advanced_testcase {
         ]);
     }
 
-    // ── Simulation: Grundfälle ────────────────────────────────────────────────
+    // Simulation: Grundfälle.
 
     /**
      * CM ohne Bedingungen ist für alle Lernenden zugänglich.
@@ -142,7 +142,7 @@ final class fixture_simulation_test extends \advanced_testcase {
         $this->assertSame(condition_evaluator::STATUS_FAIL, $results[$cmid]['status']);
     }
 
-    // ── Simulation: Abschluss-Bedingungen ─────────────────────────────────────
+    // Simulation: Abschluss-Bedingungen.
 
     /**
      * CM mit completion-Bedingung: Voraussetzung NICHT erfüllt → nicht zugänglich.
@@ -163,6 +163,8 @@ final class fixture_simulation_test extends \advanced_testcase {
             $this->avail_requires_completion((int)$prereq->cmid),
             ['id' => (int)$dependent->cmid]
         );
+
+        rebuild_course_cache($course->id, true);
 
         $cms = $this->get_cms($course->id);
         // Lernender hat prereq NICHT abgeschlossen.
@@ -196,6 +198,8 @@ final class fixture_simulation_test extends \advanced_testcase {
             ['id' => (int)$dependent->cmid]
         );
 
+        rebuild_course_cache($course->id, true);
+
         $cms = $this->get_cms($course->id);
         // Lernender HAT prereq abgeschlossen (state=1).
         $state = new learner_state(self::T_FUTURE, [(int)$prereq->cmid => 1], [], []);
@@ -208,7 +212,7 @@ final class fixture_simulation_test extends \advanced_testcase {
         );
     }
 
-    // ── Simulation: Gruppen-Bedingungen ───────────────────────────────────────
+    // Simulation: Gruppen-Bedingungen.
 
     /**
      * CM mit Gruppen-Bedingung: Lernender in richtiger Gruppe → zugänglich.
@@ -227,6 +231,8 @@ final class fixture_simulation_test extends \advanced_testcase {
             $this->avail_requires_group((int)$group->id),
             ['id' => (int)$assign->cmid]
         );
+
+        rebuild_course_cache($course->id, true);
 
         $cms = $this->get_cms($course->id);
         $state = new learner_state(self::T_FUTURE, [], [(int)$group->id], []);
@@ -256,6 +262,7 @@ final class fixture_simulation_test extends \advanced_testcase {
             $this->avail_requires_group((int)$group->id),
             ['id' => (int)$assign->cmid]
         );
+        rebuild_course_cache($course->id, true);
 
         $cms = $this->get_cms($course->id);
         // Lernender in ANDERER Gruppe (id 9999).
@@ -269,7 +276,7 @@ final class fixture_simulation_test extends \advanced_testcase {
         );
     }
 
-    // ── Simulation: Datum-Bedingungen ─────────────────────────────────────────
+    // Simulation: Datum-Bedingungen.
 
     /**
      * CM mit Datum-Bedingung in der Zukunft: Datum noch nicht erreicht → gesperrt.
@@ -287,6 +294,7 @@ final class fixture_simulation_test extends \advanced_testcase {
             $this->avail_requires_date(self::T_FUTURE + 86400),
             ['id' => (int)$assign->cmid]
         );
+        rebuild_course_cache($course->id, true);
 
         $cms = $this->get_cms($course->id);
         // Simulationszeitpunkt VOR dem Freigabedatum.
@@ -314,6 +322,8 @@ final class fixture_simulation_test extends \advanced_testcase {
             ['id' => (int)$assign->cmid]
         );
 
+        rebuild_course_cache($course->id, true);
+
         $cms = $this->get_cms($course->id);
         $state = new learner_state(self::T_FUTURE, [], [], []);
         $sim = new visibility_simulator();
@@ -325,7 +335,7 @@ final class fixture_simulation_test extends \advanced_testcase {
         );
     }
 
-    // ── Simulation: Ergebnis-Shape ────────────────────────────────────────────
+    // Simulation: Ergebnis-Shape.
 
     /**
      * Jedes Simulationsergebnis hat die Pflichtfelder.

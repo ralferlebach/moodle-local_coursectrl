@@ -41,8 +41,16 @@ final class risk_assessment_runner_test extends \advanced_testcase {
     /** @var int Fake course id for persistence tests. */
     private const COURSE_ID = 9999;
 
-    // ── helpers ───────────────────────────────────────────────────────────────
-
+    // Helpers.
+    /**
+     * Build a minimal cm_item for testing.
+     *
+     * @param int $cmid Cm id.
+     * @param bool $visible Visible flag.
+     * @param string|null $avail Availability JSON.
+     * @param int $completion Completion mode.
+     * @return cm_item
+     */
     private function make_cm(
         int $cmid,
         bool $visible = true,
@@ -61,7 +69,12 @@ final class risk_assessment_runner_test extends \advanced_testcase {
             $completion
         );
     }
-
+    /**
+     * Build completion availability JSON.
+     *
+     * @param int $req Required cmid.
+     * @return string
+     */
     private function avail_requires(int $req): string {
         return json_encode([
             'op' => '&', 'c' => [['type' => 'completion', 'cm' => $req, 'e' => 1]],
@@ -84,7 +97,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
         );
     }
 
-    // ── tests: basic output shape ─────────────────────────────────────────────
+    // Tests: basic output shape.
 
     /**
      * Empty CMs produce an empty result and an empty persisted state.
@@ -120,7 +133,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
         }
     }
 
-    // ── tests: dead-end detection in pipeline ─────────────────────────────────
+    // Tests: dead-end detection in pipeline.
 
     /**
      * A 2-node cycle produces a circular_dep_transitive finding in the output.
@@ -144,7 +157,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
      */
     public function test_dep_on_hidden_in_output(): void {
         $this->resetAfterTest();
-        $cma = $this->make_cm(1, false, null);  // hidden
+        $cma = $this->make_cm(1, false, null);  // Hidden.
         $cmb = $this->make_cm(2, true, $this->avail_requires(1));
         $cms = [1 => $cma, 2 => $cmb];
         $depindex = new dependency_index($cms);
@@ -156,7 +169,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
         $this->assertContains('dep_on_hidden', $types);
     }
 
-    // ── tests: consistency_runner merge ───────────────────────────────────────
+    // Tests: consistency_runner merge.
 
     /**
      * Temporal conflicts from consistency_runner appear in the merged output.
@@ -177,8 +190,8 @@ final class risk_assessment_runner_test extends \advanced_testcase {
         );
         $cms = [10 => $quizcm];
         $depindex = new dependency_index($cms);
-        $t1 = 1748736000; // 2026-06-01
-        $t2 = 1749340800; // 2026-06-08
+        $t1 = 1748736000; // 2026-06-01.
+        $t2 = 1749340800; // 2026-06-08.
         $datesbycm = [
             10 => [
                 ['cmid' => 10, 'field' => 'timeopen', 'fieldlabel' => 'timeopen',
@@ -195,7 +208,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
         $this->assertContains('temporal_conflict', $types);
     }
 
-    // ── tests: output ordering ────────────────────────────────────────────────
+    // Tests: output ordering.
 
     /**
      * Items are sorted by score descending.
@@ -203,10 +216,10 @@ final class risk_assessment_runner_test extends \advanced_testcase {
     public function test_output_sorted_by_score_descending(): void {
         $this->resetAfterTest();
         // Cycle + hidden dep → at least two findings with different scores.
-        $cma = $this->make_cm(1, false, null);            // hidden
-        $cmb = $this->make_cm(2, true, $this->avail_requires(1)); // dep on hidden
+        $cma = $this->make_cm(1, false, null);            // Hidden.
+        $cmb = $this->make_cm(2, true, $this->avail_requires(1)); // Dep on hidden.
         $cmc = $this->make_cm(3, true, $this->avail_requires(4));
-        $cmd = $this->make_cm(4, true, $this->avail_requires(3)); // cycle C↔D
+        $cmd = $this->make_cm(4, true, $this->avail_requires(3)); // Cycle C↔D.
         $cms = [1 => $cma, 2 => $cmb, 3 => $cmc, 4 => $cmd];
         $depindex = new dependency_index($cms);
 
@@ -222,7 +235,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
         }
     }
 
-    // ── tests: persistence ────────────────────────────────────────────────────
+    // Tests: persistence.
 
     /**
      * run() persists results; load_last() returns them.

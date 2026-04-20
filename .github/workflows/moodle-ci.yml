@@ -248,16 +248,26 @@ jobs:
 
           # Clone third-party modules (non-fatal if unavailable).
           clone_p() {
-            git clone --depth=1 "$1" "$2" 2>/dev/null \
-              && echo "  cloned: $2" \
-              || echo "  skipped (unavailable): $2"
+            local repo="$1" branch="$2" dest="$3"
+            git clone --depth=1 --branch "$branch" "$repo" "$dest" 2>/dev/null \
+              && echo "  cloned: $dest @ $branch" \
+              || echo "  skipped (unavailable): $dest"
           }
-          clone_p https://github.com/PoetOS/moodle-mod_questionnaire   "$MOODLE_DIR/mod/questionnaire"
-          clone_p https://github.com/ndunand/moodle-mod_choicegroup     "$MOODLE_DIR/mod/choicegroup"
-          clone_p https://github.com/studentquiz/moodle-mod_studentquiz "$MOODLE_DIR/mod/studentquiz"
-          # capquiz requires Moodle >= 5.0 — skip on 4.5.
+          # Third-party plugins are only installed on Moodle 5.0+ to avoid
+          # compatibility issues with Moodle 4.5 (behat init is stricter than
+          # phpunit init and rejects certain plugin/moodle version combinations).
           if [ "${{ matrix.moodle }}" != "MOODLE_405_STABLE" ]; then
-            clone_p https://github.com/KQMATH/moodle-mod_capquiz "$MOODLE_DIR/mod/capquiz"
+            clone_p https://github.com/PoetOS/moodle-mod_questionnaire MOODLE_404_STABLE \
+              "$MOODLE_DIR/mod/questionnaire"
+            clone_p https://github.com/ndunand/moodle-mod_choicegroup master \
+              "$MOODLE_DIR/mod/choicegroup"
+            clone_p https://github.com/studentquiz/moodle-mod_studentquiz master \
+              "$MOODLE_DIR/mod/studentquiz"
+          fi
+          # capquiz master requires Moodle 5.0.8 — only safe for 5.1+.
+          if [ "${{ matrix.moodle }}" = "MOODLE_501_STABLE" ]; then
+            clone_p https://github.com/KQMATH/moodle-mod_capquiz master \
+              "$MOODLE_DIR/mod/capquiz"
           fi
 
           # Re-run PHPUnit init so new plugins are registered in the test DB.
@@ -343,16 +353,26 @@ jobs:
           PHP=/usr/bin/php
 
           clone_p() {
-            git clone --depth=1 "$1" "$2" 2>/dev/null \
-              && echo "  cloned: $2" \
-              || echo "  skipped (unavailable): $2"
+            local repo="$1" branch="$2" dest="$3"
+            git clone --depth=1 --branch "$branch" "$repo" "$dest" 2>/dev/null \
+              && echo "  cloned: $dest @ $branch" \
+              || echo "  skipped (unavailable): $dest"
           }
-          clone_p https://github.com/PoetOS/moodle-mod_questionnaire   "$MOODLE_DIR/mod/questionnaire"
-          clone_p https://github.com/ndunand/moodle-mod_choicegroup     "$MOODLE_DIR/mod/choicegroup"
-          clone_p https://github.com/studentquiz/moodle-mod_studentquiz "$MOODLE_DIR/mod/studentquiz"
-          # capquiz requires Moodle >= 5.0 — skip on 4.5.
+          # Third-party plugins are only installed on Moodle 5.0+ to avoid
+          # compatibility issues with Moodle 4.5 (behat init is stricter than
+          # phpunit init and rejects certain plugin/moodle version combinations).
           if [ "${{ matrix.moodle }}" != "MOODLE_405_STABLE" ]; then
-            clone_p https://github.com/KQMATH/moodle-mod_capquiz "$MOODLE_DIR/mod/capquiz"
+            clone_p https://github.com/PoetOS/moodle-mod_questionnaire MOODLE_404_STABLE \
+              "$MOODLE_DIR/mod/questionnaire"
+            clone_p https://github.com/ndunand/moodle-mod_choicegroup master \
+              "$MOODLE_DIR/mod/choicegroup"
+            clone_p https://github.com/studentquiz/moodle-mod_studentquiz master \
+              "$MOODLE_DIR/mod/studentquiz"
+          fi
+          # capquiz master requires Moodle 5.0.8 — only safe for 5.1+.
+          if [ "${{ matrix.moodle }}" = "MOODLE_501_STABLE" ]; then
+            clone_p https://github.com/KQMATH/moodle-mod_capquiz master \
+              "$MOODLE_DIR/mod/capquiz"
           fi
 
           # Re-run Behat init so new plugins are registered.

@@ -26,8 +26,8 @@ defined('MOODLE_INTERNAL') || die();
 
 $string['action_shift_dates'] = 'Termine verschieben';
 $string['field_closedate']    = 'Schlussdatum';
+$string['field_completionexpected'] = 'Abschluss erwartet bis';
 $string['field_opendate']    = 'Öffnungsdatum';
 $string['pluginname']         = 'Kursablauf-Zentrale: Fragebogen-Adapter';
 $string['privacy:metadata']   = 'Der Fragebogen-Adapter der Kursablauf-Zentrale speichert keine personenbezogenen Daten.';
-$string['field_completionexpected'] = 'Abschluss erwartet bis';
 $string['r7_opendate_without_closedate'] = 'Öffnungsdatum ohne Schließdatum';

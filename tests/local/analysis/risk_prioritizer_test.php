@@ -39,12 +39,23 @@ use local_coursectrl\local\entity\cm_item;
  * @covers \local_coursectrl\local\analysis\risk_prioritizer
  */
 final class risk_prioritizer_test extends \advanced_testcase {
-    // ── helpers ───────────────────────────────────────────────────────────────
-
+    // Helpers.
+    /**
+     * Build a minimal cm_item for testing.
+     *
+     * @param int $cmid Cm id.
+     * @param string|null $avail Availability JSON.
+     * @return cm_item
+     */
     private function make_cm(int $cmid, ?string $avail = null): cm_item {
         return new cm_item($cmid, 1, 1, 'assign', $cmid, "CM $cmid", true, $avail, 2);
     }
-
+    /**
+     * Build completion availability JSON.
+     *
+     * @param int $req Required cmid.
+     * @return string
+     */
     private function avail_requires(int $req): string {
         return json_encode([
             'op' => '&', 'c' => [['type' => 'completion', 'cm' => $req, 'e' => 1]],
@@ -78,7 +89,7 @@ final class risk_prioritizer_test extends \advanced_testcase {
         ];
     }
 
-    // ── tests: empty / single ─────────────────────────────────────────────────
+    // Tests: empty / single.
 
     /**
      * Empty input → empty output.
@@ -103,7 +114,7 @@ final class risk_prioritizer_test extends \advanced_testcase {
         $this->assertIsInt($result[0]['score']);
     }
 
-    // ── tests: score formula ──────────────────────────────────────────────────
+    // Tests: score formula.
 
     /**
      * Error with probability=1, affected=1, no downstream → score = 40+20+2+0 = 62.
@@ -176,7 +187,7 @@ final class risk_prioritizer_test extends \advanced_testcase {
 
         $p = new risk_prioritizer();
         // Risk on CM 1 with probability=1, affected=1.
-        $risknodep  = $this->make_risk('error', 1.0, 1, [99]); // no dependents.
+        $risknodep  = $this->make_risk('error', 1.0, 1, [99]); // No dependents.
         $riskwithdep = $this->make_risk('error', 1.0, 1, [1]);  // CM1 has dependents.
 
         $resultno  = $p->score_and_sort([$risknodep], new dependency_index([]));
@@ -193,11 +204,11 @@ final class risk_prioritizer_test extends \advanced_testcase {
         $p = new risk_prioritizer();
         $risk = $this->make_risk('error', 0.5, 1, [99]);
         $result = $p->score_and_sort([$risk], new dependency_index([]));
-        // error(40) + 0.5*20(10) + affected(2) + downstream(0) = 52.
+        // Error(40) + 0.5*20(10) + affected(2) + downstream(0) = 52.
         $this->assertSame(52, $result[0]['score']);
     }
 
-    // ── tests: sorting ────────────────────────────────────────────────────────
+    // Tests: sorting.
 
     /**
      * Higher score items appear first.
@@ -224,17 +235,17 @@ final class risk_prioritizer_test extends \advanced_testcase {
         // All same type/probability/affected, different severity.
         // Notice score: 5+20+2=27, warning: 20+20+2=42, error: 40+20+2=62 — actually different.
         // Construct deliberately equal scores by varying probability.
-        // error prob=0, notice prob=1: error=40+0+2=42, notice=5+20+2=27. Still different.
+        // Error prob=0, notice prob=1: error=40+0+2=42, notice=5+20+2=27. Still different.
         // The easiest way: same severity in a tie — just verify order is stable.
         $r1 = $this->make_risk('error', 1.0, 1, [1]);
         $r2 = $this->make_risk('warning', 1.0, 1, [2]);
         $result = $p->score_and_sort([$r2, $r1], new dependency_index([]));
-        // error (62) > warning (42) → error should be first.
+        // Error (62) > warning (42) → error should be first.
         $this->assertSame('error', $result[0]['severity']);
         $this->assertSame('warning', $result[1]['severity']);
     }
 
-    // ── tests: output shape ───────────────────────────────────────────────────
+    // Tests: output shape.
 
     /**
      * Output items carry both score and downstream_count.

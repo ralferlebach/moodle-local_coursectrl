@@ -36,7 +36,7 @@ namespace local_coursectrl\output;
  * @covers \local_coursectrl\output\checks_page
  */
 final class checks_page_test extends \advanced_testcase {
-    // ── helpers ───────────────────────────────────────────────────────────────
+    // Helpers.
 
     /**
      * Create a minimal Moodle course and return its record.
@@ -67,7 +67,7 @@ final class checks_page_test extends \advanced_testcase {
         return $page->export_for_template($PAGE->get_renderer('core'));
     }
 
-    // ── tests: top-level key shape ────────────────────────────────────────────
+    // Tests: top-level key shape.
 
     /**
      * All mandatory top-level keys are present in the exported context.
@@ -127,7 +127,7 @@ final class checks_page_test extends \advanced_testcase {
         $this->assertNotEmpty($data['runurl']);
     }
 
-    // ── tests: tab routing ────────────────────────────────────────────────────
+    // Tests: tab routing.
 
     /**
      * Default tab is 'consistency': tab_consistency=true, others=false.
@@ -176,7 +176,7 @@ final class checks_page_test extends \advanced_testcase {
         $this->assertFalse($data['tab_risks']);
     }
 
-    // ── tests: consistency sub-array ──────────────────────────────────────────
+    // Tests: consistency sub-array.
 
     /**
      * The 'consistency' array has the required structural keys.
@@ -224,7 +224,7 @@ final class checks_page_test extends \advanced_testcase {
         );
     }
 
-    // ── tests: risks sub-array ────────────────────────────────────────────────
+    // Tests: risks sub-array.
 
     /**
      * The 'risks' array has the required structural keys.
@@ -269,8 +269,8 @@ final class checks_page_test extends \advanced_testcase {
         $this->resetAfterTest();
         $course = $this->create_course();
 
-        // Create an activity with a past duedate + completion so the runner
-        // produces at least one risk item that gets persisted.
+        // Create an activity with a past duedate + completion so the runner.
+        // Produces at least one risk item that gets persisted.
         $this->getDataGenerator()->get_plugin_generator('mod_assign')->create_instance([
             'course' => $course->id,
             'duedate' => mktime(0, 0, 0, 1, 1, 2020),
@@ -299,7 +299,7 @@ final class checks_page_test extends \advanced_testcase {
         $assign = $generator->create_module('assign', [
             'course'     => $course->id,
             'completion' => 2,
-            'duedate'    => mktime(0, 0, 0, 1, 1, 2020), // past date.
+            'duedate'    => mktime(0, 0, 0, 1, 1, 2020), // Past date.
         ]);
 
         $data = $this->export($course, 'risks', true);
@@ -321,7 +321,7 @@ final class checks_page_test extends \advanced_testcase {
         $this->assertTrue(true);
     }
 
-    // ── tests: simulation sub-array ───────────────────────────────────────────
+    // Tests: simulation sub-array.
 
     /**
      * The 'simulation' array contains at least the simulationhtml key.
@@ -333,7 +333,7 @@ final class checks_page_test extends \advanced_testcase {
         $this->assertArrayHasKey('simulationhtml', $data['simulation']);
     }
 
-    // ── tests: consistency with a real issue ─────────────────────────────────
+    // Tests: consistency with a real issue.
 
     /**
      * An assign with allowsubmissionsfromdate > duedate raises a consistency error.
@@ -343,9 +343,9 @@ final class checks_page_test extends \advanced_testcase {
         $course = $this->create_course();
         $generator = $this->getDataGenerator();
 
-        // allowsubmissionsfromdate (open) AFTER duedate → temporal conflict R3.
-        $topen = mktime(12, 0, 0, 9, 1, 2026);  // 2026-09-01 (later).
-        $tdue  = mktime(23, 59, 0, 8, 15, 2026); // 2026-08-15 (earlier).
+        // Allowsubmissionsfromdate (open) AFTER duedate → temporal conflict R3.
+        $topen = mktime(12, 0, 0, 9, 1, 2026);
+        $tdue  = mktime(23, 59, 0, 8, 15, 2026);
         $generator->create_module('assign', [
             'course'                    => $course->id,
             'completion'                => 2,

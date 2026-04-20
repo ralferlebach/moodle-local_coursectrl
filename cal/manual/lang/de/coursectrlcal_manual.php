@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['pluginname']       = 'Kursablauf-Zentrale: Manuelle Freitage';
+$string['privacy:metadata'] = 'Der manuelle Kalender-Adapter speichert keine personenbezogenen Daten.';
 $string['setting_enabled']       = 'Manuelle Freitags-Eingabe aktivieren';
 $string['setting_entries']       = 'Freitags-Einträge';
 $string['setting_entries_desc']  = 'Einen Eintrag pro Zeile: JJJJ-MM-TT,Bezeichnung,Kategorie oder JJJJ-MM-TT/JJJJ-MM-TT,Bezeichnung,Kategorie. Kategorien: public_holiday, school_holiday, custom. Zeilen mit # werden ignoriert.';
-$string['pluginname']       = 'Kursablauf-Zentrale: Manuelle Freitage';
-$string['privacy:metadata'] = 'Der manuelle Kalender-Adapter speichert keine personenbezogenen Daten.';

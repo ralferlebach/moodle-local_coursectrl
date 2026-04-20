@@ -132,7 +132,7 @@ class escape_path_checker {
         array $cms,
         dependency_index $depindex
     ): array {
-        // cmids[1] is the hidden CM.
+        // Cmids[1] is the hidden CM.
         $hiddencmid = $cmids[1] ?? null;
         $cascade = $hiddencmid !== null
             ? $this->collect_cascade_unblock([$hiddencmid], $depindex)

@@ -25,7 +25,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_coursectrl\tests;
+namespace local_coursectrl;
 
 use local_coursectrl\local\analysis\consistency_runner;
 use local_coursectrl\local\analysis\date_collector;
@@ -51,7 +51,7 @@ final class fixture_analysis_test extends \advanced_testcase {
     /** @var int 7 Tage in Sekunden */
     private const WEEK = 604800;
 
-    // ── helpers ───────────────────────────────────────────────────────────────
+    // Helpers.
 
     /**
      * Erstelle Kurs mit Datum-Rahmen.
@@ -81,7 +81,7 @@ final class fixture_analysis_test extends \advanced_testcase {
         return ['cms' => $snapshot->cms, 'depindex' => $depindex, 'datesbycm' => $datesbycm];
     }
 
-    // ── R0: Kursrahmen ────────────────────────────────────────────────────────
+    // R0: Kursrahmen.
 
     /**
      * R0a: assign mit duedate nach Kursende → r0_after_course_end.
@@ -150,7 +150,7 @@ final class fixture_analysis_test extends \advanced_testcase {
         $this->assertContains('r0_deadline_in_past', $alltypes);
     }
 
-    // ── R3: Prozesslogik ──────────────────────────────────────────────────────
+    // R3: Prozesslogik.
 
     /**
      * R3: assign allowsubmissionsfromdate > duedate → temporal_conflict.
@@ -200,7 +200,7 @@ final class fixture_analysis_test extends \advanced_testcase {
         $this->assertContains('temporal_conflict', $alltypes);
     }
 
-    // ── Kursrahmen-Konsistenz bei gültiger Konfiguration ─────────────────────
+    // Kursrahmen-Konsistenz bei gültiger Konfiguration.
 
     /**
      * Ein korrekt konfigurierter Kurs produziert KEINE R0-Fehler.
@@ -226,7 +226,7 @@ final class fixture_analysis_test extends \advanced_testcase {
         $this->assertNotContains('r0_before_course_start', $alltypes);
     }
 
-    // ── Risikoanalyse ─────────────────────────────────────────────────────────
+    // Risikoanalyse.
 
     /**
      * risk_assessment_runner liefert mindestens einen Befund für Kurs mit Zirkel.

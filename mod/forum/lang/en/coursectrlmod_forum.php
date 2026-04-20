@@ -25,8 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['action_shift_dates'] = 'Shift dates';
+$string['field_completionexpected'] = 'Expected completion date';
 $string['field_cutoffdate']    = 'Cut-off date';
 $string['field_duedate']    = 'Due date';
 $string['pluginname']         = 'Course Control Hub: Forum adapter';
 $string['privacy:metadata']   = 'The Course Control Hub forum adapter stores no personal data.';
-$string['field_completionexpected'] = 'Expected completion date';

@@ -22,7 +22,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_coursectrl\tests;
+namespace local_coursectrl;
 
 use local_coursectrl\local\analysis\date_collector;
 use local_coursectrl\local\analysis\dependency_index;
@@ -50,7 +50,7 @@ final class fixture_date_shift_test extends \advanced_testcase {
     /** @var int 7 days in seconds */
     private const WEEK = 604800;
 
-    // ── helpers ───────────────────────────────────────────────────────────────
+    // Helpers.
 
     /**
      * Create course with assign + quiz having structured dates.
@@ -85,7 +85,7 @@ final class fixture_date_shift_test extends \advanced_testcase {
         ];
     }
 
-    // ── Termin-Erkennung (date_collector) ─────────────────────────────────────
+    // Termin-Erkennung (date_collector).
 
     /**
      * date_collector findet die assign-Datumsfelder.
@@ -138,7 +138,7 @@ final class fixture_date_shift_test extends \advanced_testcase {
         $this->assertSame(self::T_BASE + self::WEEK, (int) $entry['timestamp']);
     }
 
-    // ── Vorschau (preview_manager) ────────────────────────────────────────────
+    // Vorschau (preview_manager).
 
     /**
      * preview_manager::build gibt Preview-Objekte mit old/new-Werten zurück.
@@ -147,16 +147,17 @@ final class fixture_date_shift_test extends \advanced_testcase {
         $this->resetAfterTest();
         $data = $this->create_dated_course();
         $preview = new preview_manager();
-        $changes = $preview->build(
+        $result = $preview->build(
             $data['courseid'],
             'shift_dates',
             ['delta' => self::WEEK],
             [$data['assigncmid'], $data['quizcmid']]
         );
+        $changes = $result['changes'] ?? [];
         $this->assertNotEmpty($changes, 'Preview should return change objects');
         $hasassign = false;
-        foreach ($changes as $c) {
-            if ((int)($c['cmid'] ?? 0) === $data['assigncmid']) {
+        foreach ($changes as $cmid => $pchange) {
+            if ((int)$cmid === $data['assigncmid']) {
                 $hasassign = true;
             }
         }
@@ -170,13 +171,21 @@ final class fixture_date_shift_test extends \advanced_testcase {
         $this->resetAfterTest();
         $data = $this->create_dated_course();
         $preview = new preview_manager();
-        $changes = $preview->build(
+        $result = $preview->build(
             $data['courseid'],
             'shift_dates',
             ['delta' => self::WEEK],
             [$data['assigncmid']]
         );
-        $duedatechanges = array_filter($changes, fn($c) => ($c['field'] ?? '') === 'duedate');
+        $changes = $result['changes'] ?? [];
+        // Flatten preview_change objects into field-level rows.
+        $allfields = [];
+        foreach ($changes as $pchange) {
+            foreach ($pchange->get_fields() as $fielddesc) {
+                $allfields[] = $fielddesc;
+            }
+        }
+        $duedatechanges = array_filter($allfields, fn($c) => ($c['field'] ?? '') === 'duedate');
         $this->assertNotEmpty($duedatechanges, 'duedate should appear in preview');
         $c = reset($duedatechanges);
         $this->assertArrayHasKey('old_value', $c);
@@ -185,7 +194,7 @@ final class fixture_date_shift_test extends \advanced_testcase {
         $this->assertSame(self::T_BASE + self::WEEK * 2, (int)$c['new_value']);
     }
 
-    // ── Termin-Verschiebung ohne Text (batch_manager) ─────────────────────────
+    // Termin-Verschiebung ohne Text (batch_manager).
 
     /**
      * batch_manager::execute verschiebt assign-Daten um 7 Tage.
@@ -255,7 +264,7 @@ final class fixture_date_shift_test extends \advanced_testcase {
         $this->assertNotEmpty($snapshots, 'Snapshot should be created for rollback');
     }
 
-    // ── Termin-Verschiebung MIT Text (rewriter) ───────────────────────────────
+    // Termin-Verschiebung MIT Text (rewriter).
 
     /**
      * text_datetime_rewriter verschiebt ein ISO-Datum im Text.
@@ -284,7 +293,7 @@ final class fixture_date_shift_test extends \advanced_testcase {
         }
 
         $rewriter = new text_datetime_rewriter();
-        $result = $rewriter->rewrite($text, $hitrecords, self::WEEK); // +7 Tage
+        $result = $rewriter->rewrite($text, $hitrecords, self::WEEK); // Shift by +7 days.
 
         $this->assertArrayHasKey('text', $result);
         $this->assertStringContainsString('2026-05-26', $result['text'], 'Date should be shifted by 7 days');

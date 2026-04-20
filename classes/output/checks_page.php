@@ -121,7 +121,15 @@ class checks_page implements renderable, templatable {
             'tab_risks'         => $this->activetab === 'risks',
             'tab_simulation'    => $this->activetab === 'simulation',
             'consistency'       => $this->build_consistency_tab($snapshot->cms, $depindex, $datesbycm, $cmnames, $cmurls),
-            'risks'             => $this->build_risks_tab($snapshot->cms, $depindex, $datesbycm, $cmnames, $cmurls, $courseid, $snapshot->cms),
+            'risks'             => $this->build_risks_tab(
+                $snapshot->cms,
+                $depindex,
+                $datesbycm,
+                $cmnames,
+                $cmurls,
+                $courseid,
+                $snapshot->cms
+            ),
             'simulation'        => $this->build_simulation_tab($snapshot),
             'runurl'            => (new \moodle_url(
                 '/local/coursectrl/checks.php',

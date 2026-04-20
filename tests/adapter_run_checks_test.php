@@ -26,7 +26,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_coursectrl\tests;
+namespace local_coursectrl;
 
 use local_coursectrl\manager\registry;
 
@@ -42,7 +42,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
     /** @var int 7 days in seconds. */
     private const WEEK = 604800;
 
-    // ── helpers ───────────────────────────────────────────────────────────────
+    // Helpers.
 
     /**
      * Get adapter via registry for a given component.
@@ -90,7 +90,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
         $this->assertNotContains($code, $codes, "Unexpected check code '$code' found in results");
     }
 
-    // ── assign ────────────────────────────────────────────────────────────────
+    // Assign.
 
     /**
      * R3: assign allowsubmissionsfromdate after duedate → error assign_from_after_due.
@@ -182,7 +182,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
         $this->assertnocheck($results, 'assign_allowsubmissionsfromdate_without_duedate');
     }
 
-    // ── quiz ──────────────────────────────────────────────────────────────────
+    // Quiz.
 
     /**
      * R3: quiz timeopen after timeclose → error.
@@ -244,7 +244,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
         }
     }
 
-    // ── forum ─────────────────────────────────────────────────────────────────
+    // Forum.
 
     /**
      * R7: forum duedate set, cutoffdate not set.
@@ -302,13 +302,14 @@ final class adapter_run_checks_test extends \advanced_testcase {
         $this->assertnocheck($results, 'forum_cutoffdate_without_duedate');
     }
 
-    // ── workshop ──────────────────────────────────────────────────────────────
+    // Workshop.
 
     /**
      * R7: workshop assessmentstart set, assessmentend not set.
      */
     public function test_workshop_r7_assessmentstart_without_end(): void {
         $this->resetAfterTest();
+        $this->setAdminUser();
         $course = $this->getDataGenerator()->create_course();
         $workshop = $this->getDataGenerator()->get_plugin_generator('mod_workshop')
             ->create_instance([
@@ -329,6 +330,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
      */
     public function test_workshop_r3_submission_inverted(): void {
         $this->resetAfterTest();
+        $this->setAdminUser();
         $course = $this->getDataGenerator()->create_course();
         $workshop = $this->getDataGenerator()->get_plugin_generator('mod_workshop')
             ->create_instance([
@@ -349,6 +351,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
      */
     public function test_workshop_clean_no_issues(): void {
         $this->resetAfterTest();
+        $this->setAdminUser();
         $course = $this->getDataGenerator()->create_course();
         $workshop = $this->getDataGenerator()->get_plugin_generator('mod_workshop')
             ->create_instance([
@@ -365,7 +368,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
         $this->assertnocheck($results, 'workshop_assessmentstart_without_assessmentend');
     }
 
-    // ── empty input ───────────────────────────────────────────────────────────
+    // Empty input.
 
     /**
      * run_checks with empty cmids array returns empty.

@@ -24,6 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['pluginname']       = 'Kursablauf-Zentrale: OpenHolidays API (Feiertage + Schulferien)';
+$string['privacy:metadata'] = 'Der OpenHolidays-Adapter ruft öffentliche Daten ab und speichert keine personenbezogenen Daten.';
 $string['setting_categories']           = 'Zu ladende Kategorien';
 $string['setting_categories_desc']      = 'Kommagetrennt: public_holiday, school_holiday';
 $string['setting_countryisocode']       = 'Länder-ISO-Code';
@@ -33,5 +35,3 @@ $string['setting_languageisocode']      = 'Sprach-ISO-Code';
 $string['setting_languageisocode_desc'] = 'Bevorzugte Sprache für Feiertagsnamen, z.B. DE, EN, FR';
 $string['setting_regioncode']           = 'Regionscode';
 $string['setting_regioncode_desc']      = 'Regions-Code für Schulferien, z.B. DE-BY (Bayern), AT-7 (Tirol), CH-ZH (Zürich).';
-$string['pluginname']       = 'Kursablauf-Zentrale: OpenHolidays API (Feiertage + Schulferien)';
-$string['privacy:metadata'] = 'Der OpenHolidays-Adapter ruft öffentliche Daten ab und speichert keine personenbezogenen Daten.';

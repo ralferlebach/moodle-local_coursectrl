@@ -36,7 +36,7 @@ use local_coursectrl\local\simulation\condition_evaluator;
  * @covers \local_coursectrl\local\analysis\accessibility_checker
  */
 final class accessibility_checker_test extends \advanced_testcase {
-    // ── helpers ───────────────────────────────────────────────────────────────
+    // Helpers.
 
     /**
      * Build a cm_item.
@@ -79,7 +79,7 @@ final class accessibility_checker_test extends \advanced_testcase {
         ]);
     }
 
-    // ── mode: off ─────────────────────────────────────────────────────────────
+    // Mode: off.
 
     /**
      * Mode 'off' → always returns empty, even for hidden CMs.
@@ -87,12 +87,12 @@ final class accessibility_checker_test extends \advanced_testcase {
     public function test_mode_off_returns_empty(): void {
         $this->resetAfterTest();
         $checker = new accessibility_checker('off');
-        $cm = $this->make_cm(1, false); // hidden.
+        $cm = $this->make_cm(1, false); // Hidden.
         $result = $checker->check([1 => $cm]);
         $this->assertEmpty($result, 'Mode off should return empty regardless');
     }
 
-    // ── mode: static ──────────────────────────────────────────────────────────
+    // Mode: static.
 
     /**
      * Mode 'static': hidden CM → r1_hidden.
@@ -158,7 +158,7 @@ final class accessibility_checker_test extends \advanced_testcase {
         $this->assertArrayNotHasKey(3, $result);
     }
 
-    // ── mode: simulation ──────────────────────────────────────────────────────
+    // Mode: simulation.
 
     /**
      * Mode 'simulation': hidden CM → r1_hidden (same as static).
@@ -206,7 +206,7 @@ final class accessibility_checker_test extends \advanced_testcase {
      */
     public function test_simulation_past_date_condition_not_flagged(): void {
         $this->resetAfterTest();
-        $pastts = time() - DAYSECS; // yesterday.
+        $pastts = time() - DAYSECS; // Yesterday.
         $checker = new accessibility_checker('simulation', 'notice');
         $cm = $this->make_cm(1, true, $this->avail_future_date($pastts));
         $result = $checker->check([1 => $cm]);

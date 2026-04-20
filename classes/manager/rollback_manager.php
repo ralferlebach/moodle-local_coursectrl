@@ -39,6 +39,7 @@
 
 namespace local_coursectrl\manager;
 
+use local_coursectrl\event\batch_rolled_back;
 use local_coursectrl\local\persistent\batch;
 use local_coursectrl\local\persistent\batch_item;
 use local_coursectrl\local\persistent\snapshot;
@@ -234,6 +235,17 @@ class rollback_manager {
         } catch (\Throwable $e) {
             $transaction->rollback($e);
             return $this->error_result($e->getMessage());
+        }
+
+        if ($failed === 0) {
+            $rolledbackevent = batch_rolled_back::create([
+                'context'  => \context_course::instance((int) $batchrecord->courseid),
+                'objectid' => $batchid,
+                'userid'   => $userid,
+                'courseid' => (int) $batchrecord->courseid,
+                'other'    => ['restored' => $restored, 'failed' => $failed],
+            ]);
+            $rolledbackevent->trigger();
         }
 
         return [

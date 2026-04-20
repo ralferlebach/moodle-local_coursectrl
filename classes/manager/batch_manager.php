@@ -37,6 +37,7 @@
 namespace local_coursectrl\manager;
 
 use core\persistent;
+use local_coursectrl\event\batch_created;
 use local_coursectrl\event\batch_executed;
 use local_coursectrl\local\contract\activity_adapter;
 use local_coursectrl\local\persistent\batch;
@@ -98,6 +99,15 @@ class batch_manager {
 
         $batch = $this->create_batch_row($courseid, $userid, $action, $payload);
         $batchid = (int) $batch->get('id');
+
+        $createdevent = batch_created::create([
+            'context'  => \context_course::instance($courseid),
+            'objectid' => $batchid,
+            'userid'   => $userid,
+            'courseid' => $courseid,
+            'other'    => ['action' => $action],
+        ]);
+        $createdevent->trigger();
 
         $grouping = $this->registry->group_cmids_by_component($cmids, $action);
         $hasanyfailure = false;

@@ -9,7 +9,7 @@ bevor du antwortest.
 ### A) Pflichtenheft und Blueprint
 
 Das aktuelle Pflichtenheft ist hier zu finden:
-https://github.com/ralferlebach/moodle-local_coursectrl/blob/main/docs/Pflicht-%20und%20Lastenheft.md
+https://github.com/ralferlebach/moodle-local_coursectrl/blob/development/docs/Pflicht-%20und%20Lastenheft.md
 Bitte analysieren und in den Arbeitsspeicher aufnehmen.
 
 ---
@@ -19,14 +19,14 @@ Bitte analysieren und in den Arbeitsspeicher aufnehmen.
 Das aktuelle Kontext-Dokument ist im Anhang zu finden.
 
 Ältere Kontext-Dokumente sind hier zu zwecks Referenz abgelegt:
-https://github.com/ralferlebach/moodle-local_coursectrl/tree/main/docs/sessions
+https://github.com/ralferlebach/moodle-local_coursectrl/tree/development/docs/sessions
 
 ---
 
 ### C) Aktueller Code aus GitHub
 
 Das Repositorium ist öffentlich erreichbar unter:
-https://github.com/ralferlebach/moodle-local_coursectrl.git
+https://github.com/ralferlebach/moodle-local_coursectrl/tree/development
 https://github.com/ralferlebach/moodle-block_coursectrl.git
 
 Falls du keinen direkten Lesezugriff auf Git-URLs hast: Ich hänge den aktuellen Stand der Code-Base jeweils als ZIP-Datei direkt an.

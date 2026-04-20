@@ -349,12 +349,12 @@ if ($hassiteconfig) {
     $r7checks = [
         'coursectrlmod_assign' => [
             'allowsubmissionsfromdate_without_duedate' => 'notice',
-            'cutoffdate_without_duedate'               => 'notice',
-            'gradingduedate_without_duedate'           => 'notice',
+            'cutoffdate_without_duedate'               => 'warning',
+            'gradingduedate_without_duedate'           => 'warning',
         ],
         'coursectrlmod_forum' => [
-            'duedate_without_cutoffdate' => 'off',
-            'cutoffdate_without_duedate' => 'off',
+            'duedate_without_cutoffdate' => 'warning',
+            'cutoffdate_without_duedate' => 'notice',
         ],
         'coursectrlmod_lesson' => [
             'available_without_deadline' => 'notice',

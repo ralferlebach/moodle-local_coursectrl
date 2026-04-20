@@ -205,26 +205,20 @@ trait shift_dates_executor {
                 'code'   => 'invalid_component',
             ];
         }
-        // Support both flat format (__cmid__ key) and legacy 'fields' format.
-        $isflat = isset($state['__cmid__']);
-        $statecmid = $isflat ? (int)$state['__cmid__'] : (int)($state['cmid'] ?? 0);
-        $stateinstanceid = $isflat ? ($state['__instanceid__'] ?? 0) : ($state['instanceid'] ?? 0);
-        $statefields = $isflat
-            ? array_filter($state, fn($k) => strpos($k, '__') !== 0, ARRAY_FILTER_USE_KEY)
-            : ($state['fields'] ?? []);
-        if (empty($statecmid) || !is_array($statefields)) {
+        if (empty($state['cmid']) || !isset($state['fields']) || !is_array($state['fields'])) {
             return [
                 'status' => 'failed',
                 'code'   => 'invalid_snapshot',
             ];
         }
+        $statefields = $state['fields'];
         $update = new \stdClass();
-        if (!empty($stateinstanceid)) {
-            $update->id = (int)$stateinstanceid;
+        if (!empty($state['instanceid'])) {
+            $update->id = (int)$state['instanceid'];
         } else {
             try {
                 $modname = substr(static::component(), strlen('mod_'));
-                $cm = get_coursemodule_from_id($modname, $statecmid, 0, false, MUST_EXIST);
+                $cm = get_coursemodule_from_id($modname, (int)$state['cmid'], 0, false, MUST_EXIST);
                 $update->id = (int)$cm->instance;
             } catch (\Throwable $e) {
                 return [
@@ -383,14 +377,15 @@ trait shift_dates_executor {
                 $items[] = ['cmid' => $cmid, 'status' => 'failed', 'message' => $e->getMessage()];
                 continue;
             }
-            // Build snapshot: metadata + each date field flattened into root
-            // so statejson can be read directly without a 'fields' wrapper.
+            // Snapshot: canonical format for restore_state + date fields
+            // mirrored in root so callers can read $state['duedate'] directly.
             $snapshot = array_merge(
                 [
-                    '__component__'  => static::component(),
-                    '__cmid__'       => $cmid,
-                    '__instanceid__' => $description['instanceid'],
-                    '__version__'    => 1,
+                    'component'  => static::component(),
+                    'cmid'       => $cmid,
+                    'instanceid' => $description['instanceid'],
+                    'fields'     => $description['dates'],
+                    'version'    => 1,
                 ],
                 $description['dates']
             );
@@ -519,14 +514,15 @@ trait shift_dates_executor {
                 $items[] = ['cmid' => $cmid, 'status' => 'failed', 'message' => $e->getMessage()];
                 continue;
             }
-            // Build snapshot: metadata + each date field flattened into root
-            // so statejson can be read directly without a 'fields' wrapper.
+            // Snapshot: canonical format for restore_state + date fields
+            // mirrored in root so callers can read $state['duedate'] directly.
             $snapshot = array_merge(
                 [
-                    '__component__'  => static::component(),
-                    '__cmid__'       => $cmid,
-                    '__instanceid__' => $description['instanceid'],
-                    '__version__'    => 1,
+                    'component'  => static::component(),
+                    'cmid'       => $cmid,
+                    'instanceid' => $description['instanceid'],
+                    'fields'     => $description['dates'],
+                    'version'    => 1,
                 ],
                 $description['dates']
             );

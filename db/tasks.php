@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version definition for local_coursectrl.
+ * Scheduled task definitions for local_coursectrl.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -24,8 +24,15 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_coursectrl';
-$plugin->version   = 2026042003;
-$plugin->requires  = 2024042200; // Moodle 4.5.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.92';
+$tasks = [
+    [
+        'classname' => \local_coursectrl\task\purge_old_batches::class,
+        'blocking'  => 0,
+        'minute'    => '0',
+        'hour'      => '3',
+        'day'       => '*',
+        'month'     => '*',
+        'dayofweek' => '*',
+        'disabled'  => 0,
+    ],
+];

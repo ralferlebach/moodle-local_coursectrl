@@ -257,6 +257,7 @@ final class fixture_analysis_test extends \advanced_testcase {
         ]);
         $DB->set_field('course_modules', 'availability', $availa, ['id' => (int)$a->cmid]);
         $DB->set_field('course_modules', 'availability', $availb, ['id' => (int)$b->cmid]);
+        rebuild_course_cache($course->id, true);
 
         $input = $this->build_analysis_input($course->id);
         $riskrunner = new risk_assessment_runner(null, null, null, null);

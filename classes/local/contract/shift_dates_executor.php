@@ -205,19 +205,26 @@ trait shift_dates_executor {
                 'code'   => 'invalid_component',
             ];
         }
-        if (empty($state['cmid']) || !isset($state['fields']) || !is_array($state['fields'])) {
+        // Support both flat format (__cmid__ key) and legacy 'fields' format.
+        $isflat = isset($state['__cmid__']);
+        $statecmid = $isflat ? (int)$state['__cmid__'] : (int)($state['cmid'] ?? 0);
+        $stateinstanceid = $isflat ? ($state['__instanceid__'] ?? 0) : ($state['instanceid'] ?? 0);
+        $statefields = $isflat
+            ? array_filter($state, fn($k) => strpos($k, '__') !== 0, ARRAY_FILTER_USE_KEY)
+            : ($state['fields'] ?? []);
+        if (empty($statecmid) || !is_array($statefields)) {
             return [
                 'status' => 'failed',
                 'code'   => 'invalid_snapshot',
             ];
         }
         $update = new \stdClass();
-        if (!empty($state['instanceid'])) {
-            $update->id = (int)$state['instanceid'];
+        if (!empty($stateinstanceid)) {
+            $update->id = (int)$stateinstanceid;
         } else {
             try {
                 $modname = substr(static::component(), strlen('mod_'));
-                $cm = get_coursemodule_from_id($modname, (int)$state['cmid'], 0, false, MUST_EXIST);
+                $cm = get_coursemodule_from_id($modname, $statecmid, 0, false, MUST_EXIST);
                 $update->id = (int)$cm->instance;
             } catch (\Throwable $e) {
                 return [
@@ -230,7 +237,7 @@ trait shift_dates_executor {
         $fieldmapclass = $this->get_field_map_class();
         $allowed = $fieldmapclass::get_shiftable_field_names();
         $restored = [];
-        foreach ($state['fields'] as $name => $value) {
+        foreach ($statefields as $name => $value) {
             if (!in_array($name, $allowed, true)) {
                 continue;
             }
@@ -283,14 +290,21 @@ trait shift_dates_executor {
             $fields = [];
             foreach ($description['dates'] as $name => $oldvalue) {
                 if ($oldvalue === 0) {
-                    $fields[$name] = ['old' => 0, 'new' => 0, 'shifted' => false, 'reason' => 'unset'];
+                    $fields[$name] = [
+                        'field'     => $name,
+                        'old_value' => 0,
+                        'new_value' => 0,
+                        'shifted'   => false,
+                        'reason'    => 'unset',
+                    ];
                     continue;
                 }
                 $newvalue = $oldvalue + $delta;
                 $fields[$name] = [
-                    'old'     => $oldvalue,
-                    'new'     => $newvalue,
-                    'shifted' => $newvalue !== $oldvalue,
+                    'field'     => $name,
+                    'old_value' => $oldvalue,
+                    'new_value' => $newvalue,
+                    'shifted'   => $newvalue !== $oldvalue,
                 ];
             }
             $items[] = ['cmid' => $cmid, 'name' => $description['name'], 'fields' => $fields];
@@ -369,13 +383,17 @@ trait shift_dates_executor {
                 $items[] = ['cmid' => $cmid, 'status' => 'failed', 'message' => $e->getMessage()];
                 continue;
             }
-            $snapshot = [
-                'component'  => static::component(),
-                'cmid'       => $cmid,
-                'instanceid' => $description['instanceid'],
-                'fields'     => $description['dates'],
-                'version'    => 1,
-            ];
+            // Build snapshot: metadata + each date field flattened into root
+            // so statejson can be read directly without a 'fields' wrapper.
+            $snapshot = array_merge(
+                [
+                    '__component__'  => static::component(),
+                    '__cmid__'       => $cmid,
+                    '__instanceid__' => $description['instanceid'],
+                    '__version__'    => 1,
+                ],
+                $description['dates']
+            );
             $update = new \stdClass();
             $update->id = $description['instanceid'];
             $changed = [];
@@ -501,13 +519,17 @@ trait shift_dates_executor {
                 $items[] = ['cmid' => $cmid, 'status' => 'failed', 'message' => $e->getMessage()];
                 continue;
             }
-            $snapshot = [
-                'component'  => static::component(),
-                'cmid'       => $cmid,
-                'instanceid' => $description['instanceid'],
-                'fields'     => $description['dates'],
-                'version'    => 1,
-            ];
+            // Build snapshot: metadata + each date field flattened into root
+            // so statejson can be read directly without a 'fields' wrapper.
+            $snapshot = array_merge(
+                [
+                    '__component__'  => static::component(),
+                    '__cmid__'       => $cmid,
+                    '__instanceid__' => $description['instanceid'],
+                    '__version__'    => 1,
+                ],
+                $description['dates']
+            );
             $update = new \stdClass();
             $update->id = $description['instanceid'];
             $changed = [];

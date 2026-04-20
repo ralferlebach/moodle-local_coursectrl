@@ -51,7 +51,8 @@ trait check_helper {
      */
     protected function r7_severity(string $pluginname, string $code, array $defaults): ?string {
         $setting = get_config($pluginname, 'r7_' . $code);
-        $value = ($setting !== false && $setting !== null) ? (string)$setting : ($defaults[$code] ?? 'off');
+        // Treat empty string the same as false: use the adapter default.
+        $value = ($setting !== false && $setting !== null && $setting !== '') ? (string)$setting : ($defaults[$code] ?? 'off');
         return ($value === 'off') ? null : $value;
     }
 

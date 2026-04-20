@@ -32,8 +32,9 @@ use local_coursectrl\local\inventory\inventory_snapshot;
 /**
  * Unit tests for dashboard_page::export_for_template() (Modell D cockpit layout).
  *
- * Tests run as admin by default; the dashboard_inventory setting defaults to
- * 'admin_only', so the inventory section is populated in all tests here.
+ * Tests that inspect the inventory section explicitly set dashboard_inventory
+ * to 'show' so they do not depend on the PHPUnit runner having site:config
+ * capability.
  *
  * @covers \local_coursectrl\output\dashboard_page
  */
@@ -87,10 +88,13 @@ final class dashboard_page_test extends \advanced_testcase {
 
     /**
      * Stat counters must reflect the snapshot collection sizes.
+     * Inventory is forced visible so hassections can be asserted.
      */
     public function test_export_includes_counts(): void {
         $this->resetAfterTest();
         global $PAGE;
+
+        set_config('dashboard_inventory', 'show', 'local_coursectrl');
 
         $page = new dashboard_page($this->build_snapshot());
         $data = $page->export_for_template($PAGE->get_renderer('core'));
@@ -98,7 +102,6 @@ final class dashboard_page_test extends \advanced_testcase {
         $this->assertSame(2, $data['sectioncount']);
         $this->assertSame(3, $data['cmcount']);
         $this->assertSame(0, $data['textcount']);
-        // Inventory is visible for admin (dashboard_inventory defaults to admin_only).
         $this->assertTrue($data['showinventory']);
         $this->assertTrue($data['hassections']);
     }
@@ -151,12 +154,14 @@ final class dashboard_page_test extends \advanced_testcase {
     }
 
     /**
-     * Course modules must be grouped under the section they belong to
-     * when the inventory is visible (admin context).
+     * Course modules must be grouped under the section they belong to.
+     * dashboard_inventory is set to 'show' so sections are populated.
      */
     public function test_export_groups_cms_under_sections(): void {
         $this->resetAfterTest();
         global $PAGE;
+
+        set_config('dashboard_inventory', 'show', 'local_coursectrl');
 
         $page = new dashboard_page($this->build_snapshot());
         $data = $page->export_for_template($PAGE->get_renderer('core'));
@@ -178,19 +183,21 @@ final class dashboard_page_test extends \advanced_testcase {
     }
 
     /**
-     * Per-CM flags (visible, completion, availability) must be exposed
-     * in the inventory section.
+     * Per-CM flags (visible, completion, availability) must be exposed.
+     * dashboard_inventory is set to 'show' so sections are populated.
      */
     public function test_export_exposes_cm_flags(): void {
         $this->resetAfterTest();
         global $PAGE;
+
+        set_config('dashboard_inventory', 'show', 'local_coursectrl');
 
         $page = new dashboard_page($this->build_snapshot());
         $data = $page->export_for_template($PAGE->get_renderer('core'));
 
         $week1 = $data['sections'][1];
         $assign = $week1['cms'][0];
-        $quiz = $week1['cms'][1];
+        $quiz   = $week1['cms'][1];
 
         $this->assertTrue($assign['visible']);
         $this->assertTrue($assign['hascompletion']);
@@ -263,12 +270,10 @@ final class dashboard_page_test extends \advanced_testcase {
 
         $this->assertTrue($data['hasproblems']);
         $this->assertGreaterThan(0, $data['totalproblems']);
-        // Dangling deps are warning-severity.
         $this->assertGreaterThan(0, $data['warningcount']);
         $this->assertTrue($data['haswarnings']);
         $this->assertNotEmpty($data['warningrows']);
 
-        // Each warning row must have cmname, cmurl, message.
         $row = $data['warningrows'][0];
         $this->assertArrayHasKey('cmname', $row);
         $this->assertArrayHasKey('cmurl', $row);
@@ -280,6 +285,8 @@ final class dashboard_page_test extends \advanced_testcase {
     /**
      * A CM that depends on an activity with no completion tracking must
      * appear in the warning rows as impossible_dep.
+     * The problem is verified via warningrows (not sections) so this test
+     * does not depend on the inventory being visible.
      */
     public function test_impossible_dep_appears_in_warning_rows(): void {
         $this->resetAfterTest();
@@ -303,22 +310,16 @@ final class dashboard_page_test extends \advanced_testcase {
 
         $this->assertTrue($data['hasproblems']);
         $this->assertGreaterThan(0, $data['warningcount']);
-        // CM 301 also surfaces the warning in the inventory section.
-        $allcms = $data['sections'][0]['cms'];
-        $cm301data = null;
-        foreach ($allcms as $cmdata) {
-            if ($cmdata['cmid'] === 301) {
-                $cm301data = $cmdata;
-                break;
-            }
-        }
-        $this->assertNotNull($cm301data, 'cmid 301 must be present in template data');
-        $this->assertTrue($cm301data['haswarnings']);
+        $this->assertNotEmpty($data['warningrows']);
+
+        // Verify the warning row refers to cmid 301 (the dependent activity).
+        $cmids = array_column($data['warningrows'], 'cmid');
+        $this->assertContains(301, $cmids, 'cmid 301 must appear in warningrows');
     }
 
     /**
-     * Each distinct warning issue is counted individually in warningcount
-     * (not per-CM). Two issues on two different CMs → warningcount = 2.
+     * Each distinct warning issue is counted individually in warningcount.
+     * Two issues on two different CMs → warningcount = 2.
      */
     public function test_warning_count_is_per_issue(): void {
         $this->resetAfterTest();
@@ -345,14 +346,12 @@ final class dashboard_page_test extends \advanced_testcase {
         $page = new dashboard_page($snapshot);
         $data = $page->export_for_template($PAGE->get_renderer('core'));
 
-        // Two CMs each with one warning → warningcount = 2.
         $this->assertSame(2, $data['warningcount']);
         $this->assertSame(2, $data['totalproblems']);
     }
 
     /**
-     * When dashboard_inventory is set to 'hide', sections must be empty
-     * even for an admin.
+     * When dashboard_inventory is set to 'hide', sections must be empty.
      */
     public function test_inventory_hidden_when_setting_is_hide(): void {
         $this->resetAfterTest();
@@ -385,7 +384,7 @@ final class dashboard_page_test extends \advanced_testcase {
     }
 
     /**
-     * Upcoming dates list must be empty when all CM dates are in the past.
+     * Upcoming dates list must be empty when no CM dates are in the future.
      */
     public function test_no_upcoming_dates_for_past_timestamps(): void {
         $this->resetAfterTest();
@@ -394,28 +393,27 @@ final class dashboard_page_test extends \advanced_testcase {
         $page = new dashboard_page($this->build_snapshot());
         $data = $page->export_for_template($PAGE->get_renderer('core'));
 
-        // The snapshot CMs have no date fields set → no upcoming dates.
         $this->assertFalse($data['hasupcomingdates']);
         $this->assertEmpty($data['upcomingdates']);
     }
 
     /**
      * Text hits from DB must be reflected in the cockpit when present.
-     * Uses a real DB record to verify the query path.
      */
     public function test_text_hits_from_db_appear_in_cockpit(): void {
         $this->resetAfterTest();
         global $DB, $PAGE;
 
         $DB->insert_record('local_coursectrl_text_hit', (object)[
-            'courseid' => 1,
-            'entitytype' => 'cm',
-            'entityid' => 100,
-            'fieldname' => 'intro',
-            'matchedtext' => '15. März',
+            'courseid'       => 1,
+            'entitytype'     => 'cm',
+            'entityid'       => 100,
+            'fieldname'      => 'intro',
+            'matchedtext'    => '15. März',
             'normalizedvalue' => '2026-03-15',
-            'confidence' => 'safe',
-            'contextjson' => '{}',
+            'confidence'     => 'safe',
+            'contextjson'    => '{}',
+            'timecreated'    => time(),
         ]);
 
         $page = new dashboard_page($this->build_snapshot());

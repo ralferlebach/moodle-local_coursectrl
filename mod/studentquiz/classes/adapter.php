@@ -175,7 +175,16 @@ class adapter extends abstract_activity_adapter {
      */
     public function run_checks(array $cmids, array $profile = []): array {
         $results = [];
-        $records = $this->load_check_records($cmids, 'studentquiz', 'id, name, opensubmissionfrom, closesubmissionfrom, openansweringfrom, closeansweringfrom');
+        $records = $this->load_check_records(
+            $cmids,
+            'studentquiz',
+            'id, name,
+            opensubmissionfrom,
+            closesubmissionfrom,
+            openansweringfrom,
+            closeansweringfrom'
+        );
+
         foreach ($records as $cmid => $rec) {
             $opsubm = (int)$rec->opensubmissionfrom;
             $clsubm = (int)$rec->closesubmissionfrom;

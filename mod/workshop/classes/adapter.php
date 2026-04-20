@@ -205,7 +205,17 @@ class adapter extends abstract_activity_adapter {
             'assessmentend_without_assessmentstart' => 'notice',
             'assessment_without_submissionend'      => 'warning',
         ];
-        $records = $this->load_check_records($cmids, 'workshop', 'id, name, submissionstart, submissionend, assessmentstart, assessmentend');
+        $records = $this->load_check_records(
+            $cmids,
+            'workshop',
+            'id,
+            name,
+            submissionstart,
+            submissionend,
+            assessmentstart,
+            assessmentend'
+        );
+
         foreach ($records as $cmid => $rec) {
             $substart = (int)$rec->submissionstart;
             $subend = (int)$rec->submissionend;

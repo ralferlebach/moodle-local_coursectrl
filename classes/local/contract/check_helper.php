@@ -81,4 +81,64 @@ trait check_helper {
             'message'  => $message,
         ];
     }
+
+    /**
+     * Bulk-load activity records for a set of cmids in exactly two SELECTs.
+     *
+     * Issues one join against course_modules + modules to resolve cmid ->
+     * instanceid, then one get_records_list against the target module table.
+     * Returns a cmid-keyed map of records that includes a 'cmid' property on
+     * each record so consumers can use it directly without back-mapping.
+     *
+     * @param int[]  $cmids        Course module ids.
+     * @param string $modname      Module name, e.g. 'quiz'.
+     * @param string $selectfields Comma-separated SELECT clause for the module table.
+     * @return array<int, \stdClass> Records keyed by cmid.
+     */
+    protected function load_check_records(array $cmids, string $modname, string $selectfields): array {
+        global $DB;
+        $cmids = array_values(array_unique(array_map('intval', $cmids)));
+        if (empty($cmids)) {
+            return [];
+        }
+
+        [$insql, $params] = $DB->get_in_or_equal($cmids, SQL_PARAMS_NAMED);
+        $params['modname'] = $modname;
+        $sql = "SELECT cm.id AS cmid, cm.instance
+                  FROM {course_modules} cm
+                  JOIN {modules} m ON m.id = cm.module
+                 WHERE cm.id {$insql}
+                   AND m.name = :modname";
+        $cmrows = $DB->get_records_sql($sql, $params);
+        if (empty($cmrows)) {
+            return [];
+        }
+
+        $instancemap = [];
+        foreach ($cmrows as $cmrow) {
+            $instancemap[(int) $cmrow->instance][] = (int) $cmrow->cmid;
+        }
+
+        $records = $DB->get_records_list(
+            $modname,
+            'id',
+            array_keys($instancemap),
+            '',
+            $selectfields
+        );
+
+        $result = [];
+        foreach ($records as $record) {
+            $instanceid = (int) $record->id;
+            if (!isset($instancemap[$instanceid])) {
+                continue;
+            }
+            foreach ($instancemap[$instanceid] as $cmid) {
+                $clone = clone $record;
+                $clone->cmid = $cmid;
+                $result[$cmid] = $clone;
+            }
+        }
+        return $result;
+    }
 }

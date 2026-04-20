@@ -31,8 +31,51 @@ use local_coursectrl\local\entity\text_item;
 
 /**
  * Core inventory builder.
+ *
+ * Performance contract: build_for_course() issues O(1) database queries per
+ * course plus O(1) queries per distinct module type in the course. It does
+ * not issue per-cmid queries.
  */
 class inventory_service {
+    /**
+     * Text fields to read per module type.
+     *
+     * Each entry lists the field names on the module's primary table (same
+     * table as the one queried for the activity record) that should be
+     * scanned by the text-datetime extractor. A module missing from this map
+     * contributes no text items.
+     *
+     * @var array<string, string[]>
+     */
+    private const TEXT_FIELDS_BY_MODULE = [
+        'assign'      => ['intro', 'activity'],
+        'book'        => ['intro'],
+        'capquiz'     => ['intro'],
+        'chat'        => ['intro'],
+        'choice'      => ['intro'],
+        'choicegroup' => ['intro'],
+        'data'        => ['intro'],
+        'feedback'    => ['intro', 'page_after_submit'],
+        'folder'      => ['intro'],
+        'forum'       => ['intro'],
+        'glossary'    => ['intro'],
+        'h5pactivity' => ['intro'],
+        'imscp'       => ['intro'],
+        'label'       => ['intro'],
+        'lesson'      => ['intro'],
+        'lti'         => ['intro'],
+        'page'        => ['content', 'intro'],
+        'questionnaire' => ['intro'],
+        'quiz'        => ['intro'],
+        'resource'    => ['intro'],
+        'scorm'       => ['intro'],
+        'studentquiz' => ['intro'],
+        'survey'      => ['intro'],
+        'url'         => ['intro'],
+        'wiki'        => ['intro'],
+        'workshop'    => ['intro', 'instructauthors', 'instructreviewers', 'conclusion'],
+    ];
+
     /**
      * Build a complete inventory snapshot for a course.
      *
@@ -44,7 +87,7 @@ class inventory_service {
         $course   = $this->build_course($courseid);
         $sections = $this->build_sections($courseid);
         $cms      = $this->build_cms($courseid);
-        $texts    = $this->collect_texts($course, $sections);
+        $texts    = $this->collect_texts($course, $sections, $cms);
 
         return new inventory_snapshot($course, $sections, $cms, $texts);
     }
@@ -59,13 +102,13 @@ class inventory_service {
         global $DB;
         $record = $DB->get_record('course', ['id' => $courseid], '*', \MUST_EXIST);
         return new course_item(
-            id: (int)$record->id,
-            fullname: (string)$record->fullname,
-            shortname: (string)$record->shortname,
-            summary: (string)($record->summary ?? ''),
-            summaryformat: (int)($record->summaryformat ?? 1),
-            startdate: (int)($record->startdate ?? 0),
-            enddate: !empty($record->enddate) ? (int)$record->enddate : null,
+            id: (int) $record->id,
+            fullname: (string) $record->fullname,
+            shortname: (string) $record->shortname,
+            summary: (string) ($record->summary ?? ''),
+            summaryformat: (int) ($record->summaryformat ?? 1),
+            startdate: (int) ($record->startdate ?? 0),
+            enddate: !empty($record->enddate) ? (int) $record->enddate : null,
             visible: !empty($record->visible),
         );
     }
@@ -81,13 +124,13 @@ class inventory_service {
         $rows   = $DB->get_records('course_sections', ['course' => $courseid], 'section ASC');
         $result = [];
         foreach ($rows as $row) {
-            $result[(int)$row->id] = new section_item(
-                id: (int)$row->id,
+            $result[(int) $row->id] = new section_item(
+                id: (int) $row->id,
                 courseid: $courseid,
-                sectionnum: (int)$row->section,
-                name: (isset($row->name) && $row->name !== '') ? (string)$row->name : null,
-                summary: (string)($row->summary ?? ''),
-                summaryformat: (int)($row->summaryformat ?? 1),
+                sectionnum: (int) $row->section,
+                name: (isset($row->name) && $row->name !== '') ? (string) $row->name : null,
+                summary: (string) ($row->summary ?? ''),
+                summaryformat: (int) ($row->summaryformat ?? 1),
                 visible: !empty($row->visible),
             );
         }
@@ -97,8 +140,9 @@ class inventory_service {
     /**
      * Load all course modules via modinfo and normalise them into cm_items.
      *
-     * Includes the completionexpected field from the course_modules table
-     * which drives the Moodle timeline reminder.
+     * Uses one bulk query against course_modules to filter out modules with
+     * deletioninprogress = 1 (which get_fast_modinfo may still return from a
+     * stale cache) and to pick up the completionexpected field.
      *
      * @param int $courseid Moodle course id.
      * @return array<int,cm_item> keyed by cmid.
@@ -109,88 +153,62 @@ class inventory_service {
 
         $cmids = [];
         foreach ($modinfo->get_cms() as $cm) {
-            $cmids[] = (int)$cm->id;
+            $cmids[] = (int) $cm->id;
+        }
+        if (empty($cmids)) {
+            return [];
         }
 
-        // Query course_modules directly so we can filter deletioninprogress = 0.
-        // get_fast_modinfo may serve a stale cache that still contains CMs whose
-        // deletion is in progress; the explicit DB check is the authoritative guard.
-        $activeids = [];
-        $expectedmap = [];
-        if (!empty($cmids)) {
-            [$insql, $params] = $DB->get_in_or_equal($cmids, SQL_PARAMS_NAMED);
-            $params['dip'] = 0;
-            $rows = $DB->get_records_select(
-                'course_modules',
-                "id {$insql} AND deletioninprogress = :dip",
-                $params,
-                '',
-                'id, completionexpected'
-            );
-            foreach ($rows as $row) {
-                $activeids[(int)$row->id] = true;
-                $expectedmap[(int)$row->id] = (int)($row->completionexpected ?? 0);
-            }
+        [$insql, $params] = $DB->get_in_or_equal($cmids, SQL_PARAMS_NAMED);
+        $params['dip'] = 0;
+        $rows = $DB->get_records_select(
+            'course_modules',
+            "id {$insql} AND deletioninprogress = :dip",
+            $params,
+            '',
+            'id, completionexpected'
+        );
+        $activemap = [];
+        foreach ($rows as $row) {
+            $activemap[(int) $row->id] = (int) ($row->completionexpected ?? 0);
         }
 
         $result = [];
         foreach ($modinfo->get_cms() as $cm) {
-            // Skip CMs that are being deleted (not in the active whitelist).
-            if (!isset($activeids[(int)$cm->id])) {
+            if (!isset($activemap[(int) $cm->id])) {
                 continue;
             }
-            $result[(int)$cm->id] = new cm_item(
-                id: (int)$cm->id,
+            $result[(int) $cm->id] = new cm_item(
+                id: (int) $cm->id,
                 courseid: $courseid,
-                sectionid: (int)$cm->section,
-                modname: (string)$cm->modname,
-                instance: (int)$cm->instance,
-                name: (string)$cm->name,
-                visible: (bool)$cm->visible,
+                sectionid: (int) $cm->section,
+                modname: (string) $cm->modname,
+                instance: (int) $cm->instance,
+                name: (string) $cm->name,
+                visible: (bool) $cm->visible,
                 availability: ($cm->availability !== null && $cm->availability !== '')
-                    ? (string)$cm->availability : null,
-                completion: (int)$cm->completion,
-                completionexpected: $expectedmap[(int)$cm->id] ?? 0,
+                    ? (string) $cm->availability : null,
+                completion: (int) $cm->completion,
+                completionexpected: $activemap[(int) $cm->id],
             );
         }
         return $result;
     }
 
     /**
-     * Collect editable text fields from the course and its sections.
-     *
-     * @param course_item             $course   The course entity.
-     * @param array<int,section_item> $sections The section entities.
-     * @return array<string,text_item> keyed by text_item::get_key().
-     */
-    /**
-     * Map of module name → additional text fields beyond the standard intro/content field.
-     *
-     * These fields can contain free-text with date references that should be
-     * picked up by the text-datetime scanner. They are read from the module's
-     * primary table (same table as intro/content).
-     *
-     * @var array<string, string[]>
-     */
-    private const EXTRA_TEXT_FIELDS = [
-        // Mod_assign: Aktivitätsanleitung (activity instructions).
-        'assign' => ['activity'],
-        // Mod_feedback: Seite nach dem Absenden.
-        'feedback' => ['page_after_submit'],
-        // Mod_workshop: three rich-text instruction fields.
-        'workshop' => ['instructauthors', 'instructreviewers', 'conclusion'],
-        // Mod_page: has both content (primary) and intro.
-        'page' => ['intro'],
-    ];
-
-    /**
      * Collect all text items from course, sections and course modules.
      *
-     * @param course_item $course   Course entity.
-     * @param array       $sections Section entities keyed by section id.
+     * Course modules are grouped by module name and loaded with one
+     * get_records_list() query per module type, regardless of how many
+     * instances exist. All text fields for a module type (intro, content,
+     * extra fields) are read in that single query.
+     *
+     * @param course_item            $course   Course entity.
+     * @param array<int,section_item> $sections Section entities.
+     * @param array<int,cm_item>      $cms      Course-module entities.
      * @return array<string, text_item> Text items keyed by their entity key.
      */
-    protected function collect_texts(course_item $course, array $sections): array {
+    protected function collect_texts(course_item $course, array $sections, array $cms): array {
         global $DB;
         $result = [];
 
@@ -219,113 +237,51 @@ class inventory_service {
             $result[$text->get_key()] = $text;
         }
 
-        // Collect intro/content fields from course module instances.
-        // Build a per-modname cache of which field to read ('intro', 'content', or null).
-        $fieldcache = [];
-        try {
-            $modinfo = get_fast_modinfo($course->id);
-        } catch (\Throwable $e) {
-            return $result;
+        // Group cmids by modname so one DB query per module type is enough.
+        $cmidsbymodname = [];
+        $instancetocmid = [];
+        foreach ($cms as $cm) {
+            $modname = $cm->modname;
+            if (!isset(self::TEXT_FIELDS_BY_MODULE[$modname])) {
+                continue;
+            }
+            $cmidsbymodname[$modname][] = $cm->instance;
+            $instancetocmid[$modname][$cm->instance] = $cm->id;
         }
 
-        foreach ($modinfo->get_cms() as $cm) {
-            // Skip CMs whose deletion is in progress — they may still appear in a stale cache.
-            if (!empty($cm->deletioninprogress)) {
-                continue;
-            }
-            $modname = (string)$cm->modname;
-
-            // Determine which text field this module type uses (cached per modname).
-            if (!array_key_exists($modname, $fieldcache)) {
-                $fieldcache[$modname] = $this->resolve_text_field($modname, $DB);
-            }
-            $fieldname = $fieldcache[$modname];
-            if ($fieldname === null) {
-                continue;
-            }
-
+        foreach ($cmidsbymodname as $modname => $instanceids) {
+            $fields = self::TEXT_FIELDS_BY_MODULE[$modname];
+            $selectfields = 'id,' . implode(',', $fields);
             try {
-                $record = $DB->get_record(
-                    $modname,
-                    ['id' => (int)$cm->instance],
-                    'id,' . $fieldname
+                $records = $DB->get_records_list($modname, 'id', $instanceids, '', $selectfields);
+            } catch (\dml_exception $e) {
+                debugging(
+                    'local_coursectrl: collect_texts could not read ' . $modname . ': ' . $e->getMessage(),
+                    DEBUG_DEVELOPER
                 );
-                if (!$record || empty($record->$fieldname)) {
+                continue;
+            }
+            foreach ($records as $record) {
+                $cmid = $instancetocmid[$modname][(int) $record->id] ?? null;
+                if ($cmid === null) {
                     continue;
                 }
-                $text = new text_item(
-                    entitytype: text_item::OWNER_CM,
-                    entityid: (int)$cm->id,
-                    fieldname: $fieldname,
-                    content: (string)$record->$fieldname,
-                    format: FORMAT_HTML,
-                );
-                $result[$text->get_key()] = $text;
-            } catch (\Throwable $e) {
-                continue;
-            }
-
-            // Also scan plugin-specific extra text fields for this module type.
-            $extrafields = self::EXTRA_TEXT_FIELDS[$modname] ?? [];
-            foreach ($extrafields as $extrafield) {
-                try {
-                    $extrarec = $DB->get_record(
-                        $modname,
-                        ['id' => (int)$cm->instance],
-                        'id,' . $extrafield
-                    );
-                    if (!$extrarec || empty($extrarec->$extrafield)) {
+                foreach ($fields as $field) {
+                    if (empty($record->$field)) {
                         continue;
                     }
-                    $extratext = new text_item(
+                    $text = new text_item(
                         entitytype: text_item::OWNER_CM,
-                        entityid: (int)$cm->id,
-                        fieldname: $extrafield,
-                        content: (string)$extrarec->$extrafield,
+                        entityid: (int) $cmid,
+                        fieldname: $field,
+                        content: (string) $record->$field,
                         format: FORMAT_HTML,
                     );
-                    $result[$extratext->get_key()] = $extratext;
-                } catch (\Throwable $e) {
-                    debugging(
-                        'local_coursectrl: collect_texts extra field ' . $extrafield .
-                        ' failed for ' . $modname . ': ' . $e->getMessage(),
-                        DEBUG_DEVELOPER
-                    );
+                    $result[$text->get_key()] = $text;
                 }
             }
         }
 
         return $result;
-    }
-
-    /**
-     * Determine which text column to read for a given module type.
-     *
-     * Returns 'content' for mod_page, 'intro' for modules that have it,
-     * and null when the table or a suitable column does not exist.
-     *
-     * @param string   $modname Module name (e.g. 'assign').
-     * @param \moodle_database $DB Moodle database instance.
-     * @return string|null Column name or null.
-     */
-    private function resolve_text_field(string $modname, \moodle_database $DB): ?string {
-        // Mod_page stores its body in 'content', not 'intro'.
-        if ($modname === 'page') {
-            return 'content';
-        }
-        // All other standard modules use 'intro' if the column exists.
-        try {
-            $columns = $DB->get_columns($modname);
-            if (array_key_exists('intro', $columns)) {
-                return 'intro';
-            }
-        } catch (\Throwable $e) {
-            // Table might not exist or schema lookup failed — skip gracefully.
-            debugging(
-                'local_coursectrl: resolve_text_field failed for ' . $modname . ': ' . $e->getMessage(),
-                DEBUG_DEVELOPER
-            );
-        }
-        return null;
     }
 }

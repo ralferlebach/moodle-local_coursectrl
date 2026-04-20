@@ -132,21 +132,9 @@ class adapter extends abstract_activity_adapter {
      * @return array Check result items.
      */
     public function run_checks(array $cmids, array $profile = []): array {
-        global $DB;
         $results = [];
-        foreach ($cmids as $rawcmid) {
-            $cmid = (int)$rawcmid;
-            try {
-                $cm = get_coursemodule_from_id('scorm', $cmid, 0, false, MUST_EXIST);
-                $scorm = $DB->get_record(
-                    'scorm',
-                    ['id' => $cm->instance],
-                    'id, name, timeopen, timeclose',
-                    MUST_EXIST
-                );
-            } catch (\Throwable $e) {
-                continue;
-            }
+        $records = $this->load_check_records($cmids, 'scorm', 'id, name, timeopen, timeclose');
+        foreach ($records as $cmid => $scorm) {
             $open = (int)$scorm->timeopen;
             $close = (int)$scorm->timeclose;
             if ($open > 0 && $close > 0 && $open > $close) {

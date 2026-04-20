@@ -17,9 +17,6 @@
 /**
  * Course Control Hub adapter for mod_feedback.
  *
- * Patch-026: adds refresh_calendar_for_cmids() override that delegates
- * to feedback_refresh_events().
- *
  * @package    coursectrlmod_feedback
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -201,21 +198,9 @@ class adapter extends abstract_activity_adapter {
      * @return array Check result items.
      */
     public function run_checks(array $cmids, array $profile = []): array {
-        global $DB;
         $results = [];
-        foreach ($cmids as $rawcmid) {
-            $cmid = (int)$rawcmid;
-            try {
-                $cm = get_coursemodule_from_id('feedback', $cmid, 0, false, MUST_EXIST);
-                $rec = $DB->get_record(
-                    'feedback',
-                    ['id' => $cm->instance],
-                    'id, name, timeopen, timeclose',
-                    MUST_EXIST
-                );
-            } catch (\Throwable $e) {
-                continue;
-            }
+        $records = $this->load_check_records($cmids, 'feedback', 'id, name, timeopen, timeclose');
+        foreach ($records as $cmid => $rec) {
             // R3: open must not be after close.
             if (
                 (int)$rec->timeopen > 0

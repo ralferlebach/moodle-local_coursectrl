@@ -18,8 +18,8 @@
  * Data transfer object representing the result of one execute_action call.
  *
  * Wraps the per-cmid item shape returned by activity_adapter::execute_action()
- * in a typed, immutable structure. The batch_manager (patch-025) serialises
- * execution_result instances into batch_item.resultjson.
+ * in a typed, immutable structure. The batch_manager serialises execution_result
+ * instances into batch_item.resultjson.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach

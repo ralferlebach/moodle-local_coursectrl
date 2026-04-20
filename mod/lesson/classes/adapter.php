@@ -196,23 +196,11 @@ class adapter extends abstract_activity_adapter {
      * @return array Check result items.
      */
     public function run_checks(array $cmids, array $profile = []): array {
-        global $DB;
         $results = [];
         $plugin = 'coursectrlmod_lesson';
         $r7defaults = ['available_without_deadline' => 'notice'];
-        foreach ($cmids as $rawcmid) {
-            $cmid = (int)$rawcmid;
-            try {
-                $cm = get_coursemodule_from_id('lesson', $cmid, 0, false, MUST_EXIST);
-                $rec = $DB->get_record(
-                    'lesson',
-                    ['id' => $cm->instance],
-                    'id, name, available, deadline',
-                    MUST_EXIST
-                );
-            } catch (\Throwable $e) {
-                continue;
-            }
+        $records = $this->load_check_records($cmids, 'lesson', 'id, name, available, deadline');
+        foreach ($records as $cmid => $rec) {
             $avail = (int)$rec->available;
             $dead = (int)$rec->deadline;
             $name = $rec->name;

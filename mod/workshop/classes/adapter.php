@@ -198,7 +198,6 @@ class adapter extends abstract_activity_adapter {
      * @return array Check result items.
      */
     public function run_checks(array $cmids, array $profile = []): array {
-        global $DB;
         $results = [];
         $plugin = 'coursectrlmod_workshop';
         $r7defaults = [
@@ -206,19 +205,8 @@ class adapter extends abstract_activity_adapter {
             'assessmentend_without_assessmentstart' => 'notice',
             'assessment_without_submissionend'      => 'warning',
         ];
-        foreach ($cmids as $rawcmid) {
-            $cmid = (int)$rawcmid;
-            try {
-                $cm = get_coursemodule_from_id('workshop', $cmid, 0, false, MUST_EXIST);
-                $rec = $DB->get_record(
-                    'workshop',
-                    ['id' => $cm->instance],
-                    'id, name, submissionstart, submissionend, assessmentstart, assessmentend',
-                    MUST_EXIST
-                );
-            } catch (\Throwable $e) {
-                continue;
-            }
+        $records = $this->load_check_records($cmids, 'workshop', 'id, name, submissionstart, submissionend, assessmentstart, assessmentend');
+        foreach ($records as $cmid => $rec) {
             $substart = (int)$rec->submissionstart;
             $subend = (int)$rec->submissionend;
             $assstart = (int)$rec->assessmentstart;

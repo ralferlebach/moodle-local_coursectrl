@@ -108,18 +108,6 @@ interface activity_adapter {
     public function describe_instance(int $cmid): array;
 
     /**
-     * Return normalised descriptions for a set of course modules in one call.
-     *
-     * Used by callers that process many cmids of the same component (preview,
-     * execute, rollback) to avoid per-cmid DB lookups. Implementations should
-     * issue at most one DB query per backing table.
-     *
-     * @param int[] $cmids course module ids.
-     * @return array<int, array> descriptions keyed by cmid.
-     */
-    public function describe_instances(array $cmids): array;
-
-    /**
      * Validate an action payload against a set of course modules.
      *
      * Must not mutate any state. Returns a structured validation result

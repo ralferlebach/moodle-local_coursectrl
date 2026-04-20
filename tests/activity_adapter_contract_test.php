@@ -19,8 +19,7 @@
  *
  * These tests freeze the shape of the adapter contract so that any
  * accidental renaming, removal or signature change of a method is caught
- * by CI before it can land on main. The Pflichtenheft lists 13 original
- * methods; patch-026 added refresh_calendar_for_cmids as the 14th.
+ * by CI before it can land on main.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -49,8 +48,8 @@ final class activity_adapter_contract_test extends \advanced_testcase {
     }
 
     /**
-     * The interface must define exactly 14 methods (13 from the original
-     * Pflichtenheft plus refresh_calendar_for_cmids added in patch-026).
+     * The interface must define exactly 14 methods. Additions require a
+     * deliberate update of this number so that API changes are visible.
      */
     public function test_interface_method_count(): void {
         $ref = new \ReflectionClass(self::IFACE);

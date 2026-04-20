@@ -178,7 +178,8 @@ class adapter extends abstract_activity_adapter {
         $records = $this->load_check_records(
             $cmids,
             'studentquiz',
-            'id, name,
+            'id,
+            name,
             opensubmissionfrom,
             closesubmissionfrom,
             openansweringfrom,

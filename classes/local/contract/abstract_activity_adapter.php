@@ -23,10 +23,15 @@
  * safe no-op defaults; only component() remains abstract because it
  * identifies the target Moodle module and has no sensible default.
  *
+ * In addition to the interface, this base class adds describe_instances()
+ * as a bulk counterpart to describe_instance(). It is not part of the
+ * activity_adapter interface (which intentionally pins its surface area)
+ * but is available to every adapter that extends this class.
+ *
  * Default semantics:
- *   - is_available()             returns true.
- *   - All array-returning methods return an empty array.
- *   - describe_instances()       delegates to describe_instance() per cmid.
+ *   - is_available()               returns true.
+ *   - All array-returning methods   return an empty array.
+ *   - describe_instances()         delegates to describe_instance() per cmid.
  *   - refresh_calendar_for_cmids() is a no-op.
  *
  * @package    local_coursectrl

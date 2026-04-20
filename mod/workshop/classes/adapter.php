@@ -208,8 +208,7 @@ class adapter extends abstract_activity_adapter {
         $records = $this->load_check_records(
             $cmids,
             'workshop',
-            'id,
-            name,
+            'id, name,
             submissionstart,
             submissionend,
             assessmentstart,

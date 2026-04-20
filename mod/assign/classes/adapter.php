@@ -17,10 +17,6 @@
 /**
  * Course Control Hub adapter for mod_assign.
  *
- * Patch-026: adds refresh_calendar_for_cmids() override that delegates
- * to assign_refresh_events() so the bulk engine keeps mod_assign calendar
- * entries in sync after a successful execute_action call.
- *
  * @package    coursectrlmod_assign
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -201,35 +197,13 @@ class adapter extends abstract_activity_adapter {
     /**
      * Run consistency checks on assign instances.
      *
-     * Detects invalid date orderings, e.g. allowsubmissionsfromdate after
-     * duedate, which Moodle's own form rejects but bulk shifts can produce.
-     *
-     * @param int[] $cmids   Course module ids to check.
-     * @param array $profile Optional check profile (unused).
-     * @return array Check result items.
-     */
-
-    /**
-     * Resolve the distinct course ids that contain the given cmids of the
-     * specified module type.
-     *
-     * @param int[]  $cmids   course module ids.
-     * @param string $modname module name (e.g. 'assign').
-     * @return int[]
-     */
-
-    /**
-     * Run consistency checks on assign instances.
-     *
-     * Checks R3 (process logic) and R7 (missing counterpart fields) rules
-     * as defined in docs/rules.md.
+     * Checks R3 (process logic) and R7 (missing counterpart fields) rules.
      *
      * @param int[] $cmids   Course module ids to check.
      * @param array $profile Optional check profile (unused).
      * @return array Check result items.
      */
     public function run_checks(array $cmids, array $profile = []): array {
-        global $DB;
         $results = [];
         $plugin = 'coursectrlmod_assign';
         $r7defaults = [
@@ -237,24 +211,17 @@ class adapter extends abstract_activity_adapter {
             'cutoffdate_without_duedate'               => 'warning',
             'gradingduedate_without_duedate'           => 'warning',
         ];
-        foreach ($cmids as $rawcmid) {
-            $cmid = (int)$rawcmid;
-            try {
-                $cm = get_coursemodule_from_id('assign', $cmid, 0, false, MUST_EXIST);
-                $assign = $DB->get_record(
-                    'assign',
-                    ['id' => $cm->instance],
-                    'id, name, duedate, allowsubmissionsfromdate, cutoffdate, gradingduedate',
-                    MUST_EXIST
-                );
-            } catch (\Throwable $e) {
-                continue;
-            }
-            $due = (int)$assign->duedate;
-            $fromdate = (int)$assign->allowsubmissionsfromdate;
-            $cutoff = (int)$assign->cutoffdate;
-            $gradingdue = (int)$assign->gradingduedate;
-            $name = $assign->name;
+        $records = $this->load_check_records(
+            $cmids,
+            'assign',
+            'id, name, duedate, allowsubmissionsfromdate, cutoffdate, gradingduedate'
+        );
+        foreach ($records as $cmid => $assign) {
+            $due        = (int) $assign->duedate;
+            $fromdate   = (int) $assign->allowsubmissionsfromdate;
+            $cutoff     = (int) $assign->cutoffdate;
+            $gradingdue = (int) $assign->gradingduedate;
+            $name       = (string) $assign->name;
 
             // R3: opening date must not be after due date.
             if ($fromdate > 0 && $due > 0 && $fromdate > $due) {

@@ -22,10 +22,9 @@
  * the batch_item persistent layer can consume directly. Instances are
  * immutable: properties are set in the constructor and exposed via getters.
  *
- * The preview_manager (patch-024) collects preview_change instances across
- * all adapters in a course and feeds them into the preview Mustache
- * template; the batch_manager (patch-025) serialises the chosen subset
- * into batch_item.previewjson.
+ * The preview_manager collects preview_change instances across all adapters
+ * in a course and feeds them into the preview Mustache template; the
+ * batch_manager serialises the chosen subset into batch_item.previewjson.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach

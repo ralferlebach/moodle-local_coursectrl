@@ -33,8 +33,9 @@ use local_coursectrl\local\contract\activity_adapter;
 /**
  * Central registry for activity_adapter instances.
  *
- * Not a singleton by design: manager classes instantiate a registry per
- * request scope. Discovery is lazy and cached inside the instance.
+ * Discovery is lazy and cached inside the instance. Manager classes
+ * instantiate a fresh registry per request scope; the registry is not
+ * shared across requests.
  */
 class registry {
     /** @var activity_adapter[] Keyed by frankenstyle component name (e.g. 'mod_assign'). */
@@ -174,6 +175,77 @@ class registry {
             return null;
         }
         return $this->get_for_component('mod_' . $cm->modname);
+    }
+
+    /**
+     * Group a set of cmids by their responsible adapter in one DB query.
+     *
+     * Returns an array with two keys:
+     *   - 'routed':  keyed by component, each entry {adapter, cmids[]}
+     *   - 'skipped': list of {cmid, reason, component?} for cmids without
+     *                an adapter or without support for the given action.
+     *
+     * @param int[]  $cmids  Course module ids to group.
+     * @param string $action Action identifier to verify against get_supported_actions().
+     * @return array{routed: array<string, array{adapter: activity_adapter, cmids: int[]}>, skipped: array<int, array>}
+     */
+    public function group_cmids_by_component(array $cmids, string $action): array {
+        global $DB;
+        $cmids = array_values(array_unique(array_map('intval', $cmids)));
+        $routed = [];
+        $skipped = [];
+        if (empty($cmids)) {
+            return ['routed' => $routed, 'skipped' => $skipped];
+        }
+
+        [$insql, $params] = $DB->get_in_or_equal($cmids, SQL_PARAMS_NAMED);
+        $sql = "SELECT cm.id, m.name AS modname
+                  FROM {course_modules} cm
+                  JOIN {modules} m ON m.id = cm.module
+                 WHERE cm.id {$insql}";
+        $rows = $DB->get_records_sql($sql, $params);
+        $modnamemap = [];
+        foreach ($rows as $row) {
+            $modnamemap[(int) $row->id] = (string) $row->modname;
+        }
+
+        foreach ($cmids as $cmid) {
+            if (!isset($modnamemap[$cmid])) {
+                $skipped[] = [
+                    'cmid'   => $cmid,
+                    'reason' => 'no_adapter',
+                ];
+                continue;
+            }
+            $component = 'mod_' . $modnamemap[$cmid];
+            $adapter = $this->get_for_component($component);
+            if ($adapter === null) {
+                $skipped[] = [
+                    'cmid'   => $cmid,
+                    'reason' => 'no_adapter',
+                ];
+                continue;
+            }
+            if (!in_array($action, $adapter->get_supported_actions(), true)) {
+                $skipped[] = [
+                    'cmid'      => $cmid,
+                    'component' => $component,
+                    'reason'    => 'unsupported_action',
+                ];
+                continue;
+            }
+            if (!isset($routed[$component])) {
+                $routed[$component] = [
+                    'adapter' => $adapter,
+                    'cmids'   => [],
+                ];
+            }
+            $routed[$component]['cmids'][] = $cmid;
+        }
+        return [
+            'routed'  => $routed,
+            'skipped' => $skipped,
+        ];
     }
 
     /**

@@ -17,9 +17,6 @@
 /**
  * Course Control Hub adapter for mod_quiz.
  *
- * Patch-026: adds refresh_calendar_for_cmids() override that delegates
- * to quiz_refresh_events().
- *
  * @package    coursectrlmod_quiz
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -212,23 +209,11 @@ class adapter extends abstract_activity_adapter {
      * @return array Check result items.
      */
     public function run_checks(array $cmids, array $profile = []): array {
-        global $DB;
         $results = [];
         $plugin = 'coursectrlmod_quiz';
         $r7defaults = ['timeopen_without_timeclose' => 'notice'];
-        foreach ($cmids as $rawcmid) {
-            $cmid = (int)$rawcmid;
-            try {
-                $cm = get_coursemodule_from_id('quiz', $cmid, 0, false, MUST_EXIST);
-                $quiz = $DB->get_record(
-                    'quiz',
-                    ['id' => $cm->instance],
-                    'id, name, timeopen, timeclose, timelimit',
-                    MUST_EXIST
-                );
-            } catch (\Throwable $e) {
-                continue;
-            }
+        $records = $this->load_check_records($cmids, 'quiz', 'id, name, timeopen, timeclose, timelimit');
+        foreach ($records as $cmid => $quiz) {
             $open = (int)$quiz->timeopen;
             $close = (int)$quiz->timeclose;
             $limit = (int)$quiz->timelimit;

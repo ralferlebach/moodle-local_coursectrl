@@ -17,11 +17,6 @@
 /**
  * Event fired when a report record is generated and persisted.
  *
- * Intended for use by future report_manager implementations. The event
- * carries the report id as objectid, the course id, the acting user id,
- * and the report type in 'other'. Subscribers can use this to trigger
- * notifications, aggregation, or audit logging.
- *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later

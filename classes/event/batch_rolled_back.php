@@ -17,10 +17,6 @@
 /**
  * Event fired by rollback_manager when a batch is successfully rolled back.
  *
- * Carries the batch id as objectid, the course id and acting user id, and
- * per-status counts (restored/failed) in 'other'. Fired only when the full
- * rollback succeeds (failed === 0); partial rollbacks do not trigger this event.
- *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later

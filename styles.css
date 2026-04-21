@@ -143,6 +143,7 @@
 }
 
 .coursectrl-simdrop-item .form-check-input {
+    float: none;
     margin: 0;
     flex-shrink: 0;
 }
@@ -152,10 +153,6 @@
     line-height: 1.4;
 }
 
-.local_coursectrl_simulation .coursectrl-simdrop-item .form-check-label {
-    margin: 0 0 0 20px;
-    line-height: 1.4;
-}
 
 /**
  * Table cell: activity name column for assumed-complete activities.
@@ -164,17 +161,6 @@
     background-color: #e2e3e5;
 }
 
-/**
- * Override Bootstrap's float-based form-check-input positioning within
- * simulation dropdowns. Bootstrap 5 uses float:left + margin-left:-1.5em
- * which breaks flex layout without a matching padding-left on the parent.
- * Our flex-based .coursectrl-simdrop-item handles alignment instead.
- */
-.coursectrl-simdrop-item .form-check-input {
-    float: none;
-    margin: 0;
-    flex-shrink: 0;
-}
 
 /**
  * Ensure dropdown UL containers never add extra left padding
@@ -198,9 +184,33 @@
 }
 
 /**
- * Manage page: CM and section selection checkboxes.
- * Use flexbox layout so the checkbox sits cleanly beside the activity icon
- * without relying on Bootstrap's float-based form-check positioning.
+ * Toolbar toggles (plain checkbox+label in d-flex toolbars).
+ * Reset Bootstrap float so checkboxes sit correctly in a flex row.
+ */
+.local_coursectrl_toolbar .form-check {
+    padding-left: 0;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.local_coursectrl_toolbar .form-check .form-check-input {
+    float: none;
+    margin: 0;
+    flex-shrink: 0;
+    position: static;
+}
+
+.local_coursectrl_toolbar .form-check .form-check-label {
+    margin: 0;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+/**
+ * Manage page: CM and section selection checkboxes use flexbox
+ * so the checkbox sits cleanly beside the activity icon.
  */
 .local-coursectrl-manage .form-check {
     display: flex;

@@ -17,10 +17,6 @@
 /**
  * Event fired by batch_manager when a new bulk action batch record is created.
  *
- * Fired immediately after the batch row is persisted in status 'pending',
- * before any adapter execute calls. Subscribers can use this event to
- * detect the start of a bulk operation pipeline.
- *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -29,7 +25,7 @@
 namespace local_coursectrl\event;
 
 /**
- * Event fired when a new batch row is created in status 'pending'.
+ * Event fired when a new batch row is created in status pending.
  */
 class batch_created extends \core\event\base {
     /**

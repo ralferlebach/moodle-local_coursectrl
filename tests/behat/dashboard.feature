@@ -15,8 +15,6 @@ Feature: Course Control Hub dashboard cockpit layout
       | user     | course   | role           |
       | teacher1 | FXCOURSE | editingteacher |
 
-  # ── Basic load ────────────────────────────────────────────────────────────
-
   @javascript
   Scenario: Dashboard loads and shows stat tiles
     Given I log in as "teacher1"
@@ -45,8 +43,6 @@ Feature: Course Control Hub dashboard cockpit layout
     When I am on the coursectrl dashboard for course "FXCOURSE"
     Then I should see "Shift dates"
     And I should see "Edit dates in texts"
-
-  # ── Problem summary ───────────────────────────────────────────────────────
 
   @javascript
   Scenario: Dashboard shows problem summary when an assign has conflicting dates

@@ -17,22 +17,9 @@
 /**
  * Scheduled task: purge batch history records beyond the configured retention limits.
  *
- * Two complementary limits are applied in sequence during each run:
- *
- *   1. Age limit (history_maxdays, default 365):
- *      Any batch row whose timecreated is older than this many days is deleted,
- *      together with all its batch_item and snapshot child rows.
- *
- *   2. Per-course count limit (history_maxcount, default 100):
- *      After age purging, each course that still has more than history_maxcount
- *      batch rows retains only the most recent ones; the oldest excess rows are
- *      deleted along with their children.
- *
- * Child rows in local_coursectrl_batch_item and local_coursectrl_snapshot are
- * always deleted before their parent batch row so that referential integrity is
- * maintained regardless of the database engine's FK enforcement.
- *
- * Both limits can be disabled individually by setting the value to 0.
+ * Two complementary limits are applied in sequence:
+ *   1. Age limit (history_maxdays): deletes batches older than N days.
+ *   2. Per-course count limit (history_maxcount): keeps only the most recent N per course.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -46,7 +33,7 @@ namespace local_coursectrl\task;
  */
 class purge_old_batches extends \core\task\scheduled_task {
     /**
-     * Human-readable task name shown in the Moodle admin task list.
+     * Human-readable task name.
      *
      * @return string
      */
@@ -57,24 +44,18 @@ class purge_old_batches extends \core\task\scheduled_task {
     /**
      * Execute the purge task.
      *
-     * Reads the two retention settings, applies the age limit globally,
-     * then applies the per-course count limit. Emits mtrace() lines so
-     * that cron output and admin/cli/scheduled_task.php show progress.
-     *
      * @return void
      */
     public function execute(): void {
         global $DB;
 
-        $maxdays = (int) (get_config('local_coursectrl', 'history_maxdays') ?: 365);
-        $maxcount = (int) (get_config('local_coursectrl', 'history_maxcount') ?: 100);
-
-        $deleted = 0;
+        $maxdays  = (int)(get_config('local_coursectrl', 'history_maxdays') ?: 365);
+        $maxcount = (int)(get_config('local_coursectrl', 'history_maxcount') ?: 100);
+        $deleted  = 0;
 
         if ($maxdays > 0) {
             $deleted += $this->purge_by_age($DB, $maxdays);
         }
-
         if ($maxcount > 0) {
             $deleted += $this->purge_by_count($DB, $maxcount);
         }
@@ -85,8 +66,8 @@ class purge_old_batches extends \core\task\scheduled_task {
     /**
      * Delete all batches older than the given number of days.
      *
-     * @param \moodle_database $db       Active DB connection.
-     * @param int              $maxdays  Maximum age in days.
+     * @param \moodle_database $db      Active DB connection.
+     * @param int              $maxdays Maximum age in days.
      * @return int Number of batch rows deleted.
      */
     private function purge_by_age(\moodle_database $db, int $maxdays): int {
@@ -107,10 +88,8 @@ class purge_old_batches extends \core\task\scheduled_task {
     /**
      * For each course, delete batches beyond the per-course count limit.
      *
-     * Keeps the most recent maxcount batches per course; deletes the rest.
-     *
-     * @param \moodle_database $db        Active DB connection.
-     * @param int              $maxcount  Maximum number of batches to keep per course.
+     * @param \moodle_database $db       Active DB connection.
+     * @param int              $maxcount Maximum number of batches to keep per course.
      * @return int Number of batch rows deleted.
      */
     private function purge_by_count(\moodle_database $db, int $maxcount): int {
@@ -124,7 +103,6 @@ class purge_old_batches extends \core\task\scheduled_task {
             if ($total <= $maxcount) {
                 continue;
             }
-            // Fetch the ids of all batches for this course, oldest first.
             $allids = $db->get_fieldset_select(
                 'local_coursectrl_batch',
                 'id',
@@ -132,7 +110,6 @@ class purge_old_batches extends \core\task\scheduled_task {
                 ['courseid' => $courseid],
                 'timecreated ASC, id ASC'
             );
-            // Remove the newest maxcount from the list; delete the rest.
             $excess = array_slice($allids, 0, count($allids) - $maxcount);
             if (empty($excess)) {
                 continue;
@@ -145,9 +122,6 @@ class purge_old_batches extends \core\task\scheduled_task {
 
     /**
      * Delete child rows then parent batch rows for the given batch ids.
-     *
-     * Children (batch_item, snapshot) are deleted first to maintain
-     * referential integrity regardless of FK enforcement in the DB engine.
      *
      * @param \moodle_database $db       Active DB connection.
      * @param int[]            $batchids Batch ids to remove.

@@ -191,15 +191,18 @@ class group_resolver {
                 array_keys($this->groupings),
                 SQL_PARAMS_NAMED
             );
-            $members = $DB->get_records_sql(
+            // Use get_recordset_sql: groupingid is non-unique per row.
+            $rs = $DB->get_recordset_sql(
                 "SELECT groupingid, groupid
                    FROM {groupings_groups}
-                  WHERE groupingid $insql",
+                  WHERE groupingid $insql
+                  ORDER BY groupingid, groupid",
                 $inparams
             );
-            foreach ($members as $m) {
+            foreach ($rs as $m) {
                 $this->groupinggroups[(int) $m->groupingid][] = (int) $m->groupid;
             }
+            $rs->close();
         }
     }
 }

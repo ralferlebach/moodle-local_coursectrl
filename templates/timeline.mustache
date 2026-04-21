@@ -96,7 +96,7 @@
   </div>
 
   {{! Filter toolbar }}
-  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-3 local_coursectrl_toolbar">
     <button type="button" class="btn btn-sm btn-outline-secondary"
             data-action="toggle-calendar"
             data-label-show="{{#str}}cal_show, local_coursectrl{{/str}}"
@@ -109,23 +109,31 @@
       </span>
     </button>
 
-    <form method="get" action="{{timelineurl}}" class="mb-0 d-inline">
+    <form method="get" action="{{timelineurl}}" class="mb-0">
       <input type="hidden" name="courseid" value="{{courseid}}">
       <input type="hidden" name="tab" value="timeline">
       <input type="hidden" name="groupid" value="{{activegroupid}}">
       <input type="hidden" name="showpast" value="0">
-      <label class="mb-0">
-        <input type="checkbox" name="showpast" value="1"
-               class="me-1"{{#showpast}} checked{{/showpast}} onchange="this.form.submit()">
-        {{#str}} toggle_past, local_coursectrl {{/str}}
-      </label>
+      <div class="form-check mb-0">
+        <input class="form-check-input" type="checkbox"
+               name="showpast" value="1"
+               id="coursectrl-showpast"
+               {{#showpast}}checked{{/showpast}}
+               onchange="this.form.submit()">
+        <label class="form-check-label" for="coursectrl-showpast">
+          {{#str}} toggle_past, local_coursectrl {{/str}}
+        </label>
+      </div>
     </form>
 
-    <label class="mb-0">
-      <input type="checkbox" id="coursectrl-immediateapply" class="me-1"
+    <div class="form-check mb-0">
+      <input class="form-check-input" type="checkbox"
+             id="coursectrl-immediateapply"
              {{#immediateapply}}checked{{/immediateapply}}>
-      {{#str}} shift_immediate_apply, local_coursectrl {{/str}}
-    </label>
+      <label class="form-check-label" for="coursectrl-immediateapply">
+        {{#str}} shift_immediate_apply, local_coursectrl {{/str}}
+      </label>
+    </div>
 
     {{#hasgroupoptions}}
     <form method="get" action="{{timelineurl}}" class="d-flex align-items-center gap-1 mb-0">
@@ -305,13 +313,11 @@
                   </div>
                 </div>
               </div>
-              <div class="d-flex align-items-start gap-2 mt-1">
-                <input type="checkbox" id="coursectrl-shift-followdeps-cb"
-                       class="form-check-input flex-shrink-0"
-                       style="margin:0;float:none;margin-top:0.15rem">
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox"
+                       id="coursectrl-shift-followdeps-cb">
                 <label class="form-check-label small"
-                       for="coursectrl-shift-followdeps-cb"
-                       style="margin-left:1.25rem">
+                       for="coursectrl-shift-followdeps-cb">
                   {{#str}} shift_dependants, local_coursectrl {{/str}}
                 </label>
               </div>
@@ -406,7 +412,8 @@
   {{! ── TAB: Textprüfung ───────────────────────────────────────────────── }}
   {{#tab_textreview}}
   <div id="tab-textreview" data-region="local_coursectrl-textreview-panel"
-       data-courseid="{{courseid}}">
+       data-courseid="{{courseid}}"
+       data-hasrows="{{#textreview_hasrows}}1{{/textreview_hasrows}}{{^textreview_hasrows}}0{{/textreview_hasrows}}">
 
     {{! Workflow-Hinweis: Textprüfung ist Teil des Terminverschiebe-Workflows }}
     {{#textreview_from_shift}}
@@ -418,15 +425,7 @@
       </div>
     </div>
     {{/textreview_from_shift}}
-    {{^textreview_from_shift}}
-    <div class="alert alert-info d-flex align-items-start gap-2 mb-3">
-      <i class="fa fa-info-circle mt-1 flex-shrink-0"></i>
-      <div>
-        <strong>{{#str}} textreview_workflow_hint_title, local_coursectrl {{/str}}</strong>
-        <p class="mb-0 small">{{#str}} textreview_workflow_hint, local_coursectrl {{/str}}</p>
-      </div>
-    </div>
-    {{/textreview_from_shift}}
+
 
     {{#textreview_hasrows}}
     <form method="post" action="{{timelineurl}}&amp;tab=textreview"

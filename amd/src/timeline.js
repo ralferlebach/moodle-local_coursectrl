@@ -217,6 +217,32 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
         }
         var courseid = parseInt(root.getAttribute('data-courseid') || '0', 10);
 
+        // Auto-scan on textreview tab when DB has no hits yet.
+        // This ensures the first visit to the tab always shows current results.
+        var trPanel = root.querySelector('[data-region="local_coursectrl-textreview-panel"]');
+        if (trPanel && trPanel.getAttribute('data-hasrows') !== '1') {
+            var scanBtn = trPanel.querySelector('[data-action="rescan-text"]');
+            if (scanBtn) {
+                scanBtn.setAttribute('data-autoscan', '1');
+                scanBtn.dispatchEvent(new Event('click'));
+            } else {
+                // No explicit button — trigger AJAX scan and refresh the panel.
+                require(['core/ajax'], function(Ajax) {
+                    Ajax.call([{
+                        methodname: 'local_coursectrl_get_text_hits',
+                        args: {courseid: courseid, rescan: true},
+                        done: function(result) {
+                            if (result.hits && result.hits.length > 0) {
+                                // Hits found — reload the page to show them.
+                                window.location.reload();
+                            }
+                        },
+                        fail: function() { /* Silent fail — user can manually rescan. */ }
+                    }]);
+                });
+            }
+        }
+
         // Open shift dialog from slot-level button.
         root.querySelectorAll('[data-action="shift-slot"]').forEach(function(btn) {
             btn.addEventListener('click', function() {

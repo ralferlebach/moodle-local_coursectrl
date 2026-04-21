@@ -612,20 +612,13 @@ trait shift_dates_executor {
      * @return array Preview entry.
      */
     private function preview_unchanged_field(string $field, int $old, string $action): array {
-        if ($action === 'shift_dates') {
-            return [
-                'field'     => $field,
-                'old_value' => $old,
-                'new_value' => $old,
-                'shifted'   => false,
-                'reason'    => 'unset',
-            ];
-        }
+        // Unified: always use 'old'/'new' so the JS renderPreviewHtml can read fd.old/fd.new.
         return [
+            'field'   => $field,
             'old'     => $old,
             'new'     => $old,
             'shifted' => false,
-            'reason'  => 'already_unset',
+            'reason'  => 'unset',
         ];
     }
 
@@ -639,18 +632,12 @@ trait shift_dates_executor {
      * @return array Preview entry.
      */
     private function preview_changed_field(string $field, int $old, int $new, string $action): array {
-        if ($action === 'shift_dates') {
-            return [
-                'field'     => $field,
-                'old_value' => $old,
-                'new_value' => $new,
-                'shifted'   => $new !== $old,
-            ];
-        }
+        // Unified: always use 'old'/'new' so the JS renderPreviewHtml can read fd.old/fd.new.
         return [
+            'field'   => $field,
             'old'     => $old,
             'new'     => $new,
-            'shifted' => true,
+            'shifted' => $new !== $old,
         ];
     }
 

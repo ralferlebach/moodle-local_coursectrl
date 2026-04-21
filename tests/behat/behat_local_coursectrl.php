@@ -94,7 +94,7 @@ class behat_local_coursectrl extends behat_base {
     }
 
     /**
-     * Navigate to the timeline page for a course with an optional tab.
+     * Navigate to the timeline page for a course.
      *
      * @Given I am on the timeline page for course :shortname
      * @param string $shortname Course shortname.

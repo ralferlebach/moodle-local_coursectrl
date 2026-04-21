@@ -151,10 +151,10 @@ class consistency_runner {
                 $warnings[$cmid][] = [
                     'type'        => $issueclass,
                     'severity'    => $conflict['severity'] ?? 'error',
-                    'field_early' => $conflict['field_early'],
-                    'field_late'  => $conflict['field_late'],
-                    'ts_early'    => $conflict['ts_early'],
-                    'ts_late'     => $conflict['ts_late'],
+                    'field_early' => $conflict['field_early'] ?? '',
+                    'field_late'  => $conflict['field_late'] ?? '',
+                    'ts_early'    => $conflict['ts_early'] ?? 0,
+                    'ts_late'     => $conflict['ts_late'] ?? 0,
                     'min_gap_days' => $conflict['min_gap_days'] ?? 0,
                 ];
             }

@@ -15,8 +15,6 @@ Feature: Course Control Hub timeline and text review tab
       | user     | course   | role           |
       | teacher1 | FXCOURSE | editingteacher |
 
-  # ── Timeline tab ──────────────────────────────────────────────────────────
-
   @javascript
   Scenario: Timeline page loads and shows tab navigation
     Given I log in as "teacher1"
@@ -34,16 +32,14 @@ Feature: Course Control Hub timeline and text review tab
   @javascript
   Scenario: Timeline shows activity dates when an assign has a due date
     Given the following "activities" exist:
-      | activity | course   | name       | duedate    |
+      | activity | course   | name       | duedate      |
       | assign   | FXCOURSE | Homework 1 | ##tomorrow## |
     And I log in as "teacher1"
     When I am on the timeline page for course "FXCOURSE"
     Then I should see "Homework 1"
 
-  # ── Text review tab ───────────────────────────────────────────────────────
-
   @javascript
-  Scenario: Text review tab loads without error (textreview.php no longer exists)
+  Scenario: Text review tab loads without error
     Given I log in as "teacher1"
     When I am on the textreview tab for course "FXCOURSE"
     Then I should see "Text Review"

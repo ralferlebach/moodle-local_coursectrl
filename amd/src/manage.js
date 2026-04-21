@@ -103,9 +103,17 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
         root.querySelectorAll('[data-action="deselect-section"]').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var sid = btn.getAttribute('data-sectionid');
+                // Deselect all CM checkboxes in this section.
                 root.querySelectorAll(
                     'input[name="cmids[]"][data-sectionid="' + sid + '"]'
                 ).forEach(function(cb) { cb.checked = false; });
+                // Also uncheck the section header checkbox itself.
+                var sectionCb = root.querySelector(
+                    'input[name="sectionids[]"][data-sectionid="' + sid + '"]'
+                );
+                if (sectionCb) {
+                    sectionCb.checked = false;
+                }
             });
         });
 

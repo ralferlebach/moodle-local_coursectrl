@@ -679,26 +679,21 @@ class checks_page implements renderable, templatable {
      */
     private function fix_type_for(string $type): string {
         $map = [
-            // Option 1 — visibility fix.
             'dep_on_hidden'                   => 'unhide_cm',
             'hidden_with_dependents'          => 'unhide_cm',
             'r1_hidden'                       => 'unhide_cm',
-            // Option 1 — edit availability conditions.
             'dangling_dep'                    => 'modedit_availability',
             'impossible_dep'                  => 'modedit_availability',
             'dangling_group'                  => 'modedit_availability',
             'dangling_grouping'               => 'modedit_availability',
-            // Option 1 — edit completion tracking.
             'completion_required_no_tracking' => 'modedit_completion',
             'completion_no_tracking'          => 'modedit_completion',
-            // Option 2 — shift dates on timeline.
             'temporal_conflict'               => 'timeline',
             'date_coupling'                   => 'timeline',
             'r0_after_course_end'             => 'timeline',
             'r0_before_course_start'          => 'timeline',
             'r0_deadline_in_past'             => 'timeline',
             'deadline_before_dep_window'      => 'timeline',
-            // Option 3 — navigate to dependency graph.
             'circular_dep'                    => 'dependencies',
             'circular_dep_transitive'         => 'dependencies',
             'long_dep_chain'                  => 'dependencies',

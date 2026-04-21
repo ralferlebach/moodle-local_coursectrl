@@ -170,6 +170,7 @@ jobs:
         exclude:
           - { moodle: MOODLE_405_STABLE, php: '8.4' }
           - { moodle: MOODLE_500_STABLE, php: '8.4' }
+          - { moodle: MOODLE_502_STABLE, php: '8.2' }
 
     services:
       mariadb:
@@ -291,7 +292,6 @@ jobs:
           - MOODLE_405_STABLE
           - MOODLE_500_STABLE
           - MOODLE_501_STABLE
-          - MOODLE_502_STABLE
 
     services:
       mariadb:

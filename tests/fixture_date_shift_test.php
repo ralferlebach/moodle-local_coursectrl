@@ -188,10 +188,10 @@ final class fixture_date_shift_test extends \advanced_testcase {
         $duedatechanges = array_filter($allfields, fn($c) => ($c['field'] ?? '') === 'duedate');
         $this->assertNotEmpty($duedatechanges, 'duedate should appear in preview');
         $c = reset($duedatechanges);
-        $this->assertArrayHasKey('old_value', $c);
-        $this->assertArrayHasKey('new_value', $c);
-        $this->assertSame(self::T_BASE + self::WEEK, (int)$c['old_value']);
-        $this->assertSame(self::T_BASE + self::WEEK * 2, (int)$c['new_value']);
+        $this->assertArrayHasKey('old', $c);
+        $this->assertArrayHasKey('new', $c);
+        $this->assertSame(self::T_BASE + self::WEEK, (int)$c['old']);
+        $this->assertSame(self::T_BASE + self::WEEK * 2, (int)$c['new']);
     }
 
     // Termin-Verschiebung ohne Text (batch_manager).

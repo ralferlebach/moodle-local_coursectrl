@@ -2,8 +2,15 @@
 
 **Datum:** 2026-04-21  
 **Start-Version:** 0.2.0-rc11 / 2026042017  
-**End-Version:** 0.2.0-rc17 / 2026042023  
-**Definitive Codebase:** `COMPLETE-0.2.0-rc13.zip` (36 Dateien, alle Patches konsolidiert)
+**End-Version:** 0.9.0-rc1 / 2026042025  
+**Definitive Codebase:** `COMPLETE-0.2.0-rc13.zip` (36 Dateien, alle Patches konsolidiert)  
+**Letzte Einzel-Patches:** rc14–rc18 + Versionsbump → endgültig **0.9.0-rc1**
+
+---
+
+## Versionsnummer-Entscheidung
+
+**[DECISION] 0.9.0-rc1 statt 0.2.0-rc:** `0.2.x` war ein Überbleibsel aus der Entwicklungsphase und passte nicht zu einem RC-Label. MVP 1 + MVP 2 vollständig, MVP 3 bis auf dokumentierte Restpunkte fertig. `0.9.0` signalisiert: produktionsnahe Qualität, kurz vor 1.0 — aber noch nicht released. `1.0.0` ist der Zielzustand nach Schließung der offenen Test-Lücken und `grunt amd`.
 
 ---
 
@@ -26,7 +33,8 @@
 | rc14 | CI: `MOODLE_502_STABLE` + PHP 8.2 exclude |
 | rc15 | Test-Fix: `fixture_date_shift_test` `old_value` → `old` |
 | rc16 | CI: Behat-Matrix-Korruption behoben, 5.2 aus Behat entfernt |
-| rc17 | CI: Actions auf Node 24 native Versionen gebumpt |
+| rc17/rc18 | CI: Actions auf `@v4` Floating-Tags, `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` reicht |
+| 0.9.0-rc1 | Versionsnummer `0.2.0` → `0.9.0-rc1` |
 
 ---
 
@@ -52,42 +60,37 @@ Neu hinzugefügt (nie im Basis-Repo vorhanden):
 
 ### Textprüfungs-Tab zeigt keine Texte
 
-Der Tab liest aus `local_coursectrl_text_hit`-DB-Tabelle, die nur nach einem expliziten Scan befüllt wird. Fix: `timeline.js` triggert jetzt automatisch `get_text_hits(rescan=true)` via AJAX wenn `data-hasrows=0`, und lädt die Seite neu wenn Treffer gefunden.
+Der Tab liest aus `local_coursectrl_text_hit`-DB-Tabelle, die nur nach einem expliziten Scan befüllt wird. Fix: `timeline.js` triggert automatisch `get_text_hits(rescan=true)` via AJAX wenn `data-hasrows=0`, Seiten-Reload wenn Treffer gefunden.
 
 ### Checkbox-Alignment Aktivitätsliste
 
-Bootstrap 5 float-basiertes Checkbox-Positioning überlagerte Activity-Icons. Fix: `.local-coursectrl-manage .form-check` auf Flexbox umgestellt, redundante Inline-Styles entfernt.
+Bootstrap 5 float-basiertes Checkbox-Positioning überlagerte Activity-Icons. Fix: `.local-coursectrl-manage .form-check` auf Flexbox, redundante Inline-Styles entfernt.
 
 ### Deselect-All lässt Section-Checkboxen stehen
 
-`manage.js` `deselect-section`-Handler leerte nur CM-Checkboxen, nicht den Section-Header-Checkbox. Fix: Section-Checkbox wird jetzt ebenfalls auf `checked=false` gesetzt.
+`manage.js` `deselect-section`-Handler leerte nur CM-Checkboxen, nicht den Section-Header-Checkbox. Fix: Section-Checkbox wird ebenfalls auf `checked=false` gesetzt.
 
-### Info-Alert in Textprüfungs-Tab
+### Info-Alert in Textprüfungs-Tab / FA-Icons entfernt
 
-`{{^textreview_from_shift}}`-Block mit Workflow-Hinweis auf Wunsch entfernt.
-
-### Font Awesome Icons in Buttons entfernt
-
-`fa-flask` aus dem Deep-Analysis-Button in `checks.mustache`, `fa-refresh` aus dem Analyse-jetzt-ausführen-Button.
+`{{^textreview_from_shift}}`-Block entfernt. `fa-flask` und `fa-refresh` aus Deep-Analysis-Buttons entfernt.
 
 ### `consistency_runner.php` — PHP Warnings
 
-Direkter Array-Zugriff auf `field_early/field_late/ts_early/ts_late` ohne `??`-Fallback. Diese Keys existieren nur für `temporal_conflict`-Issues. Fix: `?? ''` / `?? 0`.
+Direkter Array-Zugriff auf `field_early/field_late/ts_early/ts_late` ohne `??`-Fallback. Fix: `?? ''` / `?? 0`.
 
 ### `group_resolver.php` — Duplicate-Key Notice
 
-`get_records_sql()` auf `groupings_groups` mit `groupingid` als Key → Duplikate wenn Gruppierung mehrere Gruppen hat. Fix: `get_recordset_sql()` + `$rs->close()`.
+`get_records_sql()` auf `groupings_groups` mit `groupingid` als Key → Duplikate. Fix: `get_recordset_sql()` + `$rs->close()`.
 
 ### CI-Matrix Moodle 5.2
 
-- Moodle 5.2 setzt PHP ≥ 8.3 voraus → `MOODLE_502_STABLE` + `php: '8.2'` als Exclude eingetragen
-- Behat-Matrix-Korruption durch früheres Regex-Replace behoben (`mariadb:` war zerstückelt)
-- Moodle 5.2 aus Behat entfernt (Behat läuft hardcoded auf PHP 8.2)
-- GitHub Actions auf Node 24 native Versionen gebumpt: `actions/checkout@v4.2.2`, `actions/setup-node@v4.3.0`, `actions/upload-artifact@v4.4.3`
+- Moodle 5.2 setzt PHP ≥ 8.3 voraus → `MOODLE_502_STABLE` + `php: '8.2'` als Exclude
+- Behat-Matrix-Korruption behoben, 5.2 aus Behat entfernt
+- GitHub Actions auf `@v4` Floating-Tags; `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` erzwingt Node 24
 
 ---
 
-## CI-Matrix (Stand rc17)
+## CI-Matrix (Stand 0.9.0-rc1)
 
 | Moodle | PHP 8.2 | PHP 8.3 | PHP 8.4 | Behat |
 |---|---|---|---|---|
@@ -116,33 +119,58 @@ Direkter Array-Zugriff auf `field_early/field_late/ts_early/ts_late` ohne `??`-F
 
 ---
 
-## Geänderte Dateien (alle in COMPLETE-0.2.0-rc13.zip)
+## Offene Punkte für Session 012
 
-`batch_manager.php`, `rollback_manager.php` — Events; `checks_page.php` — fix_type_for, deepanalysisurl; `timeline_page.php` — textreviewurl entfernt; `renderer.php` — render_textreview_page entfernt; `consistency_runner.php` — null-coalesce; `group_resolver.php` — recordset; `shift_dates_executor.php` — old/new Keys; `settings.php` — Dashboard-Settings; `styles.css` — toolbar + manage Flexbox; `templates/checks.mustache` — deepanalysis, keine Icons; `templates/timeline.mustache` — alle 8 Fixes; `templates/manage.mustache` — keine Inline-Styles; `templates/simulation.mustache` — flex-nowrap, keine Labels; `lang/en` + `lang/de` — 586 Strings; `amd/src/timeline.js` — Auto-Scan; `amd/src/manage.js` + `.min.js` — deselect-section; `tests/behat/behat_local_coursectrl.php` — 3 neue Steps; `.github/workflows/moodle-ci.yml` — 5.2, excludes, Node 24.
+### Priorität 1 — Vor 1.0.0 zwingend
 
----
+#### Test-Lücken (durch vollständige Quellcode-Analyse ermittelt)
 
-## Noch offene Punkte
+Die Codebase hat 72 Klassen, 496 laufende Tests in 65 Testklassen. Die Fixture-Tests (`fixture_analysis_test`, `fixture_simulation_test`, `fixture_logging_rollback_test`) sind bereits vorhanden und gut — die ursprüngliche "Fixtures-Zwischenphase" aus dem Pflichtenheft gilt damit als **erledigt**.
 
-### Akuter Qualitätsmangel
-- **`amd/build/timeline.min.js`** — Auto-Scan-Code aus rc13 ist nur in `amd/src/`, nicht im `.min.js`-Build. In Produktionsbetrieb (ohne `$CFG->debugdeveloper`) wird `.min.js` geladen → Auto-Scan inaktiv. Fix: `grunt amd` lokal ausführen oder `.min.js` manuell patchen wie `manage.min.js`.
-- **`amd/build/manage.min.js.map`** — Sourcemap veraltet.
+**Echter Nachholbedarf:**
 
-### Aus Pflichtenheft (geplant, nicht vergessen)
-- **Rollback-UI** — `rollback.php`-Seite mit Formular fehlt (rollback_manager ist fertig)
-- **Fixtures-Testabdeckung** — Komplexe Abhängigkeits-Fixtures + vollständige PHPUnit/Behat-Abdeckung (als eigene Zwischenphase geplant, nach Phase 8)
-- **Phase 10** — Dokumentation Lehrende/Admins, Release-Paket
+| Klasse | Situation | Priorität |
+|---|---|---|
+| `privacy/provider.php` | 7 DSGVO-Methoden (`get_metadata`, `export_user_data`, `delete_data_*`), kein einziger Test. Für ein Produktiv-Release nicht akzeptabel. | **hoch** |
+| `manager/textreview_manager.php` | 247 Zeilen Scan-Logik + Persistenz, kein dedizierter Test — nur indirekt via `fixture_date_shift_test`. | **hoch** |
+| `external/apply_text_changes.php` | Kein API-Test — nur JS-Pfad war testbar. | mittel |
+| `external/get_text_hits.php` | Kein API-Test — rescan-Logik (true/false) und DB-Persistenz ungetestet. | mittel |
+
+**Fehlende `@covers`-Deklarationen** (Code wird getestet, Docblock fehlt — PHPUnit-Warnung):
+
+- `shift_dates_executor` — intensiv in `fixture_date_shift_test`, `@covers` fehlt im Docblock
+- Entities (`cm_item`, `section_item`, `course_item`, `inventory_item`, `text_item`) — in `entities_test.php` getestet, `@covers` fehlt
+- `inventory_snapshot` — indirekt via `inventory_service_test`
+
+#### AMD Build
+
+`amd/build/timeline.min.js` — Auto-Scan-Code (rc13) ist nur in `amd/src/`. In Produktionsbetrieb wird `.min.js` geladen → Auto-Scan inaktiv. Fix: `grunt amd` lokal ausführen und `.min.js` committen.
+
+### Priorität 2 — Qualität, nicht release-blockierend
+
+- `amd/build/manage.min.js.map` — Sourcemap veraltet (cosmetic)
+- Behat 5.2 reaktivieren sobald Behat-Matrix eigene PHP-Version steuert
+
+### Nach 1.0.0 verschoben
+
+- **Rollback-UI** — `rollback.php`-Seite mit Formular. `rollback_manager` ist fertig und getestet (`fixture_logging_rollback_test` mit 9 Tests), die UI-Seite ist komfortabel aber nicht release-blockierend. Bewusst auf Post-1.0 verschoben.
+- **Phase 10** — Dokumentation für Lehrende/Admins, Release-Paket
+- Behat 5.2 reaktivieren
 
 ---
 
 ## Wiederkehrende Erkenntnisse / Architectural Decisions
 
-**[DECISION] Lang-Rebuild-Strategie:** Immer Extract-Sort-Rewrite (Python), nie str_replace in Lang-Dateien. Jede str_replace-basierte Einfügung riskiert Ordnungsverletzungen, die PHPCS meldet.
+**[DECISION] Versionsnummer:** `0.9.x-rc` bis Test-Lücken geschlossen und `grunt amd` ausgeführt. Dann `1.0.0`.
 
-**[DECISION] Mustache-Audit vor jedem Lang-Patch:** Python-Skript das alle `{{#str}} key, local_coursectrl` aus allen Templates extrahiert und gegen die Lang-Datei prüft — vor jeder Lieferung.
+**[DECISION] Rollback-UI nach 1.0:** `rollback_manager` ist fertig und vollständig getestet. Die UI-Seite (`rollback.php`) kommt als eigenständiges Feature nach dem 1.0-Release.
 
-**[DECISION] Preview-Keys:** `shift_dates_executor.php` verwendet jetzt einheitlich `old`/`new` für alle Aktionen (nicht `old_value`/`new_value` für shift_dates). JS liest `fd.old`/`fd.new`.
+**[DECISION] Lang-Rebuild-Strategie:** Immer Extract-Sort-Rewrite (Python), nie str_replace in Lang-Dateien. Jede str_replace-basierte Einfügung riskiert PHPCS-Ordnungsverletzungen und Überschreiben vorheriger Patches.
 
-**[DECISION] Textprüfungs-Tab:** Auto-Scan via AJAX bei `data-hasrows=0`. Kein Server-seitiger Scan bei jedem Seitenaufruf (zu teuer).
+**[DECISION] Mustache-Audit vor jedem Patch:** Python-Skript das alle `{{#str}} key, local_coursectrl` aus allen Templates extrahiert und gegen die Lang-Datei prüft — vor jeder Lieferung Pflicht.
 
-**[DECISION] CI Moodle 5.2:** PHPUnit ja (8.3+8.4), Behat nein (hardcoded PHP 8.2 inkompatibel). Kann reaktiviert werden sobald Behat-Job eigene PHP-Version per Matrix bekommt.
+**[DECISION] Preview-Keys:** `shift_dates_executor.php` verwendet einheitlich `old`/`new`. JS liest `fd.old`/`fd.new`.
+
+**[DECISION] Textprüfungs-Tab:** Auto-Scan via AJAX bei `data-hasrows=0`. Kein Server-seitiger Scan bei jedem Seitenaufruf.
+
+**[DECISION] CI Moodle 5.2:** PHPUnit ja (8.3+8.4), Behat nein. Behat-5.2 kommt nach 1.0.

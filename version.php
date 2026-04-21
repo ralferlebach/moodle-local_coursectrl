@@ -28,4 +28,4 @@ $plugin->component = 'local_coursectrl';
 $plugin->version   = 2026042022;
 $plugin->requires  = 2024042200; // Moodle 4.5.
 $plugin->maturity  = MATURITY_RC;
-$plugin->release   = '0.2.0-rc16';
+$plugin->release   = '0.9.0-rc';

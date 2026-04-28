@@ -64,6 +64,13 @@ class textreview_manager {
     /** @var string[] Allowed text fields on activity module tables. */
     private const CM_TEXT_FIELDS = ['intro', 'content', 'name'];
 
+    /**
+     * Construct the textreview_manager.
+     *
+     * @param inventory_service|null     $inventoryservice Inventory service; defaults to new instance.
+     * @param text_datetime_extractor|null $extractor      Text extractor; defaults to new instance.
+     * @param text_datetime_rewriter|null  $rewriter       Text rewriter; defaults to new instance.
+     */
     public function __construct(
         ?text_change_builder $builder = null,
         ?text_datetime_rewriter $rewriter = null,
@@ -229,6 +236,16 @@ class textreview_manager {
         }
     }
 
+    /**
+     * Load a text field from the database, optionally scoped to a course.
+     *
+     * @param string $entitytype Entity type: course, section, or cm.
+     * @param int    $entityid   Entity id.
+     * @param string $fieldname  Field name (must pass whitelist check).
+     * @param int    $courseid   When >0, adds a course-binding WHERE clause.
+     * @return string Text content.
+     * @throws \coding_exception When the entity type or field is unknown.
+     */
     private function load_text(
         string $entitytype,
         int $entityid,

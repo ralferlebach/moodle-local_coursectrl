@@ -49,6 +49,9 @@ class dependency_index {
     /** @var array<int, int[]> Grade-based forward deps: cmid → cmids it grades-depends on. */
     private array $gradeforward = [];
 
+    /** @var array<int, int[]> Unlock-only forward deps: only completion conditions with e=1 (must complete). */
+    private array $unlockforward = [];
+
     /** @var array<int, array> Date restrictions per cmid. */
     private array $daterestrictions = [];
 
@@ -290,6 +293,20 @@ class dependency_index {
                 }
             }
 
+            // Unlock-only forward deps: completion conditions where e=1
+            // (activity must BE completed to unlock the next one).
+            // Lock patterns (e=0, "must NOT be completed") are gate-closing
+            // designs, not prerequisites, so they are excluded here.
+            $unlockdeps = [];
+            foreach ($parsed['completiondeps'] as $depcmid => $expectedstate) {
+                if ((int) $expectedstate === 1) {
+                    $unlockdeps[] = $depcmid;
+                }
+            }
+            if (!empty($unlockdeps)) {
+                $this->unlockforward[$cm->id] = $unlockdeps;
+            }
+
             // Grade-based forward deps — resolved via gradeitemmap.
             if (!empty($gradeitemmap) && !empty($parsed['gradeconditions'])) {
                 $gradedeps = [];
@@ -323,6 +340,6 @@ class dependency_index {
      * @return array<int, int[]>
      */
     public function get_unlock_forward(): array {
-        return $this->forward;
+        return $this->unlockforward;
     }
 }

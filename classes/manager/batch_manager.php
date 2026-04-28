@@ -547,6 +547,14 @@ class batch_manager {
         return array_values(array_map('intval', $validids));
     }
 
+    /**
+     * Collect every cmid in the course whose component has a registered adapter.
+     *
+     * Used as the default target set when execute() is called with an empty cmids list.
+     *
+     * @param int $courseid Target course id.
+     * @return int[]
+     */
     private function collect_supported_cmids_for_course(int $courseid): array {
         $result = [];
         foreach ($this->registry->get_all() as $adapter) {

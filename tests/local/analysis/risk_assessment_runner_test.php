@@ -40,7 +40,8 @@ use local_coursectrl\local\entity\cm_item;
  */
 final class risk_assessment_runner_test extends \advanced_testcase {
     /** @var int Fake course id for persistence tests. */
-    private const COURSE_ID = 9999;
+    /** @var int Real course id created in setUp for each test. */
+    private int $courseid;
 
     // Helpers.
     /**
@@ -60,7 +61,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
     ): cm_item {
         return new cm_item(
             $cmid,
-            self::COURSE_ID,
+            $this->courseid,
             1,
             'assign',
             $cmid,
@@ -98,6 +99,14 @@ final class risk_assessment_runner_test extends \advanced_testcase {
         );
     }
 
+    /**
+     * Create a real course so Moodle group APIs do not throw on unknown course id.
+     */
+    protected function setUp(): void {
+        parent::setUp();
+        $this->courseid = (int) $this->getDataGenerator()->create_course()->id;
+    }
+
     // Tests: basic output shape.
 
     /**
@@ -107,7 +116,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
     public function test_empty_cms_returns_empty(): void {
         $this->resetAfterTest();
         $runner = $this->make_runner();
-        $result = $runner->run([], new dependency_index([]), [], self::COURSE_ID);
+        $result = $runner->run([], new dependency_index([]), [], $this->courseid);
         $this->assertIsArray($result);
         $this->assertEmpty($result);
     }
@@ -125,7 +134,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
         $depindex = new dependency_index($cms);
 
         $runner = $this->make_runner();
-        $result = $runner->run($cms, $depindex, [], self::COURSE_ID);
+        $result = $runner->run($cms, $depindex, [], $this->courseid);
 
         $this->assertNotEmpty($result);
         foreach ($result as $item) {
@@ -150,7 +159,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
         $depindex = new dependency_index($cms);
 
         $runner = $this->make_runner();
-        $result = $runner->run($cms, $depindex, [], self::COURSE_ID);
+        $result = $runner->run($cms, $depindex, [], $this->courseid);
 
         $types = array_column($result, 'type');
         $this->assertContains('circular_dep_transitive', $types);
@@ -168,7 +177,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
         $depindex = new dependency_index($cms);
 
         $runner = $this->make_runner();
-        $result = $runner->run($cms, $depindex, [], self::COURSE_ID);
+        $result = $runner->run($cms, $depindex, [], $this->courseid);
 
         $types = array_column($result, 'type');
         $this->assertContains('dep_on_hidden', $types);
@@ -185,7 +194,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
         // Use a quiz CM so timeopen/timeclose R3 rule applies.
         $quizcm = new \local_coursectrl\local\entity\cm_item(
             10,
-            self::COURSE_ID,
+            $this->courseid,
             1,
             'quiz',
             10,
@@ -208,7 +217,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
         ];
 
         $runner = $this->make_runner();
-        $result = $runner->run($cms, $depindex, $datesbycm, self::COURSE_ID);
+        $result = $runner->run($cms, $depindex, $datesbycm, $this->courseid);
 
         $types = array_column($result, 'type');
         $this->assertContains('temporal_conflict', $types);
@@ -231,7 +240,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
         $depindex = new dependency_index($cms);
 
         $runner = $this->make_runner();
-        $result = $runner->run($cms, $depindex, [], self::COURSE_ID);
+        $result = $runner->run($cms, $depindex, [], $this->courseid);
 
         for ($i = 1; $i < count($result); $i++) {
             $this->assertGreaterThanOrEqual(
@@ -256,9 +265,9 @@ final class risk_assessment_runner_test extends \advanced_testcase {
         $depindex = new dependency_index($cms);
 
         $runner = $this->make_runner();
-        $result = $runner->run($cms, $depindex, [], self::COURSE_ID);
+        $result = $runner->run($cms, $depindex, [], $this->courseid);
 
-        $loaded = risk_assessment_runner::load_last(self::COURSE_ID);
+        $loaded = risk_assessment_runner::load_last($this->courseid);
         $this->assertCount(count($result), $loaded);
         $this->assertSame(
             array_column($result, 'type'),
@@ -278,12 +287,12 @@ final class risk_assessment_runner_test extends \advanced_testcase {
         $depindex = new dependency_index($cms);
 
         $runner = $this->make_runner();
-        $runner->run($cms, $depindex, [], self::COURSE_ID);
-        $firstcount = count(risk_assessment_runner::load_last(self::COURSE_ID));
+        $runner->run($cms, $depindex, [], $this->courseid);
+        $firstcount = count(risk_assessment_runner::load_last($this->courseid));
 
         // Second run with empty course.
-        $runner->run([], new dependency_index([]), [], self::COURSE_ID);
-        $secondcount = count(risk_assessment_runner::load_last(self::COURSE_ID));
+        $runner->run([], new dependency_index([]), [], $this->courseid);
+        $secondcount = count(risk_assessment_runner::load_last($this->courseid));
 
         $this->assertSame(0, $secondcount);
         $this->assertGreaterThan(0, $firstcount);
@@ -295,7 +304,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
      */
     public function test_load_last_empty_before_first_run(): void {
         $this->resetAfterTest();
-        $result = risk_assessment_runner::load_last(self::COURSE_ID);
+        $result = risk_assessment_runner::load_last($this->courseid);
         $this->assertSame([], $result);
     }
 
@@ -305,16 +314,16 @@ final class risk_assessment_runner_test extends \advanced_testcase {
      */
     public function test_last_run_time(): void {
         $this->resetAfterTest();
-        $before = risk_assessment_runner::last_run_time(self::COURSE_ID);
+        $before = risk_assessment_runner::last_run_time($this->courseid);
         $this->assertSame(0, $before);
 
         $cma = $this->make_cm(1, true, $this->avail_requires(2));
         $cmb = $this->make_cm(2, true, $this->avail_requires(1));
         $cms = [1 => $cma, 2 => $cmb];
         $runner = $this->make_runner();
-        $runner->run($cms, new dependency_index($cms), [], self::COURSE_ID);
+        $runner->run($cms, new dependency_index($cms), [], $this->courseid);
 
-        $after = risk_assessment_runner::last_run_time(self::COURSE_ID);
+        $after = risk_assessment_runner::last_run_time($this->courseid);
         $this->assertGreaterThan(0, $after);
     }
 }

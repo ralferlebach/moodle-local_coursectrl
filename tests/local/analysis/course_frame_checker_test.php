@@ -337,4 +337,57 @@ final class course_frame_checker_test extends \advanced_testcase {
             $this->assertArrayNotHasKey(10, $result);
         }
     }
+
+    // Tests: course completion criteria severity escalation (C3).
+
+    /**
+     * R0a warning stays 'error'; R0c 'warning' → 'error' when cmid is in critcmids.
+     */
+    public function test_r0c_escalated_to_error_for_completion_critical_activity(): void {
+        $this->resetAfterTest();
+        $checker = new course_frame_checker();
+        $cm = $this->make_cm(30, 'assign', 2);
+        $dates = [30 => [$this->make_date(30, 'duedate', self::DATE_PAST)]];
+        // Pass cmid 30 as completion-critical.
+        $result = $checker->check([30 => $cm], $dates, $this->make_course(0, 0), [30]);
+
+        $this->assertArrayHasKey(30, $result);
+        $issue = current(array_filter($result[30], fn ($i) => $i['type'] === 'r0_deadline_in_past'));
+        $this->assertNotFalse($issue, 'r0_deadline_in_past must be present');
+        $this->assertSame('error', $issue['severity'], 'Severity must be escalated to error');
+        $this->assertTrue($issue['completion_escalated'] ?? false, 'completion_escalated flag must be set');
+    }
+
+    /**
+     * Activities NOT in critcmids keep their original severity.
+     */
+    public function test_r0c_not_escalated_when_not_in_critcmids(): void {
+        $this->resetAfterTest();
+        $checker = new course_frame_checker();
+        $cm = $this->make_cm(30, 'assign', 2);
+        $dates = [30 => [$this->make_date(30, 'duedate', self::DATE_PAST)]];
+        // Pass an empty critcmids — no escalation.
+        $result = $checker->check([30 => $cm], $dates, $this->make_course(0, 0), []);
+
+        $this->assertArrayHasKey(30, $result);
+        $issue = current(array_filter($result[30], fn ($i) => $i['type'] === 'r0_deadline_in_past'));
+        $this->assertSame('warning', $issue['severity']);
+        $this->assertArrayNotHasKey('completion_escalated', $issue);
+    }
+
+    /**
+     * R0a (error-level) stays at 'error' — escalation beyond error is not applied.
+     */
+    public function test_r0a_error_not_double_escalated(): void {
+        $this->resetAfterTest();
+        $checker = new course_frame_checker();
+        $cm = $this->make_cm(10, 'assign', 0);
+        $future = self::DATE_FUTURE + 10 * 86400;
+        $dates = [10 => [$this->make_date(10, 'duedate', $future)]];
+        $result = $checker->check([10 => $cm], $dates, $this->make_course(0, self::DATE_FUTURE), [10]);
+
+        $issue = current(array_filter($result[10] ?? [], fn ($i) => $i['type'] === 'r0_after_course_end'));
+        $this->assertNotFalse($issue);
+        $this->assertSame('error', $issue['severity']); // Stays error, not beyond.
+    }
 }

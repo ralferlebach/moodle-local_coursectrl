@@ -125,7 +125,9 @@ class dead_end_detector {
      * @return array[] Risk items.
      */
     private function detect_transitive_cycles(array $cms, dependency_index $depindex): array {
-        $forward = $depindex->get_all_forward();
+        // Use unlock-only forward map: lock deps (e=0, "hide when done") are
+        // Intentional gate-closing patterns are not deadlock cycles.
+        $forward = $depindex->get_unlock_forward();
         $allcmids = array_keys($cms);
         $visited = [];
         $cycles = [];

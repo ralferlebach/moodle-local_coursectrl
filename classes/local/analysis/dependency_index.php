@@ -189,7 +189,7 @@ class dependency_index {
             $parsed = $this->parsed[$cmid] ?? [];
             $groupconds = $parsed['groupconditions'] ?? [];
             // If the target CM requires a specific group and this group
-            // is not the selected one, hide the dependency edges.
+            // Not the selected group — hide the dependency edges.
             if (!empty($groupconds)) {
                 $requiredgroups = array_column(
                     array_filter($groupconds, fn($g) => $g['type'] === 'group'),
@@ -200,7 +200,7 @@ class dependency_index {
                     !in_array($groupid, $requiredgroups, true)
                 ) {
                     // This CM is behind a group wall — its deps are invisible
-                    // to non-members; exclude from the filtered graph.
+                    // Group condition unsatisfied — exclude from filtered graph.
                     continue;
                 }
             }
@@ -219,7 +219,12 @@ class dependency_index {
     }
 
     /**
-     * Detect simple circular dependencies.
+     * Detect simple circular dependencies between unlock conditions only.
+     *
+     * A mutual dependency is only a true deadlock when both directions
+     * require the other activity to be completed (e=1 or e=2 "passed").
+     * If one side uses e=0 ("must NOT be completed") it is a lock/gate
+     * pattern — intentional, not a deadlock — and must not be flagged.
      *
      * Returns pairs of cmids that mutually depend on each other.
      *
@@ -229,7 +234,17 @@ class dependency_index {
         $circular = [];
         foreach ($this->forward as $cmid => $deps) {
             foreach ($deps as $dep) {
+                // Skip: A locks (hides) when B is done — not a deadlock.
+                $astateonb = $this->parsed[$cmid]['completiondeps'][$dep] ?? 1;
+                if ($astateonb === 0) {
+                    continue;
+                }
                 if (isset($this->forward[$dep]) && in_array($cmid, $this->forward[$dep], true)) {
+                    // Skip: B locks (hides) when A is done — not a deadlock.
+                    $bstateona = $this->parsed[$dep]['completiondeps'][$cmid] ?? 1;
+                    if ($bstateona === 0) {
+                        continue;
+                    }
                     $pair = [min($cmid, $dep), max($cmid, $dep)];
                     $key = $pair[0] . '-' . $pair[1];
                     if (!isset($circular[$key])) {
@@ -239,6 +254,32 @@ class dependency_index {
             }
         }
         return array_values($circular);
+    }
+
+    /**
+     * Return a forward-dependency map containing only unlock deps (e ≠ 0).
+     *
+     * Lock conditions (e=0: "must NOT be completed") are intentional gate-
+     * closing patterns and must not be traversed during cycle detection.
+     * Use this map instead of get_all_forward() whenever cycle-finding
+     * traverses the graph.
+     *
+     * @return array<int, int[]> cmid → list of prerequisite cmids (unlock only).
+     */
+    public function get_unlock_forward(): array {
+        $result = [];
+        foreach ($this->parsed as $cmid => $parsed) {
+            $deps = [];
+            foreach ($parsed['completiondeps'] as $depcmid => $expectedstate) {
+                if ($expectedstate !== 0) {
+                    $deps[] = $depcmid;
+                }
+            }
+            if (!empty($deps)) {
+                $result[$cmid] = $deps;
+            }
+        }
+        return $result;
     }
 
 

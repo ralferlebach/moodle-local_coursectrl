@@ -81,6 +81,23 @@ final class dead_end_detector_test extends \advanced_testcase {
         ]);
     }
 
+    /**
+     * Build a completion-availability JSON requiring a single CM to NOT be completed (e=0).
+     *
+     * This models a lock/gate-closing pattern: the activity is accessible
+     * only while the given CM has NOT been completed yet.
+     *
+     * @param int $requirecmid
+     * @return string
+     */
+    private function avail_requires_not(int $requirecmid): string {
+        return json_encode([
+            'op' => '&',
+            'c'  => [['type' => 'completion', 'cm' => $requirecmid, 'e' => 0]],
+            'showc' => [false],
+        ]);
+    }
+
     // Tests: no issues.
 
     /**
@@ -178,6 +195,43 @@ final class dead_end_detector_test extends \advanced_testcase {
         foreach ($circ as $c) {
             $this->assertNotContains(3, $c['cmids']);
         }
+    }
+
+    /**
+     * A lock-pattern (B requires A completed; A requires B NOT completed)
+     * must NOT be flagged as a circular dependency.
+     *
+     * This is the standard "show A to introduce the task, hide A once B is
+     * submitted" design and is explicitly intended, not a deadlock.
+     */
+    public function test_lock_dep_pattern_not_flagged_as_circular(): void {
+        $this->resetAfterTest();
+        // B depends on A completed (e=1): A's completion unlocks B.
+        $cmb = $this->make_cm(2, true, $this->avail_requires(1));
+        // A depends on B NOT completed (e=0): A is hidden once B is done.
+        $cma = $this->make_cm(1, true, $this->avail_requires_not(2));
+        $cms = [1 => $cma, 2 => $cmb];
+        $depindex = new dependency_index($cms);
+        $detector = new dead_end_detector(10);
+        $risks = $detector->detect($cms, $depindex);
+        $types = array_column($risks, 'type');
+        $this->assertNotContains('circular_dep_transitive', $types);
+    }
+
+    /**
+     * A genuine mutual unlock cycle (A requires B completed, B requires A
+     * completed) must still be detected even after the lock-dep fix.
+     */
+    public function test_mutual_unlock_cycle_still_detected(): void {
+        $this->resetAfterTest();
+        $cma = $this->make_cm(1, true, $this->avail_requires(2));
+        $cmb = $this->make_cm(2, true, $this->avail_requires(1));
+        $cms = [1 => $cma, 2 => $cmb];
+        $depindex = new dependency_index($cms);
+        $detector = new dead_end_detector(10);
+        $risks = $detector->detect($cms, $depindex);
+        $types = array_column($risks, 'type');
+        $this->assertContains('circular_dep_transitive', $types);
     }
 
     // Tests: dep_on_hidden / hidden_with_dependents.

@@ -325,7 +325,7 @@ final class textreview_manager_test extends \advanced_testcase {
         }
 
         $hitids = array_map(fn ($h) => (int) $h->get('id'), $hits);
-        $result = $manager->apply_changes((int) $course->id, $hitids, 86400); // +1 day.
+        $result = $manager->apply_changes((int) $course->id, $hitids, 86400); // Shift forward by one day.
 
         // At least one substitution must have been made.
         $this->assertGreaterThanOrEqual(1, $result['applied']);

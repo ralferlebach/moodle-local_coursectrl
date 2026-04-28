@@ -150,8 +150,8 @@ define([], function() {
             var colour = edge.circular ? COL_EDGE_CIRC : COL_EDGE;
             var marker = edge.circular ? 'url(#ccg-arrow-circ)' : 'url(#ccg-arrow)';
             svg.appendChild(svgEl('line', {
-                x1: fc.cx + NODE_W / 2, y1: fc.cy,
-                x2: tc.cx - NODE_W / 2, y2: tc.cy,
+                x1: fc.cx - NODE_W / 2, y1: fc.cy,
+                x2: tc.cx + NODE_W / 2, y2: tc.cy,
                 stroke: colour, 'stroke-width': '1.5', 'marker-end': marker,
             }));
         });

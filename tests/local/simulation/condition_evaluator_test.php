@@ -176,11 +176,81 @@ final class condition_evaluator_test extends \advanced_testcase {
      */
     public function test_grade_condition_is_unknown(): void {
         $this->resetAfterTest();
+        // No gradeitemmap → grade is still unknown.
         $ev = new condition_evaluator();
         $state = new learner_state(self::NOW);
         $json = $this->avail('&', [['type' => 'grade', 'id' => 1, 'min' => 50]]);
         $result = $ev->evaluate($json, $state);
         $this->assertFalse($result['accessible']);
+        $this->assertSame(condition_evaluator::STATUS_UNKNOWN, $result['status']);
+    }
+
+    // Grade condition with gradeitemmap.
+
+    /**
+     * Grade above min threshold passes when gradeitemmap resolves the item.
+     */
+    public function test_grade_passes_when_above_min(): void {
+        $this->resetAfterTest();
+        $map = [1 => ['cmid' => 10, 'grademax' => 100.0, 'gradepass' => 50.0]];
+        $ev = new condition_evaluator($map);
+        $state = new learner_state(self::NOW, [], [], [], [10 => 75.0]);
+        $json = $this->avail('&', [['type' => 'grade', 'id' => 1, 'min' => 50]]);
+        $result = $ev->evaluate($json, $state);
+        $this->assertTrue($result['accessible']);
+        $this->assertSame(condition_evaluator::STATUS_PASS, $result['status']);
+    }
+
+    /**
+     * Grade below min threshold fails.
+     */
+    public function test_grade_fails_when_below_min(): void {
+        $this->resetAfterTest();
+        $map = [1 => ['cmid' => 10, 'grademax' => 100.0, 'gradepass' => 50.0]];
+        $ev = new condition_evaluator($map);
+        $state = new learner_state(self::NOW, [], [], [], [10 => 40.0]);
+        $json = $this->avail('&', [['type' => 'grade', 'id' => 1, 'min' => 50]]);
+        $result = $ev->evaluate($json, $state);
+        $this->assertFalse($result['accessible']);
+        $this->assertSame(condition_evaluator::STATUS_FAIL, $result['status']);
+    }
+
+    /**
+     * Grade below max threshold passes (exclusive upper bound).
+     */
+    public function test_grade_passes_when_below_max(): void {
+        $this->resetAfterTest();
+        $map = [2 => ['cmid' => 20, 'grademax' => 100.0, 'gradepass' => 0.0]];
+        $ev = new condition_evaluator($map);
+        $state = new learner_state(self::NOW, [], [], [], [20 => 49.9]);
+        $json = $this->avail('&', [['type' => 'grade', 'id' => 2, 'max' => 50]]);
+        $result = $ev->evaluate($json, $state);
+        $this->assertTrue($result['accessible']);
+    }
+
+    /**
+     * Grade exactly at max fails (exclusive upper bound).
+     */
+    public function test_grade_fails_when_at_max(): void {
+        $this->resetAfterTest();
+        $map = [2 => ['cmid' => 20, 'grademax' => 100.0, 'gradepass' => 0.0]];
+        $ev = new condition_evaluator($map);
+        $state = new learner_state(self::NOW, [], [], [], [20 => 50.0]);
+        $json = $this->avail('&', [['type' => 'grade', 'id' => 2, 'max' => 50]]);
+        $result = $ev->evaluate($json, $state);
+        $this->assertFalse($result['accessible']);
+    }
+
+    /**
+     * No grade in learner state → unknown (even with gradeitemmap present).
+     */
+    public function test_grade_unknown_when_no_grade_in_state(): void {
+        $this->resetAfterTest();
+        $map = [1 => ['cmid' => 10, 'grademax' => 100.0, 'gradepass' => 50.0]];
+        $ev = new condition_evaluator($map);
+        $state = new learner_state(self::NOW); // No grade set.
+        $json = $this->avail('&', [['type' => 'grade', 'id' => 1, 'min' => 50]]);
+        $result = $ev->evaluate($json, $state);
         $this->assertSame(condition_evaluator::STATUS_UNKNOWN, $result['status']);
     }
 

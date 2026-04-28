@@ -46,6 +46,18 @@ $completions = optional_param_array('completions', [], PARAM_INT);
 if (!empty($completions)) {
     $params['completions'] = $completions;
 }
+$simcomplete = optional_param_array('sim_complete', [], PARAM_INT);
+if (!empty($simcomplete)) {
+    $params['sim_complete'] = $simcomplete;
+}
+$simpassed = optional_param_array('sim_passed', [], PARAM_INT);
+if (!empty($simpassed)) {
+    $params['sim_passed'] = $simpassed;
+}
+$simgrade = optional_param_array('sim_grade', [], PARAM_RAW);
+if (!empty($simgrade)) {
+    $params['sim_grade'] = $simgrade;
+}
 $groupids = optional_param_array('groupids', [], PARAM_INT);
 if (!empty($groupids)) {
     $params['groupids'] = $groupids;

@@ -64,5 +64,25 @@ function xmldb_local_coursectrl_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026041904, 'local', 'coursectrl');
     }
 
+    if ($oldversion < 2026042830) {
+        // 1.1.0: holiday cache is now warmed via a scheduled task and an
+        // adhoc twin. Run a synchronous warm now so existing installations
+        // see holidays immediately after the upgrade rather than waiting
+        // up to 24 hours for the next nightly cron tick. The adhoc fallback
+        // is also queued in case the synchronous run fails (network down,
+        // misconfigured provider, etc.).
+        try {
+            \local_coursectrl\task\warm_calendar_cache::do_warm();
+        } catch (\Throwable $e) {
+            debugging(
+                'local_coursectrl synchronous warm during upgrade failed: ' . $e->getMessage(),
+                DEBUG_DEVELOPER
+            );
+        }
+        \local_coursectrl\task\warm_calendar_cache_adhoc::queue();
+
+        upgrade_plugin_savepoint(true, 2026042830, 'local', 'coursectrl');
+    }
+
     return true;
 }

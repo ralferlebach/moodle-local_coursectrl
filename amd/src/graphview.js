@@ -60,6 +60,14 @@ define([], function() {
     var COL_GANTT_BAR = '#5b7fde';
     var COL_GANTT_MARK = '#cc3333';
     var COL_GANTT_LBL = '#333';
+    // Visibility / usability background bands (under the bar markers).
+    // Visibility: narrow, light gray — present when activity is published.
+    // Usability:  wider, slightly darker gray — span between earliest open
+    // marker and latest close marker. Tooltip shows the localized window.
+    var COL_GANTT_VISIBLE = '#eef0f3';
+    var COL_GANTT_USABLE = '#d8dde4';
+    var GANTT_VISIBLE_H = 4;
+    var GANTT_USABLE_H = 10;
     // Simulation overlay colors.
     var COL_BLOCKED_FILL = '#fef2f2';
     var COL_BLOCKED_STROKE = '#dc3545';
@@ -324,6 +332,51 @@ define([], function() {
             lbl.textContent = truncate(row.name, maxLabelChars);
             svg.appendChild(lbl);
 
+            // Visibility background — narrow light bar across the whole
+            // chart area when the activity is published. Renders below the
+            // usability band so visibility shows everywhere except where
+            // the usability band overpaints it.
+            if (row.visible) {
+                svg.appendChild(svgEl('rect', {
+                    x: GANTT_LABEL_W,
+                    y: midY - GANTT_VISIBLE_H / 2,
+                    width: barAreaW,
+                    height: GANTT_VISIBLE_H,
+                    fill: COL_GANTT_VISIBLE,
+                    rx: '1'
+                }));
+            }
+
+            // Usability window — wider, slightly darker bar between the
+            // earliest open marker and the latest close marker. Hover
+            // tooltip shows the localized window for the row.
+            if (row.window) {
+                var wFrom = row.window.from_ts !== null ? row.window.from_ts : mints;
+                var wTo = row.window.to_ts !== null ? row.window.to_ts : maxts;
+                if (wTo > wFrom) {
+                    var wPctFrom = (wFrom - mints) / span;
+                    var wPctTo = (wTo - mints) / span;
+                    var wx = GANTT_LABEL_W + Math.round(wPctFrom * barAreaW);
+                    var wxe = GANTT_LABEL_W + Math.round(wPctTo * barAreaW);
+                    var ww = Math.max(2, wxe - wx);
+                    var ug = svgEl('g', {cursor: 'default'});
+                    var utip = svgEl('title', {});
+                    var fromLabel = row.window.from_formatted || '\u2026';
+                    var toLabel = row.window.to_formatted || '\u2026';
+                    utip.textContent = fromLabel + ' \u2013 ' + toLabel;
+                    ug.appendChild(utip);
+                    ug.appendChild(svgEl('rect', {
+                        x: wx,
+                        y: midY - GANTT_USABLE_H / 2,
+                        width: ww,
+                        height: GANTT_USABLE_H,
+                        fill: COL_GANTT_USABLE,
+                        rx: '2'
+                    }));
+                    svg.appendChild(ug);
+                }
+            }
+
             svg.appendChild(svgEl('line', {
                 x1: GANTT_LABEL_W, y1: midY,
                 x2: GANTT_LABEL_W + barAreaW, y2: midY,
@@ -335,7 +388,12 @@ define([], function() {
 
                 var g = svgEl('g', {cursor: 'default'});
                 var tip = svgEl('title', {});
-                tip.textContent = bar.fieldlabel + ': ' + (bar.formatted || bar.timestamp);
+                // Localized hover: prefer humanlabel (plugin/core mapping),
+                // fall back to fieldlabel, last to raw field name. Show
+                // formatted (userdate) date — never raw timestamp.
+                var label = bar.humanlabel || bar.fieldlabel || bar.field;
+                var when = bar.formatted || '';
+                tip.textContent = when ? (label + ': ' + when) : label;
                 g.appendChild(tip);
 
                 if (bar.source === 'adapter') {

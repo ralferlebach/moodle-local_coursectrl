@@ -65,6 +65,41 @@ abstract class abstract_calendar_provider implements calendar_provider {
     }
 
     /**
+     * Process-wide flag that gates outbound HTTP fetches.
+     *
+     * Defaults to false, so http_get() returns null immediately during
+     * regular page renders. Only the cache-warmer code paths flip this
+     * to true for the duration of their run, so the holiday cache is
+     * populated out of the request/response loop.
+     *
+     * @var bool
+     */
+    protected static bool $allowhttpinrequest = false;
+
+    /**
+     * Permit outbound HTTP fetches for the rest of the current PHP request.
+     *
+     * Should only be called from CLI / scheduled-task contexts and from the
+     * synchronous warm helper used by install/upgrade/settings hooks.
+     * Calling this from a regular page request would re-introduce the
+     * synchronous-fetch stall that this gate exists to prevent.
+     *
+     * @param bool $allow True to enable HTTP, false to forbid it again.
+     */
+    public static function set_allow_http(bool $allow): void {
+        self::$allowhttpinrequest = $allow;
+    }
+
+    /**
+     * Whether outbound HTTP is currently permitted for this request.
+     *
+     * @return bool
+     */
+    public static function is_http_allowed(): bool {
+        return self::$allowhttpinrequest;
+    }
+
+    /**
      * Retrieve a cached value from the MUC caldata cache.
      *
      * @param string $key Cache key.
@@ -97,6 +132,11 @@ abstract class abstract_calendar_provider implements calendar_provider {
      * @return array|null Decoded JSON array or null on failure.
      */
     protected function http_get(string $url, int $timeout = 10): ?array {
+        // Gate: never block the page-render path with synchronous HTTP. The
+        // cache-warmer code paths flip this flag for their run.
+        if (!self::$allowhttpinrequest) {
+            return null;
+        }
         $curl = new \curl();
         $curl->setopt([
             'CURLOPT_TIMEOUT' => $timeout,

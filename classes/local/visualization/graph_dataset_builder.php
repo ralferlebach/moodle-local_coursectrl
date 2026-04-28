@@ -69,7 +69,19 @@ class graph_dataset_builder {
         $forward = $depindex->get_all_forward();
         $circular = $depindex->find_circular_deps();
         $circularset = $this->build_circular_set($circular);
-        $layers = $this->assign_layers($cms, $forward);
+
+        // Merge grade-based forward deps into the externally-provided
+        // forward map so that activities gated only by a grade still get a
+        // layer greater than their grade source, instead of being painted
+        // in column 0 in front of the activity they actually depend on.
+        // The original $forward is still used below for edge generation,
+        // so the visible-edge semantics are unchanged.
+        $layoutforward = $forward;
+        foreach ($depindex->get_grade_forward() as $cmid => $deps) {
+            $existing = $layoutforward[$cmid] ?? [];
+            $layoutforward[$cmid] = array_values(array_unique(array_merge($existing, $deps)));
+        }
+        $layers = $this->assign_layers($cms, $layoutforward);
         $layerpositions = $this->assign_layer_positions($layers);
         $layercount = empty($layers) ? 0 : max(array_values($layers)) + 1;
 
@@ -180,7 +192,19 @@ class graph_dataset_builder {
 
         $circular = $depindex->find_circular_deps();
         $circularset = $this->build_circular_set($circular);
-        $layers = $this->assign_layers($cms, $forward);
+
+        // Merge grade-based forward deps into the externally-provided
+        // forward map so that activities gated only by a grade still get a
+        // layer greater than their grade source, instead of being painted
+        // in column 0 in front of the activity they actually depend on.
+        // The original $forward is still used below for edge generation,
+        // so the visible-edge semantics are unchanged.
+        $layoutforward = $forward;
+        foreach ($depindex->get_grade_forward() as $cmid => $deps) {
+            $existing = $layoutforward[$cmid] ?? [];
+            $layoutforward[$cmid] = array_values(array_unique(array_merge($existing, $deps)));
+        }
+        $layers = $this->assign_layers($cms, $layoutforward);
         $layerpositions = $this->assign_layer_positions($layers);
         $layercount = empty($layers) ? 0 : max(array_values($layers)) + 1;
 

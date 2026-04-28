@@ -35,4 +35,14 @@ $tasks = [
         'dayofweek' => '*',
         'disabled'  => 0,
     ],
+    [
+        'classname' => \local_coursectrl\task\warm_calendar_cache::class,
+        'blocking'  => 0,
+        'minute'    => '30',
+        'hour'      => '4',
+        'day'       => '*',
+        'month'     => '*',
+        'dayofweek' => '*',
+        'disabled'  => 0,
+    ],
 ];

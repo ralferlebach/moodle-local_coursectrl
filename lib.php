@@ -45,6 +45,41 @@ function local_coursectrl_user_preferences(): array {
 }
 
 /**
+ * Callback fired when any of the calendar-provider settings is saved.
+ *
+ * Wired up in settings.php via admin_setting::set_updatedcallback() on each
+ * calendar setting. When an admin saves a calendar setting, this:
+ *
+ *   1. Purges the local_coursectrl/caldata cache so orphan keys from the
+ *      previous country/region/language config no longer pollute it.
+ *   2. Runs a synchronous warm so the dashboard reflects the new
+ *      configuration on the very next request, not after the next cron tick.
+ *   3. Queues the adhoc fallback in case the synchronous run failed.
+ *
+ * @return void
+ */
+function local_coursectrl_calendar_settings_changed(): void {
+    try {
+        $cache = \cache::make('local_coursectrl', 'caldata');
+        $cache->purge();
+    } catch (\Throwable $e) {
+        debugging(
+            'local_coursectrl caldata purge failed: ' . $e->getMessage(),
+            DEBUG_DEVELOPER
+        );
+    }
+    try {
+        \local_coursectrl\task\warm_calendar_cache::do_warm();
+    } catch (\Throwable $e) {
+        debugging(
+            'local_coursectrl synchronous warm after settings save failed: ' . $e->getMessage(),
+            DEBUG_DEVELOPER
+        );
+    }
+    \local_coursectrl\task\warm_calendar_cache_adhoc::queue();
+}
+
+/**
  * Extend the course navigation to add a "Course Control Hub" entry in the
  * course "More" menu. This legacy callback is supported in all Moodle 4.x/5.x
  * versions and is the primary mechanism for adding plugin entries to the course

@@ -77,6 +77,8 @@ class gantt_dataset_builder {
         }
 
         $bycm = $this->collector->collect_grouped_by_cm($cms);
+        $datetimefmt = get_string('strftimedaydatetime', 'core_langconfig');
+        $dateonlyfmt = get_string('strftimedaydate', 'core_langconfig');
 
         // Build per-CM rows, skipping CMs with no date entries.
         $rows = [];
@@ -86,22 +88,51 @@ class gantt_dataset_builder {
                 continue;
             }
             $bars = [];
+            $opents = [];
+            $closets = [];
             foreach ($entries as $entry) {
+                $kind = $this->classify_field((string) $entry['field']);
+                $ts = (int) $entry['timestamp'];
                 $bars[] = [
                     'field' => $entry['field'],
                     'fieldlabel' => $entry['fieldlabel'],
-                    'timestamp' => $entry['timestamp'],
+                    'humanlabel' => $this->localised_field_label((string) $entry['field']),
+                    'timestamp' => $ts,
+                    'formatted' => userdate($ts, $datetimefmt),
                     'source' => $entry['source'],
+                    'kind' => $kind,
                 ];
+                if ($kind === 'open') {
+                    $opents[] = $ts;
+                } else if ($kind === 'close') {
+                    $closets[] = $ts;
+                }
             }
             // Sort bars within row chronologically.
             usort($bars, fn($a, $b) => $a['timestamp'] <=> $b['timestamp']);
+
+            // Usability window: from earliest "open" marker to latest
+            // "close" marker. Either side may be missing.
+            $window = null;
+            if (!empty($opents) || !empty($closets)) {
+                $window = [
+                    'from_ts'        => !empty($opents) ? min($opents) : null,
+                    'to_ts'          => !empty($closets) ? max($closets) : null,
+                    'has_from'       => !empty($opents),
+                    'has_to'         => !empty($closets),
+                    'from_formatted' => !empty($opents) ? userdate(min($opents), $dateonlyfmt) : '',
+                    'to_formatted'   => !empty($closets) ? userdate(max($closets), $dateonlyfmt) : '',
+                ];
+            }
+
             $rows[] = [
                 'cmid' => $cm->id,
                 'name' => $cm->name,
                 'modname' => $cm->modname,
                 'component' => $cm->get_component(),
+                'visible' => (bool) $cm->visible,
                 'bars' => $bars,
+                'window' => $window,
                 'rowmints' => $bars[0]['timestamp'],
             ];
         }
@@ -207,5 +238,93 @@ class gantt_dataset_builder {
             ];
         }
         return $bands;
+    }
+
+    /**
+     * Classify a date field by its effect on activity usability.
+     *
+     * 'open'  — the field opens the activity for use (timeopen,
+     *           allowsubmissionsfromdate, available, from, start, begin, ...).
+     * 'close' — the field closes / deadlines the activity (timeclose, duedate,
+     *           cutoffdate, deadline, until, end, ...).
+     * 'event' — point-in-time event with no opening / closing semantics
+     *           (completionexpected, ...).
+     *
+     * Used both by the renderer (for marker styling) and by build() to
+     * derive each row's usability window (earliest open → latest close).
+     *
+     * @param string $field Raw field name (e.g. 'timeopen', 'duedate').
+     * @return string One of 'open' | 'close' | 'event'.
+     */
+    private function classify_field(string $field): string {
+        $f = strtolower($field);
+        if (
+            str_contains($f, 'open') || str_contains($f, 'available')
+            || str_contains($f, 'from') || str_contains($f, 'start')
+            || str_contains($f, 'begin')
+        ) {
+            return 'open';
+        }
+        if (
+            str_contains($f, 'close') || str_contains($f, 'due')
+            || str_contains($f, 'cutoff') || str_contains($f, 'deadline')
+            || str_contains($f, 'until') || str_contains($f, 'end')
+        ) {
+            return 'close';
+        }
+        return 'event';
+    }
+
+    /**
+     * Resolve a localised, human-readable label for a date field name.
+     *
+     * Resolution order:
+     *
+     *   1. Plugin string `field_<name>` from local_coursectrl. This lets
+     *      adapters or custom labelling override anything else.
+     *   2. A small hand-curated mapping for the most common Moodle date
+     *      field names. These are stable across Moodle versions and avoid
+     *      having to load a different component string for each module.
+     *   3. A prettified version of the raw field name as last-resort
+     *      fallback (snake_case → Title Case).
+     *
+     * Always returns a non-empty string.
+     *
+     * @param string $field Raw field name.
+     * @return string Localised label fit for hover tooltip display.
+     */
+    private function localised_field_label(string $field): string {
+        // 1) Plugin override.
+        $pluginkey = 'field_' . strtolower($field);
+        $pluginlabel = get_string_manager()->string_exists($pluginkey, 'local_coursectrl')
+            ? get_string($pluginkey, 'local_coursectrl')
+            : null;
+        if ($pluginlabel !== null && $pluginlabel !== '') {
+            return $pluginlabel;
+        }
+
+        // 2) Hand-curated mapping of common Moodle field names.
+        $map = [
+            'timeopen'                   => get_string('opens', 'core'),
+            'timeclose'                  => get_string('closes', 'core'),
+            'duedate'                    => get_string('duedate', 'core'),
+            'cutoffdate'                 => get_string('cutoffdate', 'mod_assign'),
+            'allowsubmissionsfromdate'   => get_string('allowsubmissionsfromdate', 'mod_assign'),
+            'completionexpected'         => get_string('completionexpected', 'core_completion'),
+            'timeavailable'              => get_string('availability', 'core'),
+            'timestart'                  => get_string('startdate', 'core'),
+            'timeend'                    => get_string('enddate', 'core'),
+            'opensubmissions'            => get_string('opens', 'core'),
+            'closesubmissions'           => get_string('closes', 'core'),
+        ];
+        $key = strtolower($field);
+        if (isset($map[$key])) {
+            return $map[$key];
+        }
+
+        // 3) Pretty-print fallback.
+        $pretty = preg_replace('/[_\\-]+/', ' ', $field);
+        $pretty = preg_replace('/([a-z])([A-Z])/', '$1 $2', $pretty);
+        return ucwords(trim((string) $pretty));
     }
 }

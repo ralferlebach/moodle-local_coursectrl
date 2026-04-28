@@ -305,17 +305,17 @@ class gantt_dataset_builder {
 
         // 2) Hand-curated mapping of common Moodle field names.
         $map = [
-            'timeopen'                   => get_string('opens', 'core'),
-            'timeclose'                  => get_string('closes', 'core'),
-            'duedate'                    => get_string('duedate', 'core'),
+            'timeopen'                   => get_string('field_timeopen', 'local_coursectrl'),
+            'timeclose'                  => get_string('field_timeclose', 'local_coursectrl'),
+            'duedate'                    => get_string('field_duedate', 'local_coursectrl'),
             'cutoffdate'                 => get_string('cutoffdate', 'mod_assign'),
             'allowsubmissionsfromdate'   => get_string('allowsubmissionsfromdate', 'mod_assign'),
             'completionexpected'         => get_string('completionexpected', 'core_completion'),
             'timeavailable'              => get_string('availability', 'core'),
             'timestart'                  => get_string('startdate', 'core'),
             'timeend'                    => get_string('enddate', 'core'),
-            'opensubmissions'            => get_string('opens', 'core'),
-            'closesubmissions'           => get_string('closes', 'core'),
+            'opensubmissions'            => get_string('field_timeopen', 'local_coursectrl'),
+            'closesubmissions'           => get_string('field_timeclose', 'local_coursectrl'),
         ];
         $key = strtolower($field);
         if (isset($map[$key])) {

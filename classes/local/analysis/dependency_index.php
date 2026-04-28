@@ -308,4 +308,21 @@ class dependency_index {
             }
         }
     }
+    /**
+     * Get the forward dependency map containing only completion-unlock edges.
+     *
+     * In Moodle availability conditions, completion conditions have an 'e'
+     * (expected) parameter: e=1 means "must complete to unlock" (show when done);
+     * e=0 means "hide when done" (a gate-closing pattern, not a deadlock risk).
+     *
+     * Until per-edge e-type tracking is available in this index, this method
+     * returns the full forward map. Edges from gate-closing patterns (e=0) may
+     * produce conservative false-positive cycle alerts, but will not miss actual
+     * deadlock cycles. Refine filtering when e-type is tracked per edge.
+     *
+     * @return array<int, int[]>
+     */
+    public function get_unlock_forward(): array {
+        return $this->forward;
+    }
 }

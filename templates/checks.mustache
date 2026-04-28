@@ -164,13 +164,16 @@
           </p>
           {{/hasrelated}}
           {{#hasaction}}<p class="mb-0 text-success small"><i class="fa fa-wrench fa-fw me-1"></i>{{action}}</p>{{/hasaction}}
-          {{#has_fix}}
-          <div class="mt-2">
-            <a href="{{fix_url}}" class="btn btn-sm cc-badge-success border">
+          <div class="mt-2 d-flex flex-wrap gap-2">
+            {{#has_fix}}
+            <a href="{{fix_url}}" class="btn btn-sm btn-outline-success cc-fix-btn">
               <i class="fa fa-check fa-fw me-1"></i>{{fix_label}}
             </a>
+            {{/has_fix}}
+            <a href="{{simurl}}" class="btn btn-sm btn-outline-secondary cc-sim-btn">
+              <i class="fa fa-play-circle fa-fw me-1"></i>{{#str}} checks_simulate_link, local_coursectrl {{/str}}
+            </a>
           </div>
-          {{/has_fix}}
           {{#hascascade}}
           <p class="mb-0 text-info small mt-1">
             <i class="fa fa-chain fa-fw me-1"></i>{{cascade_count}} {{#str}} checks_cascade_suffix, local_coursectrl {{/str}}:

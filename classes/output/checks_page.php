@@ -725,6 +725,73 @@ class checks_page implements renderable, templatable {
                 get_string('risk_action_long_dep_chain', 'local_coursectrl'),
             ];
         }
+        if ($type === 'r0_after_course_end' || $type === 'r0_before_course_start') {
+            $a->field = $item['field'] ?? '–';
+            $a->date = isset($item['ts_field']) && $item['ts_field'] > 0
+                ? userdate((int)$item['ts_field'], $dateformat) : '–';
+            $a->boundary = isset($item['ts_boundary']) && $item['ts_boundary'] > 0
+                ? userdate((int)$item['ts_boundary'], $dateformat) : '–';
+            $key = $type === 'r0_after_course_end'
+                ? 'risk_problem_r0_after_course_end'
+                : 'risk_problem_r0_before_course_start';
+            return [
+                get_string($key, 'local_coursectrl', $a),
+                get_string('risk_action_r0_date', 'local_coursectrl'),
+            ];
+        }
+        if ($type === 'r0_deadline_in_past') {
+            $a->field = $item['field'] ?? '–';
+            $a->date = isset($item['ts_field']) && $item['ts_field'] > 0
+                ? userdate((int)$item['ts_field'], $dateformat) : '–';
+            return [
+                get_string('risk_problem_r0_deadline_in_past', 'local_coursectrl', $a),
+                get_string('risk_action_r0_date', 'local_coursectrl'),
+            ];
+        }
+        if ($type === 'r1_hidden') {
+            return [
+                get_string('risk_problem_r1_hidden', 'local_coursectrl', $a),
+                get_string('risk_action_r1_hidden', 'local_coursectrl'),
+            ];
+        }
+        if ($type === 'r1_not_accessible') {
+            return [
+                get_string('risk_problem_r1_not_accessible', 'local_coursectrl', $a),
+                get_string('risk_action_r1_not_accessible', 'local_coursectrl'),
+            ];
+        }
+        if ($type === 'completionexpected_window') {
+            $tsexpected = (int)($item['ts_completionexpected'] ?? 0);
+            $tsstart = (int)($item['ts_start'] ?? 0);
+            $tsend = (int)($item['ts_end'] ?? 0);
+            $a->date_expected = $tsexpected > 0 ? userdate($tsexpected, $dateformat) : '–';
+            $a->date_start = $tsstart > 0 ? userdate($tsstart, $dateformat) : '–';
+            $a->date_end = $tsend > 0 ? userdate($tsend, $dateformat) : '–';
+            return [
+                get_string('risk_problem_completionexpected_window', 'local_coursectrl', $a),
+                get_string('risk_action_completionexpected_window', 'local_coursectrl'),
+            ];
+        }
+        if ($type === 'dangling_dep' || $type === 'dangling_group' || $type === 'dangling_grouping') {
+            return [
+                get_string('risk_problem_dangling_dep', 'local_coursectrl', $a),
+                get_string('risk_action_dangling_dep', 'local_coursectrl'),
+            ];
+        }
+        if ($type === 'impossible_dep') {
+            return [
+                get_string('risk_problem_impossible_dep', 'local_coursectrl', $a),
+                get_string('risk_action_impossible_dep', 'local_coursectrl'),
+            ];
+        }
+        if ($type === 'date_coupling') {
+            $a->field_early = $item['field_early'] ?? '–';
+            $a->field_late = $item['field_late'] ?? '–';
+            return [
+                get_string('risk_problem_date_coupling', 'local_coursectrl', $a),
+                get_string('risk_action_date_coupling', 'local_coursectrl'),
+            ];
+        }
         // Fallback: use stored message if available.
         $msg = $item['message'] ?? '';
         return [$msg, ''];

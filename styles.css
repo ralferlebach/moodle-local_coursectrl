@@ -253,3 +253,32 @@
     display: inline-flex;
     align-items: center;
 }
+/* Fix-action button: outlined success with solid hover. */
+.local_coursectrl_checks .cc-fix-btn,
+.local_coursectrl_checks .cc-fix-btn:link,
+.local_coursectrl_checks .cc-fix-btn:visited {
+    border-color: #198754;
+    color: #198754;
+    background-color: transparent;
+}
+.local_coursectrl_checks .cc-fix-btn:hover,
+.local_coursectrl_checks .cc-fix-btn:focus {
+    background-color: #198754;
+    border-color: #198754;
+    color: #fff;
+}
+
+/* Simulation jump button: outlined secondary with solid hover. */
+.local_coursectrl_checks .cc-sim-btn,
+.local_coursectrl_checks .cc-sim-btn:link,
+.local_coursectrl_checks .cc-sim-btn:visited {
+    border-color: #6c757d;
+    color: #6c757d;
+    background-color: transparent;
+}
+.local_coursectrl_checks .cc-sim-btn:hover,
+.local_coursectrl_checks .cc-sim-btn:focus {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: #fff;
+}

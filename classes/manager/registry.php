@@ -185,11 +185,12 @@ class registry {
      *   - 'skipped': list of {cmid, reason, component?} for cmids without
      *                an adapter or without support for the given action.
      *
+     * @param int    $courseid Course id; only cmids belonging to this course are processed.
      * @param int[]  $cmids  Course module ids to group.
      * @param string $action Action identifier to verify against get_supported_actions().
      * @return array{routed: array<string, array{adapter: activity_adapter, cmids: int[]}>, skipped: array<int, array>}
      */
-    public function group_cmids_by_component(array $cmids, string $action): array {
+    public function group_cmids_by_component(int $courseid, array $cmids, string $action): array {
         global $DB;
         $cmids = array_values(array_unique(array_map('intval', $cmids)));
         $routed = [];
@@ -199,10 +200,13 @@ class registry {
         }
 
         [$insql, $params] = $DB->get_in_or_equal($cmids, SQL_PARAMS_NAMED);
+        $params['courseid'] = $courseid;
         $sql = "SELECT cm.id, m.name AS modname
                   FROM {course_modules} cm
                   JOIN {modules} m ON m.id = cm.module
-                 WHERE cm.id {$insql}";
+                 WHERE cm.course = :courseid
+                   AND cm.deletioninprogress = 0
+                   AND cm.id {$insql}";
         $rows = $DB->get_records_sql($sql, $params);
         $modnamemap = [];
         foreach ($rows as $row) {

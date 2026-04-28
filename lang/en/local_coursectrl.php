@@ -223,6 +223,7 @@ $string['history_noop'] = 'no change';
 $string['history_of'] = 'of';
 $string['history_showing'] = 'Showing';
 $string['invalidaction'] = 'Invalid action requested.';
+$string['invalidcmid'] = 'One or more course module ids do not belong to the requested course.';
 $string['manage_action'] = 'Action';
 $string['manage_action_config'] = 'Action configuration';
 $string['manage_dates_hint'] = 'Activities with date fields:';

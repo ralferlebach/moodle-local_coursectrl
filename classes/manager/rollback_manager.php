@@ -147,11 +147,14 @@ class rollback_manager {
      *     items: array
      * }
      */
-    public function rollback_batch(int $batchid, int $userid): array {
+    public function rollback_batch(int $courseid, int $batchid, int $userid): array {
         global $DB;
 
         // Load and validate the batch.
-        $batchrecord = $DB->get_record('local_coursectrl_batch', ['id' => $batchid]);
+        $batchrecord = $DB->get_record(
+            'local_coursectrl_batch',
+            ['id' => $batchid, 'courseid' => $courseid]
+        );
         if (!$batchrecord) {
             return $this->error_result('batch_not_found');
         }

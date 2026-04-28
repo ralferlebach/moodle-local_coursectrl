@@ -223,6 +223,7 @@ $string['history_noop'] = 'keine Änderung';
 $string['history_of'] = 'von';
 $string['history_showing'] = 'Angezeigt';
 $string['invalidaction'] = 'Ungültige Aktion angefordert.';
+$string['invalidcmid'] = 'Mindestens eine Kursmodule-ID gehört nicht zum angegebenen Kurs.';
 $string['manage_action'] = 'Aktion';
 $string['manage_action_config'] = 'Aktionskonfiguration';
 $string['manage_dates_hint'] = 'Aktivitäten mit Datumsvorgaben:';

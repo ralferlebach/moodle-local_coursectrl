@@ -27,9 +27,13 @@
  */
 
 require_once(__DIR__ . '/../../config.php');
-require_login();
 
 $courseid = required_param('courseid', PARAM_INT);
+
+$course   = get_course($courseid);
+$context  = context_course::instance($courseid);
+require_login($course);
+require_capability('local/coursectrl:simulate', $context);
 
 // Preserve all query parameters except courseid so the simulation form
 // state (simdate, simtime, completions[], groupids[], run) is forwarded.
@@ -61,6 +65,10 @@ if (!empty($simgrade)) {
 $groupids = optional_param_array('groupids', [], PARAM_INT);
 if (!empty($groupids)) {
     $params['groupids'] = $groupids;
+}
+$groupingids = optional_param_array('groupingids', [], PARAM_INT);
+if (!empty($groupingids)) {
+    $params['groupingids'] = $groupingids;
 }
 
 redirect(new moodle_url('/local/coursectrl/checks.php', $params));

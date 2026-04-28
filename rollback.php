@@ -35,7 +35,7 @@ require_login($course);
 require_capability('local/coursectrl:rollback', $context);
 
 $manager = new \local_coursectrl\manager\rollback_manager();
-$result = $manager->rollback_batch($batchid, (int) $USER->id);
+$result = $manager->rollback_batch($courseid, $batchid, (int) $USER->id);
 
 $redirecturl = new moodle_url('/local/coursectrl/history.php', ['courseid' => $courseid]);
 if (!empty($result['success'])) {

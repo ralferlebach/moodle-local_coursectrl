@@ -84,5 +84,23 @@ function xmldb_local_coursectrl_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026042830, 'local', 'coursectrl');
     }
 
+    if ($oldversion < 2026042906) {
+        // Re-queue calendar cache warm after cache purge from version bumps.
+        // Moodle purges all caches after any plugin upgrade, so the MUC caldata
+        // cache becomes empty. Queue the adhoc task so the next cron tick
+        // repopulates holiday data without requiring an admin intervention.
+        try {
+            \local_coursectrl\task\warm_calendar_cache::do_warm();
+        } catch (\Throwable $e) {
+            debugging(
+                'local_coursectrl synchronous warm during upgrade failed: ' . $e->getMessage(),
+                DEBUG_DEVELOPER
+            );
+        }
+        \local_coursectrl\task\warm_calendar_cache_adhoc::queue();
+
+        upgrade_plugin_savepoint(true, 2026042906, 'local', 'coursectrl');
+    }
+
     return true;
 }

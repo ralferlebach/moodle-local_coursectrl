@@ -97,40 +97,90 @@ class history_page implements renderable, templatable {
             $perpage
         );
 
+        // --- Bulk-load all data for the current page in 4 queries ---
+        //
+        // 1. Batch items for all batches on this page.
+        // 2. CM info (name + modname) for all entityids found in those items.
+        // 3. Snapshot existence per batch.
+        // 4. User display names for all batch owner ids.
+
         $rows = [];
-        foreach ($batches as $batch) {
-            $batchitemsraw = $DB->get_records(
+        if (empty($batches)) {
+            // Nothing to load — skip all bulk queries.
+        } else {
+            $batchids = array_keys($batches);
+            [$batchinsql, $batchparams] = $DB->get_in_or_equal($batchids, SQL_PARAMS_NAMED);
+
+            // Query 1: all batch items for this page.
+            $allitems = $DB->get_records_select(
                 'local_coursectrl_batch_item',
-                ['batchid' => $batch->id],
-                'id ASC'
+                "batchid {$batchinsql}",
+                $batchparams,
+                'batchid ASC, id ASC'
             );
-            // Count distinct cmids and total changed fields (not batch_item rows).
-            $activitycmids = [];
-            $totalfieldchanges = 0;
-            $detailrows = [];
-            // Look up CM names and module types for the detail table.
-            $entityids = array_unique(array_map(fn($b) => (int)$b->entityid, $batchitemsraw));
-            $cmnames = [];
-            $cmmodnames = [];
-            foreach ($entityids as $eid) {
-                $cmobj = get_coursemodule_from_id('', $eid, 0, false, IGNORE_MISSING);
-                if ($cmobj) {
-                    $cmnames[$eid]    = $cmobj->name;
-                    $cmmodnames[$eid] = $cmobj->modname;
+            $itemsbybatch = [];
+            $allcmids = [];
+            foreach ($allitems as $item) {
+                $bid = (int) $item->batchid;
+                $eid = (int) $item->entityid;
+                $itemsbybatch[$bid][] = $item;
+                $allcmids[$eid] = $eid;
+            }
+
+            // Query 2: CM name + modname for all entity ids.
+            $cminfobycmid = [];
+            if (!empty($allcmids)) {
+                [$cminsql, $cmparams] = $DB->get_in_or_equal(array_values($allcmids), SQL_PARAMS_NAMED);
+                $cmsql = "SELECT cm.id, m.name AS modname, cm.instance
+                         FROM {course_modules} cm
+                         JOIN {modules} m ON m.id = cm.module
+                        WHERE cm.id {$cminsql}";
+                $cmrows = $DB->get_records_sql($cmsql, $cmparams);
+                foreach ($cmrows as $row) {
+                    $modname = (string) $row->modname;
+                    $name = $DB->get_field($modname, 'name', ['id' => (int) $row->instance]) ?: '';
+                    $cminfobycmid[(int) $row->id] = ['modname' => $modname, 'name' => $name];
                 }
             }
-            foreach ($batchitemsraw as $bitem) {
-                $eid = (int)$bitem->entityid;
-                $activitycmids[$eid] = true;
-                $result = $bitem->resultjson ? json_decode($bitem->resultjson, true) : [];
-                $changed = $result['changed'] ?? [];
-                $totalfieldchanges += count($changed);
-                $modname = $cmmodnames[$eid] ?? '';
-                $cmname  = $cmnames[$eid] ?? '';
-                $cmurl   = $modname && $cmname
+
+            // Query 3: snapshot existence per batch.
+            $snapshotbatchids = $DB->get_fieldset_sql(
+                "SELECT DISTINCT batchid FROM {local_coursectrl_snapshot} WHERE batchid {$batchinsql}",
+                $batchparams
+            );
+            $hassnapshots = array_fill_keys(array_map('intval', $snapshotbatchids), true);
+
+            // Query 4: users for all batch owners.
+            $ownerids = array_unique(array_map(fn($b) => (int) $b->userid, $batches));
+            [$userinsql, $userparams] = $DB->get_in_or_equal($ownerids, SQL_PARAMS_NAMED);
+            $userfields = 'id, firstname, lastname, email, firstnamephonetic, lastnamephonetic, middlename, alternatename';
+            $usersraw = $DB->get_records_select('user', "id {$userinsql}", $userparams, '', $userfields);
+            $userbyid = [];
+            foreach ($usersraw as $u) {
+                $userbyid[(int) $u->id] = fullname($u);
+            }
+
+            // --- Assemble rows from bulk-loaded data ---
+
+            foreach ($batches as $batch) {
+                $batchitemsraw = $itemsbybatch[(int) $batch->id] ?? [];
+                // Count distinct cmids and total changed fields (not batch_item rows).
+                $activitycmids = [];
+                $totalfieldchanges = 0;
+                $detailrows = [];
+                foreach ($batchitemsraw as $bitem) {
+                    $eid = (int)$bitem->entityid;
+                    $activitycmids[$eid] = true;
+                    $result = $bitem->resultjson ? json_decode($bitem->resultjson, true) : [];
+                    $changed = $result['changed'] ?? [];
+                    $totalfieldchanges += count($changed);
+                    $cminfo  = $cminfobycmid[$eid] ?? [];
+                    $modname = $cminfo['modname'] ?? '';
+                    $cmname  = $cminfo['name'] ?? '';
+                    $cmurl   = $modname && $cmname
                     ? (new \moodle_url('/mod/' . $modname . '/view.php', ['id' => $eid]))->out(false)
                     : '';
-                $detailrows[] = [
+                    $detailrows[] = [
                     'entityid'   => $eid,
                     'cmname'     => $cmname,
                     'cmurl'      => $cmurl,
@@ -143,25 +193,15 @@ class history_page implements renderable, templatable {
                     'iserror'    => $bitem->status === \local_coursectrl\local\persistent\batch_item::STATUS_ERROR,
                     'changed'    => array_map(fn($f) => ['field' => $f], $changed),
                     'haschanged' => !empty($changed),
-                ];
-            }
-            $activitycount = count($activitycmids);
-            $hassnapshot = $DB->record_exists(
-                'local_coursectrl_snapshot',
-                ['batchid' => $batch->id]
-            );
-            $user = $DB->get_record(
-                'user',
-                ['id' => $batch->userid],
-                'id, firstname, lastname, email, firstnamephonetic, lastnamephonetic, middlename, alternatename',
-                IGNORE_MISSING
-            );
-            $username = $user
-                ? fullname($user)
-                : get_string('unknownuser', 'local_coursectrl');
+                    ];
+                }
+                $activitycount = count($activitycmids);
+                $hassnapshot = !empty($hassnapshots[(int) $batch->id]);
+                $username = $userbyid[(int) $batch->userid]
+                ?? get_string('unknownuser', 'local_coursectrl');
 
-            $status = (string) $batch->status;
-            $rows[] = [
+                $status = (string) $batch->status;
+                $rows[] = [
                 'batchid'          => (int) $batch->id,
                 'action'           => (string) $batch->action,
                 'actionlabel'      => get_string('action_' . $batch->action, 'local_coursectrl', null, true)
@@ -185,8 +225,9 @@ class history_page implements renderable, templatable {
                     '/local/coursectrl/rollback.php',
                     ['batchid' => $batch->id, 'courseid' => $this->courseid, 'sesskey' => sesskey()]
                 ))->out(false),
-            ];
-        }
+                ];
+            }
+        } // End if (!empty($batches))
 
         return [
             'courseid'       => $this->courseid,

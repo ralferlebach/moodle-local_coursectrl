@@ -33,6 +33,11 @@ use local_coursectrl\local\text\text_datetime_parser;
 use local_coursectrl\manager\batch_manager;
 use local_coursectrl\manager\preview_manager;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\analysis\date_collector::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\manager\preview_manager::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\manager\batch_manager::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\text\text_datetime_rewriter::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\contract\shift_dates_executor::class)]
 /**
  * Tests for date detection (date_collector) and date shifting (batch_manager/preview_manager).
  *
@@ -90,6 +95,11 @@ final class fixture_date_shift_test extends \advanced_testcase {
 
     /**
      * date_collector findet die assign-Datumsfelder.
+     * @covers \local_coursectrl\local\analysis\date_collector
+     * @covers \local_coursectrl\manager\preview_manager
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
+     * @covers \local_coursectrl\local\contract\shift_dates_executor
      */
     public function test_date_collector_finds_assign_dates(): void {
         $this->resetAfterTest();
@@ -108,6 +118,11 @@ final class fixture_date_shift_test extends \advanced_testcase {
 
     /**
      * date_collector findet quiz timeopen/timeclose.
+     * @covers \local_coursectrl\local\analysis\date_collector
+     * @covers \local_coursectrl\manager\preview_manager
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
+     * @covers \local_coursectrl\local\contract\shift_dates_executor
      */
     public function test_date_collector_finds_quiz_dates(): void {
         $this->resetAfterTest();
@@ -125,6 +140,11 @@ final class fixture_date_shift_test extends \advanced_testcase {
 
     /**
      * Datum-Einträge haben korrekte Timestamps.
+     * @covers \local_coursectrl\local\analysis\date_collector
+     * @covers \local_coursectrl\manager\preview_manager
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
+     * @covers \local_coursectrl\local\contract\shift_dates_executor
      */
     public function test_date_collector_timestamp_values_correct(): void {
         $this->resetAfterTest();
@@ -143,6 +163,11 @@ final class fixture_date_shift_test extends \advanced_testcase {
 
     /**
      * preview_manager::build gibt Preview-Objekte mit old/new-Werten zurück.
+     * @covers \local_coursectrl\local\analysis\date_collector
+     * @covers \local_coursectrl\manager\preview_manager
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
+     * @covers \local_coursectrl\local\contract\shift_dates_executor
      */
     public function test_preview_shift_dates_returns_changes(): void {
         $this->resetAfterTest();
@@ -167,6 +192,11 @@ final class fixture_date_shift_test extends \advanced_testcase {
 
     /**
      * Preview zeigt old_value und new_value für duedate.
+     * @covers \local_coursectrl\local\analysis\date_collector
+     * @covers \local_coursectrl\manager\preview_manager
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
+     * @covers \local_coursectrl\local\contract\shift_dates_executor
      */
     public function test_preview_shows_old_and_new_value(): void {
         $this->resetAfterTest();
@@ -199,6 +229,11 @@ final class fixture_date_shift_test extends \advanced_testcase {
 
     /**
      * batch_manager::execute verschiebt assign-Daten um 7 Tage.
+     * @covers \local_coursectrl\local\analysis\date_collector
+     * @covers \local_coursectrl\manager\preview_manager
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
+     * @covers \local_coursectrl\local\contract\shift_dates_executor
      */
     public function test_batch_shift_dates_changes_duedate(): void {
         $this->resetAfterTest();
@@ -222,6 +257,11 @@ final class fixture_date_shift_test extends \advanced_testcase {
 
     /**
      * batch_manager verschiebt alle Felder einer Aktivität proportional.
+     * @covers \local_coursectrl\local\analysis\date_collector
+     * @covers \local_coursectrl\manager\preview_manager
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
+     * @covers \local_coursectrl\local\contract\shift_dates_executor
      */
     public function test_batch_shift_all_fields_proportional(): void {
         $this->resetAfterTest();
@@ -245,6 +285,11 @@ final class fixture_date_shift_test extends \advanced_testcase {
 
     /**
      * batch_manager erstellt einen Snapshot (für Rollback).
+     * @covers \local_coursectrl\local\analysis\date_collector
+     * @covers \local_coursectrl\manager\preview_manager
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
+     * @covers \local_coursectrl\local\contract\shift_dates_executor
      */
     public function test_batch_creates_snapshot(): void {
         $this->resetAfterTest();
@@ -269,6 +314,11 @@ final class fixture_date_shift_test extends \advanced_testcase {
 
     /**
      * text_datetime_rewriter verschiebt ein ISO-Datum im Text.
+     * @covers \local_coursectrl\local\analysis\date_collector
+     * @covers \local_coursectrl\manager\preview_manager
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
+     * @covers \local_coursectrl\local\contract\shift_dates_executor
      */
     public function test_rewriter_shifts_iso_date_in_text(): void {
         $this->resetAfterTest();
@@ -303,6 +353,11 @@ final class fixture_date_shift_test extends \advanced_testcase {
 
     /**
      * text_datetime_rewriter überspringt Treffer ohne normalisierten Wert.
+     * @covers \local_coursectrl\local\analysis\date_collector
+     * @covers \local_coursectrl\manager\preview_manager
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
+     * @covers \local_coursectrl\local\contract\shift_dates_executor
      */
     public function test_rewriter_skips_unnormalizable_hits(): void {
         $this->resetAfterTest();

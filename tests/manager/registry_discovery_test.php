@@ -24,6 +24,7 @@
 
 namespace local_coursectrl\manager;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\manager\registry::class)]
 /**
  * Verifies that the registry picks up real coursectrlmod_* subplugins
  * shipped in this repository through core_plugin_manager, without any
@@ -35,6 +36,7 @@ namespace local_coursectrl\manager;
 final class registry_discovery_test extends \advanced_testcase {
     /**
      * Live discovery must register the coursectrlmod_assign subplugin.
+     * @covers \local_coursectrl\manager\registry
      */
     public function test_auto_discovery_finds_assign_subplugin(): void {
         $registry = new registry();
@@ -49,6 +51,7 @@ final class registry_discovery_test extends \advanced_testcase {
 
     /**
      * Live discovery must register the coursectrlmod_quiz subplugin.
+     * @covers \local_coursectrl\manager\registry
      */
     public function test_auto_discovery_finds_quiz_subplugin(): void {
         $registry = new registry();
@@ -63,6 +66,7 @@ final class registry_discovery_test extends \advanced_testcase {
 
     /**
      * Live discovery must register the coursectrlmod_feedback subplugin.
+     * @covers \local_coursectrl\manager\registry
      */
     public function test_auto_discovery_finds_feedback_subplugin(): void {
         $registry = new registry();
@@ -77,6 +81,7 @@ final class registry_discovery_test extends \advanced_testcase {
 
     /**
      * The live registry must contain at least the assign adapter.
+     * @covers \local_coursectrl\manager\registry
      */
     public function test_auto_discovery_count_at_least_one(): void {
         $registry = new registry();

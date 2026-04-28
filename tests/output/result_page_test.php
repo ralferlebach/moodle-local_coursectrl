@@ -24,6 +24,7 @@
 
 namespace local_coursectrl\output;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\output\result_page::class)]
 /**
  * Unit tests for result_page::export_for_template().
  *
@@ -32,6 +33,7 @@ namespace local_coursectrl\output;
 final class result_page_test extends \advanced_testcase {
     /**
      * issuccess must be true when status is 'executed'.
+     * @covers \local_coursectrl\output\result_page
      */
     public function test_export_success_status(): void {
         $this->resetAfterTest();
@@ -48,6 +50,7 @@ final class result_page_test extends \advanced_testcase {
 
     /**
      * issuccess must be false when status is 'failed'.
+     * @covers \local_coursectrl\output\result_page
      */
     public function test_export_failed_status(): void {
         $this->resetAfterTest();
@@ -63,6 +66,7 @@ final class result_page_test extends \advanced_testcase {
 
     /**
      * Summary counts must be passed through as integers.
+     * @covers \local_coursectrl\output\result_page
      */
     public function test_export_includes_summary_counts(): void {
         $this->resetAfterTest();
@@ -80,6 +84,7 @@ final class result_page_test extends \advanced_testcase {
 
     /**
      * Navigation URLs must point to the correct course.
+     * @covers \local_coursectrl\output\result_page
      */
     public function test_export_includes_navigation_urls(): void {
         $this->resetAfterTest();

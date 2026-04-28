@@ -26,6 +26,7 @@ namespace local_coursectrl\external;
 
 use core_external\external_api;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\external\get_inventory::class)]
 /**
  * Integration tests for the get_inventory external function.
  *
@@ -41,6 +42,7 @@ use core_external\external_api;
 final class get_inventory_test extends \advanced_testcase {
     /**
      * An enrolled editing teacher must receive a structurally valid snapshot.
+     * @covers \local_coursectrl\external\get_inventory
      */
     public function test_execute_returns_snapshot_for_enrolled_teacher(): void {
         $this->resetAfterTest();
@@ -76,6 +78,7 @@ final class get_inventory_test extends \advanced_testcase {
      * Layer 1: an unenrolled user must be rejected by validate_context()
      * before any inventory or capability work runs. The exception thrown
      * is require_login_exception, not required_capability_exception.
+     * @covers \local_coursectrl\external\get_inventory
      */
     public function test_execute_rejects_unenrolled_user(): void {
         $this->resetAfterTest();
@@ -92,6 +95,7 @@ final class get_inventory_test extends \advanced_testcase {
      * Layer 2: an enrolled student passes validate_context() but lacks the
      * local/coursectrl:view capability and must be rejected by
      * require_capability with required_capability_exception.
+     * @covers \local_coursectrl\external\get_inventory
      */
     public function test_execute_rejects_enrolled_student(): void {
         $this->resetAfterTest();
@@ -107,6 +111,7 @@ final class get_inventory_test extends \advanced_testcase {
 
     /**
      * A request for a non-existent course must surface as a context error.
+     * @covers \local_coursectrl\external\get_inventory
      */
     public function test_execute_rejects_missing_course(): void {
         $this->resetAfterTest();
@@ -120,6 +125,7 @@ final class get_inventory_test extends \advanced_testcase {
 
     /**
      * A nullable enddate must round-trip cleanly through the schema.
+     * @covers \local_coursectrl\external\get_inventory
      */
     public function test_execute_handles_null_enddate(): void {
         $this->resetAfterTest();

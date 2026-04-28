@@ -29,6 +29,7 @@ use local_coursectrl\local\entity\course_item;
 use local_coursectrl\local\entity\section_item;
 use local_coursectrl\local\inventory\inventory_snapshot;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\output\dashboard_page::class)]
 /**
  * Unit tests for dashboard_page::export_for_template() (Modell D cockpit layout).
  *
@@ -69,6 +70,7 @@ final class dashboard_page_test extends \advanced_testcase {
 
     /**
      * The exported context must carry all course-level scalar fields.
+     * @covers \local_coursectrl\output\dashboard_page
      */
     public function test_export_includes_course_scalars(): void {
         $this->resetAfterTest();
@@ -89,6 +91,7 @@ final class dashboard_page_test extends \advanced_testcase {
     /**
      * Stat counters must reflect the snapshot collection sizes.
      * Inventory is forced visible so hassections can be asserted.
+     * @covers \local_coursectrl\output\dashboard_page
      */
     public function test_export_includes_counts(): void {
         $this->resetAfterTest();
@@ -108,6 +111,7 @@ final class dashboard_page_test extends \advanced_testcase {
 
     /**
      * All Modell D cockpit keys must be present in the export.
+     * @covers \local_coursectrl\output\dashboard_page
      */
     public function test_export_has_cockpit_keys(): void {
         $this->resetAfterTest();
@@ -135,6 +139,7 @@ final class dashboard_page_test extends \advanced_testcase {
 
     /**
      * A clean snapshot with no warnings must report hasproblems=false.
+     * @covers \local_coursectrl\output\dashboard_page
      */
     public function test_clean_snapshot_has_no_problems(): void {
         $this->resetAfterTest();
@@ -156,6 +161,7 @@ final class dashboard_page_test extends \advanced_testcase {
     /**
      * Course modules must be grouped under the section they belong to.
      * dashboard_inventory is set to 'show' so sections are populated.
+     * @covers \local_coursectrl\output\dashboard_page
      */
     public function test_export_groups_cms_under_sections(): void {
         $this->resetAfterTest();
@@ -185,6 +191,7 @@ final class dashboard_page_test extends \advanced_testcase {
     /**
      * Per-CM flags (visible, completion, availability) must be exposed.
      * dashboard_inventory is set to 'show' so sections are populated.
+     * @covers \local_coursectrl\output\dashboard_page
      */
     public function test_export_exposes_cm_flags(): void {
         $this->resetAfterTest();
@@ -210,6 +217,7 @@ final class dashboard_page_test extends \advanced_testcase {
 
     /**
      * An empty snapshot must report hassections=false and hasproblems=false.
+     * @covers \local_coursectrl\output\dashboard_page
      */
     public function test_export_handles_empty_snapshot(): void {
         $this->resetAfterTest();
@@ -229,6 +237,7 @@ final class dashboard_page_test extends \advanced_testcase {
 
     /**
      * Action URLs must contain the correct courseid and target pages.
+     * @covers \local_coursectrl\output\dashboard_page
      */
     public function test_export_includes_action_urls(): void {
         $this->resetAfterTest();
@@ -250,6 +259,7 @@ final class dashboard_page_test extends \advanced_testcase {
     /**
      * A CM whose availability JSON references a non-existent cmid must
      * surface as a warning in the problem summary rows.
+     * @covers \local_coursectrl\output\dashboard_page
      */
     public function test_dangling_dep_appears_in_warning_rows(): void {
         $this->resetAfterTest();
@@ -287,6 +297,7 @@ final class dashboard_page_test extends \advanced_testcase {
      * appear in the warning rows as impossible_dep.
      * The problem is verified via warningrows (not sections) so this test
      * does not depend on the inventory being visible.
+     * @covers \local_coursectrl\output\dashboard_page
      */
     public function test_impossible_dep_appears_in_warning_rows(): void {
         $this->resetAfterTest();
@@ -320,6 +331,7 @@ final class dashboard_page_test extends \advanced_testcase {
     /**
      * Each distinct warning issue is counted individually in warningcount.
      * Two issues on two different CMs → warningcount = 2.
+     * @covers \local_coursectrl\output\dashboard_page
      */
     public function test_warning_count_is_per_issue(): void {
         $this->resetAfterTest();
@@ -352,6 +364,7 @@ final class dashboard_page_test extends \advanced_testcase {
 
     /**
      * When dashboard_inventory is set to 'hide', sections must be empty.
+     * @covers \local_coursectrl\output\dashboard_page
      */
     public function test_inventory_hidden_when_setting_is_hide(): void {
         $this->resetAfterTest();
@@ -369,6 +382,7 @@ final class dashboard_page_test extends \advanced_testcase {
 
     /**
      * When dashboard_inventory is set to 'show', all users see the inventory.
+     * @covers \local_coursectrl\output\dashboard_page
      */
     public function test_inventory_visible_when_setting_is_show(): void {
         $this->resetAfterTest();
@@ -385,6 +399,7 @@ final class dashboard_page_test extends \advanced_testcase {
 
     /**
      * Upcoming dates list must be empty when no CM dates are in the future.
+     * @covers \local_coursectrl\output\dashboard_page
      */
     public function test_no_upcoming_dates_for_past_timestamps(): void {
         $this->resetAfterTest();
@@ -399,6 +414,7 @@ final class dashboard_page_test extends \advanced_testcase {
 
     /**
      * Text hits from DB must be reflected in the cockpit when present.
+     * @covers \local_coursectrl\output\dashboard_page
      */
     public function test_text_hits_from_db_appear_in_cockpit(): void {
         $this->resetAfterTest();

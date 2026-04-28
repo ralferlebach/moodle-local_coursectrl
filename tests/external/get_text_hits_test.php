@@ -29,6 +29,7 @@ namespace local_coursectrl\external;
 
 use local_coursectrl\local\persistent\text_hit;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\external\get_text_hits::class)]
 /**
  * Integration tests for get_text_hits.
  *
@@ -71,6 +72,7 @@ final class get_text_hits_test extends \advanced_testcase {
      *
      * A pre-inserted row must appear in hits. The summary is not re-computed
      * when rescan=false, so only the hits array is asserted.
+     * @covers \local_coursectrl\external\get_text_hits
      */
     public function test_execute_rescan_false_returns_cached_hits(): void {
         $this->resetAfterTest();
@@ -96,6 +98,7 @@ final class get_text_hits_test extends \advanced_testcase {
 
     /**
      * rescan=false with no cached rows returns an empty hits array and zero summary.
+     * @covers \local_coursectrl\external\get_text_hits
      */
     public function test_execute_rescan_false_no_cache_returns_empty(): void {
         $this->resetAfterTest();
@@ -115,6 +118,7 @@ final class get_text_hits_test extends \advanced_testcase {
 
     /**
      * rescan=true triggers a fresh scan; a dated course summary produces hits.
+     * @covers \local_coursectrl\external\get_text_hits
      */
     public function test_execute_rescan_true_produces_hits_for_dated_course(): void {
         $this->resetAfterTest();
@@ -148,6 +152,7 @@ final class get_text_hits_test extends \advanced_testcase {
 
     /**
      * rescan=true purges previously cached rows before writing new ones.
+     * @covers \local_coursectrl\external\get_text_hits
      */
     public function test_execute_rescan_true_purges_stale_cache(): void {
         global $DB;
@@ -177,6 +182,7 @@ final class get_text_hits_test extends \advanced_testcase {
 
     /**
      * An unenrolled user triggers require_login_exception.
+     * @covers \local_coursectrl\external\get_text_hits
      */
     public function test_execute_blocks_unenrolled_user(): void {
         $this->resetAfterTest();
@@ -191,6 +197,7 @@ final class get_text_hits_test extends \advanced_testcase {
 
     /**
      * An enrolled student (no local/coursectrl:view) triggers required_capability_exception.
+     * @covers \local_coursectrl\external\get_text_hits
      */
     public function test_execute_blocks_student_without_capability(): void {
         $this->resetAfterTest();

@@ -24,6 +24,7 @@
 
 namespace local_coursectrl\local\text;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\text\text_datetime_rewriter::class)]
 /**
  * Unit tests for text_datetime_rewriter::rewrite().
  *
@@ -61,6 +62,7 @@ final class text_datetime_rewriter_test extends \basic_testcase {
 
     /**
      * ISO date must be shifted in place.
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_rewrite_iso_date(): void {
         $text = 'Deadline: 2026-04-15 please.';
@@ -75,6 +77,7 @@ final class text_datetime_rewriter_test extends \basic_testcase {
 
     /**
      * German named date must preserve formatting style.
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_rewrite_de_named(): void {
         $text = 'Abgabe bis 15. April 2026 bitte.';
@@ -88,6 +91,7 @@ final class text_datetime_rewriter_test extends \basic_testcase {
 
     /**
      * German numeric date must preserve formatting style.
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_rewrite_de_numeric(): void {
         $text = 'Frist: 15.04.2026 Ende.';
@@ -100,6 +104,7 @@ final class text_datetime_rewriter_test extends \basic_testcase {
 
     /**
      * English named date must preserve formatting style.
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_rewrite_en_named(): void {
         $text = 'Due: April 15, 2026 sharp.';
@@ -112,6 +117,7 @@ final class text_datetime_rewriter_test extends \basic_testcase {
 
     /**
      * US numeric date must preserve formatting style.
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_rewrite_us_numeric(): void {
         $text = 'Date: 04/15/2026 done.';
@@ -124,6 +130,7 @@ final class text_datetime_rewriter_test extends \basic_testcase {
 
     /**
      * Multiple hits in one text must all be replaced.
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_rewrite_multiple_hits(): void {
         $text = 'Start: 2026-04-01, End: 2026-04-30.';
@@ -141,6 +148,7 @@ final class text_datetime_rewriter_test extends \basic_testcase {
 
     /**
      * Hit without normalised value must be skipped.
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_skip_no_normalized(): void {
         $text = 'Abgabe am 15. April irgendwann.';
@@ -160,6 +168,7 @@ final class text_datetime_rewriter_test extends \basic_testcase {
 
     /**
      * Hit with mismatched offset must be skipped safely.
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_skip_offset_mismatch(): void {
         $text = 'Changed: 2026-04-15 here.';
@@ -175,6 +184,7 @@ final class text_datetime_rewriter_test extends \basic_testcase {
 
     /**
      * Zero delta must produce no-change replacements.
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_rewrite_zero_delta(): void {
         $text = 'Deadline: 2026-04-15.';

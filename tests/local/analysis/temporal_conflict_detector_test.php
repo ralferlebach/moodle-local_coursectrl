@@ -26,6 +26,7 @@ namespace local_coursectrl\local\analysis;
 
 use local_coursectrl\local\entity\cm_item;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\analysis\temporal_conflict_detector::class)]
 /**
  * Unit tests for temporal_conflict_detector::detect().
  *
@@ -72,6 +73,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
 
     /**
      * No conflicts when there are no adapter-sourced date entries.
+     * @covers \local_coursectrl\local\analysis\temporal_conflict_detector
      */
     public function test_no_entries_returns_empty(): void {
         $this->resetAfterTest();
@@ -83,6 +85,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
 
     /**
      * No conflicts when only one of the two paired fields is set.
+     * @covers \local_coursectrl\local\analysis\temporal_conflict_detector
      */
     public function test_single_field_set_no_conflict(): void {
         $this->resetAfterTest();
@@ -95,6 +98,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
 
     /**
      * assign: no conflict when allowsubmissionsfromdate < duedate (correct order).
+     * @covers \local_coursectrl\local\analysis\temporal_conflict_detector
      */
     public function test_assign_correct_order_no_conflict(): void {
         $this->resetAfterTest();
@@ -113,6 +117,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
 
     /**
      * assign: conflict when duedate < allowsubmissionsfromdate.
+     * @covers \local_coursectrl\local\analysis\temporal_conflict_detector
      */
     public function test_assign_duedate_before_open_is_conflict(): void {
         $this->resetAfterTest();
@@ -137,6 +142,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
 
     /**
      * assign: conflict when cutoffdate < duedate.
+     * @covers \local_coursectrl\local\analysis\temporal_conflict_detector
      */
     public function test_assign_cutoffdate_before_duedate_is_conflict(): void {
         $this->resetAfterTest();
@@ -156,6 +162,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
 
     /**
      * assign: conflict when gradingduedate < duedate.
+     * @covers \local_coursectrl\local\analysis\temporal_conflict_detector
      */
     public function test_assign_gradingduedate_before_duedate_is_conflict(): void {
         $this->resetAfterTest();
@@ -175,6 +182,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
 
     /**
      * quiz: conflict when timeclose < timeopen.
+     * @covers \local_coursectrl\local\analysis\temporal_conflict_detector
      */
     public function test_quiz_close_before_open_is_conflict(): void {
         $this->resetAfterTest();
@@ -194,6 +202,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
 
     /**
      * feedback: conflict when timeclose < timeopen.
+     * @covers \local_coursectrl\local\analysis\temporal_conflict_detector
      */
     public function test_feedback_close_before_open_is_conflict(): void {
         $this->resetAfterTest();
@@ -212,6 +221,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
 
     /**
      * Non-adapter entries (source !== 'adapter') must be ignored.
+     * @covers \local_coursectrl\local\analysis\temporal_conflict_detector
      */
     public function test_non_adapter_source_ignored(): void {
         $this->resetAfterTest();
@@ -242,6 +252,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
 
     /**
      * Modules without rules (e.g. mod_label) are skipped entirely.
+     * @covers \local_coursectrl\local\analysis\temporal_conflict_detector
      */
     public function test_unknown_component_skipped(): void {
         $this->resetAfterTest();
@@ -284,6 +295,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
 
     /**
      * R2a: completionexpected after duedate → warning completionexpected_after_deadline.
+     * @covers \local_coursectrl\local\analysis\temporal_conflict_detector
      */
     public function test_r2a_completionexpected_after_duedate(): void {
         $this->resetAfterTest();
@@ -302,6 +314,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
 
     /**
      * R2b: completionexpected more than 3 days before duedate → notice (default threshold).
+     * @covers \local_coursectrl\local\analysis\temporal_conflict_detector
      */
     public function test_r2b_gap_exceeds_threshold(): void {
         $this->resetAfterTest();
@@ -321,6 +334,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
 
     /**
      * R2 valid: completionexpected 1 day before duedate → no finding (within threshold).
+     * @covers \local_coursectrl\local\analysis\temporal_conflict_detector
      */
     public function test_r2_within_threshold_no_finding(): void {
         $this->resetAfterTest();
@@ -341,6 +355,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
 
     /**
      * R2: quiz uses timeclose as primary deadline.
+     * @covers \local_coursectrl\local\analysis\temporal_conflict_detector
      */
     public function test_r2_quiz_uses_timeclose(): void {
         $this->resetAfterTest();
@@ -356,6 +371,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
 
     /**
      * R2: workshop is multi-phase — gap notice is suppressed.
+     * @covers \local_coursectrl\local\analysis\temporal_conflict_detector
      */
     public function test_r2_workshop_multiphase_no_gap_notice(): void {
         $this->resetAfterTest();
@@ -375,6 +391,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
 
     /**
      * R2: workshop with completionexpected after assessmentend → warning still fires.
+     * @covers \local_coursectrl\local\analysis\temporal_conflict_detector
      */
     public function test_r2_workshop_after_deadline_still_warns(): void {
         $this->resetAfterTest();
@@ -390,6 +407,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
 
     /**
      * R2: completionexpected=0 (not set) → no R2 finding.
+     * @covers \local_coursectrl\local\analysis\temporal_conflict_detector
      */
     public function test_r2_not_set_no_finding(): void {
         $this->resetAfterTest();
@@ -409,6 +427,7 @@ final class temporal_conflict_detector_test extends \advanced_testcase {
 
     /**
      * R2: no deadline field set for the component → no R2 finding.
+     * @covers \local_coursectrl\local\analysis\temporal_conflict_detector
      */
     public function test_r2_no_deadline_field_no_finding(): void {
         $this->resetAfterTest();

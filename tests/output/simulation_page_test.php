@@ -30,6 +30,7 @@ use local_coursectrl\local\entity\section_item;
 use local_coursectrl\local\inventory\inventory_snapshot;
 use local_coursectrl\local\simulation\learner_state;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\output\simulation_page::class)]
 /**
  * Unit tests for simulation_page::export_for_template().
  *
@@ -50,6 +51,7 @@ final class simulation_page_test extends \advanced_testcase {
 
     /**
      * Without a submitted state hasresults is false and resultrows is empty.
+     * @covers \local_coursectrl\output\simulation_page
      */
     public function test_no_state_means_no_results(): void {
         $this->resetAfterTest();
@@ -62,6 +64,7 @@ final class simulation_page_test extends \advanced_testcase {
 
     /**
      * Required scalar keys are always present in the export.
+     * @covers \local_coursectrl\output\simulation_page
      */
     public function test_required_scalar_keys_present(): void {
         $this->resetAfterTest();
@@ -85,6 +88,7 @@ final class simulation_page_test extends \advanced_testcase {
 
     /**
      * With a learner state supplied, hasresults=true and resultrows contains one row per CM.
+     * @covers \local_coursectrl\output\simulation_page
      */
     public function test_with_state_produces_result_rows(): void {
         $this->resetAfterTest();
@@ -103,6 +107,7 @@ final class simulation_page_test extends \advanced_testcase {
 
     /**
      * Accessible + incomplete + tracked CM appears in nextsteprows.
+     * @covers \local_coursectrl\output\simulation_page
      */
     public function test_accessible_incomplete_is_next_step(): void {
         $this->resetAfterTest();
@@ -121,6 +126,7 @@ final class simulation_page_test extends \advanced_testcase {
 
     /**
      * Teacher-hidden CM shows accessible=false in resultrows.
+     * @covers \local_coursectrl\output\simulation_page
      */
     public function test_hidden_cm_not_accessible_in_results(): void {
         $this->resetAfterTest();

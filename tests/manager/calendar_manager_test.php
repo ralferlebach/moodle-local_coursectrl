@@ -28,6 +28,7 @@ namespace local_coursectrl\manager;
 
 use local_coursectrl\local\contract\calendar_provider;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\manager\calendar_manager::class)]
 /**
  * Tests for calendar_manager.
  *
@@ -79,6 +80,7 @@ final class calendar_manager_test extends \advanced_testcase {
 
     /**
      * get_holidays_for_range returns empty array when no providers are registered.
+     * @covers \local_coursectrl\manager\calendar_manager
      */
     public function test_no_providers_returns_empty(): void {
         $this->resetAfterTest();
@@ -93,6 +95,7 @@ final class calendar_manager_test extends \advanced_testcase {
 
     /**
      * is_holiday returns true when the date is in the provider data.
+     * @covers \local_coursectrl\manager\calendar_manager
      */
     public function test_is_holiday_returns_true_for_known_date(): void {
         $this->resetAfterTest();
@@ -107,6 +110,7 @@ final class calendar_manager_test extends \advanced_testcase {
 
     /**
      * get_events_for_day returns the correct event list.
+     * @covers \local_coursectrl\manager\calendar_manager
      */
     public function test_get_events_for_day_returns_events(): void {
         $this->resetAfterTest();
@@ -121,6 +125,7 @@ final class calendar_manager_test extends \advanced_testcase {
 
     /**
      * Results from multiple providers are merged for the same day.
+     * @covers \local_coursectrl\manager\calendar_manager
      */
     public function test_multiple_providers_merged(): void {
         $this->resetAfterTest();
@@ -137,6 +142,7 @@ final class calendar_manager_test extends \advanced_testcase {
 
     /**
      * get_holidays_for_range correctly spans multiple months.
+     * @covers \local_coursectrl\manager\calendar_manager
      */
     public function test_range_spans_months(): void {
         $this->resetAfterTest();

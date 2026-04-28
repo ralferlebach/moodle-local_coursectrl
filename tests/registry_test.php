@@ -35,6 +35,7 @@ require_once(__DIR__ . '/fixtures/fake_adapter_unavailable.php');
 require_once(__DIR__ . '/fixtures/fake_adapter_empty_component.php');
 require_once(__DIR__ . '/fixtures/fake_not_an_adapter.php');
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\manager\registry::class)]
 /**
  * Unit tests for the activity adapter registry.
  *
@@ -44,6 +45,7 @@ final class registry_test extends \advanced_testcase {
     /**
      * A registry constructed with an empty override must load cleanly and
      * report zero adapters.
+     * @covers \local_coursectrl\manager\registry
      */
     public function test_empty_override_yields_empty_registry(): void {
         $registry = new registry([]);
@@ -55,6 +57,7 @@ final class registry_test extends \advanced_testcase {
 
     /**
      * Two valid fake adapters must be registered and keyed by component.
+     * @covers \local_coursectrl\manager\registry
      */
     public function test_registers_valid_adapters(): void {
         $registry = new registry([
@@ -79,6 +82,7 @@ final class registry_test extends \advanced_testcase {
     /**
      * A non-existent class name is silently skipped (developer debugging is
      * emitted and swallowed by assertDebuggingCalled).
+     * @covers \local_coursectrl\manager\registry
      */
     public function test_skips_missing_class(): void {
         $registry = new registry([
@@ -92,6 +96,7 @@ final class registry_test extends \advanced_testcase {
 
     /**
      * A class that does not implement activity_adapter is rejected.
+     * @covers \local_coursectrl\manager\registry
      */
     public function test_skips_class_not_implementing_interface(): void {
         $registry = new registry([
@@ -107,6 +112,7 @@ final class registry_test extends \advanced_testcase {
     /**
      * An adapter reporting is_available() === false must not be registered,
      * and must do so silently (no debugging message).
+     * @covers \local_coursectrl\manager\registry
      */
     public function test_skips_unavailable_adapter(): void {
         $registry = new registry([
@@ -120,6 +126,7 @@ final class registry_test extends \advanced_testcase {
 
     /**
      * An adapter returning an empty component string must be rejected.
+     * @covers \local_coursectrl\manager\registry
      */
     public function test_skips_adapter_with_empty_component(): void {
         $registry = new registry([
@@ -134,6 +141,7 @@ final class registry_test extends \advanced_testcase {
     /**
      * get_for_cmid() must resolve the adapter via the target course module's
      * modname, and must return null for non-existent course modules.
+     * @covers \local_coursectrl\manager\registry
      */
     public function test_get_for_cmid_resolves_via_modname(): void {
         $this->resetAfterTest();

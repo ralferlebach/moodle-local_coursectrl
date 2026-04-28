@@ -564,7 +564,6 @@ class checks_page implements renderable, templatable {
 
             // Format journey steps for template display.
             $journeyrows = [];
-            $dateformat = get_string('strftimedatetimeshort', 'langconfig');
             foreach ($item['journey_steps'] ?? [] as $step) {
                 $outcome = (int)($step['outcome'] ?? 1);
                 $exhausted = !empty($step['attempts_exhausted']);

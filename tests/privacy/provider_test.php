@@ -35,6 +35,7 @@ use core_privacy\local\request\approved_userlist;
 use core_privacy\local\request\userlist;
 use core_privacy\local\request\writer;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\privacy\provider::class)]
 /**
  * Tests for the local_coursectrl privacy API provider.
  *
@@ -160,6 +161,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * get_metadata registers the three DB tables and two user preferences.
+     * @covers \local_coursectrl\privacy\provider
      */
     public function test_get_metadata_contains_required_tables_and_preferences(): void {
         $this->resetAfterTest();
@@ -182,6 +184,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * A user with a batch record in a course gets that course context returned.
+     * @covers \local_coursectrl\privacy\provider
      */
     public function test_get_contexts_for_userid_returns_batch_context(): void {
         $this->resetAfterTest();
@@ -199,6 +202,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * A user with a preset record in a course gets that course context returned.
+     * @covers \local_coursectrl\privacy\provider
      */
     public function test_get_contexts_for_userid_returns_preset_context(): void {
         $this->resetAfterTest();
@@ -216,6 +220,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * A user with no plugin data gets an empty context list.
+     * @covers \local_coursectrl\privacy\provider
      */
     public function test_get_contexts_for_userid_returns_empty_for_unknown_user(): void {
         $this->resetAfterTest();
@@ -230,6 +235,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * Users with batch, preset, or report data appear in the course context userlist.
+     * @covers \local_coursectrl\privacy\provider
      */
     public function test_get_users_in_context_returns_all_record_owners(): void {
         $this->resetAfterTest();
@@ -255,6 +261,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * Non-course contexts are silently ignored by get_users_in_context.
+     * @covers \local_coursectrl\privacy\provider
      */
     public function test_get_users_in_context_ignores_system_context(): void {
         $this->resetAfterTest();
@@ -270,6 +277,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * Batch rows for the user are exported; another user's rows are not.
+     * @covers \local_coursectrl\privacy\provider
      */
     public function test_export_user_data_exports_only_requesting_user(): void {
         $this->resetAfterTest();
@@ -302,6 +310,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * Preset rows for the user are exported under the presets path.
+     * @covers \local_coursectrl\privacy\provider
      */
     public function test_export_user_data_exports_presets(): void {
         $this->resetAfterTest();
@@ -326,6 +335,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * User preferences are exported even when there is no course context.
+     * @covers \local_coursectrl\privacy\provider
      */
     public function test_export_user_data_exports_user_preferences(): void {
         $this->resetAfterTest();
@@ -349,6 +359,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * All plugin data in the course context is removed; other courses are unaffected.
+     * @covers \local_coursectrl\privacy\provider
      */
     public function test_delete_data_for_all_users_removes_course_data(): void {
         global $DB;
@@ -382,6 +393,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * Non-course contexts are safely ignored without touching any data.
+     * @covers \local_coursectrl\privacy\provider
      */
     public function test_delete_data_for_all_users_ignores_system_context(): void {
         global $DB;
@@ -400,6 +412,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * Only the approved user's data is removed; a second user's data remains.
+     * @covers \local_coursectrl\privacy\provider
      */
     public function test_delete_data_for_user_removes_only_that_user(): void {
         global $DB;
@@ -433,6 +446,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * User preferences are removed when the user's data is deleted.
+     * @covers \local_coursectrl\privacy\provider
      */
     public function test_delete_data_for_user_removes_preferences(): void {
         $this->resetAfterTest();
@@ -455,6 +469,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * A list of approved users has their data deleted; an unapproved user's data survives.
+     * @covers \local_coursectrl\privacy\provider
      */
     public function test_delete_data_for_users_removes_listed_users(): void {
         global $DB;
@@ -484,6 +499,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * A non-course context is silently ignored by delete_data_for_users.
+     * @covers \local_coursectrl\privacy\provider
      */
     public function test_delete_data_for_users_ignores_system_context(): void {
         global $DB;

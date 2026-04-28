@@ -26,6 +26,7 @@ namespace local_coursectrl\local\analysis;
 
 use local_coursectrl\local\entity\cm_item;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\analysis\course_frame_checker::class)]
 /**
  * Unit tests for course_frame_checker::check().
  *
@@ -108,6 +109,7 @@ final class course_frame_checker_test extends \advanced_testcase {
 
     /**
      * Empty input produces empty output.
+     * @covers \local_coursectrl\local\analysis\course_frame_checker
      */
     public function test_empty_returns_empty(): void {
         $this->resetAfterTest();
@@ -118,6 +120,7 @@ final class course_frame_checker_test extends \advanced_testcase {
 
     /**
      * CM with no dates produces no issues.
+     * @covers \local_coursectrl\local\analysis\course_frame_checker
      */
     public function test_cm_without_dates_produces_no_issue(): void {
         $this->resetAfterTest();
@@ -129,6 +132,7 @@ final class course_frame_checker_test extends \advanced_testcase {
 
     /**
      * Date inside course window produces no R0 issue.
+     * @covers \local_coursectrl\local\analysis\course_frame_checker
      */
     public function test_date_inside_course_frame_no_issue(): void {
         $this->resetAfterTest();
@@ -145,6 +149,7 @@ final class course_frame_checker_test extends \advanced_testcase {
 
     /**
      * R0a: date after course end → error r0_after_course_end.
+     * @covers \local_coursectrl\local\analysis\course_frame_checker
      */
     public function test_r0a_date_after_course_end(): void {
         $this->resetAfterTest();
@@ -163,6 +168,7 @@ final class course_frame_checker_test extends \advanced_testcase {
 
     /**
      * R0a fires only when course end is set; no end → no issue.
+     * @covers \local_coursectrl\local\analysis\course_frame_checker
      */
     public function test_r0a_skipped_when_no_course_end(): void {
         $this->resetAfterTest();
@@ -176,6 +182,7 @@ final class course_frame_checker_test extends \advanced_testcase {
 
     /**
      * R0b: date before course start → error r0_before_course_start.
+     * @covers \local_coursectrl\local\analysis\course_frame_checker
      */
     public function test_r0b_date_before_course_start(): void {
         $this->resetAfterTest();
@@ -193,6 +200,7 @@ final class course_frame_checker_test extends \advanced_testcase {
 
     /**
      * R0b fires only when course start is set; no start → no issue.
+     * @covers \local_coursectrl\local\analysis\course_frame_checker
      */
     public function test_r0b_skipped_when_no_course_start(): void {
         $this->resetAfterTest();
@@ -205,6 +213,7 @@ final class course_frame_checker_test extends \advanced_testcase {
 
     /**
      * R0c: assign duedate in past + completion tracking active → warning.
+     * @covers \local_coursectrl\local\analysis\course_frame_checker
      */
     public function test_r0c_deadline_in_past_with_completion(): void {
         $this->resetAfterTest();
@@ -223,6 +232,7 @@ final class course_frame_checker_test extends \advanced_testcase {
 
     /**
      * R0c does NOT fire when completion tracking is off (completion=0).
+     * @covers \local_coursectrl\local\analysis\course_frame_checker
      */
     public function test_r0c_skipped_without_completion_tracking(): void {
         $this->resetAfterTest();
@@ -242,6 +252,7 @@ final class course_frame_checker_test extends \advanced_testcase {
     /**
      * R0c uses the primary deadline field per component.
      * quiz uses timeclose, not duedate.
+     * @covers \local_coursectrl\local\analysis\course_frame_checker
      */
     public function test_r0c_uses_component_deadline_field(): void {
         $this->resetAfterTest();
@@ -262,6 +273,7 @@ final class course_frame_checker_test extends \advanced_testcase {
 
     /**
      * Multiple CMs: each gets its own issues independently.
+     * @covers \local_coursectrl\local\analysis\course_frame_checker
      */
     public function test_multiple_cms_independent(): void {
         $this->resetAfterTest();
@@ -291,6 +303,7 @@ final class course_frame_checker_test extends \advanced_testcase {
     /**
      * A CM with both R0a and R0b issues (one date after end, another before start)
      * reports both independently.
+     * @covers \local_coursectrl\local\analysis\course_frame_checker
      */
     public function test_cm_can_have_r0a_and_r0b(): void {
         $this->resetAfterTest();
@@ -310,6 +323,7 @@ final class course_frame_checker_test extends \advanced_testcase {
 
     /**
      * Dates with timestamp=0 are ignored (no issue raised).
+     * @covers \local_coursectrl\local\analysis\course_frame_checker
      */
     public function test_zero_timestamp_ignored(): void {
         $this->resetAfterTest();
@@ -322,6 +336,7 @@ final class course_frame_checker_test extends \advanced_testcase {
 
     /**
      * R0c: only fires for entries with source='adapter', not source='text'.
+     * @covers \local_coursectrl\local\analysis\course_frame_checker
      */
     public function test_r0c_ignores_text_source(): void {
         $this->resetAfterTest();
@@ -342,6 +357,7 @@ final class course_frame_checker_test extends \advanced_testcase {
 
     /**
      * R0a warning stays 'error'; R0c 'warning' → 'error' when cmid is in critcmids.
+     * @covers \local_coursectrl\local\analysis\course_frame_checker
      */
     public function test_r0c_escalated_to_error_for_completion_critical_activity(): void {
         $this->resetAfterTest();
@@ -360,6 +376,7 @@ final class course_frame_checker_test extends \advanced_testcase {
 
     /**
      * Activities NOT in critcmids keep their original severity.
+     * @covers \local_coursectrl\local\analysis\course_frame_checker
      */
     public function test_r0c_not_escalated_when_not_in_critcmids(): void {
         $this->resetAfterTest();
@@ -377,6 +394,7 @@ final class course_frame_checker_test extends \advanced_testcase {
 
     /**
      * R0a (error-level) stays at 'error' — escalation beyond error is not applied.
+     * @covers \local_coursectrl\local\analysis\course_frame_checker
      */
     public function test_r0a_error_not_double_escalated(): void {
         $this->resetAfterTest();

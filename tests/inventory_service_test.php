@@ -31,6 +31,7 @@ use local_coursectrl\local\entity\text_item;
 use local_coursectrl\local\inventory\inventory_service;
 use local_coursectrl\local\inventory\inventory_snapshot;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\inventory\inventory_service::class)]
 /**
  * Unit tests for local_coursectrl\local\inventory\inventory_service.
  *
@@ -39,6 +40,7 @@ use local_coursectrl\local\inventory\inventory_snapshot;
 final class inventory_service_test extends \advanced_testcase {
     /**
      * A minimal course must be inventoried with correct course metadata.
+     * @covers \local_coursectrl\local\inventory\inventory_service
      */
     public function test_build_for_course_returns_course_item(): void {
         $this->resetAfterTest();
@@ -67,6 +69,7 @@ final class inventory_service_test extends \advanced_testcase {
     /**
      * A course with activities must report each course module as a cm_item
      * keyed by cmid, with the correct component resolution.
+     * @covers \local_coursectrl\local\inventory\inventory_service
      */
     public function test_build_for_course_returns_cm_items(): void {
         $this->resetAfterTest();
@@ -103,6 +106,7 @@ final class inventory_service_test extends \advanced_testcase {
     /**
      * Every course has at least the implicit section 0; the service must
      * report sections keyed by their row id and ordered by section number.
+     * @covers \local_coursectrl\local\inventory\inventory_service
      */
     public function test_build_for_course_returns_sections(): void {
         $this->resetAfterTest();
@@ -123,6 +127,7 @@ final class inventory_service_test extends \advanced_testcase {
     /**
      * The course summary must be collected as a text_item under its
      * canonical composite key.
+     * @covers \local_coursectrl\local\inventory\inventory_service
      */
     public function test_build_for_course_collects_course_summary_text(): void {
         $this->resetAfterTest();
@@ -146,6 +151,7 @@ final class inventory_service_test extends \advanced_testcase {
 
     /**
      * Non-existent courses must raise a Moodle DB exception.
+     * @covers \local_coursectrl\local\inventory\inventory_service
      */
     public function test_build_for_course_throws_on_missing_course(): void {
         $this->resetAfterTest();
@@ -157,6 +163,7 @@ final class inventory_service_test extends \advanced_testcase {
 
     /**
      * The snapshot must round-trip through JSON serialisation.
+     * @covers \local_coursectrl\local\inventory\inventory_service
      */
     public function test_snapshot_is_json_serializable(): void {
         $this->resetAfterTest();

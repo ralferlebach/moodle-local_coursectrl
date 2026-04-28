@@ -32,6 +32,9 @@ use local_coursectrl\local\simulation\learner_state;
 use local_coursectrl\local\simulation\condition_evaluator;
 use local_coursectrl\local\inventory\inventory_service;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\simulation\visibility_simulator::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\simulation\condition_evaluator::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\simulation\learner_state::class)]
 /**
  * Tests for visibility_simulator and condition_evaluator.
  *
@@ -105,6 +108,9 @@ final class fixture_simulation_test extends \advanced_testcase {
 
     /**
      * CM ohne Bedingungen ist für alle Lernenden zugänglich.
+     * @covers \local_coursectrl\local\simulation\visibility_simulator
+     * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_cm_without_restrictions_accessible(): void {
         $this->resetAfterTest();
@@ -124,6 +130,9 @@ final class fixture_simulation_test extends \advanced_testcase {
 
     /**
      * Verstecktes CM ist für Lernende nicht zugänglich.
+     * @covers \local_coursectrl\local\simulation\visibility_simulator
+     * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_hidden_cm_not_accessible(): void {
         $this->resetAfterTest();
@@ -146,6 +155,9 @@ final class fixture_simulation_test extends \advanced_testcase {
 
     /**
      * CM mit completion-Bedingung: Voraussetzung NICHT erfüllt → nicht zugänglich.
+     * @covers \local_coursectrl\local\simulation\visibility_simulator
+     * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_completion_dep_not_met_blocks_access(): void {
         $this->resetAfterTest();
@@ -180,6 +192,9 @@ final class fixture_simulation_test extends \advanced_testcase {
 
     /**
      * CM mit completion-Bedingung: Voraussetzung erfüllt → zugänglich.
+     * @covers \local_coursectrl\local\simulation\visibility_simulator
+     * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_completion_dep_met_grants_access(): void {
         $this->resetAfterTest();
@@ -216,6 +231,9 @@ final class fixture_simulation_test extends \advanced_testcase {
 
     /**
      * CM mit Gruppen-Bedingung: Lernender in richtiger Gruppe → zugänglich.
+     * @covers \local_coursectrl\local\simulation\visibility_simulator
+     * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_group_condition_met_grants_access(): void {
         $this->resetAfterTest();
@@ -247,6 +265,9 @@ final class fixture_simulation_test extends \advanced_testcase {
 
     /**
      * CM mit Gruppen-Bedingung: falsche Gruppe → nicht zugänglich.
+     * @covers \local_coursectrl\local\simulation\visibility_simulator
+     * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_group_condition_not_met_blocks(): void {
         $this->resetAfterTest();
@@ -280,6 +301,9 @@ final class fixture_simulation_test extends \advanced_testcase {
 
     /**
      * CM mit Datum-Bedingung in der Zukunft: Datum noch nicht erreicht → gesperrt.
+     * @covers \local_coursectrl\local\simulation\visibility_simulator
+     * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_date_condition_future_blocks(): void {
         $this->resetAfterTest();
@@ -307,6 +331,9 @@ final class fixture_simulation_test extends \advanced_testcase {
 
     /**
      * CM mit Datum-Bedingung in der Vergangenheit: Datum bereits erreicht → zugänglich.
+     * @covers \local_coursectrl\local\simulation\visibility_simulator
+     * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_date_condition_past_accessible(): void {
         $this->resetAfterTest();
@@ -339,6 +366,9 @@ final class fixture_simulation_test extends \advanced_testcase {
 
     /**
      * Jedes Simulationsergebnis hat die Pflichtfelder.
+     * @covers \local_coursectrl\local\simulation\visibility_simulator
+     * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_simulation_result_has_required_keys(): void {
         $this->resetAfterTest();

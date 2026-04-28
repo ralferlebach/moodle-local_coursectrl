@@ -25,6 +25,7 @@
 
 namespace local_coursectrl;
 
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 /**
  * Smoke test suite for the local_coursectrl plugin skeleton.
  *

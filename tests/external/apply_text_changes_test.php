@@ -30,6 +30,8 @@ namespace local_coursectrl\external;
 use local_coursectrl\local\persistent\text_hit;
 use local_coursectrl\manager\textreview_manager;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\external\apply_text_changes::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\manager\textreview_manager::class)]
 /**
  * Integration tests for apply_text_changes.
  *
@@ -79,6 +81,8 @@ final class apply_text_changes_test extends \advanced_testcase {
 
     /**
      * An empty hitids list returns zeros and purges existing cached hits.
+     * @covers \local_coursectrl\external\apply_text_changes
+     * @covers \local_coursectrl\manager\textreview_manager
      */
     public function test_execute_with_empty_hitids_returns_zeros(): void {
         global $DB;
@@ -120,6 +124,8 @@ final class apply_text_changes_test extends \advanced_testcase {
      *
      * Requires the extractor to recognise "01.06.2026" as a safe date so
      * that actual hits are produced by the scan step.
+     * @covers \local_coursectrl\external\apply_text_changes
+     * @covers \local_coursectrl\manager\textreview_manager
      */
     public function test_execute_shifts_course_summary_date_by_one_day(): void {
         global $DB;
@@ -147,6 +153,8 @@ final class apply_text_changes_test extends \advanced_testcase {
 
     /**
      * apply_text_changes purges all cached hits regardless of result.
+     * @covers \local_coursectrl\external\apply_text_changes
+     * @covers \local_coursectrl\manager\textreview_manager
      */
     public function test_execute_purges_hits_after_apply(): void {
         global $DB;
@@ -170,6 +178,8 @@ final class apply_text_changes_test extends \advanced_testcase {
 
     /**
      * Hit ids that belong to a different course are silently skipped.
+     * @covers \local_coursectrl\external\apply_text_changes
+     * @covers \local_coursectrl\manager\textreview_manager
      */
     public function test_execute_skips_cross_course_hit_ids(): void {
         global $DB;
@@ -205,6 +215,8 @@ final class apply_text_changes_test extends \advanced_testcase {
 
     /**
      * An unenrolled user is rejected by require_login.
+     * @covers \local_coursectrl\external\apply_text_changes
+     * @covers \local_coursectrl\manager\textreview_manager
      */
     public function test_execute_blocks_unenrolled_user(): void {
         $this->resetAfterTest();
@@ -219,6 +231,8 @@ final class apply_text_changes_test extends \advanced_testcase {
 
     /**
      * An enrolled student without local/coursectrl:bulkaction is rejected.
+     * @covers \local_coursectrl\external\apply_text_changes
+     * @covers \local_coursectrl\manager\textreview_manager
      */
     public function test_execute_blocks_student_without_bulkaction_capability(): void {
         $this->resetAfterTest();

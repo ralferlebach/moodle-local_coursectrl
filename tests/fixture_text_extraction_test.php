@@ -32,6 +32,9 @@ use local_coursectrl\local\text\text_datetime_parser;
 use local_coursectrl\local\text\text_hit_classifier;
 use local_coursectrl\local\persistent\text_hit;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\text\text_datetime_extractor::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\text\text_datetime_parser::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\text\text_hit_classifier::class)]
 /**
  * Tests for text_datetime_extractor using the S7 fixture text content.
  *
@@ -75,6 +78,9 @@ final class fixture_text_extraction_test extends \advanced_testcase {
 
     /**
      * Deutsches Langformat "1. Mai 2026" wird erkannt.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
+     * @covers \local_coursectrl\local\text\text_datetime_parser
+     * @covers \local_coursectrl\local\text\text_hit_classifier
      */
     public function test_german_long_date_detected(): void {
         $this->resetAfterTest();
@@ -87,6 +93,9 @@ final class fixture_text_extraction_test extends \advanced_testcase {
 
     /**
      * Numerisch-deutsches Format "01.05.2026" wird erkannt.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
+     * @covers \local_coursectrl\local\text\text_datetime_parser
+     * @covers \local_coursectrl\local\text\text_hit_classifier
      */
     public function test_german_numeric_date_detected(): void {
         $this->resetAfterTest();
@@ -99,6 +108,9 @@ final class fixture_text_extraction_test extends \advanced_testcase {
 
     /**
      * ISO-Format "2026-06-01" wird erkannt.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
+     * @covers \local_coursectrl\local\text\text_datetime_parser
+     * @covers \local_coursectrl\local\text\text_hit_classifier
      */
     public function test_iso_date_detected(): void {
         $this->resetAfterTest();
@@ -110,6 +122,9 @@ final class fixture_text_extraction_test extends \advanced_testcase {
 
     /**
      * ISO-Datetime mit T "2026-10-15T23:59:00" wird erkannt.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
+     * @covers \local_coursectrl\local\text\text_datetime_parser
+     * @covers \local_coursectrl\local\text\text_hit_classifier
      */
     public function test_iso_datetime_t_detected(): void {
         $this->resetAfterTest();
@@ -121,6 +136,9 @@ final class fixture_text_extraction_test extends \advanced_testcase {
 
     /**
      * Wochentag + Datum "Freitag, 30.10.2026" wird erkannt.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
+     * @covers \local_coursectrl\local\text\text_datetime_parser
+     * @covers \local_coursectrl\local\text\text_hit_classifier
      */
     public function test_date_with_weekday_detected(): void {
         $this->resetAfterTest();
@@ -132,6 +150,9 @@ final class fixture_text_extraction_test extends \advanced_testcase {
 
     /**
      * Historische Jahreszahlen (1947, 1994, 1930) werden erkannt.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
+     * @covers \local_coursectrl\local\text\text_datetime_parser
+     * @covers \local_coursectrl\local\text\text_hit_classifier
      */
     public function test_historical_years_detected(): void {
         $this->resetAfterTest();
@@ -144,6 +165,9 @@ final class fixture_text_extraction_test extends \advanced_testcase {
 
     /**
      * Englisches Format "May 1, 2026" wird erkannt.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
+     * @covers \local_coursectrl\local\text\text_datetime_parser
+     * @covers \local_coursectrl\local\text\text_hit_classifier
      */
     public function test_english_month_day_year_detected(): void {
         $this->resetAfterTest();
@@ -157,6 +181,9 @@ final class fixture_text_extraction_test extends \advanced_testcase {
 
     /**
      * Englisches Format "10 May 2026" (Tag-Monat-Jahr ohne Komma) wird erkannt.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
+     * @covers \local_coursectrl\local\text\text_datetime_parser
+     * @covers \local_coursectrl\local\text\text_hit_classifier
      */
     public function test_english_dmy_detected(): void {
         $this->resetAfterTest();
@@ -168,6 +195,9 @@ final class fixture_text_extraction_test extends \advanced_testcase {
 
     /**
      * Reine Zahlen ohne Datumskontext (42, 60, 3, 10) werden NICHT als Daten erkannt.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
+     * @covers \local_coursectrl\local\text\text_datetime_parser
+     * @covers \local_coursectrl\local\text\text_hit_classifier
      */
     public function test_standalone_numbers_not_dates(): void {
         $this->resetAfterTest();
@@ -185,6 +215,9 @@ final class fixture_text_extraction_test extends \advanced_testcase {
 
     /**
      * Dasselbe Datum in vier Schreibweisen — mindestens 3 werden erkannt.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
+     * @covers \local_coursectrl\local\text\text_datetime_parser
+     * @covers \local_coursectrl\local\text\text_hit_classifier
      */
     public function test_same_date_four_formats_mostly_detected(): void {
         $this->resetAfterTest();
@@ -201,6 +234,9 @@ final class fixture_text_extraction_test extends \advanced_testcase {
 
     /**
      * Datum "01.01.2000" (Y2K) wird erkannt.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
+     * @covers \local_coursectrl\local\text\text_datetime_parser
+     * @covers \local_coursectrl\local\text\text_hit_classifier
      */
     public function test_y2k_date_detected(): void {
         $this->resetAfterTest();
@@ -211,6 +247,9 @@ final class fixture_text_extraction_test extends \advanced_testcase {
 
     /**
      * Unix-Grenze "2038-01-19" wird erkannt.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
+     * @covers \local_coursectrl\local\text\text_datetime_parser
+     * @covers \local_coursectrl\local\text\text_hit_classifier
      */
     public function test_unix_epoch_limit_detected(): void {
         $this->resetAfterTest();
@@ -223,6 +262,9 @@ final class fixture_text_extraction_test extends \advanced_testcase {
 
     /**
      * Parser normalisiert ISO-Datum zu "2026-10-15".
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
+     * @covers \local_coursectrl\local\text\text_datetime_parser
+     * @covers \local_coursectrl\local\text\text_hit_classifier
      */
     public function test_parser_normalises_iso(): void {
         $this->resetAfterTest();
@@ -235,6 +277,9 @@ final class fixture_text_extraction_test extends \advanced_testcase {
 
     /**
      * Parser normalisiert deutsches Langformat "15. Oktober 2026".
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
+     * @covers \local_coursectrl\local\text\text_datetime_parser
+     * @covers \local_coursectrl\local\text\text_hit_classifier
      */
     public function test_parser_normalises_german_long(): void {
         $this->resetAfterTest();
@@ -249,6 +294,9 @@ final class fixture_text_extraction_test extends \advanced_testcase {
 
     /**
      * ISO-Datum mit vollständigem Jahr → Klassifizierung 'safe'.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
+     * @covers \local_coursectrl\local\text\text_datetime_parser
+     * @covers \local_coursectrl\local\text\text_hit_classifier
      */
     public function test_classifier_iso_full_year_safe(): void {
         $this->resetAfterTest();
@@ -262,6 +310,9 @@ final class fixture_text_extraction_test extends \advanced_testcase {
 
     /**
      * Format ohne Jahr → Klassifizierung 'ambiguous' oder 'informational'.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
+     * @covers \local_coursectrl\local\text\text_datetime_parser
+     * @covers \local_coursectrl\local\text\text_hit_classifier
      */
     public function test_classifier_no_year_not_safe(): void {
         $this->resetAfterTest();

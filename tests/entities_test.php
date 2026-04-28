@@ -30,6 +30,11 @@ use local_coursectrl\local\entity\inventory_item;
 use local_coursectrl\local\entity\section_item;
 use local_coursectrl\local\entity\text_item;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\entity\cm_item::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\entity\course_item::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\entity\inventory_item::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\entity\section_item::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\entity\text_item::class)]
 /**
  * Covers the four Phase 2 entity DTOs.
  *
@@ -42,6 +47,11 @@ use local_coursectrl\local\entity\text_item;
 final class entities_test extends \advanced_testcase {
     /**
      * The course_item must round-trip through to_array()/from_array() losslessly.
+     * @covers \local_coursectrl\local\entity\cm_item
+     * @covers \local_coursectrl\local\entity\course_item
+     * @covers \local_coursectrl\local\entity\inventory_item
+     * @covers \local_coursectrl\local\entity\section_item
+     * @covers \local_coursectrl\local\entity\text_item
      */
     public function test_course_item_roundtrip(): void {
         $item = new course_item(
@@ -67,6 +77,11 @@ final class entities_test extends \advanced_testcase {
 
     /**
      * A course_item with a null enddate must keep the null through serialisation.
+     * @covers \local_coursectrl\local\entity\cm_item
+     * @covers \local_coursectrl\local\entity\course_item
+     * @covers \local_coursectrl\local\entity\inventory_item
+     * @covers \local_coursectrl\local\entity\section_item
+     * @covers \local_coursectrl\local\entity\text_item
      */
     public function test_course_item_nullable_enddate(): void {
         $item = new course_item(1, 'A', 'A', '', 1, 0, null, false);
@@ -78,6 +93,11 @@ final class entities_test extends \advanced_testcase {
 
     /**
      * The course_item factory must throw when required keys are missing.
+     * @covers \local_coursectrl\local\entity\cm_item
+     * @covers \local_coursectrl\local\entity\course_item
+     * @covers \local_coursectrl\local\entity\inventory_item
+     * @covers \local_coursectrl\local\entity\section_item
+     * @covers \local_coursectrl\local\entity\text_item
      */
     public function test_course_item_missing_key_throws(): void {
         $this->expectException(\coding_exception::class);
@@ -86,6 +106,11 @@ final class entities_test extends \advanced_testcase {
 
     /**
      * The section_item must round-trip with a null name.
+     * @covers \local_coursectrl\local\entity\cm_item
+     * @covers \local_coursectrl\local\entity\course_item
+     * @covers \local_coursectrl\local\entity\inventory_item
+     * @covers \local_coursectrl\local\entity\section_item
+     * @covers \local_coursectrl\local\entity\text_item
      */
     public function test_section_item_roundtrip_with_null_name(): void {
         $item = new section_item(7, 42, 3, null, 'Week 3', 1, true);
@@ -98,6 +123,11 @@ final class entities_test extends \advanced_testcase {
 
     /**
      * The section_item must round-trip with an explicit name.
+     * @covers \local_coursectrl\local\entity\cm_item
+     * @covers \local_coursectrl\local\entity\course_item
+     * @covers \local_coursectrl\local\entity\inventory_item
+     * @covers \local_coursectrl\local\entity\section_item
+     * @covers \local_coursectrl\local\entity\text_item
      */
     public function test_section_item_roundtrip_with_name(): void {
         $item = new section_item(8, 42, 4, 'Week 4 - Midterm', '', 1, false);
@@ -108,6 +138,11 @@ final class entities_test extends \advanced_testcase {
 
     /**
      * The cm_item must round-trip and expose a correct component helper.
+     * @covers \local_coursectrl\local\entity\cm_item
+     * @covers \local_coursectrl\local\entity\course_item
+     * @covers \local_coursectrl\local\entity\inventory_item
+     * @covers \local_coursectrl\local\entity\section_item
+     * @covers \local_coursectrl\local\entity\text_item
      */
     public function test_cm_item_roundtrip_and_component(): void {
         $item = new cm_item(
@@ -131,6 +166,11 @@ final class entities_test extends \advanced_testcase {
 
     /**
      * A cm_item may carry a null availability string.
+     * @covers \local_coursectrl\local\entity\cm_item
+     * @covers \local_coursectrl\local\entity\course_item
+     * @covers \local_coursectrl\local\entity\inventory_item
+     * @covers \local_coursectrl\local\entity\section_item
+     * @covers \local_coursectrl\local\entity\text_item
      */
     public function test_cm_item_null_availability(): void {
         $item = new cm_item(102, 42, 8, 'quiz', 9, 'Quiz 1', true, null, 0);
@@ -141,6 +181,11 @@ final class entities_test extends \advanced_testcase {
 
     /**
      * The cm_item factory must throw when required keys are missing.
+     * @covers \local_coursectrl\local\entity\cm_item
+     * @covers \local_coursectrl\local\entity\course_item
+     * @covers \local_coursectrl\local\entity\inventory_item
+     * @covers \local_coursectrl\local\entity\section_item
+     * @covers \local_coursectrl\local\entity\text_item
      */
     public function test_cm_item_missing_key_throws(): void {
         $this->expectException(\coding_exception::class);
@@ -156,6 +201,11 @@ final class entities_test extends \advanced_testcase {
 
     /**
      * The text_item must round-trip and expose its canonical composite key.
+     * @covers \local_coursectrl\local\entity\cm_item
+     * @covers \local_coursectrl\local\entity\course_item
+     * @covers \local_coursectrl\local\entity\inventory_item
+     * @covers \local_coursectrl\local\entity\section_item
+     * @covers \local_coursectrl\local\entity\text_item
      */
     public function test_text_item_roundtrip_and_key(): void {
         $item = new text_item(
@@ -175,6 +225,11 @@ final class entities_test extends \advanced_testcase {
 
     /**
      * All four text_item owner constants must be distinct strings.
+     * @covers \local_coursectrl\local\entity\cm_item
+     * @covers \local_coursectrl\local\entity\course_item
+     * @covers \local_coursectrl\local\entity\inventory_item
+     * @covers \local_coursectrl\local\entity\section_item
+     * @covers \local_coursectrl\local\entity\text_item
      */
     public function test_text_item_owner_constants_are_distinct(): void {
         $owners = [
@@ -189,6 +244,11 @@ final class entities_test extends \advanced_testcase {
 
     /**
      * Every entity must be encodable via json_encode through JsonSerializable.
+     * @covers \local_coursectrl\local\entity\cm_item
+     * @covers \local_coursectrl\local\entity\course_item
+     * @covers \local_coursectrl\local\entity\inventory_item
+     * @covers \local_coursectrl\local\entity\section_item
+     * @covers \local_coursectrl\local\entity\text_item
      */
     public function test_entities_are_json_serializable(): void {
         $entities = [

@@ -28,6 +28,7 @@
 
 namespace local_coursectrl;
 
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 /**
  * Reflection-based contract test for activity_adapter.
  *

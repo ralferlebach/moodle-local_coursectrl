@@ -26,6 +26,7 @@ namespace local_coursectrl\local\analysis;
 
 use local_coursectrl\local\entity\cm_item;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\analysis\dead_end_detector::class)]
 /**
  * Unit tests for dead_end_detector::detect().
  *
@@ -102,6 +103,7 @@ final class dead_end_detector_test extends \advanced_testcase {
 
     /**
      * Empty CMs produce no findings.
+     * @covers \local_coursectrl\local\analysis\dead_end_detector
      */
     public function test_empty_cms_returns_empty(): void {
         $this->resetAfterTest();
@@ -112,6 +114,7 @@ final class dead_end_detector_test extends \advanced_testcase {
 
     /**
      * A linear chain A→B→C with no cycle produces no circular finding.
+     * @covers \local_coursectrl\local\analysis\dead_end_detector
      */
     public function test_linear_chain_no_cycle(): void {
         $this->resetAfterTest();
@@ -130,6 +133,7 @@ final class dead_end_detector_test extends \advanced_testcase {
 
     /**
      * 2-node cycle A↔B → circular_dep_transitive.
+     * @covers \local_coursectrl\local\analysis\dead_end_detector
      */
     public function test_two_node_cycle_detected(): void {
         $this->resetAfterTest();
@@ -148,6 +152,7 @@ final class dead_end_detector_test extends \advanced_testcase {
 
     /**
      * 3-node cycle A→B→C→A → circular_dep_transitive, all three cmids present.
+     * @covers \local_coursectrl\local\analysis\dead_end_detector
      */
     public function test_three_node_cycle_detected(): void {
         $this->resetAfterTest();
@@ -167,6 +172,7 @@ final class dead_end_detector_test extends \advanced_testcase {
 
     /**
      * Self-referencing CM (requires own completion) → circular_dep_transitive.
+     * @covers \local_coursectrl\local\analysis\dead_end_detector
      */
     public function test_self_reference_cycle_detected(): void {
         $this->resetAfterTest();
@@ -181,6 +187,7 @@ final class dead_end_detector_test extends \advanced_testcase {
 
     /**
      * An isolated CM (no deps, no cycle) outside the cycle is not flagged.
+     * @covers \local_coursectrl\local\analysis\dead_end_detector
      */
     public function test_isolated_cm_not_flagged_as_cycle(): void {
         $this->resetAfterTest();
@@ -203,6 +210,7 @@ final class dead_end_detector_test extends \advanced_testcase {
      *
      * This is the standard "show A to introduce the task, hide A once B is
      * submitted" design and is explicitly intended, not a deadlock.
+     * @covers \local_coursectrl\local\analysis\dead_end_detector
      */
     public function test_lock_dep_pattern_not_flagged_as_circular(): void {
         $this->resetAfterTest();
@@ -221,6 +229,7 @@ final class dead_end_detector_test extends \advanced_testcase {
     /**
      * A genuine mutual unlock cycle (A requires B completed, B requires A
      * completed) must still be detected even after the lock-dep fix.
+     * @covers \local_coursectrl\local\analysis\dead_end_detector
      */
     public function test_mutual_unlock_cycle_still_detected(): void {
         $this->resetAfterTest();
@@ -238,6 +247,7 @@ final class dead_end_detector_test extends \advanced_testcase {
 
     /**
      * CM B depends on hidden CM A → dep_on_hidden (error).
+     * @covers \local_coursectrl\local\analysis\dead_end_detector
      */
     public function test_dep_on_hidden_detected(): void {
         $this->resetAfterTest();
@@ -256,6 +266,7 @@ final class dead_end_detector_test extends \advanced_testcase {
 
     /**
      * Hidden CM A with dependents → hidden_with_dependents (warning).
+     * @covers \local_coursectrl\local\analysis\dead_end_detector
      */
     public function test_hidden_with_dependents_detected(): void {
         $this->resetAfterTest();
@@ -274,6 +285,7 @@ final class dead_end_detector_test extends \advanced_testcase {
 
     /**
      * Visible CM with no dependents → neither dep_on_hidden nor hidden_with_dependents.
+     * @covers \local_coursectrl\local\analysis\dead_end_detector
      */
     public function test_visible_cm_no_hidden_findings(): void {
         $this->resetAfterTest();
@@ -292,6 +304,7 @@ final class dead_end_detector_test extends \advanced_testcase {
 
     /**
      * completionexpected set but completion=0 → completion_required_no_tracking.
+     * @covers \local_coursectrl\local\analysis\dead_end_detector
      */
     public function test_completionexpected_without_tracking(): void {
         $this->resetAfterTest();
@@ -308,6 +321,7 @@ final class dead_end_detector_test extends \advanced_testcase {
 
     /**
      * completionexpected=0 (not set) with completion=0 → no mismatch finding.
+     * @covers \local_coursectrl\local\analysis\dead_end_detector
      */
     public function test_no_completionexpected_no_mismatch(): void {
         $this->resetAfterTest();
@@ -322,6 +336,7 @@ final class dead_end_detector_test extends \advanced_testcase {
 
     /**
      * completionexpected set AND completion=2 → no mismatch finding.
+     * @covers \local_coursectrl\local\analysis\dead_end_detector
      */
     public function test_completionexpected_with_tracking_no_mismatch(): void {
         $this->resetAfterTest();
@@ -338,6 +353,7 @@ final class dead_end_detector_test extends \advanced_testcase {
 
     /**
      * Chain longer than maxchaindepth → long_dep_chain notice.
+     * @covers \local_coursectrl\local\analysis\dead_end_detector
      */
     public function test_long_chain_detected(): void {
         $this->resetAfterTest();
@@ -358,6 +374,7 @@ final class dead_end_detector_test extends \advanced_testcase {
 
     /**
      * Chain shorter than maxchaindepth → no long_dep_chain.
+     * @covers \local_coursectrl\local\analysis\dead_end_detector
      */
     public function test_short_chain_no_long_dep(): void {
         $this->resetAfterTest();
@@ -374,6 +391,7 @@ final class dead_end_detector_test extends \advanced_testcase {
 
     /**
      * maxchaindepth=0 disables long-chain detection entirely.
+     * @covers \local_coursectrl\local\analysis\dead_end_detector
      */
     public function test_maxdepth_zero_disables_long_chain(): void {
         $this->resetAfterTest();
@@ -391,6 +409,7 @@ final class dead_end_detector_test extends \advanced_testcase {
 
     /**
      * A course with both a cycle and a hidden-dep issue produces both findings.
+     * @covers \local_coursectrl\local\analysis\dead_end_detector
      */
     public function test_cycle_and_hidden_dep_coexist(): void {
         $this->resetAfterTest();

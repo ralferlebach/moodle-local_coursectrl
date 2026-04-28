@@ -24,6 +24,7 @@
 
 namespace local_coursectrl\local\text;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\text\text_datetime_extractor::class)]
 /**
  * Unit tests for text_datetime_extractor::extract().
  *
@@ -40,6 +41,7 @@ final class text_datetime_extractor_test extends \basic_testcase {
 
     /**
      * ISO 8601 date must be extracted.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
      */
     public function test_iso_date(): void {
         $hits = $this->extractor->extract('Submit by 2026-04-15 please.');
@@ -50,6 +52,7 @@ final class text_datetime_extractor_test extends \basic_testcase {
 
     /**
      * ISO 8601 datetime must be extracted.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
      */
     public function test_iso_datetime(): void {
         $hits = $this->extractor->extract('Deadline: 2026-04-15T14:00');
@@ -61,6 +64,7 @@ final class text_datetime_extractor_test extends \basic_testcase {
 
     /**
      * German full date with month name.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
      */
     public function test_de_full_date(): void {
         $hits = $this->extractor->extract('Abgabe bis 15. April 2026');
@@ -72,6 +76,7 @@ final class text_datetime_extractor_test extends \basic_testcase {
 
     /**
      * German full date with abbreviated month.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
      */
     public function test_de_abbreviated_month(): void {
         $hits = $this->extractor->extract('Termin: 3. Okt. 2026');
@@ -81,6 +86,7 @@ final class text_datetime_extractor_test extends \basic_testcase {
 
     /**
      * German full date with time suffix.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
      */
     public function test_de_full_with_time(): void {
         $hits = $this->extractor->extract('Am 15. April 2026, 14:00 Uhr ist Abgabe.');
@@ -91,6 +97,7 @@ final class text_datetime_extractor_test extends \basic_testcase {
 
     /**
      * German date without year must match the no-year pattern.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
      */
     public function test_de_noyear(): void {
         $hits = $this->extractor->extract('Abgabe am 15. April');
@@ -100,6 +107,7 @@ final class text_datetime_extractor_test extends \basic_testcase {
 
     /**
      * German numeric date with year.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
      */
     public function test_de_numeric_full(): void {
         $hits = $this->extractor->extract('Frist: 15.04.2026');
@@ -112,6 +120,7 @@ final class text_datetime_extractor_test extends \basic_testcase {
 
     /**
      * German numeric date without year (trailing dot).
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
      */
     public function test_de_numeric_noyear(): void {
         $hits = $this->extractor->extract('bis zum 15.04. bitte einreichen');
@@ -121,6 +130,7 @@ final class text_datetime_extractor_test extends \basic_testcase {
 
     /**
      * English full date: Month Day, Year.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
      */
     public function test_en_full_date(): void {
         $hits = $this->extractor->extract('Due: April 15, 2026');
@@ -132,6 +142,7 @@ final class text_datetime_extractor_test extends \basic_testcase {
 
     /**
      * English full date with time and AM/PM.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
      */
     public function test_en_full_with_ampm(): void {
         $hits = $this->extractor->extract('Submit by April 15, 2026 at 2:00 PM');
@@ -143,6 +154,7 @@ final class text_datetime_extractor_test extends \basic_testcase {
 
     /**
      * English date without year.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
      */
     public function test_en_noyear(): void {
         $hits = $this->extractor->extract('Due on April 15');
@@ -152,6 +164,7 @@ final class text_datetime_extractor_test extends \basic_testcase {
 
     /**
      * US numeric date: MM/DD/YYYY.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
      */
     public function test_us_numeric(): void {
         $hits = $this->extractor->extract('Deadline 04/15/2026');
@@ -161,6 +174,7 @@ final class text_datetime_extractor_test extends \basic_testcase {
 
     /**
      * Multiple dates in one text must all be extracted.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
      */
     public function test_multiple_dates(): void {
         $text = 'Start: 2026-04-01. End: 2026-04-30. Review: 15. Mai 2026.';
@@ -170,6 +184,7 @@ final class text_datetime_extractor_test extends \basic_testcase {
 
     /**
      * HTML tags must be stripped without breaking offsets.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
      */
     public function test_html_stripped(): void {
         $text = '<p>Abgabe <strong>15.04.2026</strong> bitte.</p>';
@@ -180,6 +195,7 @@ final class text_datetime_extractor_test extends \basic_testcase {
 
     /**
      * Text without any dates must return an empty array.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
      */
     public function test_no_dates(): void {
         $hits = $this->extractor->extract('This text has no dates at all.');
@@ -188,6 +204,7 @@ final class text_datetime_extractor_test extends \basic_testcase {
 
     /**
      * German month name resolver must handle common forms.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
      */
     public function test_resolve_de_month(): void {
         $this->assertSame(1, text_datetime_extractor::resolve_de_month('Januar'));
@@ -199,6 +216,7 @@ final class text_datetime_extractor_test extends \basic_testcase {
 
     /**
      * English month name resolver must handle common forms.
+     * @covers \local_coursectrl\local\text\text_datetime_extractor
      */
     public function test_resolve_en_month(): void {
         $this->assertSame(1, text_datetime_extractor::resolve_en_month('January'));

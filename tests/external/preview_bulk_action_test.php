@@ -26,6 +26,7 @@ namespace local_coursectrl\external;
 
 use core_external\external_api;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\external\preview_bulk_action::class)]
 /**
  * Integration tests for preview_bulk_action including capability
  * enforcement and result structure validation.
@@ -41,6 +42,7 @@ final class preview_bulk_action_test extends \advanced_testcase {
 
     /**
      * An enrolled editing teacher must receive a structurally valid preview.
+     * @covers \local_coursectrl\external\preview_bulk_action
      */
     public function test_execute_returns_preview_for_teacher(): void {
         $this->resetAfterTest();
@@ -73,6 +75,7 @@ final class preview_bulk_action_test extends \advanced_testcase {
 
     /**
      * A non-enrolled user must be rejected by validate_context.
+     * @covers \local_coursectrl\external\preview_bulk_action
      */
     public function test_execute_rejects_unenrolled_user(): void {
         $this->resetAfterTest();
@@ -91,6 +94,7 @@ final class preview_bulk_action_test extends \advanced_testcase {
 
     /**
      * An enrolled student without the view cap must be rejected.
+     * @covers \local_coursectrl\external\preview_bulk_action
      */
     public function test_execute_rejects_enrolled_student(): void {
         $this->resetAfterTest();
@@ -110,6 +114,7 @@ final class preview_bulk_action_test extends \advanced_testcase {
 
     /**
      * Skipped items (e.g. labels) appear in the skipped list, not in errors.
+     * @covers \local_coursectrl\external\preview_bulk_action
      */
     public function test_skipped_items_for_unsupported_cmids(): void {
         $this->resetAfterTest();
@@ -136,6 +141,7 @@ final class preview_bulk_action_test extends \advanced_testcase {
 
     /**
      * Empty cmids list previews the entire course.
+     * @covers \local_coursectrl\external\preview_bulk_action
      */
     public function test_empty_cmids_previews_whole_course(): void {
         $this->resetAfterTest();

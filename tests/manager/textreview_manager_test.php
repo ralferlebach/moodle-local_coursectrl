@@ -32,6 +32,9 @@ namespace local_coursectrl\manager;
 
 use local_coursectrl\local\persistent\text_hit;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\manager\textreview_manager::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\text\text_change_builder::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\text\text_datetime_rewriter::class)]
 /**
  * Integration tests for textreview_manager.
  *
@@ -109,6 +112,9 @@ final class textreview_manager_test extends \advanced_testcase {
     /**
      * scan_course returns a summary with total ≥ 1 when the course summary
      * contains a recognisable date.
+     * @covers \local_coursectrl\manager\textreview_manager
+     * @covers \local_coursectrl\local\text\text_change_builder
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_scan_course_returns_nonzero_summary(): void {
         $this->resetAfterTest();
@@ -126,6 +132,9 @@ final class textreview_manager_test extends \advanced_testcase {
 
     /**
      * scan_course persists the discovered hits into local_coursectrl_text_hit.
+     * @covers \local_coursectrl\manager\textreview_manager
+     * @covers \local_coursectrl\local\text\text_change_builder
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_scan_course_persists_hits_to_db(): void {
         global $DB;
@@ -141,6 +150,9 @@ final class textreview_manager_test extends \advanced_testcase {
 
     /**
      * A second call to scan_course purges old hits before re-scanning.
+     * @covers \local_coursectrl\manager\textreview_manager
+     * @covers \local_coursectrl\local\text\text_change_builder
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_scan_course_replaces_previous_hits(): void {
         global $DB;
@@ -163,6 +175,9 @@ final class textreview_manager_test extends \advanced_testcase {
 
     /**
      * get_hits returns all persisted hits for a course without filtering.
+     * @covers \local_coursectrl\manager\textreview_manager
+     * @covers \local_coursectrl\local\text\text_change_builder
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_get_hits_returns_persisted_hits(): void {
         $this->resetAfterTest();
@@ -180,6 +195,9 @@ final class textreview_manager_test extends \advanced_testcase {
 
     /**
      * get_hits with a confidence filter returns only matching rows.
+     * @covers \local_coursectrl\manager\textreview_manager
+     * @covers \local_coursectrl\local\text\text_change_builder
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_get_hits_confidence_filter_limits_results(): void {
         $this->resetAfterTest();
@@ -204,6 +222,9 @@ final class textreview_manager_test extends \advanced_testcase {
 
     /**
      * get_hits returns an empty array when no hits exist for the course.
+     * @covers \local_coursectrl\manager\textreview_manager
+     * @covers \local_coursectrl\local\text\text_change_builder
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_get_hits_returns_empty_array_when_no_hits(): void {
         $this->resetAfterTest();
@@ -218,6 +239,9 @@ final class textreview_manager_test extends \advanced_testcase {
 
     /**
      * purge_hits removes all text_hit rows for the course from the DB.
+     * @covers \local_coursectrl\manager\textreview_manager
+     * @covers \local_coursectrl\local\text\text_change_builder
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_purge_hits_removes_all_rows(): void {
         global $DB;
@@ -238,6 +262,9 @@ final class textreview_manager_test extends \advanced_testcase {
 
     /**
      * purge_hits on a different course id leaves other courses' rows intact.
+     * @covers \local_coursectrl\manager\textreview_manager
+     * @covers \local_coursectrl\local\text\text_change_builder
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_purge_hits_does_not_affect_other_courses(): void {
         global $DB;
@@ -262,6 +289,9 @@ final class textreview_manager_test extends \advanced_testcase {
 
     /**
      * apply_changes with no hit ids returns zeros and purges existing rows.
+     * @covers \local_coursectrl\manager\textreview_manager
+     * @covers \local_coursectrl\local\text\text_change_builder
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_apply_changes_with_empty_hitids_returns_zeros(): void {
         global $DB;
@@ -286,6 +316,9 @@ final class textreview_manager_test extends \advanced_testcase {
 
     /**
      * apply_changes silently skips hit ids that belong to a different course.
+     * @covers \local_coursectrl\manager\textreview_manager
+     * @covers \local_coursectrl\local\text\text_change_builder
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_apply_changes_ignores_cross_course_hits(): void {
         $this->resetAfterTest();
@@ -308,6 +341,9 @@ final class textreview_manager_test extends \advanced_testcase {
      * This is a full integration test: the course summary is written,
      * scanned to produce real hits with correct contextjson offsets,
      * and the rewriter updates the text in the DB.
+     * @covers \local_coursectrl\manager\textreview_manager
+     * @covers \local_coursectrl\local\text\text_change_builder
+     * @covers \local_coursectrl\local\text\text_datetime_rewriter
      */
     public function test_apply_changes_shifts_course_summary_date(): void {
         global $DB;

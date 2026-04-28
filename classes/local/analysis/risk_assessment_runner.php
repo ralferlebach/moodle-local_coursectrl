@@ -149,6 +149,18 @@ class risk_assessment_runner {
         foreach ($trialrows as $row) {
             $maxattemptsbycmid[(int) $row->cmid] = (int) $row->maxattempts;
         }
+        // Lesson: maxattempts 0 = unlimited, > 0 = limited.
+        $lessonrows = $DB->get_records_sql(
+            "SELECT cm.id AS cmid, l.maxattempts AS maxattempts
+               FROM {course_modules} cm
+               JOIN {modules} m ON m.id = cm.module AND m.name = 'lesson'
+               JOIN {lesson} l ON l.id = cm.instance
+              WHERE cm.course = :courseid AND l.maxattempts > 0",
+            ['courseid' => $courseid]
+        );
+        foreach ($lessonrows as $row) {
+            $maxattemptsbycmid[(int) $row->cmid] = (int) $row->maxattempts;
+        }
 
         $journeyfindings = $this->journeysimulator->simulate(
             $cms,

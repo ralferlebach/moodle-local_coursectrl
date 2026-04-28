@@ -24,6 +24,7 @@
 
 namespace local_coursectrl\local\persistent;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\persistent\text_hit::class)]
 /**
  * Unit tests for the text_hit persistent.
  *
@@ -32,6 +33,7 @@ namespace local_coursectrl\local\persistent;
 final class text_hit_test extends \advanced_testcase {
     /**
      * A text_hit row must persist and load with all fields intact.
+     * @covers \local_coursectrl\local\persistent\text_hit
      */
     public function test_create_and_read(): void {
         $this->resetAfterTest();
@@ -61,6 +63,7 @@ final class text_hit_test extends \advanced_testcase {
 
     /**
      * Default confidence must be 'ambiguous'.
+     * @covers \local_coursectrl\local\persistent\text_hit
      */
     public function test_default_confidence(): void {
         $this->resetAfterTest();
@@ -79,6 +82,7 @@ final class text_hit_test extends \advanced_testcase {
 
     /**
      * Nullable fields must accept null values.
+     * @covers \local_coursectrl\local\persistent\text_hit
      */
     public function test_nullable_fields(): void {
         $this->resetAfterTest();
@@ -101,6 +105,7 @@ final class text_hit_test extends \advanced_testcase {
 
     /**
      * get_records must filter by courseid.
+     * @covers \local_coursectrl\local\persistent\text_hit
      */
     public function test_filter_by_course(): void {
         $this->resetAfterTest();

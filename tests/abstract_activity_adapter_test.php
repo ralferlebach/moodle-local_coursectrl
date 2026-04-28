@@ -27,6 +27,7 @@ namespace local_coursectrl;
 use local_coursectrl\local\contract\abstract_activity_adapter;
 use local_coursectrl\local\contract\activity_adapter;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\contract\abstract_activity_adapter::class)]
 /**
  * Tests that the production base class implements the frozen contract,
  * keeps component() abstract and supplies the agreed no-op defaults for
@@ -57,6 +58,7 @@ final class abstract_activity_adapter_test extends \advanced_testcase {
 
     /**
      * The base class must implement the frozen activity_adapter interface.
+     * @covers \local_coursectrl\local\contract\abstract_activity_adapter
      */
     public function test_implements_contract(): void {
         $this->assertTrue(
@@ -67,6 +69,7 @@ final class abstract_activity_adapter_test extends \advanced_testcase {
 
     /**
      * The base class must remain abstract and component() must stay abstract.
+     * @covers \local_coursectrl\local\contract\abstract_activity_adapter
      */
     public function test_class_and_component_are_abstract(): void {
         $reflection = new \ReflectionClass(abstract_activity_adapter::class);
@@ -78,6 +81,7 @@ final class abstract_activity_adapter_test extends \advanced_testcase {
 
     /**
      * Default is_available() returns true.
+     * @covers \local_coursectrl\local\contract\abstract_activity_adapter
      */
     public function test_default_is_available_returns_true(): void {
         $adapter = $this->make_concrete_adapter();
@@ -86,6 +90,7 @@ final class abstract_activity_adapter_test extends \advanced_testcase {
 
     /**
      * All array-returning default methods must return an empty array.
+     * @covers \local_coursectrl\local\contract\abstract_activity_adapter
      */
     public function test_all_default_methods_return_empty_arrays(): void {
         $adapter = $this->make_concrete_adapter();
@@ -106,6 +111,7 @@ final class abstract_activity_adapter_test extends \advanced_testcase {
 
     /**
      * The concrete subclass returns its declared component name.
+     * @covers \local_coursectrl\local\contract\abstract_activity_adapter
      */
     public function test_concrete_subclass_returns_component(): void {
         $adapter = $this->make_concrete_adapter();
@@ -116,6 +122,7 @@ final class abstract_activity_adapter_test extends \advanced_testcase {
      * The legacy non-namespaced fixture base must inherit from the new
      * production abstract base, so that all existing fake adapters benefit
      * from the centralised no-op defaults.
+     * @covers \local_coursectrl\local\contract\abstract_activity_adapter
      */
     public function test_fixture_base_extends_production_abstract(): void {
         require_once(__DIR__ . '/fixtures/fake_adapter_base.php');

@@ -24,6 +24,7 @@
 
 namespace local_coursectrl\local\text;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\text\text_datetime_parser::class)]
 /**
  * Unit tests for text_datetime_parser.
  *
@@ -44,6 +45,7 @@ final class text_datetime_parser_test extends \basic_testcase {
 
     /**
      * ISO date must normalise to itself.
+     * @covers \local_coursectrl\local\text\text_datetime_parser
      */
     public function test_normalise_iso_date(): void {
         $hits = $this->extractor->extract('2026-04-15');
@@ -54,6 +56,7 @@ final class text_datetime_parser_test extends \basic_testcase {
 
     /**
      * ISO datetime must normalise with time component.
+     * @covers \local_coursectrl\local\text\text_datetime_parser
      */
     public function test_normalise_iso_datetime(): void {
         $hits = $this->extractor->extract('2026-04-15T14:30');
@@ -63,6 +66,7 @@ final class text_datetime_parser_test extends \basic_testcase {
 
     /**
      * German full date must normalise to ISO.
+     * @covers \local_coursectrl\local\text\text_datetime_parser
      */
     public function test_normalise_de_full(): void {
         $hits = $this->extractor->extract('15. April 2026');
@@ -72,6 +76,7 @@ final class text_datetime_parser_test extends \basic_testcase {
 
     /**
      * German full date with time.
+     * @covers \local_coursectrl\local\text\text_datetime_parser
      */
     public function test_normalise_de_full_with_time(): void {
         $hits = $this->extractor->extract('15. April 2026, 14:00 Uhr');
@@ -81,6 +86,7 @@ final class text_datetime_parser_test extends \basic_testcase {
 
     /**
      * German numeric date.
+     * @covers \local_coursectrl\local\text\text_datetime_parser
      */
     public function test_normalise_de_numeric(): void {
         $hits = $this->extractor->extract('15.04.2026');
@@ -90,6 +96,7 @@ final class text_datetime_parser_test extends \basic_testcase {
 
     /**
      * English full date.
+     * @covers \local_coursectrl\local\text\text_datetime_parser
      */
     public function test_normalise_en_full(): void {
         $hits = $this->extractor->extract('April 15, 2026');
@@ -99,6 +106,7 @@ final class text_datetime_parser_test extends \basic_testcase {
 
     /**
      * English date with PM time.
+     * @covers \local_coursectrl\local\text\text_datetime_parser
      */
     public function test_normalise_en_with_pm(): void {
         $hits = $this->extractor->extract('April 15, 2026 at 2:00 PM');
@@ -108,6 +116,7 @@ final class text_datetime_parser_test extends \basic_testcase {
 
     /**
      * US numeric date.
+     * @covers \local_coursectrl\local\text\text_datetime_parser
      */
     public function test_normalise_us_numeric(): void {
         $hits = $this->extractor->extract('04/15/2026');
@@ -117,6 +126,7 @@ final class text_datetime_parser_test extends \basic_testcase {
 
     /**
      * No-year dates assume the current year since session 007.
+     * @covers \local_coursectrl\local\text\text_datetime_parser
      */
     public function test_normalise_noyear_assumes_current_year(): void {
         $hits = $this->extractor->extract('Abgabe am 15. April');
@@ -130,6 +140,7 @@ final class text_datetime_parser_test extends \basic_testcase {
 
     /**
      * Invalid date (Feb 30) must return null.
+     * @covers \local_coursectrl\local\text\text_datetime_parser
      */
     public function test_normalise_invalid_date_returns_null(): void {
         $hits = $this->extractor->extract('30.02.2026');
@@ -146,6 +157,7 @@ final class text_datetime_parser_test extends \basic_testcase {
      *
      * Uses an explicit UTC DateTime as the reference to be deterministic
      * regardless of server timezone.
+     * @covers \local_coursectrl\local\text\text_datetime_parser
      */
     public function test_to_timestamp(): void {
         $ts = $this->parser->to_timestamp('2026-04-15');
@@ -156,6 +168,7 @@ final class text_datetime_parser_test extends \basic_testcase {
 
     /**
      * to_timestamp must round-trip through a deterministic UTC formatter.
+     * @covers \local_coursectrl\local\text\text_datetime_parser
      */
     public function test_to_timestamp_roundtrip(): void {
         $ts = $this->parser->to_timestamp('2026-04-15');
@@ -167,6 +180,7 @@ final class text_datetime_parser_test extends \basic_testcase {
 
     /**
      * shift_iso must shift a date forward by the given delta.
+     * @covers \local_coursectrl\local\text\text_datetime_parser
      */
     public function test_shift_iso_forward(): void {
         $shifted = $this->parser->shift_iso('2026-04-15', 7 * 86400);
@@ -175,6 +189,7 @@ final class text_datetime_parser_test extends \basic_testcase {
 
     /**
      * shift_iso must shift a datetime backward.
+     * @covers \local_coursectrl\local\text\text_datetime_parser
      */
     public function test_shift_iso_backward_with_time(): void {
         $shifted = $this->parser->shift_iso('2026-04-15T14:00', -3 * 86400);
@@ -183,6 +198,7 @@ final class text_datetime_parser_test extends \basic_testcase {
 
     /**
      * shift_iso with zero delta must return the same value.
+     * @covers \local_coursectrl\local\text\text_datetime_parser
      */
     public function test_shift_iso_zero(): void {
         $shifted = $this->parser->shift_iso('2026-04-15', 0);

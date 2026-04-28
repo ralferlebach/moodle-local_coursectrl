@@ -29,6 +29,7 @@ use local_coursectrl\local\entity\course_item;
 use local_coursectrl\local\entity\section_item;
 use local_coursectrl\local\inventory\inventory_snapshot;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\output\timeline_page::class)]
 /**
  * Unit tests for timeline_page::export_for_template().
  *
@@ -55,6 +56,7 @@ final class timeline_page_test extends \advanced_testcase {
 
     /**
      * The export must include course id, sesskey and URLs.
+     * @covers \local_coursectrl\output\timeline_page
      */
     public function test_export_scalars(): void {
         $this->resetAfterTest();
@@ -72,6 +74,7 @@ final class timeline_page_test extends \advanced_testcase {
 
     /**
      * Default filters must be showpast=true, onlywithdeps=false.
+     * @covers \local_coursectrl\output\timeline_page
      */
     public function test_default_filters(): void {
         $this->resetAfterTest();
@@ -86,6 +89,7 @@ final class timeline_page_test extends \advanced_testcase {
 
     /**
      * Explicit filter values must be preserved.
+     * @covers \local_coursectrl\output\timeline_page
      */
     public function test_explicit_filters(): void {
         $this->resetAfterTest();
@@ -104,6 +108,7 @@ final class timeline_page_test extends \advanced_testcase {
 
     /**
      * CMs with completionexpected must produce day groups.
+     * @covers \local_coursectrl\output\timeline_page
      */
     public function test_days_contain_entries(): void {
         $this->resetAfterTest();
@@ -118,6 +123,7 @@ final class timeline_page_test extends \advanced_testcase {
 
     /**
      * Entries must carry activity and edit URLs.
+     * @covers \local_coursectrl\output\timeline_page
      */
     public function test_entry_urls(): void {
         $this->resetAfterTest();
@@ -138,6 +144,7 @@ final class timeline_page_test extends \advanced_testcase {
 
     /**
      * Context must expose the shift endpoint URL and the immediateapply flag.
+     * @covers \local_coursectrl\output\timeline_page
      */
     public function test_export_exposes_shifturl_and_immediateapply(): void {
         $this->resetAfterTest();
@@ -152,6 +159,7 @@ final class timeline_page_test extends \advanced_testcase {
 
     /**
      * Entries backed by adapter fields must be marked deletable.
+     * @covers \local_coursectrl\output\timeline_page
      */
     public function test_entries_have_deletable_flag(): void {
         $this->resetAfterTest();
@@ -174,6 +182,7 @@ final class timeline_page_test extends \advanced_testcase {
 
     /**
      * Empty snapshot must report hasdays=false.
+     * @covers \local_coursectrl\output\timeline_page
      */
     public function test_empty_snapshot(): void {
         $this->resetAfterTest();

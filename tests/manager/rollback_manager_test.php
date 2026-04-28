@@ -27,6 +27,7 @@ namespace local_coursectrl\manager;
 use local_coursectrl\local\persistent\batch;
 use local_coursectrl\local\persistent\snapshot;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\manager\rollback_manager::class)]
 /**
  * Unit tests for rollback_manager.
  *
@@ -83,6 +84,7 @@ final class rollback_manager_test extends \advanced_testcase {
 
     /**
      * get_course_batches returns empty array when no batches exist.
+     * @covers \local_coursectrl\manager\rollback_manager
      */
     public function test_get_course_batches_empty(): void {
         $this->resetAfterTest();
@@ -92,6 +94,7 @@ final class rollback_manager_test extends \advanced_testcase {
 
     /**
      * get_course_batches returns batches for the course newest-first.
+     * @covers \local_coursectrl\manager\rollback_manager
      */
     public function test_get_course_batches_returns_newest_first(): void {
         $this->resetAfterTest();
@@ -111,6 +114,7 @@ final class rollback_manager_test extends \advanced_testcase {
 
     /**
      * can_rollback is true only for executed batches that have snapshots.
+     * @covers \local_coursectrl\manager\rollback_manager
      */
     public function test_can_rollback_flag(): void {
         $this->resetAfterTest();
@@ -127,6 +131,7 @@ final class rollback_manager_test extends \advanced_testcase {
 
     /**
      * can_rollback is false for a batch without snapshots.
+     * @covers \local_coursectrl\manager\rollback_manager
      */
     public function test_no_snapshots_cannot_rollback(): void {
         $this->resetAfterTest();
@@ -142,6 +147,7 @@ final class rollback_manager_test extends \advanced_testcase {
 
     /**
      * rollback_batch returns error result for non-existent batch.
+     * @covers \local_coursectrl\manager\rollback_manager
      */
     public function test_rollback_nonexistent_batch_returns_error(): void {
         $this->resetAfterTest();
@@ -153,6 +159,7 @@ final class rollback_manager_test extends \advanced_testcase {
 
     /**
      * rollback_batch rejects batches not in 'executed' status.
+     * @covers \local_coursectrl\manager\rollback_manager
      */
     public function test_rollback_non_executed_batch_rejected(): void {
         $this->resetAfterTest();
@@ -165,6 +172,7 @@ final class rollback_manager_test extends \advanced_testcase {
 
     /**
      * rollback_batch returns error when no snapshots exist for the batch.
+     * @covers \local_coursectrl\manager\rollback_manager
      */
     public function test_rollback_with_no_snapshots_returns_error(): void {
         $this->resetAfterTest();
@@ -177,6 +185,7 @@ final class rollback_manager_test extends \advanced_testcase {
 
     /**
      * rollback_batch returns error-item when no adapter is registered for a component.
+     * @covers \local_coursectrl\manager\rollback_manager
      */
     public function test_rollback_missing_adapter_recorded_as_error(): void {
         $this->resetAfterTest();

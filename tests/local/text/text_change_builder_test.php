@@ -27,6 +27,7 @@ namespace local_coursectrl\local\text;
 use local_coursectrl\local\entity\text_item;
 use local_coursectrl\local\persistent\text_hit;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\text\text_change_builder::class)]
 /**
  * Unit tests for text_change_builder.
  *
@@ -35,6 +36,7 @@ use local_coursectrl\local\persistent\text_hit;
 final class text_change_builder_test extends \advanced_testcase {
     /**
      * Scan must return hits for text containing dates.
+     * @covers \local_coursectrl\local\text\text_change_builder
      */
     public function test_scan_returns_hits(): void {
         $builder = new text_change_builder();
@@ -53,6 +55,7 @@ final class text_change_builder_test extends \advanced_testcase {
 
     /**
      * Scan must return empty for text without dates.
+     * @covers \local_coursectrl\local\text\text_change_builder
      */
     public function test_scan_empty_for_no_dates(): void {
         $builder = new text_change_builder();
@@ -65,6 +68,7 @@ final class text_change_builder_test extends \advanced_testcase {
 
     /**
      * Scan must handle multiple text items.
+     * @covers \local_coursectrl\local\text\text_change_builder
      */
     public function test_scan_multiple_items(): void {
         $builder = new text_change_builder();
@@ -81,6 +85,7 @@ final class text_change_builder_test extends \advanced_testcase {
 
     /**
      * Context JSON must contain offset, before and after excerpts.
+     * @covers \local_coursectrl\local\text\text_change_builder
      */
     public function test_scan_includes_context(): void {
         $builder = new text_change_builder();
@@ -99,6 +104,7 @@ final class text_change_builder_test extends \advanced_testcase {
 
     /**
      * scan_and_persist must store hits in the database.
+     * @covers \local_coursectrl\local\text\text_change_builder
      */
     public function test_scan_and_persist(): void {
         $this->resetAfterTest();
@@ -120,6 +126,7 @@ final class text_change_builder_test extends \advanced_testcase {
 
     /**
      * scan_and_persist must purge old hits before inserting new ones.
+     * @covers \local_coursectrl\local\text\text_change_builder
      */
     public function test_scan_and_persist_purges_old(): void {
         $this->resetAfterTest();
@@ -142,6 +149,7 @@ final class text_change_builder_test extends \advanced_testcase {
 
     /**
      * Ambiguous hits (no-year patterns) must be classified correctly.
+     * @covers \local_coursectrl\local\text\text_change_builder
      */
     public function test_scan_classifies_ambiguous(): void {
         $builder = new text_change_builder();

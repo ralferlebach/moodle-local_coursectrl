@@ -24,6 +24,7 @@
 
 namespace local_coursectrl\local\simulation;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\simulation\learner_state::class)]
 /**
  * Unit tests for learner_state.
  *
@@ -32,6 +33,7 @@ namespace local_coursectrl\local\simulation;
 final class learner_state_test extends \advanced_testcase {
     /**
      * Default constructor uses current time when timestamp is 0.
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_zero_timestamp_defaults_to_now(): void {
         $this->resetAfterTest();
@@ -44,6 +46,7 @@ final class learner_state_test extends \advanced_testcase {
 
     /**
      * Explicit timestamp is preserved as-is.
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_explicit_timestamp_preserved(): void {
         $this->resetAfterTest();
@@ -54,6 +57,7 @@ final class learner_state_test extends \advanced_testcase {
 
     /**
      * get_completion returns 0 for cmids not in the map.
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_get_completion_returns_zero_for_unknown_cmid(): void {
         $this->resetAfterTest();
@@ -63,6 +67,7 @@ final class learner_state_test extends \advanced_testcase {
 
     /**
      * get_completion returns the stored value for a known cmid.
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_get_completion_returns_stored_value(): void {
         $this->resetAfterTest();
@@ -72,6 +77,7 @@ final class learner_state_test extends \advanced_testcase {
 
     /**
      * is_in_group correctly identifies membership.
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_is_in_group(): void {
         $this->resetAfterTest();
@@ -83,6 +89,7 @@ final class learner_state_test extends \advanced_testcase {
 
     /**
      * is_in_grouping correctly identifies membership.
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_is_in_grouping(): void {
         $this->resetAfterTest();
@@ -93,6 +100,7 @@ final class learner_state_test extends \advanced_testcase {
 
     /**
      * from_array round-trips through to_array without data loss.
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_round_trip_via_array(): void {
         $this->resetAfterTest();
@@ -115,6 +123,7 @@ final class learner_state_test extends \advanced_testcase {
 
     /**
      * get_grade returns null for a cmid not in the grades map.
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_get_grade_returns_null_for_unknown_cmid(): void {
         $this->resetAfterTest();
@@ -124,6 +133,7 @@ final class learner_state_test extends \advanced_testcase {
 
     /**
      * get_grade returns the stored float for a known cmid.
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_get_grade_returns_stored_value(): void {
         $this->resetAfterTest();
@@ -133,6 +143,7 @@ final class learner_state_test extends \advanced_testcase {
 
     /**
      * grades are coerced to float regardless of input type.
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_grades_are_cast_to_float(): void {
         $this->resetAfterTest();
@@ -143,6 +154,7 @@ final class learner_state_test extends \advanced_testcase {
 
     /**
      * Grades survive a to_array → from_array round-trip.
+     * @covers \local_coursectrl\local\simulation\learner_state
      */
     public function test_grades_round_trip(): void {
         $this->resetAfterTest();

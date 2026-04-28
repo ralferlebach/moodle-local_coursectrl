@@ -31,6 +31,10 @@ use local_coursectrl\local\persistent\batch;
 use local_coursectrl\manager\batch_manager;
 use local_coursectrl\manager\rollback_manager;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\manager\batch_manager::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\manager\rollback_manager::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\persistent\batch::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\persistent\snapshot::class)]
 /**
  * Tests for the full execute → snapshot → rollback pipeline.
  *
@@ -82,6 +86,10 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
 
     /**
      * execute() erzeugt eine Batch-Zeile mit Status 'executed'.
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\manager\rollback_manager
+     * @covers \local_coursectrl\local\persistent\batch
+     * @covers \local_coursectrl\local\persistent\snapshot
      */
     public function test_execute_creates_batch_record(): void {
         $this->resetAfterTest();
@@ -108,6 +116,10 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
 
     /**
      * execute() erzeugt Batch-Item-Zeilen für jede bearbeitete Aktivität.
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\manager\rollback_manager
+     * @covers \local_coursectrl\local\persistent\batch
+     * @covers \local_coursectrl\local\persistent\snapshot
      */
     public function test_execute_creates_batch_items(): void {
         $this->resetAfterTest();
@@ -130,6 +142,10 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
 
     /**
      * execute() erzeugt Snapshot-Zeilen für den Rollback.
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\manager\rollback_manager
+     * @covers \local_coursectrl\local\persistent\batch
+     * @covers \local_coursectrl\local\persistent\snapshot
      */
     public function test_execute_creates_snapshots(): void {
         $this->resetAfterTest();
@@ -156,6 +172,10 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
 
     /**
      * rollback_manager::get_course_batches gibt Batches für Kurs zurück.
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\manager\rollback_manager
+     * @covers \local_coursectrl\local\persistent\batch
+     * @covers \local_coursectrl\local\persistent\snapshot
      */
     public function test_get_course_batches_returns_batch(): void {
         $this->resetAfterTest();
@@ -182,6 +202,10 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
 
     /**
      * rollback_batch stellt den ursprünglichen duedate-Wert wieder her.
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\manager\rollback_manager
+     * @covers \local_coursectrl\local\persistent\batch
+     * @covers \local_coursectrl\local\persistent\snapshot
      */
     public function test_rollback_restores_original_duedate(): void {
         $this->resetAfterTest();
@@ -216,6 +240,10 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
 
     /**
      * rollback_batch stellt quiz-Zeiten korrekt wieder her.
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\manager\rollback_manager
+     * @covers \local_coursectrl\local\persistent\batch
+     * @covers \local_coursectrl\local\persistent\snapshot
      */
     public function test_rollback_restores_quiz_times(): void {
         $this->resetAfterTest();
@@ -243,6 +271,10 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
 
     /**
      * Nach Rollback ist Batch-Status NICHT mehr 'executed' (kein doppelter Rollback).
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\manager\rollback_manager
+     * @covers \local_coursectrl\local\persistent\batch
+     * @covers \local_coursectrl\local\persistent\snapshot
      */
     public function test_rollback_marks_batch_not_re_rollbackable(): void {
         $this->resetAfterTest();
@@ -270,6 +302,10 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
 
     /**
      * Rollback auf nicht existierende Batch-ID liefert Fehler.
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\manager\rollback_manager
+     * @covers \local_coursectrl\local\persistent\batch
+     * @covers \local_coursectrl\local\persistent\snapshot
      */
     public function test_rollback_nonexistent_batch_returns_error(): void {
         $this->resetAfterTest();
@@ -282,6 +318,10 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
 
     /**
      * Mehrstufige Verschiebung: zwei aufeinanderfolgende Batches sind unabhängig rollbackbar.
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\manager\rollback_manager
+     * @covers \local_coursectrl\local\persistent\batch
+     * @covers \local_coursectrl\local\persistent\snapshot
      */
     public function test_two_batches_rollback_independently(): void {
         $this->resetAfterTest();

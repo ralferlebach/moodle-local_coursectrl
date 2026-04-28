@@ -27,6 +27,7 @@ namespace local_coursectrl\local\visualization;
 use local_coursectrl\local\analysis\dependency_index;
 use local_coursectrl\local\entity\cm_item;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\visualization\graph_dataset_builder::class)]
 /**
  * Unit tests for graph_dataset_builder.
  *
@@ -71,6 +72,7 @@ final class graph_dataset_builder_test extends \advanced_testcase {
 
     /**
      * Empty CMs produce an empty hasdata=false result.
+     * @covers \local_coursectrl\local\visualization\graph_dataset_builder
      */
     public function test_empty_cms_returns_empty_result(): void {
         $this->resetAfterTest();
@@ -85,6 +87,7 @@ final class graph_dataset_builder_test extends \advanced_testcase {
 
     /**
      * CMs without dependencies all get layer 0.
+     * @covers \local_coursectrl\local\visualization\graph_dataset_builder
      */
     public function test_independent_cms_all_layer_zero(): void {
         $this->resetAfterTest();
@@ -103,6 +106,7 @@ final class graph_dataset_builder_test extends \advanced_testcase {
 
     /**
      * A linear chain A→B→C produces layers 0,1,2.
+     * @covers \local_coursectrl\local\visualization\graph_dataset_builder
      */
     public function test_linear_chain_produces_ascending_layers(): void {
         $this->resetAfterTest();
@@ -124,6 +128,7 @@ final class graph_dataset_builder_test extends \advanced_testcase {
 
     /**
      * Circular nodes are flagged and still get a layer assigned.
+     * @covers \local_coursectrl\local\visualization\graph_dataset_builder
      */
     public function test_circular_nodes_flagged(): void {
         $this->resetAfterTest();
@@ -142,6 +147,7 @@ final class graph_dataset_builder_test extends \advanced_testcase {
 
     /**
      * Dangling dependencies (dep not in snapshot) produce no edge.
+     * @covers \local_coursectrl\local\visualization\graph_dataset_builder
      */
     public function test_dangling_dep_produces_no_edge(): void {
         $this->resetAfterTest();
@@ -157,6 +163,7 @@ final class graph_dataset_builder_test extends \advanced_testcase {
 
     /**
      * Nodes with warnings get haswarnings=true.
+     * @covers \local_coursectrl\local\visualization\graph_dataset_builder
      */
     public function test_warning_flag_propagated_to_node(): void {
         $this->resetAfterTest();
@@ -170,6 +177,7 @@ final class graph_dataset_builder_test extends \advanced_testcase {
 
     /**
      * assign_layers: diamond graph (1→3, 2→3, 1→4, 2→4) places 3 and 4 at layer 1.
+     * @covers \local_coursectrl\local\visualization\graph_dataset_builder
      */
     public function test_assign_layers_diamond(): void {
         $this->resetAfterTest();
@@ -191,6 +199,7 @@ final class graph_dataset_builder_test extends \advanced_testcase {
 
     /**
      * Nodes within the same layer get distinct layerpos values (0-based).
+     * @covers \local_coursectrl\local\visualization\graph_dataset_builder
      */
     public function test_layer_positions_distinct_within_layer(): void {
         $this->resetAfterTest();
@@ -221,6 +230,7 @@ final class graph_dataset_builder_test extends \advanced_testcase {
 
     /**
      * Grade condition produces an edge when gradeitemmap resolves it.
+     * @covers \local_coursectrl\local\visualization\graph_dataset_builder
      */
     public function test_grade_dep_produces_edge(): void {
         $this->resetAfterTest();
@@ -242,6 +252,7 @@ final class graph_dataset_builder_test extends \advanced_testcase {
 
     /**
      * When a cmid pair already has a completion edge, the grade edge is not duplicated.
+     * @covers \local_coursectrl\local\visualization\graph_dataset_builder
      */
     public function test_grade_dep_not_duplicated_when_completion_edge_exists(): void {
         $this->resetAfterTest();
@@ -267,6 +278,7 @@ final class graph_dataset_builder_test extends \advanced_testcase {
 
     /**
      * Grade dep with no gradeitemmap produces no edge.
+     * @covers \local_coursectrl\local\visualization\graph_dataset_builder
      */
     public function test_grade_dep_without_map_produces_no_edge(): void {
         $this->resetAfterTest();

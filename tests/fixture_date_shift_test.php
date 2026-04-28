@@ -42,6 +42,7 @@ use local_coursectrl\manager\preview_manager;
  * @covers \local_coursectrl\manager\preview_manager
  * @covers \local_coursectrl\manager\batch_manager
  * @covers \local_coursectrl\local\text\text_datetime_rewriter
+ * @covers \local_coursectrl\local\contract\shift_dates_executor
  */
 final class fixture_date_shift_test extends \advanced_testcase {
     /** @var int 2026-06-01 00:00 UTC */

@@ -33,7 +33,11 @@ use local_coursectrl\local\entity\text_item;
 /**
  * Covers the four Phase 2 entity DTOs.
  *
- * @coversNothing
+ * @covers \local_coursectrl\local\entity\cm_item
+ * @covers \local_coursectrl\local\entity\course_item
+ * @covers \local_coursectrl\local\entity\inventory_item
+ * @covers \local_coursectrl\local\entity\section_item
+ * @covers \local_coursectrl\local\entity\text_item
  */
 final class entities_test extends \advanced_testcase {
     /**

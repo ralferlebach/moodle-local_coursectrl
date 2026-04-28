@@ -241,7 +241,7 @@ class history_page implements renderable, templatable {
                     ))->out(false),
                 ];
             }
-        } // End if (!empty($batches)).
+        } // Bulk-load section complete.
 
         return [
             'courseid'       => $this->courseid,

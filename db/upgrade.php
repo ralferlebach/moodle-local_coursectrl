@@ -84,7 +84,7 @@ function xmldb_local_coursectrl_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026042830, 'local', 'coursectrl');
     }
 
-    if ($oldversion < 2026042907) {
+    if ($oldversion < 2026042908) {
         // Re-queue calendar cache warm after cache purge from version bumps.
         // Moodle purges all caches after any plugin upgrade, so the MUC caldata
         // cache becomes empty. Queue the adhoc task so the next cron tick
@@ -99,7 +99,7 @@ function xmldb_local_coursectrl_upgrade(int $oldversion): bool {
         }
         \local_coursectrl\task\warm_calendar_cache_adhoc::queue();
 
-        upgrade_plugin_savepoint(true, 2026042907, 'local', 'coursectrl');
+        upgrade_plugin_savepoint(true, 2026042908, 'local', 'coursectrl');
     }
 
     return true;

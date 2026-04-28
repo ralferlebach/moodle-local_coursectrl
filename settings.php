@@ -380,6 +380,26 @@ if ($hassiteconfig) {
         PARAM_INT
     ));
 
+    $settings->add(new admin_setting_heading(
+        'local_coursectrl/deepjourney_heading',
+        get_string('settings_deepjourney_heading', 'local_coursectrl'),
+        get_string('settings_deepjourney_heading_desc', 'local_coursectrl')
+    ));
+    $settings->add(new admin_setting_configtext(
+        'local_coursectrl/risk_min_activity_minutes',
+        get_string('settings_deepjourney_min_minutes', 'local_coursectrl'),
+        get_string('settings_deepjourney_min_minutes_desc', 'local_coursectrl'),
+        30,
+        PARAM_INT
+    ));
+    $settings->add(new admin_setting_configtext(
+        'local_coursectrl/risk_max_group_combinations',
+        get_string('settings_deepjourney_max_groups', 'local_coursectrl'),
+        get_string('settings_deepjourney_max_groups_desc', 'local_coursectrl'),
+        32,
+        PARAM_INT
+    ));
+
     // R7: counterpart checks.
     $settings->add(new admin_setting_heading(
         'local_coursectrl/r7_heading',

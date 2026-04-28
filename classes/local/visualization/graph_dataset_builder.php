@@ -141,7 +141,6 @@ class graph_dataset_builder {
             }
         }
 
-
         return [
             'nodes' => $nodes,
             'edges' => $edges,
@@ -252,7 +251,6 @@ class graph_dataset_builder {
                 ];
             }
         }
-
 
         return [
             'nodes' => $nodes,

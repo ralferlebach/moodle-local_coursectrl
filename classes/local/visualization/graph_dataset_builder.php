@@ -105,11 +105,13 @@ class graph_dataset_builder {
             $circularedgeset[$key] = true;
         }
         $edges = [];
+        $edgeset = [];
         foreach ($forward as $cmid => $prereqs) {
             foreach ($prereqs as $depcmid) {
                 if (!isset($knownids[$depcmid])) {
                     continue;
                 }
+                $edgeset[$cmid . '-' . $depcmid] = true;
                 $key = min($cmid, $depcmid) . '-' . max($cmid, $depcmid);
                 $edges[] = [
                     'from' => $cmid,
@@ -118,6 +120,27 @@ class graph_dataset_builder {
                 ];
             }
         }
+        // Grade-based dependency edges (same visual as completion-based edges).
+        // Skipped when the cmid pair already has a completion-based edge.
+        $gradeforward = $depindex->get_grade_forward();
+        foreach ($gradeforward as $cmid => $prereqs) {
+            foreach ($prereqs as $depcmid) {
+                if (!isset($knownids[$depcmid])) {
+                    continue;
+                }
+                if (isset($edgeset[$cmid . '-' . $depcmid])) {
+                    continue; // Already represented by a completion edge.
+                }
+                $edgeset[$cmid . '-' . $depcmid] = true;
+                $key = min($cmid, $depcmid) . '-' . max($cmid, $depcmid);
+                $edges[] = [
+                    'from' => $cmid,
+                    'to' => $depcmid,
+                    'circular' => isset($circularedgeset[$key]),
+                ];
+            }
+        }
+
 
         return [
             'nodes' => $nodes,
@@ -194,11 +217,13 @@ class graph_dataset_builder {
             $circularedgeset[$key] = true;
         }
         $edges = [];
+        $edgeset = [];
         foreach ($forward as $cmid => $prereqs) {
             foreach ($prereqs as $depcmid) {
                 if (!isset($knownids[$depcmid])) {
                     continue;
                 }
+                $edgeset[$cmid . '-' . $depcmid] = true;
                 $key = min($cmid, $depcmid) . '-' . max($cmid, $depcmid);
                 $edges[] = [
                     'from' => $cmid,
@@ -207,6 +232,27 @@ class graph_dataset_builder {
                 ];
             }
         }
+        // Grade-based dependency edges (same visual as completion-based edges).
+        // Skipped when the cmid pair already has a completion-based edge.
+        $gradeforward = $depindex->get_grade_forward();
+        foreach ($gradeforward as $cmid => $prereqs) {
+            foreach ($prereqs as $depcmid) {
+                if (!isset($knownids[$depcmid])) {
+                    continue;
+                }
+                if (isset($edgeset[$cmid . '-' . $depcmid])) {
+                    continue; // Already represented by a completion edge.
+                }
+                $edgeset[$cmid . '-' . $depcmid] = true;
+                $key = min($cmid, $depcmid) . '-' . max($cmid, $depcmid);
+                $edges[] = [
+                    'from' => $cmid,
+                    'to' => $depcmid,
+                    'circular' => isset($circularedgeset[$key]),
+                ];
+            }
+        }
+
 
         return [
             'nodes' => $nodes,

@@ -72,6 +72,7 @@ class graph_page implements renderable, templatable {
      * @return array<string, mixed>
      */
     public function export_for_template(renderer_base $output): array {
+        global $DB;
         $course = $this->snapshot->course;
         $cms = $this->snapshot->cms;
         $groupids = array_filter(array_map('intval', $this->filters['groupids'] ?? []));
@@ -80,7 +81,24 @@ class graph_page implements renderable, templatable {
         $nextstepids = array_filter(array_map('intval', $this->filters['nextstepids'] ?? []));
 
         // Build shared analysis structures.
-        $depindex = new dependency_index($cms);
+        // Grade-item map: grade_items.id → cmid, used to resolve grade-based
+        // ... availability conditions to actual cmid pairs in the dependency graph.
+        $gradeitemmap = [];
+        $graderows = $DB->get_records_sql(
+            "SELECT gi.id, cm.id AS cmid
+               FROM {grade_items} gi
+               JOIN {modules} m ON m.name = gi.itemmodule
+               JOIN {course_modules} cm ON cm.module = m.id
+                                       AND cm.instance = gi.iteminstance
+                                       AND cm.course = gi.courseid
+              WHERE gi.courseid = :courseid AND gi.itemtype = 'mod'",
+            ['courseid' => (int) $course->id]
+        );
+        foreach ($graderows as $row) {
+            $gradeitemmap[(int) $row->id] = (int) $row->cmid;
+        }
+
+        $depindex = new dependency_index($cms, $gradeitemmap);
         $datecollector = new date_collector();
         $datesbycm = $datecollector->collect_grouped_by_cm($cms);
         $runner = new consistency_runner();

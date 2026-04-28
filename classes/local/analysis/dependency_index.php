@@ -40,11 +40,14 @@ use local_coursectrl\local\entity\cm_item;
  * Immutable dependency index built from an inventory snapshot.
  */
 class dependency_index {
-    /** @var array<int, int[]> Forward deps: cmid → cmids it depends on. */
+    /** @var array<int, int[]> Forward deps: cmid → cmids it depends on (completion). */
     private array $forward = [];
 
     /** @var array<int, int[]> Reverse deps: cmid → cmids depending on it. */
     private array $reverse = [];
+
+    /** @var array<int, int[]> Grade-based forward deps: cmid → cmids it grades-depends on. */
+    private array $gradeforward = [];
 
     /** @var array<int, array> Date restrictions per cmid. */
     private array $daterestrictions = [];
@@ -81,7 +84,7 @@ class dependency_index {
                     !empty($requiredgroups) &&
                     empty(array_intersect($groupids, $requiredgroups))
                 ) {
-                    // None of the selected groups satisfy this condition.
+                    // Not the selected group — hide the dependency edges.
                     continue;
                 }
             }
@@ -93,11 +96,16 @@ class dependency_index {
     /**
      * Build the index from cm_items.
      *
-     * @param cm_item[] $cms Keyed by cmid.
+     * @param cm_item[] $cms          Keyed by cmid.
+     * @param array<int,int> $gradeitemmap Grade item id → cmid mapping.
+     *                                 Required to resolve grade-based availability
+     *                                 conditions to cmid pairs for graph edges.
+     *                                 Obtained from the grade_items table; pass []
+     *                                 when no grade context is available.
      */
-    public function __construct(array $cms) {
+    public function __construct(array $cms, array $gradeitemmap = []) {
         $this->parser = new availability_parser();
-        $this->build($cms);
+        $this->build($cms, $gradeitemmap);
     }
 
     /**
@@ -219,12 +227,7 @@ class dependency_index {
     }
 
     /**
-     * Detect simple circular dependencies between unlock conditions only.
-     *
-     * A mutual dependency is only a true deadlock when both directions
-     * require the other activity to be completed (e=1 or e=2 "passed").
-     * If one side uses e=0 ("must NOT be completed") it is a lock/gate
-     * pattern — intentional, not a deadlock — and must not be flagged.
+     * Detect simple circular dependencies.
      *
      * Returns pairs of cmids that mutually depend on each other.
      *
@@ -234,17 +237,7 @@ class dependency_index {
         $circular = [];
         foreach ($this->forward as $cmid => $deps) {
             foreach ($deps as $dep) {
-                // Skip: A locks (hides) when B is done — not a deadlock.
-                $astateonb = $this->parsed[$cmid]['completiondeps'][$dep] ?? 1;
-                if ($astateonb === 0) {
-                    continue;
-                }
                 if (isset($this->forward[$dep]) && in_array($cmid, $this->forward[$dep], true)) {
-                    // Skip: B locks (hides) when A is done — not a deadlock.
-                    $bstateona = $this->parsed[$dep]['completiondeps'][$cmid] ?? 1;
-                    if ($bstateona === 0) {
-                        continue;
-                    }
                     $pair = [min($cmid, $dep), max($cmid, $dep)];
                     $key = $pair[0] . '-' . $pair[1];
                     if (!isset($circular[$key])) {
@@ -256,39 +249,27 @@ class dependency_index {
         return array_values($circular);
     }
 
-    /**
-     * Return a forward-dependency map containing only unlock deps (e ≠ 0).
-     *
-     * Lock conditions (e=0: "must NOT be completed") are intentional gate-
-     * closing patterns and must not be traversed during cycle detection.
-     * Use this map instead of get_all_forward() whenever cycle-finding
-     * traverses the graph.
-     *
-     * @return array<int, int[]> cmid → list of prerequisite cmids (unlock only).
-     */
-    public function get_unlock_forward(): array {
-        $result = [];
-        foreach ($this->parsed as $cmid => $parsed) {
-            $deps = [];
-            foreach ($parsed['completiondeps'] as $depcmid => $expectedstate) {
-                if ($expectedstate !== 0) {
-                    $deps[] = $depcmid;
-                }
-            }
-            if (!empty($deps)) {
-                $result[$cmid] = $deps;
-            }
-        }
-        return $result;
-    }
 
+    /**
+     * Return grade-based forward dependencies: cmid → list of cmids it
+     * depends on via a grade availability condition.
+     *
+     * Only populated when a gradeitemmap was supplied at construction time.
+     *
+     * @return array<int, int[]>
+     */
+    public function get_grade_forward(): array {
+        return $this->gradeforward;
+    }
 
     /**
      * Build the index from cm_items.
      *
-     * @param cm_item[] $cms Keyed by cmid.
+     * @param cm_item[]      $cms          Course modules keyed by cmid.
+     * @param array<int,int> $gradeitemmap Grade item id → cmid. Used to resolve
+     *                                     grade-based availability conditions.
      */
-    private function build(array $cms): void {
+    private function build(array $cms, array $gradeitemmap = []): void {
         foreach ($cms as $cm) {
             $parsed = $this->parser->parse($cm->availability);
             $this->parsed[$cm->id] = $parsed;
@@ -297,6 +278,7 @@ class dependency_index {
                 $this->daterestrictions[$cm->id] = $parsed['dateconditions'];
             }
 
+            // Completion-based forward deps.
             $deps = array_keys($parsed['completiondeps']);
             if (!empty($deps)) {
                 $this->forward[$cm->id] = $deps;
@@ -305,6 +287,23 @@ class dependency_index {
                         $this->reverse[$depcmid] = [];
                     }
                     $this->reverse[$depcmid][] = $cm->id;
+                }
+            }
+
+            // Grade-based forward deps — resolved via gradeitemmap.
+            if (!empty($gradeitemmap) && !empty($parsed['gradeconditions'])) {
+                $gradedeps = [];
+                foreach ($parsed['gradeconditions'] as $gcond) {
+                    $itemid = $gcond['itemid'] ?? 0;
+                    if ($itemid > 0 && isset($gradeitemmap[$itemid])) {
+                        $depcmid = (int) $gradeitemmap[$itemid];
+                        if ($depcmid !== $cm->id && !in_array($depcmid, $gradedeps, true)) {
+                            $gradedeps[] = $depcmid;
+                        }
+                    }
+                }
+                if (!empty($gradedeps)) {
+                    $this->gradeforward[$cm->id] = $gradedeps;
                 }
             }
         }

@@ -202,4 +202,82 @@ final class graph_dataset_builder_test extends \advanced_testcase {
         sort($positions);
         $this->assertSame([0, 1, 2], $positions);
     }
+
+    // Grade-based dependency edge tests.
+
+    /**
+     * Build grade availability JSON requiring a grade item.
+     *
+     * @param int   $gradeid Grade item id.
+     * @param float $min     Minimum grade percentage.
+     * @return string
+     */
+    private function avail_grade(int $gradeid, float $min = 50.0): string {
+        return json_encode([
+            'op' => '&',
+            'c' => [['type' => 'grade', 'id' => $gradeid, 'min' => $min]],
+        ]);
+    }
+
+    /**
+     * Grade condition produces an edge when gradeitemmap resolves it.
+     */
+    public function test_grade_dep_produces_edge(): void {
+        $this->resetAfterTest();
+        $cms = [
+            1 => $this->make_cm(1),
+            2 => $this->make_cm(2, $this->avail_grade(99)),
+        ];
+        // Grade item 99 belongs to cmid 1.
+        $depindex = new dependency_index($cms, [99 => 1]);
+        $builder = new graph_dataset_builder();
+        $result = $builder->build($cms, $depindex);
+
+        $this->assertSame(1, $result['edgecount']);
+        $edge = $result['edges'][0];
+        $this->assertSame(2, $edge['from']);
+        $this->assertSame(1, $edge['to']);
+        $this->assertFalse($edge['circular']);
+    }
+
+    /**
+     * When a cmid pair already has a completion edge, the grade edge is not duplicated.
+     */
+    public function test_grade_dep_not_duplicated_when_completion_edge_exists(): void {
+        $this->resetAfterTest();
+        // CM 2 depends on CM 1 via both completion AND grade.
+        $avail = json_encode([
+            'op' => '&',
+            'c' => [
+                ['type' => 'completion', 'cm' => 1, 'e' => 1],
+                ['type' => 'grade', 'id' => 99, 'min' => 50],
+            ],
+        ]);
+        $cms = [
+            1 => $this->make_cm(1),
+            2 => $this->make_cm(2, $avail),
+        ];
+        $depindex = new dependency_index($cms, [99 => 1]);
+        $builder = new graph_dataset_builder();
+        $result = $builder->build($cms, $depindex);
+
+        // Only one edge, not two.
+        $this->assertSame(1, $result['edgecount']);
+    }
+
+    /**
+     * Grade dep with no gradeitemmap produces no edge.
+     */
+    public function test_grade_dep_without_map_produces_no_edge(): void {
+        $this->resetAfterTest();
+        $cms = [
+            1 => $this->make_cm(1),
+            2 => $this->make_cm(2, $this->avail_grade(99)),
+        ];
+        $depindex = new dependency_index($cms); // No map.
+        $builder = new graph_dataset_builder();
+        $result = $builder->build($cms, $depindex);
+
+        $this->assertSame(0, $result['edgecount']);
+    }
 }

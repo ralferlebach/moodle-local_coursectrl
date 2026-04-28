@@ -66,34 +66,66 @@ class simulation_page implements renderable, templatable {
      * @return array<string,mixed>
      */
     public function export_for_template(renderer_base $output): array {
+        global $DB;
         $course = $this->snapshot->course;
         $cms = $this->snapshot->cms;
         $courseid = $course->id;
         $dateformat = get_string('strftimedaydatetime', 'core_langconfig');
         $now = time();
 
-        // Form defaults: list all CMs with checkbox + completion selector.
+        // Build grade-item map: gradeitemid → {cmid, grademax, gradepass}.
+        // Used by condition_evaluator to resolve grade availability conditions.
+        $gradeitemmap = [];
+        $gradeinfobycmid = [];
+        $sql = "SELECT gi.id, gi.iteminstance, gi.grademax, gi.gradepass, gi.itemmodule,
+                       cm.id AS cmid
+                  FROM {grade_items} gi
+                  JOIN {modules} m ON m.name = gi.itemmodule
+                  JOIN {course_modules} cm ON cm.module = m.id
+                                          AND cm.instance = gi.iteminstance
+                                          AND cm.course = gi.courseid
+                 WHERE gi.courseid = :courseid AND gi.itemtype = 'mod'";
+        $rows = $DB->get_records_sql($sql, ['courseid' => (int) $courseid]);
+        foreach ($rows as $row) {
+            $gradeitemmap[(int) $row->id] = [
+                'cmid'      => (int) $row->cmid,
+                'grademax'  => (float) ($row->grademax ?? 100.0),
+                'gradepass' => (float) ($row->gradepass ?? 0.0),
+            ];
+            $gradeinfobycmid[(int) $row->cmid] = [
+                'gradeitemid' => (int) $row->id,
+                'grademax'    => (float) ($row->grademax ?? 100.0),
+                'gradepass'   => (float) ($row->gradepass ?? 0.0),
+            ];
+        }
+
+        // Form defaults: per-CM activity state rows.
         $cmformrows = [];
         foreach ($cms as $cm) {
-            $completionlabel = '';
-            if ($cm->completion === 1) {
-                $completionlabel = get_string('dashboard_completion_manual', 'local_coursectrl');
-            } else if ($cm->completion === 2) {
-                $completionlabel = get_string('dashboard_completion_auto', 'local_coursectrl');
-            }
             $assumed = $this->state ? $this->state->get_completion($cm->id) : 0;
+            $gradeinfo = $gradeinfobycmid[$cm->id] ?? null;
+            $hasgrade = $gradeinfo !== null;
+            $haspassgrade = $hasgrade && ($gradeinfo['gradepass'] ?? 0.0) > 0.0;
+            $hascompletion = $cm->completion > 0;
+            $hasgradeoption = $hascompletion || $hasgrade;
+
+            if (!$hasgradeoption) {
+                continue; // Only show activities with at least one controllable state.
+            }
+
+            $assumedgrade = $this->state ? $this->state->get_grade($cm->id) : null;
+            $assumedgradestr = $assumedgrade !== null ? number_format($assumedgrade, 1) : '';
+
             $cmformrows[] = [
-                'cmid' => $cm->id,
-                'name' => $cm->name,
-                'cmname' => $cm->name,
-                'modname' => $cm->modname,
-                'modicon' => $cm->modname,
-                'hascompletion' => $cm->completion > 0,
-                'completionlabel' => $completionlabel,
+                'cmid'             => $cm->id,
+                'cmname'           => $cm->name,
+                'modname'          => $cm->modname,
+                'hascompletion'    => $hascompletion,
+                'haspassgrade'     => $haspassgrade,
+                'hasgrade'         => $hasgrade,
                 'assumed_complete' => $assumed >= 1,
-                'assumed_pass' => $assumed === 2,
-                'assumed_fail' => $assumed === 3,
-                'iscomplete' => $assumed >= 1,
+                'assumed_passed'   => $assumed === 2,
+                'assumed_grade'    => $assumedgradestr,
             ];
         }
 
@@ -124,7 +156,8 @@ class simulation_page implements renderable, templatable {
         $nextstepids = [];
 
         if ($hasresults) {
-            $simulator = new visibility_simulator();
+            $evaluator = new condition_evaluator($gradeitemmap);
+            $simulator = new visibility_simulator($evaluator);
             $simresults = $simulator->simulate($cms, $this->state);
             $engine = new next_step_engine();
             $nextstepids = $engine->find_next_steps($simresults, $cms, $this->state);

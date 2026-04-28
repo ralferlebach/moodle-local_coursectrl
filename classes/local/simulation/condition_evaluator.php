@@ -26,7 +26,9 @@
  *   date         — compares simulated timestamp against the threshold.
  *   group        — checks assumed group membership.
  *   grouping     — checks assumed grouping membership.
- *   grade        — always returns 'unknown' (grades are not simulated).
+ *   grade        — evaluates the simulated grade percentage against min/max
+ *                  thresholds when a gradeitemmap is supplied; otherwise
+ *                  returns 'unknown'.
  *   (others)     — always return 'unknown'.
  *
  * Operators handled:
@@ -59,6 +61,27 @@ class condition_evaluator {
 
     /** @var string Condition cannot be evaluated. */
     public const STATUS_UNKNOWN = 'unknown';
+
+    /**
+     * Grade item id → ['cmid' => int, 'grademax' => float] map.
+     *
+     * Populated externally by the simulation layer so that grade availability
+     * conditions (which reference grade_items.id) can be resolved to cmids
+     * and evaluated against the learner state's grade percentages.
+     *
+     * @var array<int, array{cmid: int, grademax: float}>
+     */
+    private array $gradeitemmap;
+
+    /**
+     * Constructor.
+     *
+     * @param array<int, array> $gradeitemmap Optional map of grade item id →
+     *   ['cmid' => int, 'grademax' => float]. Required to evaluate grade conditions.
+     */
+    public function __construct(array $gradeitemmap = []) {
+        $this->gradeitemmap = $gradeitemmap;
+    }
 
     /**
      * Evaluate a raw availability JSON string against a learner state.
@@ -156,13 +179,7 @@ class condition_evaluator {
                 return $this->eval_grouping($condition, $state, $reasons);
 
             case 'grade':
-                $reasons[] = [
-                    'type' => 'grade',
-                    'status' => self::STATUS_UNKNOWN,
-                    'detail' => 'grade_not_simulated',
-                    'itemid' => (int) ($condition['id'] ?? 0),
-                ];
-                return self::STATUS_UNKNOWN;
+                return $this->eval_grade($condition, $state, $reasons);
 
             default:
                 $reasons[] = [
@@ -266,6 +283,55 @@ class condition_evaluator {
             'type' => 'grouping',
             'status' => $status,
             'groupingid' => $groupingid,
+        ];
+        return $status;
+    }
+
+    /**
+     * Evaluate a grade condition against the simulated learner grade.
+     *
+     * Grade condition JSON fields:
+     *   id  — grade_items.id (resolved via gradeitemmap to cmid)
+     *   min — minimum grade percentage for condition to pass (optional)
+     *   max — maximum grade percentage (exclusive) for condition to pass (optional)
+     *
+     * Returns STATUS_UNKNOWN when no grade is simulated for this item.
+     *
+     * @param array         $condition Condition node.
+     * @param learner_state $state     Learner state.
+     * @param array         $reasons   Reasons list (modified in place).
+     * @return string STATUS_*
+     */
+    private function eval_grade(array $condition, learner_state $state, array &$reasons): string {
+        $itemid = (int) ($condition['id'] ?? 0);
+        $min = isset($condition['min']) ? (float) $condition['min'] : null;
+        $max = isset($condition['max']) ? (float) $condition['max'] : null;
+
+        $cmid = $this->gradeitemmap[$itemid]['cmid'] ?? null;
+        $grade = $cmid !== null ? $state->get_grade($cmid) : null;
+
+        if ($grade === null) {
+            $reasons[] = [
+                'type'   => 'grade',
+                'status' => self::STATUS_UNKNOWN,
+                'detail' => 'grade_not_simulated',
+                'itemid' => $itemid,
+                'min'    => $min,
+                'max'    => $max,
+            ];
+            return self::STATUS_UNKNOWN;
+        }
+
+        $pass = ($min === null || $grade >= $min) && ($max === null || $grade < $max);
+        $status = $pass ? self::STATUS_PASS : self::STATUS_FAIL;
+        $reasons[] = [
+            'type'      => 'grade',
+            'status'    => $status,
+            'itemid'    => $itemid,
+            'cmid'      => $cmid,
+            'grade'     => $grade,
+            'min'       => $min,
+            'max'       => $max,
         ];
         return $status;
     }

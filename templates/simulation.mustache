@@ -110,22 +110,55 @@
           <button type="button"
                   class="btn btn-sm btn-outline-secondary"
                   data-action="toggle-simdropdown">
-            {{#str}} sim_set_completions, local_coursectrl {{/str}}
+            {{#str}} sim_activity_states, local_coursectrl {{/str}}
           </button>
-          <ul class="position-absolute bg-white border rounded shadow-sm p-2 mt-1 d-none"
-              data-region="local_coursectrl-simdropdown-menu"
-              style="z-index:1050;min-width:260px;max-height:300px;overflow-y:auto;list-style:none;margin:0;padding-left:0">
+          <div class="position-absolute bg-white border rounded shadow-sm p-2 mt-1 d-none"
+               data-region="local_coursectrl-simdropdown-menu"
+               style="z-index:1050;min-width:340px;max-height:360px;overflow-y:auto">
             {{#cmformrows}}
-            <li class="coursectrl-simdrop-item">
-              <input class="form-check-input" type="checkbox"
-                     name="completions[{{cmid}}]" value="1"
-                     id="simcm-{{cmid}}"{{#iscomplete}} checked{{/iscomplete}}>
-              <label class="form-check-label" for="simcm-{{cmid}}">
+            <div class="coursectrl-simdrop-item border-bottom pb-2 mb-2">
+              <div class="fw-semibold small mb-1">
+                {{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}
                 {{cmname}}
-              </label>
-            </li>
+              </div>
+              <div class="d-flex gap-3 align-items-center flex-wrap ps-1">
+                {{#hascompletion}}
+                <div class="form-check form-check-inline mb-0">
+                  <input class="form-check-input" type="checkbox"
+                         name="sim_complete[{{cmid}}]" value="1"
+                         id="simcomplete-{{cmid}}"{{#assumed_complete}} checked{{/assumed_complete}}>
+                  <label class="form-check-label small" for="simcomplete-{{cmid}}">
+                    {{#str}} sim_label_completed, local_coursectrl {{/str}}
+                  </label>
+                </div>
+                {{/hascompletion}}
+                {{#haspassgrade}}
+                <div class="form-check form-check-inline mb-0">
+                  <input class="form-check-input" type="checkbox"
+                         name="sim_passed[{{cmid}}]" value="1"
+                         id="simpassed-{{cmid}}"{{#assumed_passed}} checked{{/assumed_passed}}>
+                  <label class="form-check-label small" for="simpassed-{{cmid}}">
+                    {{#str}} sim_label_passed, local_coursectrl {{/str}}
+                  </label>
+                </div>
+                {{/haspassgrade}}
+                {{#hasgrade}}
+                <div class="d-flex align-items-center gap-1">
+                  <label class="form-label mb-0 small text-nowrap" for="simgrade-{{cmid}}">
+                    {{#str}} sim_label_grade_pct, local_coursectrl {{/str}}
+                  </label>
+                  <input type="number" class="form-control form-control-sm"
+                         id="simgrade-{{cmid}}"
+                         name="sim_grade[{{cmid}}]"
+                         min="0" max="100" step="0.1"
+                         value="{{assumed_grade}}"
+                         style="width:5rem">
+                </div>
+                {{/hasgrade}}
+              </div>
+            </div>
             {{/cmformrows}}
-          </ul>
+          </div>
         </div>
       </div>
       {{/hascmformrows}}

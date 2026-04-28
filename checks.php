@@ -63,7 +63,40 @@ if ($tab === 'simulation' && $run) {
         array_map('intval', optional_param_array('groupingids', [], PARAM_INT)),
         fn ($id) => $id > 0
     ));
-    $simstate = new learner_state($simts, $completionsparam, $groupids, $groupingids);
+
+    // Extended state: separate completion/passed checkboxes + grade percentages.
+    $simcomplete  = optional_param_array('sim_complete', [], PARAM_INT);
+    $simpassed    = optional_param_array('sim_passed', [], PARAM_INT);
+    $simgradesraw = optional_param_array('sim_grade', [], PARAM_RAW);
+
+    if (!empty($simcomplete) || !empty($simpassed)) {
+        $completionsparam = [];
+        $allcmids = array_unique(array_merge(
+            array_keys($simcomplete),
+            array_keys($simpassed)
+        ));
+        foreach ($allcmids as $cmidstr) {
+            $cmid = (int) $cmidstr;
+            if (empty($simcomplete[$cmidstr])) {
+                $completionsparam[$cmid] = 0;
+            } else if (!empty($simpassed[$cmidstr])) {
+                $completionsparam[$cmid] = 2;
+            } else {
+                $completionsparam[$cmid] = 3;
+            }
+        }
+    }
+
+    $simgrades = [];
+    foreach ($simgradesraw as $cmidstr => $rawval) {
+        $rawval = trim((string) $rawval);
+        if ($rawval === '' || !is_numeric($rawval)) {
+            continue;
+        }
+        $simgrades[(int) $cmidstr] = max(0.0, min(100.0, (float) $rawval));
+    }
+
+    $simstate = new learner_state($simts, $completionsparam, $groupids, $groupingids, $simgrades);
 }
 
 $PAGE->set_course($course);

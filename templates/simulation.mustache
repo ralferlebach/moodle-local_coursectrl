@@ -112,52 +112,85 @@
                   data-action="toggle-simdropdown">
             {{#str}} sim_activity_states, local_coursectrl {{/str}}
           </button>
-          <div class="position-absolute bg-white border rounded shadow-sm p-2 mt-1 d-none"
+          <div class="position-absolute bg-white border rounded shadow-sm mt-1 d-none"
                data-region="local_coursectrl-simdropdown-menu"
-               style="z-index:1050;min-width:340px;max-height:360px;overflow-y:auto">
-            {{#cmformrows}}
-            <div class="coursectrl-simdrop-item border-bottom pb-2 mb-2">
-              <div class="fw-semibold small mb-1">
-                {{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}
-                {{cmname}}
-              </div>
-              <div class="d-flex gap-3 align-items-center flex-wrap ps-1">
-                {{#hascompletion}}
-                <div class="form-check form-check-inline mb-0">
-                  <input class="form-check-input" type="checkbox"
-                         name="sim_complete[{{cmid}}]" value="1"
-                         id="simcomplete-{{cmid}}"{{#assumed_complete}} checked{{/assumed_complete}}>
-                  <label class="form-check-label small" for="simcomplete-{{cmid}}">
-                    {{#str}} sim_label_completed, local_coursectrl {{/str}}
-                  </label>
-                </div>
-                {{/hascompletion}}
-                {{#haspassgrade}}
-                <div class="form-check form-check-inline mb-0">
-                  <input class="form-check-input" type="checkbox"
-                         name="sim_passed[{{cmid}}]" value="1"
-                         id="simpassed-{{cmid}}"{{#assumed_passed}} checked{{/assumed_passed}}>
-                  <label class="form-check-label small" for="simpassed-{{cmid}}">
-                    {{#str}} sim_label_passed, local_coursectrl {{/str}}
-                  </label>
-                </div>
-                {{/haspassgrade}}
-                {{#hasgrade}}
-                <div class="d-flex align-items-center gap-1">
-                  <label class="form-label mb-0 small text-nowrap" for="simgrade-{{cmid}}">
-                    {{#str}} sim_label_grade_pct, local_coursectrl {{/str}}
-                  </label>
-                  <input type="number" class="form-control form-control-sm"
-                         id="simgrade-{{cmid}}"
-                         name="sim_grade[{{cmid}}]"
-                         min="0" max="100" step="0.1"
-                         value="{{assumed_grade}}"
-                         style="width:5rem">
-                </div>
-                {{/hasgrade}}
-              </div>
-            </div>
-            {{/cmformrows}}
+               style="z-index:1050;min-width:360px;max-height:380px;overflow-y:auto;padding:.5rem">
+            <table class="table table-sm table-borderless mb-0 w-100"
+                   style="table-layout:fixed">
+              <colgroup>
+                <col>
+                <col style="width:2.25rem">
+                <col style="width:2.25rem">
+                <col style="width:5rem">
+              </colgroup>
+              <thead>
+                <tr class="border-bottom">
+                  <th class="py-1 ps-0 small text-muted fw-normal"></th>
+                  <th class="py-1 text-center small text-muted fw-semibold"
+                      title="{{sim_lbl_completed}}">✓</th>
+                  <th class="py-1 text-center small text-muted fw-semibold"
+                      title="{{sim_lbl_passed}}">★</th>
+                  <th class="py-1 text-center small text-muted fw-semibold"
+                      title="{{sim_lbl_grade}}">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{#cmformrows}}
+                <tr>
+                  <td class="py-1 ps-0 small" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                    {{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}
+                    {{cmname}}
+                  </td>
+                  <td class="py-1 text-center align-middle">
+                    {{#completion_enabled}}
+                    <input type="checkbox" class="form-check-input mt-0"
+                           name="sim_complete[{{cmid}}]" value="1"
+                           title="{{lbl_completed}}"
+                           {{#assumed_complete}} checked{{/assumed_complete}}>
+                    {{/completion_enabled}}
+                    {{#completion_disabled}}
+                    <input type="checkbox" class="form-check-input mt-0"
+                           name="sim_complete[{{cmid}}]" value="1"
+                           title="{{lbl_no_complete}}"
+                           disabled style="opacity:.35;cursor:not-allowed">
+                    {{/completion_disabled}}
+                  </td>
+                  <td class="py-1 text-center align-middle">
+                    {{#passgrade_enabled}}
+                    <input type="checkbox" class="form-check-input mt-0"
+                           name="sim_passed[{{cmid}}]" value="1"
+                           title="{{lbl_passed}}"
+                           {{#assumed_passed}} checked{{/assumed_passed}}>
+                    {{/passgrade_enabled}}
+                    {{#passgrade_disabled}}
+                    <input type="checkbox" class="form-check-input mt-0"
+                           name="sim_passed[{{cmid}}]" value="1"
+                           title="{{lbl_no_passed}}"
+                           disabled style="opacity:.35;cursor:not-allowed">
+                    {{/passgrade_disabled}}
+                  </td>
+                  <td class="py-1 align-middle">
+                    {{#grade_enabled}}
+                    <input type="number" class="form-control form-control-sm"
+                           name="sim_grade[{{cmid}}]"
+                           min="0" max="100" step="0.1"
+                           value="{{assumed_grade}}"
+                           title="{{lbl_grade}}"
+                           style="width:4.5rem">
+                    {{/grade_enabled}}
+                    {{#grade_disabled}}
+                    <input type="number" class="form-control form-control-sm"
+                           name="sim_grade[{{cmid}}]"
+                           min="0" max="100" step="0.1"
+                           value=""
+                           title="{{lbl_no_grade}}"
+                           disabled style="width:4.5rem;opacity:.35">
+                    {{/grade_disabled}}
+                  </td>
+                </tr>
+                {{/cmformrows}}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

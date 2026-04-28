@@ -99,33 +99,76 @@ class simulation_page implements renderable, templatable {
             ];
         }
 
+        // Pre-render tooltip strings once (cannot use {{#str}} inside HTML attributes).
+        $lbl = [
+            'completed'    => get_string('sim_label_completed', 'local_coursectrl'),
+            'passed'       => get_string('sim_label_passed', 'local_coursectrl'),
+            'grade'        => get_string('sim_label_grade_pct', 'local_coursectrl'),
+            'no_complete'  => get_string('sim_col_nocompletion', 'local_coursectrl'),
+            'no_passed'    => get_string('sim_col_nopassgrade', 'local_coursectrl'),
+            'no_grade'     => get_string('sim_col_nograde', 'local_coursectrl'),
+        ];
+
         // Form defaults: per-CM activity state rows.
         $cmformrows = [];
         foreach ($cms as $cm) {
             $assumed = $this->state ? $this->state->get_completion($cm->id) : 0;
             $gradeinfo = $gradeinfobycmid[$cm->id] ?? null;
             $hasgrade = $gradeinfo !== null;
-            $haspassgrade = $hasgrade && ($gradeinfo['gradepass'] ?? 0.0) > 0.0;
+            $grademax = $hasgrade ? (float) ($gradeinfo['grademax'] ?? 100.0) : 0.0;
+            $gradepass = $hasgrade ? (float) ($gradeinfo['gradepass'] ?? 0.0) : 0.0;
+            $haspassgrade = $hasgrade && $gradepass > 0.0;
+            $gradeable = $hasgrade && $grademax > 0.0;
             $hascompletion = $cm->completion > 0;
-            $hasgradeoption = $hascompletion || $hasgrade;
 
-            if (!$hasgradeoption) {
-                continue; // Only show activities with at least one controllable state.
+            // Exclude activities with nothing to control.
+            if (!$hascompletion && !$hasgrade) {
+                continue;
             }
 
             $assumedgrade = $this->state ? $this->state->get_grade($cm->id) : null;
             $assumedgradestr = $assumedgrade !== null ? number_format($assumedgrade, 1) : '';
 
+            // Completion column: enabled (active) or disabled (grayed, not configured).
+            $completionenabled  = $hascompletion;
+            $completiondisabled = !$hascompletion && $hasgrade;
+
+            // Passed column: visible only when grade item exists.
+            $passgradevisible  = $hasgrade;
+            $passgradeenabled  = $haspassgrade;
+            $passgradadisabled = $hasgrade && !$haspassgrade;
+
+            // Grade column: enabled when grade item has a max grade; disabled when grademax=0.
+            $gradevisible  = $hasgrade;
+            $gradeenabled  = $gradeable;
+            $gradedisabled = $hasgrade && !$gradeable;
+
             $cmformrows[] = [
-                'cmid'             => $cm->id,
-                'cmname'           => $cm->name,
-                'modname'          => $cm->modname,
-                'hascompletion'    => $hascompletion,
-                'haspassgrade'     => $haspassgrade,
-                'hasgrade'         => $hasgrade,
-                'assumed_complete' => $assumed >= 1,
-                'assumed_passed'   => $assumed === 2,
-                'assumed_grade'    => $assumedgradestr,
+                'cmid'    => $cm->id,
+                'cmname'  => $cm->name,
+                'modname' => $cm->modname,
+                // Completion.
+                'completion_enabled'  => $completionenabled,
+                'completion_disabled' => $completiondisabled,
+                // Passed.
+                'passgrade_visible'   => $passgradevisible,
+                'passgrade_enabled'   => $passgradeenabled,
+                'passgrade_disabled'  => $passgradadisabled,
+                // Grade.
+                'grade_visible'       => $gradevisible,
+                'grade_enabled'       => $gradeenabled,
+                'grade_disabled'      => $gradedisabled,
+                // Assumed values.
+                'assumed_complete'    => $assumed >= 1,
+                'assumed_passed'      => $assumed === 2,
+                'assumed_grade'       => $assumedgradestr,
+                // Tooltip strings (cannot be rendered from inside Mustache attribute).
+                'lbl_completed'       => $lbl['completed'],
+                'lbl_passed'          => $lbl['passed'],
+                'lbl_grade'           => $lbl['grade'],
+                'lbl_no_complete'     => $lbl['no_complete'],
+                'lbl_no_passed'       => $lbl['no_passed'],
+                'lbl_no_grade'        => $lbl['no_grade'],
             ];
         }
 
@@ -244,6 +287,10 @@ class simulation_page implements renderable, templatable {
             'hasresults' => $hasresults,
             'cmformrows' => $cmformrows,
             'hascmformrows' => count($cmformrows) > 0,
+            // Top-level label strings for the table header (cannot use {{#str}} in attributes).
+            'sim_lbl_completed' => $lbl['completed'],
+            'sim_lbl_passed'    => $lbl['passed'],
+            'sim_lbl_grade'     => $lbl['grade'],
             'simdate' => $simdate,
             'simtime' => $simtime,
             'simts' => $simts,

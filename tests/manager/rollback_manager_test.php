@@ -152,7 +152,7 @@ final class rollback_manager_test extends \advanced_testcase {
     public function test_rollback_nonexistent_batch_returns_error(): void {
         $this->resetAfterTest();
         $manager = new rollback_manager();
-        $result = $manager->rollback_batch(999999, 2);
+        $result = $manager->rollback_batch(0, 999999, 2);
         $this->assertFalse($result['success']);
         $this->assertSame('batch_not_found', $result['error']);
     }
@@ -165,7 +165,7 @@ final class rollback_manager_test extends \advanced_testcase {
         $this->resetAfterTest();
         $batchid = $this->create_batch(1, batch::STATUS_ROLLED_BACK);
         $manager = new rollback_manager();
-        $result = $manager->rollback_batch($batchid, 2);
+        $result = $manager->rollback_batch(1, $batchid, 2);
         $this->assertFalse($result['success']);
         $this->assertSame('batch_not_rollbackable', $result['error']);
     }
@@ -178,7 +178,7 @@ final class rollback_manager_test extends \advanced_testcase {
         $this->resetAfterTest();
         $batchid = $this->create_batch(1, batch::STATUS_EXECUTED);
         $manager = new rollback_manager();
-        $result = $manager->rollback_batch($batchid, 2);
+        $result = $manager->rollback_batch(1, $batchid, 2);
         $this->assertFalse($result['success']);
         $this->assertSame('no_snapshots', $result['error']);
     }
@@ -193,7 +193,7 @@ final class rollback_manager_test extends \advanced_testcase {
         $this->create_snapshot($batchid, 10, 'mod_nonexistent', ['foo' => 1]);
 
         $manager = new rollback_manager();
-        $result = $manager->rollback_batch($batchid, 2);
+        $result = $manager->rollback_batch(1, $batchid, 2);
 
         // Failed because no adapter exists.
         $this->assertFalse($result['success']);

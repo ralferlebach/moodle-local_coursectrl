@@ -229,7 +229,7 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
 
         // Rollback.
         $rollbackmgr = new rollback_manager();
-        $result = $rollbackmgr->rollback_batch($batchid, $admin->id);
+        $result = $rollbackmgr->rollback_batch($data['courseid'], $batchid, $admin->id);
 
         $this->assertTrue($result['success'], 'Rollback should succeed: ' . ($result['error'] ?? ''));
         $this->assertSame(0, $result['failed'], 'No failures in rollback');
@@ -261,7 +261,7 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
         );
 
         $rollbackmgr = new rollback_manager();
-        $result = $rollbackmgr->rollback_batch($batchid, $admin->id);
+        $result = $rollbackmgr->rollback_batch($data['courseid'], $batchid, $admin->id);
 
         $this->assertTrue($result['success']);
         $quiz = $DB->get_record('quiz', ['id' => $data['quiziid']]);
@@ -292,7 +292,7 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
         );
 
         $rollbackmgr = new rollback_manager();
-        $rollbackmgr->rollback_batch($batchid, $admin->id);
+        $rollbackmgr->rollback_batch($data['courseid'], $batchid, $admin->id);
 
         $batches = $rollbackmgr->get_course_batches($data['courseid']);
         $rolledback = array_filter($batches, fn($b) => $b['id'] === $batchid);
@@ -311,7 +311,7 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
         $this->resetAfterTest();
         $admin = get_admin();
         $rollbackmgr = new rollback_manager();
-        $result = $rollbackmgr->rollback_batch(99999, $admin->id);
+        $result = $rollbackmgr->rollback_batch(0, 99999, $admin->id);
         $this->assertFalse($result['success']);
         $this->assertNotEmpty($result['error']);
     }
@@ -348,7 +348,7 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
 
         // Rollback des zweiten Batch → zurück auf +1 Woche.
         $rollbackmgr = new rollback_manager();
-        $r2 = $rollbackmgr->rollback_batch($batchid2, $admin->id);
+        $r2 = $rollbackmgr->rollback_batch($data['courseid'], $batchid2, $admin->id);
         $this->assertTrue($r2['success']);
 
         $afterr2 = (int) $DB->get_field('assign', 'duedate', ['id' => $data['assigniid']]);
@@ -359,7 +359,7 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
         );
 
         // Rollback des ersten Batch → zurück auf original.
-        $r1 = $rollbackmgr->rollback_batch($batchid1, $admin->id);
+        $r1 = $rollbackmgr->rollback_batch($data['courseid'], $batchid1, $admin->id);
         $this->assertTrue($r1['success']);
         $afterr1 = (int) $DB->get_field('assign', 'duedate', ['id' => $data['assigniid']]);
         $this->assertSame($original, $afterr1, 'After rolling back batch 1, value should be fully restored');

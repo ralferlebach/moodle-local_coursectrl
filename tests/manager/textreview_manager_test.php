@@ -328,11 +328,9 @@ final class textreview_manager_test extends \advanced_testcase {
         $hitid   = $this->insert_hit((int) $course1->id, (int) $course1->id);
 
         $manager = $this->manager();
-        // Pass course1's hit id but claim it belongs to course2.
-        $result = $manager->apply_changes((int) $course2->id, [$hitid], 86400);
-
-        // The hit was filtered out — zero changes.
-        $this->assertEquals(0, $result['applied']);
+        // Pass course1's hit id but claim it belongs to course2 — must be rejected (P0-C).
+        $this->expectException(\core\exception\moodle_exception::class);
+        $manager->apply_changes((int) $course2->id, [$hitid], 86400);
     }
 
     /**

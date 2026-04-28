@@ -201,14 +201,9 @@ final class apply_text_changes_test extends \advanced_testcase {
             $this->markTestSkipped('No safe hits produced for cross-course isolation test.');
         }
 
-        // Apply course1 hit ids against course2 — should produce zero changes.
-        $result = apply_text_changes::execute((int) $course2->id, $hitids, 86400);
-
-        $this->assertEquals(0, $result['applied']);
-
-        // Course2 summary must be unchanged.
-        $summary2 = $DB->get_field('course', 'summary', ['id' => $course2->id]);
-        $this->assertStringContainsString(self::DATE_ORIGINAL, $summary2);
+        // Apply course1 hit ids against course2 — must now be rejected (P0-C).
+        $this->expectException(\core\exception\moodle_exception::class);
+        apply_text_changes::execute((int) $course2->id, $hitids, 86400);
     }
 
     // A3.7  capability gate.

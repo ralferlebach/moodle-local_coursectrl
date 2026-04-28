@@ -73,7 +73,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
      * @param int $depcmid
      * @return string
      */
-    private function requires(int $depcmid): string {
+    private function avail_requires(int $depcmid): string {
         return json_encode([
             'op' => '&',
             'c' => [['type' => 'completion', 'cm' => $depcmid, 'e' => 1]],
@@ -115,8 +115,8 @@ final class deep_journey_simulator_test extends \advanced_testcase {
         $this->resetAfterTest();
         $cms = [
             1 => $this->cm(1),
-            2 => $this->cm(2, $this->requires(1)),
-            3 => $this->cm(3, $this->requires(2)),
+            2 => $this->cm(2, $this->avail_requires(1)),
+            3 => $this->cm(3, $this->avail_requires(2)),
         ];
         $ev = new condition_evaluator();
         $result = $this->sim()->simulate_journey($cms, $ev, [], [], 'pass', self::TS);
@@ -135,7 +135,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
         $this->resetAfterTest();
         $cms = [
             1 => $this->cm(1, null, false), // Hidden.
-            2 => $this->cm(2, $this->requires(1)),
+            2 => $this->cm(2, $this->avail_requires(1)),
         ];
         $ev = new condition_evaluator();
         $result = $this->sim()->simulate_journey($cms, $ev, [], [], 'pass', self::TS);
@@ -150,8 +150,8 @@ final class deep_journey_simulator_test extends \advanced_testcase {
     public function test_circular_dep_both_unreachable(): void {
         $this->resetAfterTest();
         $cms = [
-            10 => $this->cm(10, $this->requires(11)),
-            11 => $this->cm(11, $this->requires(10)),
+            10 => $this->cm(10, $this->avail_requires(11)),
+            11 => $this->cm(11, $this->avail_requires(10)),
         ];
         $ev = new condition_evaluator();
         $result = $this->sim()->simulate_journey($cms, $ev, [], [], 'pass', self::TS);
@@ -168,7 +168,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
         $this->resetAfterTest();
         $cms = [
             1 => $this->cm(1),
-            2 => $this->cm(2, $this->requires(1)),
+            2 => $this->cm(2, $this->avail_requires(1)),
         ];
         $ev = new condition_evaluator();
         $result = $this->sim(30)->simulate_journey($cms, $ev, [], [], 'pass', self::TS);
@@ -241,8 +241,8 @@ final class deep_journey_simulator_test extends \advanced_testcase {
     public function test_simulate_circular_produces_findings(): void {
         $this->resetAfterTest();
         $cms = [
-            10 => $this->cm(10, $this->requires(11)),
-            11 => $this->cm(11, $this->requires(10)),
+            10 => $this->cm(10, $this->avail_requires(11)),
+            11 => $this->cm(11, $this->avail_requires(10)),
         ];
         $findings = $this->sim()->simulate($cms, []);
         $types = array_column($findings, 'type');
@@ -256,8 +256,8 @@ final class deep_journey_simulator_test extends \advanced_testcase {
     public function test_simulate_escalates_severity_for_critcmid(): void {
         $this->resetAfterTest();
         $cms = [
-            10 => $this->cm(10, $this->requires(11)),
-            11 => $this->cm(11, $this->requires(10)),
+            10 => $this->cm(10, $this->avail_requires(11)),
+            11 => $this->cm(11, $this->avail_requires(10)),
         ];
         // CM 10 is required for course completion.
         $findings = $this->sim()->simulate($cms, [], [], [], [10]);
@@ -279,8 +279,8 @@ final class deep_journey_simulator_test extends \advanced_testcase {
     public function test_simulate_finding_has_simlink(): void {
         $this->resetAfterTest();
         $cms = [
-            10 => $this->cm(10, $this->requires(11)),
-            11 => $this->cm(11, $this->requires(10)),
+            10 => $this->cm(10, $this->avail_requires(11)),
+            11 => $this->cm(11, $this->avail_requires(10)),
         ];
         $findings = $this->sim()->simulate($cms, []);
         foreach ($findings as $f) {

@@ -382,9 +382,10 @@ final class course_frame_checker_test extends \advanced_testcase {
         $this->resetAfterTest();
         $checker = new course_frame_checker();
         $cm = $this->make_cm(10, 'assign', 0);
-        $future = self::DATE_FUTURE + 10 * 86400;
-        $dates = [10 => [$this->make_date(10, 'duedate', $future)]];
-        $result = $checker->check([10 => $cm], $dates, $this->make_course(0, self::DATE_FUTURE), [10]);
+        // Activity date is after course end → r0_after_course_end (always error).
+        // Even when cmid is in critcmids, severity must not escalate beyond error.
+        $dates = [10 => [$this->make_date(10, 'duedate', self::DATE_AFTER_END)]];
+        $result = $checker->check([10 => $cm], $dates, $this->make_course(0, self::DATE_INSIDE), [10]);
 
         $issue = current(array_filter($result[10] ?? [], fn ($i) => $i['type'] === 'r0_after_course_end'));
         $this->assertNotFalse($issue);

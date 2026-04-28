@@ -542,6 +542,7 @@ $string['sim_total'] = 'Gesamt';
 $string['sim_tracking_active'] = 'Aktiv';
 $string['sim_tracking_off'] = 'Abgeschaltet';
 $string['stub_placeholder'] = 'Kursablauf-Zentrale – Phase-1-Stub. Die vollständige Oberfläche folgt in Phase 2.';
+$string['subplugintype_coursectrlcal'] = 'Kursablauf-Kalender';
 $string['subplugintype_coursectrlcal_plural'] = 'Kursablauf-Kalender';
 $string['subplugintype_coursectrlmod'] = 'Aktivitätsadapter';
 $string['subplugintype_coursectrlmod_plural'] = 'Aktivitätsadapter';

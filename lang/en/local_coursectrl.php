@@ -542,6 +542,7 @@ $string['sim_total'] = 'Total';
 $string['sim_tracking_active'] = 'Active';
 $string['sim_tracking_off'] = 'Off';
 $string['stub_placeholder'] = 'Course Control Hub – Phase 1 stub. Full interface coming in Phase 2.';
+$string['subplugintype_coursectrlcal'] = 'Course control calendar';
 $string['subplugintype_coursectrlcal_plural'] = 'Course control calendars';
 $string['subplugintype_coursectrlmod'] = 'Activity adapter';
 $string['subplugintype_coursectrlmod_plural'] = 'Activity adapters';

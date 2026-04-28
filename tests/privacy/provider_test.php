@@ -169,14 +169,13 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
         $this->assertInstanceOf(collection::class, $result);
 
-        $items = $result->get_collection();
-        $keys = array_keys($items);
+        $names = array_map(fn ($item) => $item->get_name(), $result->get_collection());
 
-        $this->assertContains('local_coursectrl_batch', $keys);
-        $this->assertContains('local_coursectrl_preset', $keys);
-        $this->assertContains('local_coursectrl_report', $keys);
-        $this->assertContains('local_coursectrl_showcalendar', $keys);
-        $this->assertContains('local_coursectrl_immediateapply', $keys);
+        $this->assertContains('local_coursectrl_batch', $names);
+        $this->assertContains('local_coursectrl_preset', $names);
+        $this->assertContains('local_coursectrl_report', $names);
+        $this->assertContains('local_coursectrl_showcalendar', $names);
+        $this->assertContains('local_coursectrl_immediateapply', $names);
     }
 
     // A1.2  get_contexts_for_userid.
@@ -187,15 +186,15 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
     public function test_get_contexts_for_userid_returns_batch_context(): void {
         $this->resetAfterTest();
 
-        $user   = $this->getDataGenerator()->create_user();
-        $course = $this->getDataGenerator()->create_course();
+        $user    = $this->getDataGenerator()->create_user();
+        $course  = $this->getDataGenerator()->create_course();
+        $context = \context_course::instance($course->id); // Ensure context row exists in DB.
         $this->insert_batch((int) $user->id, (int) $course->id);
 
         $contextlist = provider::get_contexts_for_userid((int) $user->id);
         $contextids  = $contextlist->get_contextids();
 
-        $expected = \context_course::instance($course->id)->id;
-        $this->assertContains($expected, $contextids);
+        $this->assertContains((int) $context->id, array_map('intval', $contextids));
     }
 
     /**
@@ -204,15 +203,15 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
     public function test_get_contexts_for_userid_returns_preset_context(): void {
         $this->resetAfterTest();
 
-        $user   = $this->getDataGenerator()->create_user();
-        $course = $this->getDataGenerator()->create_course();
+        $user    = $this->getDataGenerator()->create_user();
+        $course  = $this->getDataGenerator()->create_course();
+        $context = \context_course::instance($course->id); // Ensure context row exists in DB.
         $this->insert_preset((int) $user->id, (int) $course->id);
 
         $contextlist = provider::get_contexts_for_userid((int) $user->id);
         $contextids  = $contextlist->get_contextids();
 
-        $expected = \context_course::instance($course->id)->id;
-        $this->assertContains($expected, $contextids);
+        $this->assertContains((int) $context->id, array_map('intval', $contextids));
     }
 
     /**

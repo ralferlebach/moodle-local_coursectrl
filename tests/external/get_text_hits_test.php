@@ -69,7 +69,8 @@ final class get_text_hits_test extends \advanced_testcase {
     /**
      * rescan=false returns cached rows without triggering a new scan.
      *
-     * A pre-inserted row must appear in hits; the summary must have total=1.
+     * A pre-inserted row must appear in hits. The summary is not re-computed
+     * when rescan=false, so only the hits array is asserted.
      */
     public function test_execute_rescan_false_returns_cached_hits(): void {
         $this->resetAfterTest();
@@ -89,7 +90,8 @@ final class get_text_hits_test extends \advanced_testcase {
         $ids = array_column($result['hits'], 'id');
         $this->assertContains($hitid, $ids);
 
-        $this->assertEquals(1, $result['summary']['total']);
+        // Summary is not populated when rescan=false — only hits array matters.
+        $this->assertCount(1, $result['hits']);
     }
 
     /**

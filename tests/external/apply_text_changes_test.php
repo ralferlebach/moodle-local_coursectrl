@@ -180,6 +180,8 @@ final class apply_text_changes_test extends \advanced_testcase {
             'summary'       => self::SUMMARY,
             'summaryformat' => FORMAT_HTML,
         ]);
+        // Teacher must be enrolled in course2 so validate_context passes.
+        $this->getDataGenerator()->enrol_user($teacher->id, $course2->id, 'editingteacher');
         $this->setUser($teacher);
 
         // Scan course1 to get real hit ids.

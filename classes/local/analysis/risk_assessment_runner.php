@@ -96,10 +96,10 @@ class risk_assessment_runner {
     ): array {
         global $DB;
 
-        // Phase 1: structural dead-ends.
+        // Structural dead-end detection.
         $findings = $this->deadenddetector->detect($cms, $depindex);
 
-        // Phase 1.5: dynamic deep journey simulation.
+        // Dynamic journey simulation (reachability across group/grade combinations).
         // Simulate learner journeys across all group combinations and both grade
         // Scenarios (all-pass / all-fail) detect activities unreachable at runtime
         // ... that static analysis alone cannot find.
@@ -184,13 +184,13 @@ class risk_assessment_runner {
         }
         unset($jf);
 
-        // Phase 2: escape paths (static findings only).
+        // Escape path analysis (static findings only).
         $escapepaths = $this->escapechecker->analyse($findings, $cms, $depindex);
 
-        // Phase 3: score and sort static findings.
+        // Score and sort static findings by priority.
         $items = $this->prioritizer->score_and_sort($findings, $depindex);
 
-        // Phase 4: merge consistency_runner findings.
+        // Merge consistency-runner findings into the ranked list.
         $consistencywarnings = $this->consistencyrunner->get_warnings(
             $cms,
             $depindex,
@@ -206,7 +206,7 @@ class risk_assessment_runner {
         // Re-sort after merge.
         usort($items, fn ($a, $b) => ($b['score'] ?? 0) - ($a['score'] ?? 0));
 
-        // Phase 5: persist (replace prior results for this course).
+        // Persist results, replacing any prior analysis for this course.
         $this->persist($courseid, $items);
 
         return $items;

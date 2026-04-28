@@ -81,12 +81,13 @@ class deep_journey_simulator {
      * Run the deep journey simulation for a course.
      *
      * @param cm_item[]   $cms            Course modules keyed by cmid.
-     * @param array       $coursegroups   Moodle group records for the course
-     *                                    (from groups_get_all_groups()).
+     * @param array       $coursegroups   Moodle group records for the course.
      * @param array<int,array> $gradeinfobycmid cmid → {gradepass, grademax}.
      * @param array<int,int>   $gradeitemmap    grade_items.id → cmid.
      * @param int[]       $critcmids       Cmids required for course completion.
      * @param int         $startts         Simulation start timestamp (default: now).
+     * @param int         $courseid        Course id (used in deep-link URLs).
+     * @param array<int,int>   $maxattemptsbycmid  cmid → max attempts (0=unlimited).
      * @return array[] Findings: one entry per (scenario, unreachable-cmid) pair.
      */
     public function simulate(
@@ -95,7 +96,9 @@ class deep_journey_simulator {
         array $gradeinfobycmid = [],
         array $gradeitemmap = [],
         array $critcmids = [],
-        int $startts = 0
+        int $startts = 0,
+        int $courseid = 0,
+        array $maxattemptsbycmid = []
     ): array {
         if (empty($cms)) {
             return [];
@@ -120,11 +123,11 @@ class deep_journey_simulator {
                     $gradeinfobycmid,
                     $groupids,
                     $grademode,
-                    $startts
+                    $startts,
+                    $maxattemptsbycmid
                 );
 
                 foreach ($result['unreachable'] as $cmid) {
-                    // Deduplicate per cmid × grademode (groups already separated in key).
                     $key = $cmid . '|' . $grademode . '|' . implode(',', $groupids);
                     if (isset($seenkeys[$key])) {
                         continue;
@@ -144,7 +147,8 @@ class deep_journey_simulator {
                         $grademode,
                         $result['steps'],
                         $startts,
-                        $gradeinfobycmid
+                        $gradeinfobycmid,
+                        $courseid
                     );
 
                     $allfindings[] = [
@@ -182,6 +186,7 @@ class deep_journey_simulator {
      * @param int[]            $groupids        Group ids the learner is in.
      * @param string           $grademode       'pass' or 'fail'.
      * @param int              $startts         Start timestamp.
+     * @param array<int,int>   $maxattemptsbycmid cmid → max attempts (0=unlimited).
      * @return array{reachable: int[], unreachable: int[], steps: array[]}
      */
     public function simulate_journey(
@@ -190,7 +195,8 @@ class deep_journey_simulator {
         array $gradeinfobycmid,
         array $groupids,
         string $grademode,
-        int $startts
+        int $startts,
+        array $maxattemptsbycmid = []
     ): array {
         $now = $startts;
         $completions = [];
@@ -229,6 +235,8 @@ class deep_journey_simulator {
             $gradeinfo = $gradeinfobycmid[$cmid] ?? null;
             $gradepass = $gradeinfo ? (float)($gradeinfo['gradepass'] ?? 0.0) : 0.0;
             $haspassgrade = $gradepass > 0.0;
+            $maxattempts = (int)($maxattemptsbycmid[$cmid] ?? 0);
+            $attemptsexhausted = false;
 
             if ($haspassgrade) {
                 if ($grademode === 'pass') {
@@ -237,6 +245,7 @@ class deep_journey_simulator {
                 } else {
                     $completionstate = 3; // COMPLETION_COMPLETE_FAIL.
                     $grades[$cmid] = 0.0;
+                    $attemptsexhausted = $maxattempts > 0;
                 }
             } else {
                 $completionstate = 1; // COMPLETION_COMPLETE.
@@ -246,11 +255,12 @@ class deep_journey_simulator {
             $now += $this->minactivityminutes * 60;
 
             $steps[] = [
-                'cmid'       => $cmid,
-                'cmname'     => $cms[$cmid]->name ?? '',
-                'modname'    => $cms[$cmid]->modname ?? '',
-                'outcome'    => $completionstate,
-                'ts'         => $now,
+                'cmid'               => $cmid,
+                'cmname'             => $cms[$cmid]->name ?? '',
+                'modname'            => $cms[$cmid]->modname ?? '',
+                'outcome'            => $completionstate,
+                'attempts_exhausted' => $attemptsexhausted,
+                'ts'                 => $now,
             ];
 
             // Re-evaluate all unvisited activities with updated state.
@@ -322,9 +332,6 @@ class deep_journey_simulator {
     /**
      * Build a simulation deep-link URL for a given scenario.
      *
-     * The link opens checks.php?tab=simulation with all relevant state
-     * parameters pre-filled so the instructor can replay the scenario.
-     *
      * @param string  $component       Moodle component of the blocked activity.
      * @param int     $targetcmid      The blocked cmid.
      * @param int[]   $groupids        Group ids in this scenario.
@@ -332,7 +339,8 @@ class deep_journey_simulator {
      * @param array[] $steps           Journey steps up to the blockade.
      * @param int     $startts         Start timestamp of the scenario.
      * @param array   $gradeinfobycmid Grade info per cmid.
-     * @return string Absolute URL string.
+     * @param int     $courseid        Course id for the URL.
+     * @return string Relative URL string.
      */
     private function build_sim_link(
         string $component,
@@ -341,7 +349,8 @@ class deep_journey_simulator {
         string $grademode,
         array $steps,
         int $startts,
-        array $gradeinfobycmid
+        array $gradeinfobycmid,
+        int $courseid = 0
     ): string {
         // Reconstruct completion states and grades from the journey steps.
         $completeparams = [];
@@ -366,7 +375,7 @@ class deep_journey_simulator {
         // Use the last step timestamp as the simulation time.
         $simts = !empty($steps) ? (int)end($steps)['ts'] : $startts;
         $params = [
-            'courseid' => 0, // Placeholder — filled by caller or left for moodle_url.
+            'courseid' => $courseid,
             'tab'      => 'simulation',
             'run'      => 1,
             'simdate'  => date('Y-m-d', $simts),

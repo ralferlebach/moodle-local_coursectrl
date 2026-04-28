@@ -89,6 +89,10 @@
           {{#modname}}{{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}{{/modname}}
           <a href="{{cmurl}}" class="fw-semibold text-decoration-none" target="_blank" rel="noopener">{{cmname}}</a>
           <span class="ms-1">— {{headline}}</span>
+          <a href="{{simurl}}" class="btn btn-outline-secondary btn-sm ms-auto flex-shrink-0"
+             title="{{#str}} consistency_sim_hint, local_coursectrl {{/str}}">
+            <i class="fa fa-play fa-fw"></i>
+          </a>
         </div>
         {{#hasdetail}}
         <div class="card-body py-2">
@@ -152,6 +156,7 @@
           {{#modname}}{{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}{{/modname}}
           <a href="{{cmurl}}" class="fw-semibold text-decoration-none" target="_blank" rel="noopener">{{cmname}}</a>
           <span class="text-muted small ms-1">— {{typelabel}}</span>
+          {{#hasgrademode}}<span class="badge bg-secondary ms-1 small">{{grademode_label}}</span>{{/hasgrademode}}
           <span class="badge bg-light border text-muted ms-auto small">{{#str}} checks_score, local_coursectrl {{/str}} {{score}}</span>
           <a href="{{simurl}}" class="btn btn-outline-secondary btn-sm flex-shrink-0"
              title="{{#str}} consistency_sim_hint, local_coursectrl {{/str}}">
@@ -180,6 +185,22 @@
             {{#cascade}}<a href="{{url}}" target="_blank" rel="noopener" class="me-1">{{name}}</a>{{/cascade}}
           </p>
           {{/hascascade}}
+          {{#hasjourneysteps}}
+          <details class="mt-2">
+            <summary class="small text-muted" style="cursor:pointer">
+              <i class="fa fa-list-ol fa-fw me-1"></i>{{#str}} risk_journey_show_steps, local_coursectrl {{/str}}
+            </summary>
+            <ol class="mt-1 mb-0 ps-3 small">
+              {{#journey_steps}}
+              <li class="py-1">
+                <span class="text-muted">{{steptime}}</span>
+                — <a href="{{cmurl}}" target="_blank" rel="noopener">{{cmname}}</a>
+                — <span class="{{#is_pass}}text-success{{/is_pass}}{{#is_fail}}text-danger{{/is_fail}}">{{outcome_label}}</span>
+              </li>
+              {{/journey_steps}}
+            </ol>
+          </details>
+          {{/hasjourneysteps}}
         </div>
       </div>
       {{/rows}}

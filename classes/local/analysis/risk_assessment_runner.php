@@ -102,7 +102,7 @@ class risk_assessment_runner {
         // Phase 1.5: dynamic deep journey simulation.
         // Simulate learner journeys across all group combinations and both grade
         // Scenarios (all-pass / all-fail) detect activities unreachable at runtime
-        // that static analysis alone cannot find.
+        // ... that static analysis alone cannot find.
         $course = $DB->get_record('course', ['id' => $courseid]) ?: null;
 
         $gradeitemmap = [];
@@ -136,12 +136,29 @@ class risk_assessment_runner {
             )
         );
 
+        // Query trial limits for activity types that support them (quiz, lesson).
+        $maxattemptsbycmid = [];
+        $trialrows = $DB->get_records_sql(
+            "SELECT cm.id AS cmid, q.attempts AS maxattempts
+               FROM {course_modules} cm
+               JOIN {modules} m ON m.id = cm.module AND m.name = 'quiz'
+               JOIN {quiz} q ON q.id = cm.instance
+              WHERE cm.course = :courseid AND q.attempts > 0",
+            ['courseid' => $courseid]
+        );
+        foreach ($trialrows as $row) {
+            $maxattemptsbycmid[(int) $row->cmid] = (int) $row->maxattempts;
+        }
+
         $journeyfindings = $this->journeysimulator->simulate(
             $cms,
             array_values($coursegroups),
             $gradeinfobycmid,
             $gradeitemmap,
-            $critcmids
+            $critcmids,
+            0,
+            $courseid,
+            $maxattemptsbycmid
         );
 
         // Score journey findings (not processed by risk_prioritizer).

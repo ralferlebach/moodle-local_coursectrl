@@ -547,27 +547,69 @@ class checks_page implements renderable, templatable {
             // Build problem description and action for this specific type.
             [$problem, $action] = $this->risk_type_texts($type, $item, $cmname, $relatedlinked, $dateformat);
 
-            // Simulation link pre-filled with the relevant timestamp when available.
-            $simts = (int)($item['ts_field'] ?? $item['ts_early'] ?? 0);
-            $simparams = ['courseid' => (int)$this->course->id, 'tab' => 'simulation'];
-            if ($simts > 0) {
-                $simparams['simdate'] = date('Y-m-d', $simts);
-                $simparams['simtime'] = date('H:i', $simts);
+            // Simulation link: use pre-built deep-link for journey findings,
+            // ... otherwise generate a generic link with the relevant timestamp.
+            $prebuiltlink = $item['simlink'] ?? '';
+            if ($prebuiltlink !== '' && ($type === 'journey_unreachable')) {
+                $simurl = $prebuiltlink;
+            } else {
+                $simts = (int)($item['ts_field'] ?? $item['ts_early'] ?? 0);
+                $simparams = ['courseid' => (int)$this->course->id, 'tab' => 'simulation'];
+                if ($simts > 0) {
+                    $simparams['simdate'] = date('Y-m-d', $simts);
+                    $simparams['simtime'] = date('H:i', $simts);
+                }
+                $simurl = (new \moodle_url('/local/coursectrl/checks.php', $simparams))->out(false);
             }
-            $simurl = (new \moodle_url('/local/coursectrl/checks.php', $simparams))->out(false);
+
+            // Format journey steps for template display.
+            $journeyrows = [];
+            $dateformat = get_string('strftimedatetimeshort', 'langconfig');
+            foreach ($item['journey_steps'] ?? [] as $step) {
+                $outcome = (int)($step['outcome'] ?? 1);
+                $exhausted = !empty($step['attempts_exhausted']);
+                if ($exhausted) {
+                    $outcomekey = 'fail_exhausted';
+                } else {
+                    $outcomekey = match ($outcome) {
+                        2 => 'pass',
+                        3 => 'fail',
+                        default => 'complete',
+                    };
+                }
+                $journeyrows[] = [
+                    'cmname'       => $step['cmname'] ?? '',
+                    'cmurl'        => $cmurls[$step['cmid'] ?? 0] ?? '#',
+                    'steptime'     => $step['ts'] > 0
+                        ? userdate($step['ts'], $dateformat) : '',
+                    'outcome_key'  => $outcomekey,
+                    'outcome_label' => get_string(
+                        'risk_journey_outcome_' . $outcomekey,
+                        'local_coursectrl'
+                    ),
+                    'is_pass'      => $outcomekey === 'pass',
+                    'is_fail'      => str_starts_with($outcomekey, 'fail'),
+                ];
+            }
+
+            // Grade scenario badge for journey findings.
+            $grademode = $item['grademode'] ?? '';
+            $grademodelabel = $grademode !== ''
+                ? get_string('risk_journey_scenario_' . $grademode, 'local_coursectrl', null, true)
+                : '';
 
             $rows[] = [
-                'type'          => $type,
-                'typelabel'     => $typelabel,
-                'severity'      => $severity,
-                'icon'          => $severityicon[$severity] ?? '⚠️',
-                'score'         => $item['score'] ?? 0,
-                'cmid'          => $primarycmid,
-                'cmname'        => $cmname,
-                'cmurl'         => $cmurl,
-                'modname'       => $modname,
-                'problem'       => $problem,
-                'hasproblem'    => $problem !== '',
+                'type'             => $type,
+                'typelabel'        => $typelabel,
+                'severity'         => $severity,
+                'icon'             => $severityicon[$severity] ?? '⚠️',
+                'score'            => $item['score'] ?? 0,
+                'cmid'             => $primarycmid,
+                'cmname'           => $cmname,
+                'cmurl'            => $cmurl,
+                'modname'          => $modname,
+                'problem'          => $problem,
+                'hasproblem'       => $problem !== '',
                 'action'        => $action,
                 'hasaction'     => $action !== '',
                 'related'       => $relatedlinked,
@@ -586,7 +628,12 @@ class checks_page implements renderable, templatable {
                     null,
                     true
                 ) ?: '',
-                'has_escape'    => !empty($item['has_escape']),
+                'has_escape'       => !empty($item['has_escape']),
+                'journey_steps'    => $journeyrows,
+                'hasjourneysteps'  => !empty($journeyrows),
+                'grademode_label'  => $grademodelabel,
+                'hasgrademode'     => $grademodelabel !== '',
+                'completion_block' => !empty($item['completion_block']),
             ];
         }
         return $rows;
@@ -658,6 +705,19 @@ class checks_page implements renderable, templatable {
             return [
                 get_string('risk_problem_deadline_before_dep_window', 'local_coursectrl', $a),
                 get_string('risk_action_deadline_before_dep_window', 'local_coursectrl'),
+            ];
+        }
+        if ($type === 'journey_unreachable') {
+            $grademode = $item['grademode'] ?? 'pass';
+            $a->grademode = get_string(
+                'risk_journey_scenario_' . $grademode,
+                'local_coursectrl',
+                null,
+                true
+            ) ?: $grademode;
+            return [
+                get_string('risk_problem_journey_unreachable', 'local_coursectrl', $a),
+                get_string('risk_action_journey_unreachable', 'local_coursectrl', $a),
             ];
         }
         if ($type === 'long_dep_chain') {

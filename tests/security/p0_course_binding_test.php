@@ -51,8 +51,7 @@ use local_coursectrl\local\persistent\text_hit;
  * @covers \local_coursectrl\manager\textreview_manager
  */
 final class p0_course_binding_test extends \advanced_testcase {
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
+    // Helpers.
     /**
      * Create two courses, each with one assign instance.
      * Returns [course1id, course2id, cmid_in_course1, cmid_in_course2].
@@ -134,8 +133,7 @@ final class p0_course_binding_test extends \advanced_testcase {
         return (int) $hit->get('id');
     }
 
-    // ── P0-A: batch_manager cross-course CMID rejection ──────────────────────
-
+    // P0-A: batch_manager cross-course CMID rejection.
     /**
      * batch_manager::execute() must reject a CMID that belongs to course 2
      * when the call is made against course 1.
@@ -180,7 +178,7 @@ final class p0_course_binding_test extends \advanced_testcase {
         $this->assertGreaterThan(0, $batchid);
     }
 
-    // ── P0-A: preview_manager cross-course CMID rejection ────────────────────
+    // P0-A: preview_manager cross-course CMID rejection.
 
     /**
      * preview_manager::build() must reject a CMID from the wrong course.
@@ -220,7 +218,7 @@ final class p0_course_binding_test extends \advanced_testcase {
         $this->assertIsArray($result);
     }
 
-    // ── P0-B: rollback_manager cross-course batch rejection ──────────────────
+    // P0-B: rollback_manager cross-course batch rejection.
 
     /**
      * rollback_manager::rollback_batch() must not roll back a batch that
@@ -236,7 +234,7 @@ final class p0_course_binding_test extends \advanced_testcase {
         $course1  = $this->getDataGenerator()->create_course();
 
         $manager = new rollback_manager();
-        // Supply course1 id — batch belongs to course2 → batch_not_found.
+        // Supply course1 id with a batch that belongs to course2 — must return batch_not_found.
         $result = $manager->rollback_batch((int) $course1->id, $batchid2, get_admin()->id);
         $this->assertFalse($result['success']);
         $this->assertSame('batch_not_found', $result['error']);
@@ -258,7 +256,7 @@ final class p0_course_binding_test extends \advanced_testcase {
         $this->assertNotSame('batch_not_found', $result['error'] ?? '');
     }
 
-    // ── P0-C: textreview_manager cross-course hit rejection ──────────────────
+    // P0-C: textreview_manager cross-course hit rejection.
 
     /**
      * textreview_manager::apply_changes() must throw when a hit_id belongs
@@ -297,7 +295,7 @@ final class p0_course_binding_test extends \advanced_testcase {
         $this->assertArrayHasKey('applied', $result);
     }
 
-    // ── P0-C: textreview field whitelist ─────────────────────────────────────
+    // P0-C: textreview field whitelist.
 
     /**
      * apply_changes() rejects a hit whose fieldname is not on the whitelist.
@@ -308,7 +306,7 @@ final class p0_course_binding_test extends \advanced_testcase {
         $this->resetAfterTest();
         $course = $this->getDataGenerator()->create_course(['summary' => '01.06.2026']);
 
-        // Directly insert a hit with a field that is NOT on the whitelist.
+        // Insert a hit with a field that is NOT on the whitelist.
         $hit = new text_hit(0, (object) [
             'courseid'        => (int) $course->id,
             'entitytype'      => 'course',
@@ -326,7 +324,7 @@ final class p0_course_binding_test extends \advanced_testcase {
         $manager->apply_changes((int) $course->id, [(int) $hit->get('id')], 86400);
     }
 
-    // ── Capability: bulkaction required for write operations ─────────────────
+    // Capability: bulkaction required for write operations.
 
     /**
      * A user with only the view capability cannot execute a bulk action.
@@ -348,13 +346,12 @@ final class p0_course_binding_test extends \advanced_testcase {
         $gen->enrol_user($user->id, $courseid1, 'student');
         $this->setUser($user);
 
-        // batch_manager itself does not enforce capability — that is the
-        // external function's responsibility. Verify at least that the CMID
-        // filter still works correctly regardless of who calls execute().
-        // The manager layer must not bypass course binding for any caller.
+        // The batch_manager layer does not enforce capability — that responsibility
+        // Belongs to the external function and entry-point layer (tested via Behat).
+        // Verify that course binding works independently of the caller identity.
         $manager = new batch_manager();
-        // CMID belongs to course1 — binding check passes (no exception here).
-        // The capability gate is tested via Behat at the HTTP layer.
+        // CMID belongs to course1 — binding check passes without exception.
+        // Capability enforcement is tested at the Behat/HTTP layer.
         $this->assertInstanceOf(batch_manager::class, $manager);
     }
 }

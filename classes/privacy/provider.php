@@ -22,8 +22,6 @@
  *   local_coursectrl_batch       — userid on each batch (action log).
  *   local_coursectrl_batch_item  — linked to batch via batchid (indirect).
  *   local_coursectrl_snapshot    — linked to batch via batchid (indirect).
- *   local_coursectrl_preset      — userid per saved preset.
- *   local_coursectrl_report      — userid per stored report.
  *   user_preferences             — local_coursectrl_showcalendar,
  *                                  local_coursectrl_immediateapply.
  *
@@ -33,6 +31,7 @@
  */
 
 namespace local_coursectrl\privacy;
+
 
 use core_privacy\local\metadata\collection;
 use core_privacy\local\request\approved_contextlist;
@@ -66,27 +65,6 @@ class provider implements
             ],
             'privacy:metadata:batch'
         );
-        $collection->add_database_table(
-            'local_coursectrl_preset',
-            [
-                'userid'      => 'privacy:metadata:preset:userid',
-                'courseid'    => 'privacy:metadata:preset:courseid',
-                'name'        => 'privacy:metadata:preset:name',
-                'action'      => 'privacy:metadata:preset:action',
-                'timecreated' => 'privacy:metadata:preset:timecreated',
-            ],
-            'privacy:metadata:preset'
-        );
-        $collection->add_database_table(
-            'local_coursectrl_report',
-            [
-                'userid'      => 'privacy:metadata:report:userid',
-                'courseid'    => 'privacy:metadata:report:courseid',
-                'reporttype'  => 'privacy:metadata:report:reporttype',
-                'timecreated' => 'privacy:metadata:report:timecreated',
-            ],
-            'privacy:metadata:report'
-        );
         $collection->add_user_preference(
             'local_coursectrl_showcalendar',
             'privacy:metadata:pref:showcalendar'
@@ -105,7 +83,6 @@ class provider implements
      * @return contextlist
      */
     public static function get_contexts_for_userid(int $userid): contextlist {
-        global $DB;
         $contextlist = new contextlist();
         $sql = "SELECT DISTINCT ctx.id
                   FROM {local_coursectrl_batch} b
@@ -113,16 +90,6 @@ class provider implements
                                     AND ctx.contextlevel = :ctxlevel
                  WHERE b.userid = :userid";
         $contextlist->add_from_sql($sql, [
-            'userid'   => $userid,
-            'ctxlevel' => CONTEXT_COURSE,
-        ]);
-        // Presets.
-        $sql2 = "SELECT DISTINCT ctx.id
-                   FROM {local_coursectrl_preset} p
-                   JOIN {context} ctx ON ctx.instanceid = p.courseid
-                                     AND ctx.contextlevel = :ctxlevel
-                  WHERE p.userid = :userid";
-        $contextlist->add_from_sql($sql2, [
             'userid'   => $userid,
             'ctxlevel' => CONTEXT_COURSE,
         ]);
@@ -140,9 +107,11 @@ class provider implements
             return;
         }
         $params = ['courseid' => $context->instanceid];
-        $userlist->add_from_sql('userid', 'SELECT userid FROM {local_coursectrl_batch} WHERE courseid = :courseid', $params);
-        $userlist->add_from_sql('userid', 'SELECT userid FROM {local_coursectrl_preset} WHERE courseid = :courseid', $params);
-        $userlist->add_from_sql('userid', 'SELECT userid FROM {local_coursectrl_report} WHERE courseid = :courseid', $params);
+        $userlist->add_from_sql(
+            'userid',
+            'SELECT userid FROM {local_coursectrl_batch} WHERE courseid = :courseid',
+            $params
+        );
     }
 
     /**
@@ -171,21 +140,9 @@ class provider implements
                     (object)['batches' => array_values($batches)]
                 );
             }
-
-            // Export presets.
-            $presets = $DB->get_records(
-                'local_coursectrl_preset',
-                ['userid' => $userid, 'courseid' => $courseid]
-            );
-            if (!empty($presets)) {
-                writer::with_context($context)->export_data(
-                    [get_string('privacy:path:presets', 'local_coursectrl')],
-                    (object)['presets' => array_values($presets)]
-                );
-            }
         }
 
-        // Export user preferences.
+        // Export user preferences (stored at system level, not per-course).
         $prefs = [
             'local_coursectrl_showcalendar',
             'local_coursectrl_immediateapply',
@@ -197,7 +154,10 @@ class provider implements
                     'local_coursectrl',
                     $pref,
                     $val,
-                    get_string('privacy:metadata:pref:' . str_replace('local_coursectrl_', '', $pref), 'local_coursectrl')
+                    get_string(
+                        'privacy:metadata:pref:' . str_replace('local_coursectrl_', '', $pref),
+                        'local_coursectrl'
+                    )
                 );
             }
         }
@@ -226,8 +186,6 @@ class provider implements
             $DB->delete_records_select('local_coursectrl_snapshot', "batchid $insql", $inparams);
             $DB->delete_records_select('local_coursectrl_batch', "id $insql", $inparams);
         }
-        $DB->delete_records('local_coursectrl_preset', ['courseid' => $courseid]);
-        $DB->delete_records('local_coursectrl_report', ['courseid' => $courseid]);
     }
 
     /**
@@ -255,8 +213,6 @@ class provider implements
                 $DB->delete_records_select('local_coursectrl_snapshot', "batchid $insql", $inparams);
                 $DB->delete_records_select('local_coursectrl_batch', "id $insql", $inparams);
             }
-            $DB->delete_records('local_coursectrl_preset', ['userid' => $userid, 'courseid' => $courseid]);
-            $DB->delete_records('local_coursectrl_report', ['userid' => $userid, 'courseid' => $courseid]);
         }
         unset_user_preference('local_coursectrl_showcalendar', $userid);
         unset_user_preference('local_coursectrl_immediateapply', $userid);

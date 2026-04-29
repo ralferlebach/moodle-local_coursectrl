@@ -250,17 +250,18 @@ class inventory_service {
         }
 
         foreach ($cmidsbymodname as $modname => $instanceids) {
-            $fields = self::TEXT_FIELDS_BY_MODULE[$modname];
-            $selectfields = 'id,' . implode(',', $fields);
-            try {
-                $records = $DB->get_records_list($modname, 'id', $instanceids, '', $selectfields);
-            } catch (\dml_exception $e) {
-                debugging(
-                    'local_coursectrl: collect_texts could not read ' . $modname . ': ' . $e->getMessage(),
-                    DEBUG_DEVELOPER
-                );
+            // Pre-filter fields against the actual table schema so we never
+            // request a column that does not exist in this Moodle installation.
+            $tablecolumns = array_keys($DB->get_columns($modname));
+            $fields = array_values(array_filter(
+                self::TEXT_FIELDS_BY_MODULE[$modname],
+                static fn (string $field): bool => in_array($field, $tablecolumns, true)
+            ));
+            if (empty($fields)) {
                 continue;
             }
+            $selectfields = 'id,' . implode(',', $fields);
+            $records = $DB->get_records_list($modname, 'id', $instanceids, '', $selectfields);
             foreach ($records as $record) {
                 $cmid = $instancetocmid[$modname][(int) $record->id] ?? null;
                 if ($cmid === null) {

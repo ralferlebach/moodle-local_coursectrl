@@ -123,4 +123,32 @@ class behat_local_coursectrl extends behat_base {
         $this->getSession()->visit($this->locate_path($url->out_as_local_url(false)));
         $this->wait_for_pending_js();
     }
+
+    /**
+     * Navigate to the manage page for the given course.
+     *
+     * @Given /^I am on the manage page for course "(?P<shortname_string>(?:[^"]|\\")*)"$/
+     * @param string $shortname Course short name.
+     */
+    public function i_am_on_the_manage_page_for_course(string $shortname): void {
+        global $DB;
+        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $url = new moodle_url('/local/coursectrl/manage.php', ['courseid' => $course->id]);
+        $this->getSession()->visit($this->locate_path($url->out_as_local_url(false)));
+        $this->wait_for_pending_js();
+    }
+
+    /**
+     * Navigate to the history page for the given course.
+     *
+     * @Given /^I am on the history page for course "(?P<shortname_string>(?:[^"]|\\")*)"$/
+     * @param string $shortname Course short name.
+     */
+    public function i_am_on_the_history_page_for_course(string $shortname): void {
+        global $DB;
+        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $url = new moodle_url('/local/coursectrl/history.php', ['courseid' => $course->id]);
+        $this->getSession()->visit($this->locate_path($url->out_as_local_url(false)));
+        $this->wait_for_pending_js();
+    }
 }

@@ -143,10 +143,16 @@ class textreview_manager {
             $entityid = (int) $first->get('entityid');
             $fieldname = $first->get('fieldname');
 
+            // Validate fieldname against whitelist before any DB access.
+            // coding_exception propagates intentionally — a non-whitelisted
+            // field indicates a programming error, not a recoverable runtime
+            // condition, and must not be silently swallowed.
+            $this->require_allowed_field($entitytype, $fieldname);
+
             // Load original text.
             try {
                 $text = $this->load_text($entitytype, $entityid, $fieldname, $courseid);
-            } catch (\Throwable $e) {
+            } catch (\moodle_exception $e) {
                 $errors[] = [
                     'key' => $key,
                     'code' => 'load_failed',
@@ -171,7 +177,7 @@ class textreview_manager {
                 try {
                     $this->save_text($entitytype, $entityid, $fieldname, $result['text'], $courseid);
                     $totalapplied += count($result['applied']);
-                } catch (\Throwable $e) {
+                } catch (\moodle_exception $e) {
                     $errors[] = [
                         'key' => $key,
                         'code' => 'save_failed',

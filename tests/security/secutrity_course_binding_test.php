@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * P0 security tests: course-binding enforcement on all bulk, rollback and textreview paths.
+ * security tests: course-binding enforcement on all bulk, rollback and textreview paths.
  *
  * Each test verifies that supplying an entity (CMID, batch, hit) that belongs
  * to a different course than the one the caller has capability on is rejected
@@ -43,14 +43,14 @@ use local_coursectrl\local\persistent\text_hit;
 #[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\manager\rollback_manager::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\manager\textreview_manager::class)]
 /**
- * Security tests for P0 cross-course binding.
+ * Security tests for cross-course binding.
  *
  * @covers \local_coursectrl\manager\batch_manager
  * @covers \local_coursectrl\manager\preview_manager
  * @covers \local_coursectrl\manager\rollback_manager
  * @covers \local_coursectrl\manager\textreview_manager
  */
-final class p0_course_binding_test extends \advanced_testcase {
+final class secutrity_course_binding_test extends \advanced_testcase {
     // Helpers.
     /**
      * Create two courses, each with one assign instance.
@@ -133,7 +133,7 @@ final class p0_course_binding_test extends \advanced_testcase {
         return (int) $hit->get('id');
     }
 
-    // P0-A: batch_manager cross-course CMID rejection.
+    // Batch_manager cross-course CMID rejection.
     /**
      * batch_manager::execute() must reject a CMID that belongs to course 2
      * when the call is made against course 1.
@@ -178,7 +178,7 @@ final class p0_course_binding_test extends \advanced_testcase {
         $this->assertGreaterThan(0, $batchid);
     }
 
-    // P0-A: preview_manager cross-course CMID rejection.
+    // Preview_manager cross-course CMID rejection.
 
     /**
      * preview_manager::build() must reject a CMID from the wrong course.
@@ -218,7 +218,7 @@ final class p0_course_binding_test extends \advanced_testcase {
         $this->assertIsArray($result);
     }
 
-    // P0-B: rollback_manager cross-course batch rejection.
+    // Rollback_manager cross-course batch rejection.
 
     /**
      * rollback_manager::rollback_batch() must not roll back a batch that
@@ -256,7 +256,7 @@ final class p0_course_binding_test extends \advanced_testcase {
         $this->assertNotSame('batch_not_found', $result['error'] ?? '');
     }
 
-    // P0-C: textreview_manager cross-course hit rejection.
+    // Textreview_manager cross-course hit rejection.
 
     /**
      * textreview_manager::apply_changes() must throw when a hit_id belongs
@@ -295,7 +295,7 @@ final class p0_course_binding_test extends \advanced_testcase {
         $this->assertArrayHasKey('applied', $result);
     }
 
-    // P0-C: textreview field whitelist.
+    // Textreview field whitelist.
 
     /**
      * apply_changes() rejects a hit whose fieldname is not on the whitelist.

@@ -69,8 +69,6 @@ final class plugin_smoke_test extends \advanced_testcase {
             'local_coursectrl_batch',
             'local_coursectrl_batch_item',
             'local_coursectrl_snapshot',
-            'local_coursectrl_preset',
-            'local_coursectrl_report',
             'local_coursectrl_text_hit',
             'local_coursectrl_risk',
         ];

@@ -71,10 +71,15 @@
   {{#consistency}}
   <div data-region="panel-consistency">
     {{#hasitems}}
-    <div class="d-flex gap-2 mb-3 flex-wrap">
-      {{#errorcount}}<span class="badge cc-badge-danger py-2 px-3">❗ {{errorcount}} {{#str}} checks_badge_error, local_coursectrl {{/str}}</span>{{/errorcount}}
-      {{#warningcount}}<span class="badge cc-badge-warning py-2 px-3">⚠️ {{warningcount}} {{#str}} checks_badge_warning, local_coursectrl {{/str}}</span>{{/warningcount}}
-      {{#noticecount}}<span class="badge cc-badge-info py-2 px-3">ℹ️ {{noticecount}} {{#str}} checks_badge_notice, local_coursectrl {{/str}}</span>{{/noticecount}}
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+      <div class="d-flex gap-2 flex-wrap">
+        {{#errorcount}}<span class="badge cc-badge-danger py-2 px-3">❗ {{errorcount}} {{#str}} checks_badge_error, local_coursectrl {{/str}}</span>{{/errorcount}}
+        {{#warningcount}}<span class="badge cc-badge-warning py-2 px-3">⚠️ {{warningcount}} {{#str}} checks_badge_warning, local_coursectrl {{/str}}</span>{{/warningcount}}
+        {{#noticecount}}<span class="badge cc-badge-info py-2 px-3">ℹ️ {{noticecount}} {{#str}} checks_badge_notice, local_coursectrl {{/str}}</span>{{/noticecount}}
+      </div>
+      <a href="{{deepanalysisurl}}" class="btn btn-primary btn-sm">
+        {{#str}} checks_run_deepanalysis, local_coursectrl {{/str}}
+      </a>
     </div>
     {{/hasitems}}
     {{^hasitems}}
@@ -108,11 +113,6 @@
     </div>
     {{/hasitems}}
   </div>
-    <div class="mt-3 pt-2 border-top">
-      <a href="{{deepanalysisurl}}" class="btn btn-sm btn-outline-secondary">
-        {{#str}} checks_run_deepanalysis, local_coursectrl {{/str}}
-      </a>
-    </div>
   {{/consistency}}
   {{/tab_consistency}}
 

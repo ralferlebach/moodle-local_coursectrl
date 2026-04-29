@@ -276,7 +276,7 @@ class checks_page implements renderable, templatable {
         $consequence = '';
         $action = '';
 
-        $dateformat = get_string('strftimedatetimeshort', 'langconfig');
+        $dateformat = get_string('strftimerecent', 'langconfig');
 
         if ($type === 'temporal_conflict') {
             $fearly = $issue['field_early'] ?? '';
@@ -374,8 +374,52 @@ class checks_page implements renderable, templatable {
             $detail = get_string('consistency_detail_dangling_group', 'local_coursectrl');
             $consequence = get_string('consistency_consequence_dangling_group', 'local_coursectrl');
             $action = get_string('consistency_action_dangling_group', 'local_coursectrl');
+        } else if ($type === 'r1_hidden') {
+            $headline     = get_string('consistency_headline_r1_hidden', 'local_coursectrl');
+            $detail       = get_string('consistency_detail_r1_hidden', 'local_coursectrl');
+            $consequence  = get_string('consistency_consequence_r1_hidden', 'local_coursectrl');
+            $action       = get_string('consistency_action_r1_hidden', 'local_coursectrl');
+        } else if ($type === 'r1_not_accessible') {
+            $headline     = get_string('consistency_headline_r1_not_accessible', 'local_coursectrl');
+            $detail       = get_string('consistency_detail_r1_not_accessible', 'local_coursectrl');
+            $consequence  = get_string('consistency_consequence_r1_not_accessible', 'local_coursectrl');
+            $action       = get_string('consistency_action_r1_not_accessible', 'local_coursectrl');
+        } else if (
+            $type === 'completionexpected_window'
+            || $type === 'completionexpected_after_deadline'
+            || $type === 'completionexpected_gap_exceeds_threshold'
+        ) {
+            $tsexp      = (int)($issue['ts_completionexpected'] ?? 0);
+            $tsdeadline = (int)($issue['ts_deadline'] ?? 0);
+            $fielddeadline = $issue['field_deadline'] ?? '';
+            $dlabel = $fielddeadline !== '' ? $this->field_label($fielddeadline, $cm) : '—';
+            // strftimerecent uses %d (zero-padded day) in all Moodle locales.
+            $fmtrecent = get_string('strftimerecent', 'langconfig');
+            $headline = get_string('consistency_headline_completionexpected_window', 'local_coursectrl');
+            $detail   = get_string(
+                'consistency_detail_completionexpected_window',
+                'local_coursectrl',
+                (object)[
+                    'date_expected' => $tsexp > 0 ? userdate($tsexp, $fmtrecent) : '—',
+                    'field_deadline' => $dlabel,
+                    'date_deadline'  => $tsdeadline > 0 ? userdate($tsdeadline, $fmtrecent) : '—',
+                ]
+            );
+            $consequence = get_string(
+                'consistency_consequence_completionexpected_window',
+                'local_coursectrl'
+            );
+            $action = get_string(
+                'consistency_action_completionexpected_window',
+                'local_coursectrl'
+            );
+        } else if ($type === 'circular' || $type === 'warning_circular_dep') {
+            $headline    = get_string('consistency_headline_circular_dep', 'local_coursectrl');
+            $detail      = get_string('consistency_detail_circular_dep', 'local_coursectrl');
+            $consequence = get_string('consistency_consequence_circular_dep', 'local_coursectrl');
+            $action      = get_string('consistency_action_circular_dep', 'local_coursectrl');
         } else {
-            // Adapter R3/R7 checks or unknown type — use the message directly.
+            // Adapter-specific or unknown type — use the message if provided.
             $headline = $issue['message'] ?? $type;
             $detail = '';
             $consequence = '';
@@ -498,7 +542,7 @@ class checks_page implements renderable, templatable {
         int $courseid = 0
     ): array {
         $severityicon = ['error' => '❗', 'warning' => '⚠️', 'notice' => 'ℹ️'];
-        $dateformat = get_string('strftimedatetimeshort', 'langconfig');
+        $dateformat = get_string('strftimerecent', 'langconfig');
 
         $rows = [];
         foreach ($items as $item) {

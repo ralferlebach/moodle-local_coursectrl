@@ -79,7 +79,11 @@ class dependency_index {
             // Groupconditions is a flat int[] of group ids.
             // Include CM when unrestricted or when any selected group matches.
             $groupconds = $this->parsed[$cmid]['groupconditions'] ?? [];
-            if (!empty($groupconds) && empty(array_intersect($groupids, $groupconds))) {
+            $groupidscond = array_column(
+                array_filter($groupconds, fn($g) => ($g['type'] ?? '') === 'group'),
+                'id'
+            );
+            if (!empty($groupidscond) && empty(array_intersect($groupids, $groupidscond))) {
                 continue;
             }
             $filtered[$cmid] = $deps;
@@ -228,10 +232,12 @@ class dependency_index {
      * @return array[] Each entry: ['a' => int, 'b' => int].
      */
     public function find_circular_deps(): array {
+        // Use unlockforward (e=1 only) so that gate-closing e=0 patterns
+        // ('hide when done') are not misreported as circular dependencies.
         $circular = [];
-        foreach ($this->forward as $cmid => $deps) {
+        foreach ($this->unlockforward as $cmid => $deps) {
             foreach ($deps as $dep) {
-                if (isset($this->forward[$dep]) && in_array($cmid, $this->forward[$dep], true)) {
+                if (isset($this->unlockforward[$dep]) && in_array($cmid, $this->unlockforward[$dep], true)) {
                     $pair = [min($cmid, $dep), max($cmid, $dep)];
                     $key = $pair[0] . '-' . $pair[1];
                     if (!isset($circular[$key])) {
@@ -351,7 +357,11 @@ class dependency_index {
             // Groupconditions is a flat int[] of group ids.
             // Include CM when unrestricted or when any selected group matches.
             $groupconds = $this->parsed[$cmid]['groupconditions'] ?? [];
-            if (!empty($groupconds) && empty(array_intersect($groupids, $groupconds))) {
+            $groupidscond = array_column(
+                array_filter($groupconds, fn($g) => ($g['type'] ?? '') === 'group'),
+                'id'
+            );
+            if (!empty($groupidscond) && empty(array_intersect($groupids, $groupidscond))) {
                 continue;
             }
             $result[$cmid] = $deps;

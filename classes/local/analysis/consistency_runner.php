@@ -174,15 +174,13 @@ class consistency_runner {
         foreach ($this->conflictdetector->detect($cms, $datesbycm) as $cmid => $conflicts) {
             foreach ($conflicts as $conflict) {
                 $issueclass = $conflict['issue_class'] ?? 'temporal_conflict';
-                $warnings[$cmid][] = [
-                    'type'        => $issueclass,
-                    'severity'    => $conflict['severity'] ?? 'error',
-                    'field_early' => $conflict['field_early'] ?? '',
-                    'field_late'  => $conflict['field_late'] ?? '',
-                    'ts_early'    => $conflict['ts_early'] ?? 0,
-                    'ts_late'     => $conflict['ts_late'] ?? 0,
-                    'min_gap_days' => $conflict['min_gap_days'] ?? 0,
-                ];
+                // Merge full conflict data so specialised handlers (e.g.
+                // completionexpected_window) can access all fields such as
+                // ts_completionexpected, ts_deadline, field_deadline, etc.
+                $warnings[$cmid][] = array_merge(
+                    $conflict,
+                    ['type' => $issueclass, 'severity' => $conflict['severity'] ?? 'error']
+                );
             }
         }
 

@@ -172,6 +172,20 @@ if ($hassiteconfig) {
         $adapterhtml
     ));
 
+    // Timeline and calendar view settings.
+    $settings->add(new admin_setting_heading(
+        'local_coursectrl/calendar_view_heading',
+        get_string('settings_calendar_view_heading', 'local_coursectrl'),
+        ''
+    ));
+    $settings->add(new admin_setting_configtext(
+        'local_coursectrl/calendar_lookahead_months',
+        get_string('settings_calendar_lookahead_months', 'local_coursectrl'),
+        get_string('settings_calendar_lookahead_months_desc', 'local_coursectrl'),
+        '3',
+        PARAM_INT
+    ));
+
     // Nager.Date calendar provider.
     $settings->add(new admin_setting_heading(
         'local_coursectrl/calnager_heading',

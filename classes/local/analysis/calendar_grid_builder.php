@@ -53,7 +53,12 @@ class calendar_grid_builder {
      * Month objects additionally contain: monthlabel, monthkey, iscurrentmonth.
      *
      * @param int                  $startdate Course start date (unix timestamp).
-     * @param int|null             $enddate   Course end date, 0 or null = startdate + 6 months.
+     * @param int|null             $enddate   Course end date (unix timestamp). 0 or null means
+     *                                        no course end is configured; the builder will then
+     *                                        compute a smart end: the later of (a) now + 3 months
+     *                                        and (b) the end of the month two months after the
+     *                                        latest entry. Falls back to startdate + 3 months
+     *                                        when there are no entries at all.
      * @param array                $entries   Date entries from date_collector::collect().
      * @param int                  $now       Reference time for 'ispast' flag.
      * @param \local_coursectrl\manager\calendar_manager|null $calman Optional for holiday markers.
@@ -70,7 +75,43 @@ class calendar_grid_builder {
             $startdate = $now;
         }
         if (!$enddate || $enddate <= $startdate) {
-            $enddate = strtotime('+6 months', $startdate);
+            // No course end date configured — use a smart range so the
+            // calendar does not stop arbitrarily at startdate + 6 months.
+            //
+            // Rule: show at least "now + N months" (N = calendar_lookahead_months
+            // admin setting, default 3); if there are dated
+            // entries, also cover until the end of the month two months
+            // after the latest entry (the "übernächsten Monatsende");
+            // use whichever horizon is later.
+            $latestentry = 0;
+            foreach ($entries as $entry) {
+                if ((int) $entry['timestamp'] > $latestentry) {
+                    $latestentry = (int) $entry['timestamp'];
+                }
+            }
+            // Read the admin-configurable lookahead (default 3 months).
+            $lookahead = max(1, (int) get_config('local_coursectrl', 'calendar_lookahead_months'));
+            $threemonths = strtotime('+' . $lookahead . ' months', $now);
+            if ($latestentry > 0) {
+                // End of the month two months after the month of the last entry.
+                // E.g. last entry in April → target month = June → end of June.
+                $lastmonth  = (int) date('n', $latestentry);
+                $lastyear   = (int) date('Y', $latestentry);
+                $targetmonth = $lastmonth + 2;
+                $targetyear  = $lastyear;
+                if ($targetmonth > 12) {
+                    $targetmonth -= 12;
+                    $targetyear  += 1;
+                }
+                // First moment of the month after target = last moment of target month.
+                $overmonthend = mktime(0, 0, 0, $targetmonth + 1, 1, $targetyear);
+                if ($targetmonth === 12) {
+                    $overmonthend = mktime(0, 0, 0, 1, 1, $targetyear + 1);
+                }
+                $enddate = max($threemonths, $overmonthend);
+            } else {
+                $enddate = $threemonths;
+            }
         }
 
         // Group entries by day (Y-m-d).

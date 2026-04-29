@@ -225,6 +225,8 @@ class timeline_page implements renderable, templatable {
             'tab_timeline'   => ($this->filters['tab'] ?? 'timeline') === 'timeline',
             'tab_textreview' => ($this->filters['tab'] ?? 'timeline') === 'textreview',
             'tab_gantt'      => ($this->filters['tab'] ?? 'timeline') === 'gantt',
+            'focusdaykey'    => $this->filters['focusdaykey'] ?? '',
+            'hasfocusdaykey' => !empty($this->filters['focusdaykey']),
             'timelineurl' => (new \moodle_url(
                 '/local/coursectrl/timeline.php',
                 ['courseid' => $course->id]

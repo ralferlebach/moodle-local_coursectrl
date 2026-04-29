@@ -527,6 +527,23 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
                     + (currentMonth.clientWidth / 2);
             }
         }
+
+        // Scroll to a focused day when arriving from the calendar or checks page.
+        // The server sets data-focusdaykey when a specific CM was requested.
+        var focusday = root.getAttribute('data-focusdaykey');
+        if (focusday) {
+            var focustarget = document.getElementById('day-' + focusday)
+                || root.querySelector('[data-daykey="' + focusday + '"]');
+            if (focustarget) {
+                window.setTimeout(function () {
+                    focustarget.scrollIntoView({behavior: 'smooth', block: 'center'});
+                    focustarget.classList.add('border-primary');
+                    window.setTimeout(function () {
+                        focustarget.classList.remove('border-primary');
+                    }, 2500);
+                }, 200);
+            }
+        }
     };
 
     return {

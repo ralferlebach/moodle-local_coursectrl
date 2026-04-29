@@ -35,6 +35,7 @@ $deltadays    = optional_param('delta_days', 0, PARAM_INT);
 $deltahours   = optional_param('delta_hours', 0, PARAM_INT);
 $fromshift    = optional_param('from_shift', 0, PARAM_INT);
 $shiftbatchid = optional_param('batchid', 0, PARAM_INT);
+$focuscmid    = optional_param('focus', 0, PARAM_INT);
 
 $course = get_course($courseid);
 $context = context_course::instance($courseid);
@@ -72,6 +73,30 @@ if ($showpastparam !== null) {
 $service = new \local_coursectrl\local\inventory\inventory_service();
 $snapshot = $service->build_for_course($courseid);
 
+// Auto-enable showpast when the URL targets a past-dated activity and
+// the user has not explicitly toggled the filter in this request.
+// This ensures the focused entry is visible when arriving from the calendar.
+$focusdaykey = '';
+if ($focuscmid > 0 && $showpastparam === null) {
+    $collector = new \local_coursectrl\local\analysis\date_collector();
+    $allentries = $collector->collect($snapshot->cms);
+    $now = time();
+    foreach ($allentries as $entry) {
+        if ((int) $entry['cmid'] !== $focuscmid) {
+            continue;
+        }
+        if (empty($focusdaykey)) {
+            $focusdaykey = date('Y-m-d', $entry['timestamp']);
+        }
+        if ((int) $entry['timestamp'] < $now) {
+            // At least one entry for this CM is in the past — override showpast
+            // for this request only; the user preference is left unchanged.
+            $showpast = true;
+            break;
+        }
+    }
+}
+
 $filters = [
     'showpast' => (bool) $showpast,
     'onlywithdeps' => (bool) $onlywithdeps,
@@ -83,6 +108,7 @@ $filters = [
     'textreview_delta_hours' => $deltahours,
     'from_shift' => (bool) $fromshift,
     'shift_batchid' => $shiftbatchid,
+    'focusdaykey' => $focusdaykey,
 ];
 
 $renderable = new \local_coursectrl\output\timeline_page($snapshot, $filters);

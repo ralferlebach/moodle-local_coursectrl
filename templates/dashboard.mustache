@@ -104,7 +104,7 @@
             <div class="{{cellclass}}"
                  {{#hasentries}}data-action="jump-to-day" data-daykey="{{daykey}}"{{/hasentries}}
                  {{#hasholidays}}title="{{#holidaynames}}{{name}} {{/holidaynames}}"{{/hasholidays}}>
-              {{#inmonth}}{{#hasentries}}<a href="{{timelineurl}}&amp;tab=timeline#day-{{daykey}}" target="_blank" rel="noopener">{{day}}</a>{{/hasentries}}{{^hasentries}}{{day}}{{/hasentries}}{{/inmonth}}{{^inmonth}}&nbsp;{{/inmonth}}
+              {{#inmonth}}{{#hasentries}}<a href="{{timelineurl}}&amp;tab=timeline&amp;focus_day={{daykey}}#day-{{daykey}}">{{day}}</a>{{/hasentries}}{{^hasentries}}{{day}}{{/hasentries}}{{/inmonth}}{{^inmonth}}&nbsp;{{/inmonth}}
             </div>
             {{/days}}
           </div>

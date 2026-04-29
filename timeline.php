@@ -36,6 +36,7 @@ $deltahours   = optional_param('delta_hours', 0, PARAM_INT);
 $fromshift    = optional_param('from_shift', 0, PARAM_INT);
 $shiftbatchid = optional_param('batchid', 0, PARAM_INT);
 $focuscmid    = optional_param('focus', 0, PARAM_INT);
+$focusdayparam = optional_param('focus_day', '', PARAM_ALPHANUMEXT);
 
 $course = get_course($courseid);
 $context = context_course::instance($courseid);
@@ -73,26 +74,33 @@ if ($showpastparam !== null) {
 $service = new \local_coursectrl\local\inventory\inventory_service();
 $snapshot = $service->build_for_course($courseid);
 
-// Auto-enable showpast when the URL targets a past-dated activity and
-// the user has not explicitly toggled the filter in this request.
-// This ensures the focused entry is visible when arriving from the calendar.
+// Auto-enable showpast when the URL targets a past-dated entry and the user
+// has not explicitly toggled the filter in this request. Both entry points are
+// handled: focus=CMID (checks page) and focus_day=YYYY-MM-DD (calendar links).
 $focusdaykey = '';
-if ($focuscmid > 0 && $showpastparam === null) {
-    $collector = new \local_coursectrl\local\analysis\date_collector();
-    $allentries = $collector->collect($snapshot->cms);
-    $now = time();
-    foreach ($allentries as $entry) {
-        if ((int) $entry['cmid'] !== $focuscmid) {
-            continue;
+$now = time();
+if ($showpastparam === null) {
+    if ($focuscmid > 0) {
+        // From checks page: resolve the first date entry for the focused CM.
+        $collector = new \local_coursectrl\local\analysis\date_collector();
+        foreach ($collector->collect($snapshot->cms) as $entry) {
+            if ((int) $entry['cmid'] !== $focuscmid) {
+                continue;
+            }
+            if (empty($focusdaykey)) {
+                $focusdaykey = date('Y-m-d', $entry['timestamp']);
+            }
+            if ((int) $entry['timestamp'] < $now) {
+                $showpast = true;
+                break;
+            }
         }
-        if (empty($focusdaykey)) {
-            $focusdaykey = date('Y-m-d', $entry['timestamp']);
-        }
-        if ((int) $entry['timestamp'] < $now) {
-            // At least one entry for this CM is in the past — override showpast
-            // for this request only; the user preference is left unchanged.
+    } else if ($focusdayparam !== '') {
+        // From dashboard calendar or any link that passes a date string directly.
+        $focusdaykey = $focusdayparam;
+        $focusts = strtotime($focusdayparam);
+        if ($focusts !== false && $focusts < $now) {
             $showpast = true;
-            break;
         }
     }
 }

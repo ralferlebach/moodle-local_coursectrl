@@ -83,7 +83,7 @@
           <div class="coursectrl-cal-week">
             {{#days}}
             <div class="{{cellclass}}"
-                 {{#hasentries}}data-action="jump-to-day" data-daykey="{{daykey}}"{{/hasentries}}
+                 {{#hasentries}}data-action="jump-to-day" data-daykey="{{daykey}}" data-ispast="{{#ispast}}1{{/ispast}}{{^ispast}}0{{/ispast}}"{{/hasentries}}
                  {{#hasholidays}}title="{{#holidaynames}}{{name}} {{/holidaynames}}"{{/hasholidays}}>
               {{#inmonth}}{{day}}{{/inmonth}}{{^inmonth}}&nbsp;{{/inmonth}}
             </div>
@@ -192,8 +192,9 @@
   <div data-region="local_coursectrl-days">
     {{#days}}
     <div class="card mb-2{{#ispast}} opacity-75{{/ispast}}"
-         id="day-{{daykey}}" data-daykey="{{daykey}}">
-      <div class="card-header py-1 d-flex align-items-center gap-2">
+         data-daykey="{{daykey}}">
+      <div class="card-header py-1 d-flex align-items-center gap-2"
+           id="day-{{daykey}}">
         <strong class="{{#ispast}}text-muted{{/ispast}}">{{dayformatted}}</strong>
         <span class="badge bg-light text-dark border small">{{slotcount}}</span>
       </div>

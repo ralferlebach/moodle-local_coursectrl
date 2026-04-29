@@ -296,3 +296,8 @@
     border-color: #6c757d;
     color: #fff;
 }
+
+/* Offset sticky navbar when jumping to a day anchor. */
+.local_coursectrl_timeline [id^="day-"] {
+    scroll-margin-top: 70px;
+}

@@ -490,16 +490,38 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
         }
 
         // Jump to day from mini-calendar.
+        // If the target day row is absent from the DOM (showpast is off and
+        // the day is in the past), activate the showpast checkbox, append a
+        // focus_day hidden field to its form, and submit — the page reloads
+        // with past entries visible and data-focusdaykey triggers the scroll.
+        var showpastCb = root.querySelector('#coursectrl-showpast');
         root.querySelectorAll('[data-action="jump-to-day"]').forEach(function(cell) {
             cell.addEventListener('click', function() {
                 var daykey = cell.getAttribute('data-daykey');
-                var target = document.getElementById('day-' + daykey)
-                    || root.querySelector('[data-daykey="' + daykey + '"]');
+                // Check whether the day row exists in the timeline list.
+                var target = document.getElementById('day-' + daykey);
+                if (!target && showpastCb && !showpastCb.checked) {
+                    // Day row is missing and showpast is off — the entry is
+                    // filtered out. Enable showpast and reload to the target day.
+                    var form = showpastCb.closest('form');
+                    if (form) {
+                        showpastCb.checked = true;
+                        var hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = 'focus_day';
+                        hidden.value = daykey;
+                        form.appendChild(hidden);
+                        form.submit();
+                    }
+                    return;
+                }
+                // Day row exists — scroll to the header, highlight the card.
                 if (target) {
                     target.scrollIntoView({behavior: 'smooth', block: 'start'});
-                    target.classList.add('border-primary');
+                    var card1 = target.closest('.card') || target;
+                    card1.classList.add('border-primary');
                     window.setTimeout(function() {
-                        target.classList.remove('border-primary');
+                        card1.classList.remove('border-primary');
                     }, 2000);
                 }
             });
@@ -536,10 +558,11 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
                 || root.querySelector('[data-daykey="' + focusday + '"]');
             if (focustarget) {
                 window.setTimeout(function () {
-                    focustarget.scrollIntoView({behavior: 'smooth', block: 'center'});
-                    focustarget.classList.add('border-primary');
+                    focustarget.scrollIntoView({behavior: 'smooth', block: 'start'});
+                    var card2 = focustarget.closest('.card') || focustarget;
+                    card2.classList.add('border-primary');
                     window.setTimeout(function () {
-                        focustarget.classList.remove('border-primary');
+                        card2.classList.remove('border-primary');
                     }, 2500);
                 }, 200);
             }

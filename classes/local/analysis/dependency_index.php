@@ -76,20 +76,11 @@ class dependency_index {
         }
         $filtered = [];
         foreach ($this->forward as $cmid => $deps) {
-            $parsed = $this->parsed[$cmid] ?? [];
-            $groupconds = $parsed['groupconditions'] ?? [];
-            if (!empty($groupconds)) {
-                $requiredgroups = array_column(
-                    array_filter($groupconds, fn($g) => $g['type'] === 'group'),
-                    'id'
-                );
-                if (
-                    !empty($requiredgroups) &&
-                    empty(array_intersect($groupids, $requiredgroups))
-                ) {
-                    // Not the selected group — hide the dependency edges.
-                    continue;
-                }
+            // Groupconditions is a flat int[] of group ids.
+            // Include CM when unrestricted or when any selected group matches.
+            $groupconds = $this->parsed[$cmid]['groupconditions'] ?? [];
+            if (!empty($groupconds) && empty(array_intersect($groupids, $groupconds))) {
+                continue;
             }
             $filtered[$cmid] = $deps;
         }
@@ -357,16 +348,11 @@ class dependency_index {
         }
         $result = [];
         foreach ($this->unlockforward as $cmid => $deps) {
-            $cm = $this->cms[$cmid] ?? null;
-            if ($cm === null) {
+            // Groupconditions is a flat int[] of group ids.
+            // Include CM when unrestricted or when any selected group matches.
+            $groupconds = $this->parsed[$cmid]['groupconditions'] ?? [];
+            if (!empty($groupconds) && empty(array_intersect($groupids, $groupconds))) {
                 continue;
-            }
-            $groupparsed = $this->parsed[$cmid] ?? [];
-            $requiredgroups = $groupparsed['groupconditions'] ?? [];
-            if (!empty($requiredgroups)) {
-                if (empty(array_intersect($groupids, $requiredgroups))) {
-                    continue;
-                }
             }
             $result[$cmid] = $deps;
         }

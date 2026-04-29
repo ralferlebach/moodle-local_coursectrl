@@ -215,7 +215,14 @@ class graph_dataset_builder {
             $layoutforward[$cmid] = array_values(array_unique(array_merge($existing, $deps)));
         }
         $layers = $this->assign_layers($cms, $layoutforward);
-        $layerpositions = $this->assign_layer_positions($layers);
+        // Build reverse map for R4 neighbour-weight positioning.
+        $reverseforpos = [];
+        foreach ($layoutforward as $cmid => $deps) {
+            foreach ($deps as $dep) {
+                $reverseforpos[$dep][] = $cmid;
+            }
+        }
+        $layerpositions = $this->assign_layer_positions($layers, $layoutforward, $reverseforpos);
         $layercount = empty($layers) ? 0 : max(array_values($layers)) + 1;
 
         $nodes = [];

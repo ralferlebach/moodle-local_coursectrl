@@ -386,7 +386,7 @@ class graph_dataset_builder {
         // Build a course-order index (0-based) for each cmid.
         $courseorder = [];
         $idx = 0;
-        foreach ($layers as $cmid => $_) {
+        foreach (array_keys($layers) as $cmid) {
             $courseorder[$cmid] = $idx++;
         }
 

@@ -123,7 +123,16 @@ class availability_parser {
                     $cmid = (int) ($condition['cm'] ?? 0);
                     $expectedstate = (int) ($condition['e'] ?? 1);
                     if ($cmid > 0) {
-                        $result['completiondeps'][$cmid] = $expectedstate;
+                        // E=1 wins: once a cmid is a must-complete prereq,
+                        // an e=0 on the same cmid from another branch must not
+                        // overwrite it. E=0-only entries are still stored but
+                        // cannot demote an existing e=1 entry.
+                        if (
+                            !isset($result['completiondeps'][$cmid])
+                            || $expectedstate === 1
+                        ) {
+                            $result['completiondeps'][$cmid] = $expectedstate;
+                        }
                     }
                     break;
 

@@ -203,6 +203,7 @@
  */
 .local_coursectrl_toolbar {
     row-gap: 0.5rem;
+    column-gap: 0.5rem;
 }
 
 .local_coursectrl_toolbar > * {

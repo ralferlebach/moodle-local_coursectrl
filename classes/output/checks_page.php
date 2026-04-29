@@ -393,7 +393,7 @@ class checks_page implements renderable, templatable {
             $tsdeadline = (int)($issue['ts_deadline'] ?? 0);
             $fielddeadline = $issue['field_deadline'] ?? '';
             $dlabel = $fielddeadline !== '' ? $this->field_label($fielddeadline, $cm) : '—';
-            // strftimerecent uses %d (zero-padded day) in all Moodle locales.
+            // Strftimerecent uses %d (zero-padded day) in all Moodle locales.
             $fmtrecent = get_string('strftimerecent', 'langconfig');
             $headline = get_string('consistency_headline_completionexpected_window', 'local_coursectrl');
             $detail   = get_string(
@@ -764,7 +764,9 @@ class checks_page implements renderable, templatable {
             ];
         }
         if ($type === 'r0_after_course_end' || $type === 'r0_before_course_start') {
-            $a->field = $item['field'] ?? '–';
+            $rawfield = (string)($item['field'] ?? '');
+            $a->field = $rawfield !== ''
+                ? field_label_resolver::resolve($rawfield, $modname, 'cm') : '–';
             $a->date = isset($item['ts_field']) && $item['ts_field'] > 0
                 ? userdate((int)$item['ts_field'], $dateformat) : '–';
             $a->boundary = isset($item['ts_boundary']) && $item['ts_boundary'] > 0
@@ -778,7 +780,9 @@ class checks_page implements renderable, templatable {
             ];
         }
         if ($type === 'r0_deadline_in_past') {
-            $a->field = $item['field'] ?? '–';
+            $rawfield = (string)($item['field'] ?? '');
+            $a->field = $rawfield !== ''
+                ? field_label_resolver::resolve($rawfield, $modname, 'cm') : '–';
             $a->date = isset($item['ts_field']) && $item['ts_field'] > 0
                 ? userdate((int)$item['ts_field'], $dateformat) : '–';
             return [
@@ -800,11 +804,12 @@ class checks_page implements renderable, templatable {
         }
         if ($type === 'completionexpected_window') {
             $tsexpected = (int)($item['ts_completionexpected'] ?? 0);
-            $tsstart = (int)($item['ts_start'] ?? 0);
-            $tsend = (int)($item['ts_end'] ?? 0);
+            $tsdeadline = (int)($item['ts_deadline'] ?? 0);
+            $rawdeadlinefield = (string)($item['field_deadline'] ?? '');
             $a->date_expected = $tsexpected > 0 ? userdate($tsexpected, $dateformat) : '–';
-            $a->date_start = $tsstart > 0 ? userdate($tsstart, $dateformat) : '–';
-            $a->date_end = $tsend > 0 ? userdate($tsend, $dateformat) : '–';
+            $a->date_start = $tsdeadline > 0 ? userdate($tsdeadline, $dateformat) : '–';
+            $a->date_end = $rawdeadlinefield !== ''
+                ? field_label_resolver::resolve($rawdeadlinefield, $modname, 'cm') : '–';
             return [
                 get_string('risk_problem_completionexpected_window', 'local_coursectrl', $a),
                 get_string('risk_action_completionexpected_window', 'local_coursectrl'),

@@ -342,4 +342,34 @@ class dependency_index {
     public function get_unlock_forward(): array {
         return $this->unlockforward;
     }
+
+    /**
+     * Get unlock-forward deps filtered for multiple group memberships.
+     *
+     * Same as get_all_forward_for_groups() but restricted to e=1 conditions.
+     *
+     * @param int[] $groupids Group ids (empty = return all unlock forward deps).
+     * @return array<int, int[]>
+     */
+    public function get_unlock_forward_for_groups(array $groupids): array {
+        if (empty($groupids)) {
+            return $this->unlockforward;
+        }
+        $result = [];
+        foreach ($this->unlockforward as $cmid => $deps) {
+            $cm = $this->cms[$cmid] ?? null;
+            if ($cm === null) {
+                continue;
+            }
+            $groupparsed = $this->parsed[$cmid] ?? [];
+            $requiredgroups = $groupparsed['groupconditions'] ?? [];
+            if (!empty($requiredgroups)) {
+                if (empty(array_intersect($groupids, $requiredgroups))) {
+                    continue;
+                }
+            }
+            $result[$cmid] = $deps;
+        }
+        return $result;
+    }
 }

@@ -57,7 +57,7 @@ class graph_page implements renderable, templatable {
     public function __construct(inventory_snapshot $snapshot, array $filters = []) {
         $this->snapshot = $snapshot;
         $this->filters = array_merge([
-            'hideindependents' => false,
+            'hideindependents' => true,
             'groupids'         => [],
             'filterbygroup'    => false,
             'blockedids'       => [],
@@ -98,18 +98,29 @@ class graph_page implements renderable, templatable {
             $gradeitemmap[(int) $row->id] = (int) $row->cmid;
         }
 
-        $depindex = new dependency_index($cms, $gradeitemmap);
+        // R7: Subsections cannot have a completion state and therefore
+        // can never generate a dependency. Remove them from the graph CMs
+        // so they are neither shown as nodes nor considered in dep analysis.
+        $graphcms = array_filter(
+            $cms,
+            static fn (\local_coursectrl\local\entity\cm_item $cm): bool =>
+                $cm->modname !== 'subsection'
+        );
+
+        $depindex = new dependency_index($graphcms, $gradeitemmap);
         $datecollector = new date_collector();
-        $datesbycm = $datecollector->collect_grouped_by_cm($cms);
+        $datesbycm = $datecollector->collect_grouped_by_cm($graphcms);
         $runner = new consistency_runner();
-        $warnings = $runner->get_warnings($cms, $depindex, $datesbycm);
+        $warnings = $runner->get_warnings($graphcms, $depindex, $datesbycm);
 
         // Graph dataset — use group-filtered forward deps if a group is active.
         $graphbuilder = new graph_dataset_builder();
         if ($filterbygroup && !empty($groupids)) {
-            $forwardmap = $depindex->get_all_forward_for_groups($groupids);
+            // Use unlock-only forward deps (e=1) to avoid false-positive
+            // circular dependency arrows from gate-closing (e=0) conditions.
+            $forwardmap = $depindex->get_unlock_forward_for_groups($groupids);
             $graphdata = $graphbuilder->build_with_forward(
-                $cms,
+                $graphcms,
                 $depindex,
                 $forwardmap,
                 $warnings,
@@ -118,7 +129,7 @@ class graph_page implements renderable, templatable {
             );
         } else {
             $graphdata = $graphbuilder->build(
-                $cms,
+                $graphcms,
                 $depindex,
                 $warnings,
                 $blockedids,

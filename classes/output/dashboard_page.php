@@ -30,6 +30,8 @@
 
 namespace local_coursectrl\output;
 
+use local_coursectrl\local\field_label_resolver;
+
 use local_coursectrl\local\analysis\calendar_grid_builder;
 use local_coursectrl\local\analysis\consistency_runner;
 use local_coursectrl\local\analysis\date_collector;
@@ -131,6 +133,20 @@ class dashboard_page implements renderable, templatable {
             ))->out(false);
         }
 
+        // Build section url/name lookups for section-type text hits.
+        $sectionnames = [];
+        $sectionurls  = [];
+        foreach ($this->snapshot->sections as $section) {
+            $sname = ($section->name !== '')
+                ? format_string($section->name)
+                : get_string('sectionname', 'format_topics') . ' ' . $section->section;
+            $sectionnames[$section->id] = $sname;
+            $sectionurls[$section->id]  = (new \moodle_url(
+                '/course/view.php',
+                ['id' => $courseid, 'section' => $section->section]
+            ))->out(false);
+        }
+
         // Problem summary.
         $errorrows = [];
         $warningrows = [];
@@ -201,13 +217,18 @@ class dashboard_page implements renderable, templatable {
         );
 
         // Text hits from DB.
+        $courseurl = (new \moodle_url('/course/view.php', ['id' => $courseid]))->out(false);
         $texthits = $this->build_text_hits(
             $DB,
             $courseid,
             $effectivetextcount,
             $cmnames,
             $cmurls,
-            $cmmodnames
+            $cmmodnames,
+            $sectionnames,
+            $sectionurls,
+            format_string($course->fullname),
+            $courseurl
         );
         $texthitsscanned = $DB->record_exists(
             'local_coursectrl_text_hit',
@@ -435,7 +456,11 @@ class dashboard_page implements renderable, templatable {
         int $count,
         array $cmnames,
         array $cmurls,
-        array $cmmodnames = []
+        array $cmmodnames = [],
+        array $sectionnames = [],
+        array $sectionurls = [],
+        string $coursename = '',
+        string $courseurl = ''
     ): array {
         $records = $db->get_records(
             'local_coursectrl_text_hit',
@@ -449,22 +474,36 @@ class dashboard_page implements renderable, templatable {
         foreach ($records as $rec) {
             $entityid = (int)$rec->entityid;
             $rawfield = (string)$rec->fieldname;
-            $flabel = get_string('field_' . $rawfield, 'local_coursectrl', null, true);
-            $fieldlabel = ($flabel !== false && strpos((string)$flabel, '[[') === false)
-                ? (string)$flabel
-                : $rawfield;
+            $entitytype = (string)$rec->entitytype;
+            $modname = ($entitytype === 'cm') ? ($cmmodnames[$entityid] ?? '') : '';
+            $fieldlabel = field_label_resolver::resolve($rawfield, $modname, $entitytype);
+            // Resolve entity name and link based on entity type.
+            switch ($entitytype) {
+                case 'section':
+                    $entityname = $sectionnames[$entityid] ?? '';
+                    $entityurl  = $sectionurls[$entityid] ?? '#';
+                    break;
+                case 'course':
+                    $entityname = $coursename;
+                    $entityurl  = $courseurl;
+                    break;
+                default:
+                    $entityname = $cmnames[$entityid] ?? '';
+                    $entityurl  = $cmurls[$entityid] ?? '#';
+                    break;
+            }
             $rows[] = [
                 'matchedtext' => (string)$rec->matchedtext,
                 'normalizedvalue' => (string)($rec->normalizedvalue ?? ''),
                 'hasnormalized' => !empty($rec->normalizedvalue),
-                'entitytype' => (string)$rec->entitytype,
+                'entitytype' => $entitytype,
                 'entityid' => $entityid,
                 'fieldname' => $fieldlabel,
-                'modname' => $cmmodnames[$entityid] ?? '',
-                'hasmodname' => isset($cmmodnames[$entityid]),
-                'cmname' => $cmnames[$entityid] ?? '',
-                'cmurl' => $cmurls[$entityid] ?? '#',
-                'hascm' => isset($cmnames[$entityid]),
+                'modname' => $modname,
+                'hasmodname' => ($entitytype === 'cm' && $modname !== ''),
+                'cmname' => $entityname,
+                'cmurl' => $entityurl,
+                'hascm' => ($entityname !== ''),
             ];
         }
         return $rows;

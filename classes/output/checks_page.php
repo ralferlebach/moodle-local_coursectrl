@@ -36,6 +36,8 @@
 
 namespace local_coursectrl\output;
 
+use local_coursectrl\local\field_label_resolver;
+
 use renderable;
 use renderer_base;
 use templatable;
@@ -416,20 +418,14 @@ class checks_page implements renderable, templatable {
      * @return string
      */
     private function field_label(string $field, $cm): string {
-        if ($cm !== null) {
-            $component = $cm->get_component();
-            // Subplugin component: 'mod_assign' → 'coursectrlmod_assign'.
-            $subplugin = str_replace('mod_', 'coursectrlmod_', $component);
-            $label = get_string('field_' . $field, $subplugin, null, true);
-            if ($label !== false && $label !== '') {
-                return $label;
-            }
+        // Extract the Moodle module name (e.g. 'assign') for resolution.
+        $modname = '';
+        if ($cm !== null && method_exists($cm, 'get_component')) {
+            $modname = str_replace('mod_', '', $cm->get_component());
+        } else if ($cm !== null && isset($cm->modname)) {
+            $modname = (string) $cm->modname;
         }
-        $label = get_string('field_' . $field, 'local_coursectrl', null, true);
-        if ($label !== false && $label !== '') {
-            return $label;
-        }
-        return $field;
+        return field_label_resolver::resolve($field, $modname, 'cm');
     }
 
     /**

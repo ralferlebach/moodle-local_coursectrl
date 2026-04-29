@@ -36,6 +36,8 @@
 
 namespace local_coursectrl\local\visualization;
 
+use local_coursectrl\local\field_label_resolver;
+
 use local_coursectrl\local\analysis\date_collector;
 use local_coursectrl\local\entity\cm_item;
 use local_coursectrl\manager\calendar_manager;
@@ -96,7 +98,7 @@ class gantt_dataset_builder {
                 $bars[] = [
                     'field' => $entry['field'],
                     'fieldlabel' => $entry['fieldlabel'],
-                    'humanlabel' => $this->localised_field_label((string) $entry['field']),
+                    'humanlabel' => $this->localised_field_label((string) $entry['field'], (string) ($entry['modname'] ?? ''), 'cm'),
                     'timestamp' => $ts,
                     'formatted' => userdate($ts, $datetimefmt),
                     'source' => $entry['source'],
@@ -293,38 +295,7 @@ class gantt_dataset_builder {
      * @param string $field Raw field name.
      * @return string Localised label fit for hover tooltip display.
      */
-    private function localised_field_label(string $field): string {
-        // 1) Plugin override.
-        $pluginkey = 'field_' . strtolower($field);
-        $pluginlabel = get_string_manager()->string_exists($pluginkey, 'local_coursectrl')
-            ? get_string($pluginkey, 'local_coursectrl')
-            : null;
-        if ($pluginlabel !== null && $pluginlabel !== '') {
-            return $pluginlabel;
-        }
-
-        // 2) Hand-curated mapping of common Moodle field names.
-        $map = [
-            'timeopen'                   => get_string('field_timeopen', 'local_coursectrl'),
-            'timeclose'                  => get_string('field_timeclose', 'local_coursectrl'),
-            'duedate'                    => get_string('field_duedate', 'local_coursectrl'),
-            'cutoffdate'                 => get_string('cutoffdate', 'mod_assign'),
-            'allowsubmissionsfromdate'   => get_string('allowsubmissionsfromdate', 'mod_assign'),
-            'completionexpected'         => get_string('completionexpected', 'core_completion'),
-            'timeavailable'              => get_string('availability', 'core'),
-            'timestart'                  => get_string('startdate', 'core'),
-            'timeend'                    => get_string('enddate', 'core'),
-            'opensubmissions'            => get_string('field_timeopen', 'local_coursectrl'),
-            'closesubmissions'           => get_string('field_timeclose', 'local_coursectrl'),
-        ];
-        $key = strtolower($field);
-        if (isset($map[$key])) {
-            return $map[$key];
-        }
-
-        // 3) Pretty-print fallback.
-        $pretty = preg_replace('/[_\\-]+/', ' ', $field);
-        $pretty = preg_replace('/([a-z])([A-Z])/', '$1 $2', $pretty);
-        return ucwords(trim((string) $pretty));
+    private function localised_field_label(string $field, string $modname = ''): string {
+        return field_label_resolver::resolve($field, $modname, 'cm');
     }
 }

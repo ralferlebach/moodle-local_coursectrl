@@ -31,6 +31,8 @@
 
 namespace local_coursectrl\local\analysis;
 
+use local_coursectrl\local\field_label_resolver;
+
 use local_coursectrl\local\entity\cm_item;
 use local_coursectrl\manager\registry;
 
@@ -83,7 +85,7 @@ class date_collector {
                     'modname' => $cm->modname,
                     'component' => $cm->get_component(),
                     'field' => 'completionexpected',
-                    'fieldlabel' => get_string('field_completionexpected', 'local_coursectrl'),
+                    'fieldlabel' => field_label_resolver::resolve('completionexpected', $cm->modname, 'cm'),
                     'timestamp' => $cm->completionexpected,
                     'source' => 'cm',
                 ];
@@ -100,7 +102,7 @@ class date_collector {
                         'modname' => $cm->modname,
                         'component' => $cm->get_component(),
                         'field' => 'availability_' . $direction . '_' . $i,
-                        'fieldlabel' => get_string('field_availability_' . $direction, 'local_coursectrl'),
+                        'fieldlabel' => field_label_resolver::resolve('availability_' . $direction, '', 'cm'),
                         'timestamp' => $cond['timestamp'],
                         'source' => 'availability',
                     ];
@@ -121,11 +123,7 @@ class date_collector {
                                 'modname' => $cm->modname,
                                 'component' => $cm->get_component(),
                                 'field' => $fieldname,
-                                'fieldlabel' => (function () use ($fieldname) {
-                                    $lbl = get_string('field_' . $fieldname, 'local_coursectrl', null, true);
-                                    return ($lbl !== false && strpos((string)$lbl, '[[') === false)
-                                        ? (string)$lbl : $fieldname;
-                                })(),
+                                'fieldlabel' => field_label_resolver::resolve($fieldname, $cm->modname, 'cm'),
                                 'timestamp' => (int) $value,
                                 'source' => 'adapter',
                             ];

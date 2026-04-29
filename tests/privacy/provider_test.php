@@ -45,7 +45,174 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
     // Helpers.
 
     /**
+     * Insert a batch record and return its id.
+     *
+     * @param int $userid
+     * @param int $courseid
+     * @return int
+     */
+    private function insert_batch(int $userid, int $courseid): int {
+        global $DB;
+        return (int) $DB->insert_record('local_coursectrl_batch', (object) [
+            'courseid'     => $courseid,
+            'userid'       => $userid,
+            'action'       => 'shift_dates',
+            'payloadjson'  => '{}',
+            'status'       => 'executed',
+            'timecreated'  => time(),
+            'timemodified' => time(),
+        ]);
+    }
+
+    /**
+     * Insert a batch_item record and return its id.
+     *
+     * @param int $batchid
+     * @param int $entityid
+     * @return int
+     */
+    private function insert_batch_item(int $batchid, int $entityid): int {
+        global $DB;
+        return (int) $DB->insert_record('local_coursectrl_batch_item', (object) [
+            'batchid'     => $batchid,
+            'entitytype'  => 'cm',
+            'entityid'    => $entityid,
+            'component'   => 'mod_assign',
+            'status'      => 'success',
+            'previewjson' => '{}',
+            'resultjson'  => '{}',
+        ]);
+    }
+
+    /**
+     * Insert a snapshot record and return its id.
+     *
+     * @param int $batchid
+     * @param int $entityid
+     * @return int
+     */
+    private function insert_snapshot(int $batchid, int $entityid): int {
+        global $DB;
+        return (int) $DB->insert_record('local_coursectrl_snapshot', (object) [
+            'batchid'     => $batchid,
+            'entitytype'  => 'cm',
+            'entityid'    => $entityid,
+            'component'   => 'mod_assign',
+            'statejson'   => '{}',
+            'timecreated' => time(),
+        ]);
+    }
+
+    /**
+     * Build an approved_contextlist for the given user and context.
+     *
+     * @param \stdClass      $user    User record.
+     * @param \context       $context Context to include.
+     * @return approved_contextlist
+     */
+    private function make_contextlist(\stdClass $user, \context $context): approved_contextlist {
+        return new approved_contextlist($user, 'local_coursectrl', [$context->id]);
+    }
+
+    // A1.1  get_metadata.
+
+    /**
+     * Metadata collection lists the batch table and user preferences.
+     *
+     * @covers \local_coursectrl\privacy\provider
+     */
+    public function test_get_metadata_contains_required_tables_and_preferences(): void {
+        $this->resetAfterTest();
+
+        $collection = new collection('local_coursectrl');
+        $result = provider::get_metadata($collection);
+
+        $this->assertInstanceOf(collection::class, $result);
+
+        $names = array_map(fn ($item) => $item->get_name(), $result->get_collection());
+
+        $this->assertContains('local_coursectrl_batch', $names);
+        $this->assertContains('local_coursectrl_showcalendar', $names);
+        $this->assertContains('local_coursectrl_immediateapply', $names);
+    }
+
+    // A1.2  get_contexts_for_userid.
+
+    /**
+     * A course context is returned for a user who has batch records in that course.
+     *
+     * @covers \local_coursectrl\privacy\provider
+     */
+    public function test_get_contexts_for_userid_returns_batch_context(): void {
+        $this->resetAfterTest();
+
+        $course  = $this->getDataGenerator()->create_course();
+        $user    = $this->getDataGenerator()->create_user();
+        $context = \context_course::instance($course->id);
+
+        $this->insert_batch((int) $user->id, (int) $course->id);
+
+        $contextlist = provider::get_contexts_for_userid((int) $user->id);
+        $this->assertContainsEquals(
+            $context->id,
+            array_map('intval', $contextlist->get_contextids())
+        );
+    }
+
+    // A1.3  get_users_in_context.
+
+    /**
+     * All users with batch records in a context are returned.
+     *
+     * @covers \local_coursectrl\privacy\provider
+     */
+    public function test_get_users_in_context_returns_all_record_owners(): void {
+        $this->resetAfterTest();
+
+        $course  = $this->getDataGenerator()->create_course();
+        $user1   = $this->getDataGenerator()->create_user();
+        $user2   = $this->getDataGenerator()->create_user();
+        $context = \context_course::instance($course->id);
+
+        $this->insert_batch((int) $user1->id, (int) $course->id);
+        $this->insert_batch((int) $user2->id, (int) $course->id);
+
+        $userlist = new userlist($context, 'local_coursectrl');
+        provider::get_users_in_context($userlist);
+
+        $ids = $userlist->get_userids();
+        $this->assertContains((int) $user1->id, $ids);
+        $this->assertContains((int) $user2->id, $ids);
+    }
+
+    // A1.4  export_user_data.
+
+    /**
+     * Batch records are exported into the course context.
+     *
+     * @covers \local_coursectrl\privacy\provider
+     */
+    public function test_export_user_data_exports_batch_records(): void {
+        $this->resetAfterTest();
+
+        $course  = $this->getDataGenerator()->create_course();
+        $user    = $this->getDataGenerator()->create_user();
+        $context = \context_course::instance($course->id);
+
+        $this->insert_batch((int) $user->id, (int) $course->id);
+
+        $contextlist = $this->make_contextlist($user, $context);
+        provider::export_user_data($contextlist);
+
+        $data = writer::with_context($context)->get_data(
+            [get_string('privacy:path:batches', 'local_coursectrl')]
+        );
+        $this->assertNotEmpty($data->batches);
+    }
+
+    /**
      * User preferences are exported even when there is no course context.
+     *
      * @covers \local_coursectrl\privacy\provider
      */
     public function test_export_user_data_exports_user_preferences(): void {
@@ -70,6 +237,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * All plugin data in the course context is removed; other courses are unaffected.
+     *
      * @covers \local_coursectrl\privacy\provider
      */
     public function test_delete_data_for_all_users_removes_course_data(): void {
@@ -100,6 +268,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * Non-course contexts are safely ignored without touching any data.
+     *
      * @covers \local_coursectrl\privacy\provider
      */
     public function test_delete_data_for_all_users_ignores_system_context(): void {
@@ -119,6 +288,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * Only the approved user's data is removed; a second user's data remains.
+     *
      * @covers \local_coursectrl\privacy\provider
      */
     public function test_delete_data_for_user_removes_only_that_user(): void {
@@ -149,6 +319,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * User preferences are removed when the user's data is deleted.
+     *
      * @covers \local_coursectrl\privacy\provider
      */
     public function test_delete_data_for_user_removes_preferences(): void {
@@ -172,6 +343,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * A list of approved users has their data deleted; an unapproved user's data survives.
+     *
      * @covers \local_coursectrl\privacy\provider
      */
     public function test_delete_data_for_users_removes_listed_users(): void {
@@ -202,6 +374,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * A non-course context is silently ignored by delete_data_for_users.
+     *
      * @covers \local_coursectrl\privacy\provider
      */
     public function test_delete_data_for_users_ignores_system_context(): void {

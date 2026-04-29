@@ -626,11 +626,26 @@ define([], function() {
         var toggleBtn = root.querySelector('[data-action="toggle-independents"]');
         var canvas = root.querySelector('[data-region="coursectrl-graph-canvas"]');
         if (toggleBtn) {
-            if (toggleBtn.checked) {
+            // R6: read initial hide state from data attribute (set by PHP).
+            // CSS already hides them via [data-css-hide-indep]; JS removes
+            // the attribute when showing so CSS rule no longer applies.
+            var hideAttr = canvas ? canvas.getAttribute('data-hide-independents') : '0';
+            var startHidden = hideAttr === '1';
+            if (startHidden) {
                 applyIndependentFilter(canvas, true);
             }
+            // Checkbox checked = user wants to show independents.
             toggleBtn.addEventListener('change', function() {
-                applyIndependentFilter(canvas, toggleBtn.checked);
+                var hide = !toggleBtn.checked;
+                if (canvas) {
+                    // Sync CSS class so the rule matches current state.
+                    if (hide) {
+                        canvas.setAttribute('data-css-hide-indep', '1');
+                    } else {
+                        canvas.removeAttribute('data-css-hide-indep');
+                    }
+                }
+                applyIndependentFilter(canvas, hide);
             });
         }
         var hiddenBtn = root.querySelector('[data-action="toggle-hidden"]');

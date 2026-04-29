@@ -179,7 +179,11 @@ class graph_page implements renderable, templatable {
                 '/local/coursectrl/dependencies.php',
                 ['courseid' => $courseid]
             ))->out(false),
-            'hideindependents' => !empty($this->filters['hideindependents']),
+            'hideindependents'         => !empty($this->filters['hideindependents']),
+            'str_hide_independents'    => get_string(
+                'graph_hide_independents',
+                'local_coursectrl'
+            ),
             'filterbygroup' => $filterbygroup,
             'hassimoverlay' => !empty($blockedids) || !empty($nextstepids),
             'groupoptions' => $groupoptions,

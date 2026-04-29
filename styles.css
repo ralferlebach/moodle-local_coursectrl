@@ -314,3 +314,13 @@
 .local_coursectrl_timeline [id^="day-"] {
     scroll-margin-top: 70px;
 }
+
+/**
+ * Graph: hide independent nodes by default when PHP signals hideindependents=true.
+ * The JS applyIndependentFilter() takes over after load; this ensures nodes are
+ * hidden even before JS executes (avoids flash of independent nodes on page load).
+ */
+[data-css-hide-indep="1"] .coursectrl-node[data-independent="1"] {
+    display: none;
+    pointer-events: none;
+}

@@ -376,14 +376,13 @@ class graph_dataset_builder {
         array $forward = [],
         array $reverse = []
     ): array {
-        // Group by layer, preserving insertion order (= course order) as
-        // primary sort.
+        // Group by layer, preserving course order.
         $bylayer = [];
         foreach ($layers as $cmid => $layer) {
             $bylayer[$layer][] = $cmid;
         }
 
-        // Build a course-order index (0-based) for each cmid.
+        // Course-order index (0-based, preserves the order of $layers).
         $courseorder = [];
         $idx = 0;
         foreach (array_keys($layers) as $cmid) {
@@ -391,25 +390,24 @@ class graph_dataset_builder {
         }
 
         $positions = [];
-        foreach ($bylayer as $layer => $cmids) {
-            // R4: sort connected nodes by the median course-order of their
-            // neighbours (prereqs + dependents). Independents sort by their
-            // own course-order position (R2/R5).
+        $maxlayer  = empty($bylayer) ? 0 : max(array_keys($bylayer));
+
+        // Pass 1 (R3/R4): layers 1+ — align each node with the median
+        // position of its already-placed prerequisites (left neighbours).
+        for ($layer = 1; $layer <= $maxlayer; $layer++) {
+            $cmids = $bylayer[$layer] ?? [];
             $weights = [];
             foreach ($cmids as $cmid) {
-                $neighbours = array_merge(
-                    array_filter($forward[$cmid] ?? [], fn($d) => isset($layers[$d])),
-                    array_filter($reverse[$cmid] ?? [], fn($d) => isset($layers[$d]))
+                $prereqs = array_values(
+                    array_filter($forward[$cmid] ?? [], fn($d) => isset($layers[$d]))
                 );
-                if (!empty($neighbours)) {
+                if (!empty($prereqs)) {
                     $sum = 0;
-                    foreach ($neighbours as $n) {
-                        $sum += $courseorder[$n] ?? 0;
+                    foreach ($prereqs as $dep) {
+                        $sum += $positions[$dep] ?? 0;
                     }
-                    // Median approximation: average of neighbour positions.
-                    $weights[$cmid] = $sum / count($neighbours);
+                    $weights[$cmid] = $sum / count($prereqs);
                 } else {
-                    // Independent: use own course-order as weight (R2/R5).
                     $weights[$cmid] = (float) ($courseorder[$cmid] ?? 0);
                 }
             }
@@ -419,6 +417,70 @@ class graph_dataset_builder {
                 $positions[$cmid] = $pos;
             }
         }
+
+        // Pass 2 (R4/R5): layer 0 — source nodes align with their
+        // dependents; independents fill the remaining slots in course order.
+        $layer0      = $bylayer[0] ?? [];
+        $totalslots  = count($layer0);
+        $sources     = []; // Keyed by cmid, value is desired float row position.
+        $independents = [];
+        foreach ($layer0 as $cmid) {
+            $deps = array_values(
+                array_filter($reverse[$cmid] ?? [], fn($d) => isset($layers[$d]))
+            );
+            if (!empty($deps)) {
+                $sum = 0;
+                foreach ($deps as $dep) {
+                    $sum += $positions[$dep] ?? 0;
+                }
+                $sources[$cmid] = $sum / count($deps);
+            } else {
+                $independents[] = $cmid;
+            }
+        }
+
+        // Sort sources by desired position; stable sort preserves course
+        // order as the tiebreaker (array keys = cmids, values = float pos).
+        $sourcekeys = array_keys($sources);
+        usort($sourcekeys, fn($a, $b) => $sources[$a] <=> $sources[$b]
+            ?: ($courseorder[$a] ?? 0) <=> ($courseorder[$b] ?? 0));
+        $sortedsources = [];
+        foreach ($sourcekeys as $cmid) {
+            $sortedsources[$cmid] = $sources[$cmid];
+        }
+        $sources = $sortedsources;
+
+        // Sort independents by course order (R2/R5).
+        usort($independents, fn($a, $b) => ($courseorder[$a] ?? 0) <=> ($courseorder[$b] ?? 0));
+
+        // Assign slots: place each source in its nearest free slot, then
+        // fill remaining slots with independents.
+        $occupied = []; // Keyed by slot index, value is cmid.
+        foreach (array_keys($sources) as $cmid) {
+            $desired = (int) round($sources[$cmid]);
+            $placed  = false;
+            for ($offset = 0; $offset < $totalslots && !$placed; $offset++) {
+                foreach ([0, -1, 1] as $sign) {
+                    $candidate = $desired + ($offset === 0 ? 0 : $sign * $offset);
+                    $candidate = max(0, min($totalslots - 1, $candidate));
+                    if (!isset($occupied[$candidate])) {
+                        $occupied[$candidate] = $cmid;
+                        $placed = true;
+                        break;
+                    }
+                }
+            }
+        }
+        $indepidx = 0;
+        for ($slot = 0; $slot < $totalslots && $indepidx < count($independents); $slot++) {
+            if (!isset($occupied[$slot])) {
+                $occupied[$slot] = $independents[$indepidx++];
+            }
+        }
+        foreach ($occupied as $pos => $cmid) {
+            $positions[$cmid] = $pos;
+        }
+
         return $positions;
     }
 

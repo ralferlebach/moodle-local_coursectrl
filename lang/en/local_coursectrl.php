@@ -228,7 +228,7 @@ $string['graph_filterbygroup'] = 'Group-specific dependencies';
 $string['graph_gantt_activities'] = 'Activities with dates';
 $string['graph_gantt_empty'] = 'No timed activities found in this course.';
 $string['graph_hide_hidden'] = 'Hide invisible activities';
-$string['graph_hide_independents'] = 'Hide independent activities';
+$string['graph_hide_independents'] = 'Show independent activities';
 $string['graph_legend_circular'] = '🔴 = circular dependency';
 $string['graph_loading'] = 'Building visualisation…';
 $string['graph_nodes'] = 'Nodes';

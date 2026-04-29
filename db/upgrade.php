@@ -102,7 +102,7 @@ function xmldb_local_coursectrl_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026042908, 'local', 'coursectrl');
     }
 
-    if ($oldversion < 2026042946) {
+    if ($oldversion < 2026042950) {
         // Remove unused local_coursectrl_preset and local_coursectrl_report tables.
         // These tables were defined in install.xml but never implemented. Removing
         // them keeps the schema honest and prevents confusion during future upgrades.
@@ -112,7 +112,7 @@ function xmldb_local_coursectrl_upgrade(int $oldversion): bool {
                 $dbman->drop_table($table);
             }
         }
-        upgrade_plugin_savepoint(true, 2026042946, 'local', 'coursectrl');
+        upgrade_plugin_savepoint(true, 2026042950, 'local', 'coursectrl');
     }
 
     return true;

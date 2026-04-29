@@ -228,7 +228,7 @@ $string['graph_filterbygroup'] = 'Gruppenspezifische Abhängigkeiten';
 $string['graph_gantt_activities'] = 'Aktivitäten mit Terminen';
 $string['graph_gantt_empty'] = 'Keine Aktivitäten mit Terminen in diesem Kurs.';
 $string['graph_hide_hidden'] = 'Ausgeblendete Aktivitäten verstecken';
-$string['graph_hide_independents'] = 'Unabhängige Aktivitäten ausblenden';
+$string['graph_hide_independents'] = 'Unabhängige Aktivitäten einblenden';
 $string['graph_legend_circular'] = '🔴 = Zirkuläre Abhängigkeit';
 $string['graph_loading'] = 'Visualisierung wird erstellt\u2026';
 $string['graph_nodes'] = 'Knoten';

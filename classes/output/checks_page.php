@@ -583,7 +583,7 @@ class checks_page implements renderable, templatable {
             $typelabel = get_string($typelabelkey, 'local_coursectrl', null, true) ?: $type;
 
             // Build problem description and action for this specific type.
-            [$problem, $action] = $this->risk_type_texts($type, $item, $cmname, $relatedlinked, $dateformat);
+            [$problem, $action] = $this->risk_type_texts($type, $item, $cmname, $relatedlinked, $dateformat, $modname);
 
             // Simulation link: use pre-built deep-link for journey findings,
             // ... otherwise generate a generic link with the relevant timestamp.
@@ -691,7 +691,8 @@ class checks_page implements renderable, templatable {
         array $item,
         string $cmname,
         array $relatedlinked,
-        string $dateformat
+        string $dateformat,
+        string $modname = ''
     ): array {
         $relatednames = implode(', ', array_column($relatedlinked, 'name'));
         $a = (object)[

@@ -112,7 +112,7 @@ function xmldb_local_coursectrl_upgrade(int $oldversion): bool {
                 $dbman->drop_table($table);
             }
         }
-        upgrade_plugin_savepoint(true, 2026042963, 'local', 'coursectrl');
+        upgrade_plugin_savepoint(true, 2026042964, 'local', 'coursectrl');
     }
 
     return true;

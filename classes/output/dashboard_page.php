@@ -206,7 +206,8 @@ class dashboard_page implements renderable, templatable {
             $courseid,
             $effectivetextcount,
             $cmnames,
-            $cmurls
+            $cmurls,
+            $cmmodnames
         );
         $texthitsscanned = $DB->record_exists(
             'local_coursectrl_text_hit',
@@ -433,7 +434,8 @@ class dashboard_page implements renderable, templatable {
         int $courseid,
         int $count,
         array $cmnames,
-        array $cmurls
+        array $cmurls,
+        array $cmmodnames = []
     ): array {
         $records = $db->get_records(
             'local_coursectrl_text_hit',
@@ -446,13 +448,20 @@ class dashboard_page implements renderable, templatable {
         $rows = [];
         foreach ($records as $rec) {
             $entityid = (int)$rec->entityid;
+            $rawfield = (string)$rec->fieldname;
+            $flabel = get_string('field_' . $rawfield, 'local_coursectrl', null, true);
+            $fieldlabel = ($flabel !== false && strpos((string)$flabel, '[[') === false)
+                ? (string)$flabel
+                : $rawfield;
             $rows[] = [
                 'matchedtext' => (string)$rec->matchedtext,
                 'normalizedvalue' => (string)($rec->normalizedvalue ?? ''),
                 'hasnormalized' => !empty($rec->normalizedvalue),
                 'entitytype' => (string)$rec->entitytype,
                 'entityid' => $entityid,
-                'fieldname' => (string)$rec->fieldname,
+                'fieldname' => $fieldlabel,
+                'modname' => $cmmodnames[$entityid] ?? '',
+                'hasmodname' => isset($cmmodnames[$entityid]),
                 'cmname' => $cmnames[$entityid] ?? '',
                 'cmurl' => $cmurls[$entityid] ?? '#',
                 'hascm' => isset($cmnames[$entityid]),

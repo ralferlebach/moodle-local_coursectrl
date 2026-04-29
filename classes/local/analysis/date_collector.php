@@ -83,7 +83,7 @@ class date_collector {
                     'modname' => $cm->modname,
                     'component' => $cm->get_component(),
                     'field' => 'completionexpected',
-                    'fieldlabel' => 'completionexpected',
+                    'fieldlabel' => get_string('field_completionexpected', 'local_coursectrl'),
                     'timestamp' => $cm->completionexpected,
                     'source' => 'cm',
                 ];
@@ -100,7 +100,7 @@ class date_collector {
                         'modname' => $cm->modname,
                         'component' => $cm->get_component(),
                         'field' => 'availability_' . $direction . '_' . $i,
-                        'fieldlabel' => 'availability_' . $direction,
+                        'fieldlabel' => get_string('field_availability_' . $direction, 'local_coursectrl'),
                         'timestamp' => $cond['timestamp'],
                         'source' => 'availability',
                     ];
@@ -121,7 +121,11 @@ class date_collector {
                                 'modname' => $cm->modname,
                                 'component' => $cm->get_component(),
                                 'field' => $fieldname,
-                                'fieldlabel' => $fieldname,
+                                'fieldlabel' => (function () use ($fieldname) {
+                                    $lbl = get_string('field_' . $fieldname, 'local_coursectrl', null, true);
+                                    return ($lbl !== false && strpos((string)$lbl, '[[') === false)
+                                        ? (string)$lbl : $fieldname;
+                                })(),
                                 'timestamp' => (int) $value,
                                 'source' => 'adapter',
                             ];

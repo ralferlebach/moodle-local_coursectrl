@@ -271,6 +271,7 @@
             {{#hasnormalized}}<span class="text-muted">→ {{normalizedvalue}}</span>{{/hasnormalized}}
             {{#hascm}}
             <div class="text-muted" style="font-size:.8em">
+              {{#hasmodname}}{{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}} {{/hasmodname}}
               <a href="{{cmurl}}" target="_blank" rel="noopener">{{cmname}}</a>
               · {{fieldname}}
             </div>

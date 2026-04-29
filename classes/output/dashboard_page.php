@@ -29,9 +29,7 @@
  */
 
 namespace local_coursectrl\output;
-
 use local_coursectrl\local\field_label_resolver;
-
 use local_coursectrl\local\analysis\calendar_grid_builder;
 use local_coursectrl\local\analysis\consistency_runner;
 use local_coursectrl\local\analysis\date_collector;
@@ -139,11 +137,11 @@ class dashboard_page implements renderable, templatable {
         foreach ($this->snapshot->sections as $section) {
             $sname = ($section->name !== '')
                 ? format_string($section->name)
-                : get_string('sectionname', 'format_topics') . ' ' . $section->section;
+                : get_string('sectionname', 'format_topics') . ' ' . $section->sectionnum;
             $sectionnames[$section->id] = $sname;
             $sectionurls[$section->id]  = (new \moodle_url(
                 '/course/view.php',
-                ['id' => $courseid, 'section' => $section->section]
+                ['id' => $courseid, 'section' => $section->sectionnum]
             ))->out(false);
         }
 

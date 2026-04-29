@@ -45,7 +45,6 @@ namespace local_coursectrl\local;
  * Resolves a raw DB field name to a human-readable, localised label.
  */
 class field_label_resolver {
-
     /**
      * Resolve a field name to a human-readable label.
      *

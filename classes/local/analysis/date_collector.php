@@ -30,9 +30,7 @@
  */
 
 namespace local_coursectrl\local\analysis;
-
 use local_coursectrl\local\field_label_resolver;
-
 use local_coursectrl\local\entity\cm_item;
 use local_coursectrl\manager\registry;
 

@@ -35,9 +35,7 @@
  */
 
 namespace local_coursectrl\local\visualization;
-
 use local_coursectrl\local\field_label_resolver;
-
 use local_coursectrl\local\analysis\date_collector;
 use local_coursectrl\local\entity\cm_item;
 use local_coursectrl\manager\calendar_manager;
@@ -98,7 +96,11 @@ class gantt_dataset_builder {
                 $bars[] = [
                     'field' => $entry['field'],
                     'fieldlabel' => $entry['fieldlabel'],
-                    'humanlabel' => $this->localised_field_label((string) $entry['field'], (string) ($entry['modname'] ?? ''), 'cm'),
+                    'humanlabel' => $this->localised_field_label(
+                        (string) $entry['field'],
+                        (string) ($entry['modname'] ?? ''),
+                        'cm'
+                    ),
                     'timestamp' => $ts,
                     'formatted' => userdate($ts, $datetimefmt),
                     'source' => $entry['source'],

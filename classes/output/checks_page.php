@@ -35,9 +35,7 @@
  */
 
 namespace local_coursectrl\output;
-
 use local_coursectrl\local\field_label_resolver;
-
 use renderable;
 use renderer_base;
 use templatable;

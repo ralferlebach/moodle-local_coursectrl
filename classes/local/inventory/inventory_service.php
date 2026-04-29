@@ -121,9 +121,15 @@ class inventory_service {
      */
     protected function build_sections(int $courseid): array {
         global $DB;
-        $rows   = $DB->get_records('course_sections', ['course' => $courseid], 'section ASC');
+        $rows   = $DB->get_records(
+            'course_sections',
+            ['course' => $courseid],
+            'section ASC',
+            'id,section,name,summary,summaryformat,visible,availability'
+        );
         $result = [];
         foreach ($rows as $row) {
+            $avail = (!empty($row->availability)) ? (string) $row->availability : null;
             $result[(int) $row->id] = new section_item(
                 id: (int) $row->id,
                 courseid: $courseid,
@@ -132,6 +138,7 @@ class inventory_service {
                 summary: (string) ($row->summary ?? ''),
                 summaryformat: (int) ($row->summaryformat ?? 1),
                 visible: !empty($row->visible),
+                availability: $avail,
             );
         }
         return $result;

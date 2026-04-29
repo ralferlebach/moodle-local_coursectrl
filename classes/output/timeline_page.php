@@ -218,7 +218,11 @@ class timeline_page implements renderable, templatable {
                 '/local/coursectrl/manage.php',
                 ['courseid' => $course->id]
             ))->out(false),
-            'gantt_json' => json_encode($ganttdata = $this->build_gantt_data($this->snapshot->cms)),
+            'gantt_json' => json_encode($ganttdata = $this->build_gantt_data(
+                $this->snapshot->sections,
+                $this->snapshot->cms,
+                (int) $this->snapshot->course->id
+            )),
             'gantt' => $ganttdata,
             'gantt_hasdata' => !empty($ganttdata['hasdata']),
             'activetab' => $this->filters['tab'] ?? 'timeline',
@@ -356,9 +360,51 @@ class timeline_page implements renderable, templatable {
      * @param array $cms CMs keyed by cmid.
      * @return array Gantt dataset export.
      */
-    private function build_gantt_data(array $cms): array {
-        $calman = new calendar_manager();
+    private function build_gantt_data(array $sections, array $cms, int $courseid): array {
+        $calman  = new calendar_manager();
         $builder = new gantt_dataset_builder();
-        return $builder->build($cms, $calman);
+
+        // Resolve format-aware section display names.
+        $course  = get_course($courseid);
+        $modinfo = get_fast_modinfo($course);
+
+        $sectionnames = [];
+        foreach ($sections as $section) {
+            $info = $modinfo->get_section_info($section->sectionnum, MUST_EXIST);
+            $sectionnames[$section->id] = get_section_name($course, $info);
+        }
+
+        // Build subsection map: cmid => child section id.
+        // Moodle flags subsection-owned sections with component='mod_subsection'
+        // and itemid = the subsection module instance id.
+        // Keyed by section id: marks sections owned by a subsection CM.
+        $subsectionsectionids = [];
+        // Keyed by cmid: maps subsection CM to its child section id.
+        $subsectionmap = [];
+        foreach ($modinfo->get_section_info_all() as $sinfo) {
+            if ((string) ($sinfo->component ?? '') !== 'mod_subsection') {
+                continue;
+            }
+            $instanceid = (int) $sinfo->itemid;
+            $childsectionid = (int) $sinfo->id;
+            // Find the CM that owns this subsection section.
+            foreach ($modinfo->get_cms() as $cm) {
+                if ($cm->modname === 'subsection' && (int) $cm->instance === $instanceid) {
+                    $subsectionmap[(int) $cm->id] = $childsectionid;
+                    $subsectionsectionids[$childsectionid] = true;
+                    break;
+                }
+            }
+        }
+
+        return $builder->build_with_structure(
+            $sections,
+            $cms,
+            $courseid,
+            $calman,
+            $sectionnames,
+            $subsectionmap,
+            $subsectionsectionids
+        );
     }
 }

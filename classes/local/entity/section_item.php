@@ -49,6 +49,9 @@ final class section_item extends inventory_item {
     /** @var bool Section visibility flag. */
     public readonly bool $visible;
 
+    /** @var string|null JSON availability string, or null when unrestricted. */
+    public readonly ?string $availability;
+
     /**
      * Constructor.
      *
@@ -67,7 +70,8 @@ final class section_item extends inventory_item {
         ?string $name,
         string $summary,
         int $summaryformat,
-        bool $visible
+        bool $visible,
+        ?string $availability = null
     ) {
         $this->id = $id;
         $this->courseid = $courseid;
@@ -76,6 +80,7 @@ final class section_item extends inventory_item {
         $this->summary = $summary;
         $this->summaryformat = $summaryformat;
         $this->visible = $visible;
+        $this->availability = $availability;
     }
 
     /**
@@ -101,7 +106,8 @@ final class section_item extends inventory_item {
             'name' => $this->name,
             'summary' => $this->summary,
             'summaryformat' => $this->summaryformat,
-            'visible' => $this->visible,
+            'visible'       => $this->visible,
+            'availability'  => $this->availability,
         ];
     }
 

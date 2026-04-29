@@ -100,7 +100,11 @@ class date_collector {
                         'modname' => $cm->modname,
                         'component' => $cm->get_component(),
                         'field' => 'availability_' . $direction . '_' . $i,
-                        'fieldlabel' => field_label_resolver::resolve('availability_' . $direction, '', 'cm'),
+                        'fieldlabel' => field_label_resolver::resolve(
+                            'availability_' . $direction,
+                            '',
+                            'cm'
+                        ) . ($i > 0 ? ' (#' . $i . ')' : ''),
                         'timestamp' => $cond['timestamp'],
                         'source' => 'availability',
                     ];

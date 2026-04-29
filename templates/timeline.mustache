@@ -195,8 +195,7 @@
          data-daykey="{{daykey}}">
       <div class="card-header py-1 d-flex align-items-center gap-2"
            id="day-{{daykey}}">
-        <strong class="{{#ispast}}text-muted{{/ispast}}">{{dayformatted}}</strong>
-        <span class="badge bg-light text-dark border small">{{slotcount}}</span>
+        <span class="{{#ispast}}text-muted{{/ispast}}">{{dayformatted}}</span>
       </div>
       {{#slots}}
       <div class="card-body py-1 px-2">
@@ -222,7 +221,7 @@
             <span class="text-truncate me-2">
               {{#pix}}monologo, mod_{{modname}}, {{modname}}{{/pix}}
               <a href="{{activityurl}}" target="_blank" rel="noopener noreferrer">{{name}}</a>
-              <span class="badge bg-light text-dark border ms-1 small">{{field}}</span>
+              <span class="badge bg-light text-dark border ms-1 small fw-normal">{{field}}</span>
             </span>
             <span class="d-flex gap-1 flex-shrink-0" style="min-width:4.5rem">
               {{! Shift this single entry }}
@@ -496,11 +495,11 @@
                   {{^hascm}}
                     <code class="small">{{entitytype}}:{{entityid}}</code>
                   {{/hascm}}
-                  <span class="badge bg-light text-dark border ms-1 small">{{fieldname}}</span>
+                  <span class="badge bg-light text-dark border ms-1 small fw-normal">{{fieldname}}</span>
                 </td>
-                <td><code>{{matchedtext}}</code></td>
+                <td><strong>{{matchedtext}}</strong></td>
                 <td>
-                  {{#hasnormalized}}<code>{{normalizedvalue}}</code>{{/hasnormalized}}
+                  {{#hasnormalized}}<strong>{{normalizedvalue}}</strong>{{/hasnormalized}}
                   {{^hasnormalized}}<span class="text-muted">–</span>{{/hasnormalized}}
                   {{#issafe}}<span class="badge badge-success ms-1">{{#str}} textreview_safe, local_coursectrl {{/str}}</span>{{/issafe}}
                   {{#isambiguous}}<span class="badge badge-warning ms-1">{{#str}} textreview_ambiguous, local_coursectrl {{/str}}</span>{{/isambiguous}}

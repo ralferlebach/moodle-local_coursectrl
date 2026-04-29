@@ -439,6 +439,6 @@ final class dashboard_page_test extends \advanced_testcase {
         $this->assertTrue($data['hastexthits']);
         $this->assertCount(1, $data['texthits']);
         $this->assertSame('15. März', $data['texthits'][0]['matchedtext']);
-        $this->assertSame('intro', $data['texthits'][0]['fieldname']);
+        $this->assertSame('Description', $data['texthits'][0]['fieldname']);
     }
 }

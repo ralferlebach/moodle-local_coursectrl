@@ -28,7 +28,7 @@
  */
 
 namespace local_coursectrl\output;
-
+use local_coursectrl\local\field_label_resolver;
 use local_coursectrl\local\analysis\calendar_grid_builder;
 use local_coursectrl\local\analysis\date_collector;
 use local_coursectrl\local\visualization\gantt_dataset_builder;
@@ -310,7 +310,11 @@ class timeline_page implements renderable, templatable {
                 'cmurl'   => $hitcmurl,
                 'modname' => $hitmodname,
                 'hascm'   => !empty($hitcmname),
-                'fieldname' => $hit->get('fieldname'),
+                'fieldname' => field_label_resolver::resolve(
+                    (string) $hit->get('fieldname'),
+                    $hitmodname,
+                    $hitentitytype
+                ),
                 'matchedtext' => $hit->get('matchedtext'),
                 'normalizedvalue' => $hit->get('normalizedvalue'),
                 'hasnormalized' => !empty($hit->get('normalizedvalue')),

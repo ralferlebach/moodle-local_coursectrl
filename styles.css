@@ -198,6 +198,18 @@
 }
 
 /**
+ * Toolbar: ensure items never overlap on wrap and have consistent spacing.
+ * Bootstrap gap-2 covers column gap; row-gap handles wrapped rows.
+ */
+.local_coursectrl_toolbar {
+    row-gap: 0.5rem;
+}
+
+.local_coursectrl_toolbar > * {
+    flex-shrink: 0;
+}
+
+/**
  * Toolbar toggles (plain checkbox+label in d-flex toolbars).
  * Reset Bootstrap float so checkboxes sit correctly in a flex row.
  */

@@ -24,6 +24,12 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['action_copy_settings_from_reference'] = 'Einstellungen von Vorlage kopieren';
+$string['action_run_checks'] = 'Prüfungen ausführen';
+$string['action_set_availability'] = 'Verfügbarkeit setzen';
+$string['action_set_completion'] = 'Abschluss setzen';
+$string['action_set_dates'] = 'Termine setzen';
+$string['action_set_visibility'] = 'Sichtbarkeit setzen';
 $string['action_shift_dates'] = 'Termine verschieben';
 $string['cal_hide'] = 'Kalender ausblenden';
 $string['cal_show'] = 'Kalender einblenden';
@@ -323,6 +329,8 @@ $string['risk_problem_circular_dep'] = '„{$a->cmname}" ist Teil einer zirkulä
 $string['risk_problem_completion_no_tracking'] = '„{$a->cmname}" setzt „{$a->related}" als Abschluss-Voraussetzung, aber dort ist kein Abschluss-Tracking aktiviert.';
 $string['risk_problem_completionexpected_window'] = '"{$a->cmname}": Die Abschluss-Erinnerung ({$a->date_expected}) liegt außerhalb des Aktivitätszeitraums ({$a->date_start} â {$a->date_end}).';
 $string['risk_problem_dangling_dep'] = '"{$a->cmname}" verweist auf eine Voraussetzung, die nicht mehr existiert oder zu einem anderen Kurs gehört.';
+$string['risk_problem_dangling_group'] = '"{$a->cmname}" hat eine Gruppenbedingung, die auf eine nicht mehr existierende Gruppe verweist.';
+$string['risk_problem_dangling_grouping'] = '"{$a->cmname}" hat eine Gruppierungsbedingung, die auf eine nicht mehr existierende Gruppierung verweist.';
 $string['risk_problem_date_coupling'] = 'In "{$a->cmname}": {$a->field_early} liegt nach {$a->field_late}. Diese Datumsreihenfolge ist logisch inkonsistent.';
 $string['risk_problem_deadline_before_dep_window'] = '„{$a->cmname}" hat eine Deadline, die vor dem Öffnungsfenster einer Voraussetzung liegt. Lernende können nicht rechtzeitig fertig werden.';
 $string['risk_problem_dep_on_hidden'] = '„{$a->cmname}" hat eine Voraussetzung auf „{$a->related}", die jedoch versteckt ist. Lernende können die Voraussetzung nicht erfüllen, weil sie die Aktivität nicht sehen.';
@@ -568,6 +576,11 @@ $string['sim_title'] = 'Lernenden-Simulation';
 $string['sim_total'] = 'Gesamt';
 $string['sim_tracking_active'] = 'Aktiv';
 $string['sim_tracking_off'] = 'Abgeschaltet';
+$string['status_executed'] = 'Ausgeführt';
+$string['status_failed'] = 'Fehlgeschlagen';
+$string['status_pending'] = 'Ausstehend';
+$string['status_previewed'] = 'Vorschau';
+$string['status_rolled_back'] = 'Zurückgenommen';
 $string['stub_placeholder'] = 'Kursablauf-Zentrale – Phase-1-Stub. Die vollständige Oberfläche folgt in Phase 2.';
 $string['subplugintype_coursectrlcal'] = 'Kursablauf-Kalender';
 $string['subplugintype_coursectrlcal_plural'] = 'Kursablauf-Kalender';

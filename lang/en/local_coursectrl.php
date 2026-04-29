@@ -24,6 +24,12 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['action_copy_settings_from_reference'] = 'Copy settings from reference';
+$string['action_run_checks'] = 'Run checks';
+$string['action_set_availability'] = 'Set availability';
+$string['action_set_completion'] = 'Set completion';
+$string['action_set_dates'] = 'Set dates';
+$string['action_set_visibility'] = 'Set visibility';
 $string['action_shift_dates'] = 'Shift dates';
 $string['cal_hide'] = 'Hide calendar';
 $string['cal_show'] = 'Show calendar';
@@ -323,6 +329,8 @@ $string['risk_problem_circular_dep'] = '"{$a->cmname}" is part of a circular dep
 $string['risk_problem_completion_no_tracking'] = '"{$a->cmname}" requires "{$a->related}" as a completion prerequisite, but completion tracking is not enabled there.';
 $string['risk_problem_completionexpected_window'] = '"{$a->cmname}": the completion reminder ({$a->date_expected}) falls outside the activity window ({$a->date_start} â {$a->date_end}).';
 $string['risk_problem_dangling_dep'] = '"{$a->cmname}" references a prerequisite that no longer exists or belongs to a different course.';
+$string['risk_problem_dangling_group'] = '"{$a->cmname}" has a group condition referencing a group that no longer exists in this course.';
+$string['risk_problem_dangling_grouping'] = '"{$a->cmname}" has a grouping condition referencing a grouping that no longer exists in this course.';
 $string['risk_problem_date_coupling'] = 'In "{$a->cmname}": {$a->field_early} is set after {$a->field_late}. This date order is logically inconsistent.';
 $string['risk_problem_deadline_before_dep_window'] = '"{$a->cmname}" has a deadline that falls before the opening window of a prerequisite. Learners cannot complete it in time.';
 $string['risk_problem_dep_on_hidden'] = '"{$a->cmname}" has a prerequisite on "{$a->related}", which is hidden. Learners cannot fulfil the prerequisite because they cannot see the activity.';
@@ -568,6 +576,11 @@ $string['sim_title'] = 'Learner Simulation';
 $string['sim_total'] = 'Total';
 $string['sim_tracking_active'] = 'Active';
 $string['sim_tracking_off'] = 'Off';
+$string['status_executed'] = 'Executed';
+$string['status_failed'] = 'Failed';
+$string['status_pending'] = 'Pending';
+$string['status_previewed'] = 'Previewed';
+$string['status_rolled_back'] = 'Rolled back';
 $string['stub_placeholder'] = 'Course Control Hub – Phase 1 stub. Full interface coming in Phase 2.';
 $string['subplugintype_coursectrlcal'] = 'Course control calendar';
 $string['subplugintype_coursectrlcal_plural'] = 'Course control calendars';

@@ -35,6 +35,9 @@ namespace local_coursectrl\local\analysis;
 
 use local_coursectrl\local\entity\cm_item;
 use local_coursectrl\local\inventory\inventory_service;
+use local_coursectrl\local\analysis\group_profile_extractor;
+use local_coursectrl\local\analysis\cascade_analyzer;
+use local_coursectrl\local\analysis\finding_deduplicator;
 
 /**
  * Orchestrates the full risk assessment pipeline for a course.
@@ -55,6 +58,15 @@ class risk_assessment_runner {
     /** @var deep_journey_simulator */
     private deep_journey_simulator $journeysimulator;
 
+    /** @var group_profile_extractor */
+    private group_profile_extractor $profileextractor;
+
+    /** @var cascade_analyzer */
+    private cascade_analyzer $cascadeanalyzer;
+
+    /** @var finding_deduplicator */
+    private finding_deduplicator $deduplicator;
+
     /**
      * Constructor.
      *
@@ -63,13 +75,19 @@ class risk_assessment_runner {
      * @param risk_prioritizer|null       $prioritizer       Optional override.
      * @param consistency_runner|null     $consistencyrunner Optional override.
      * @param deep_journey_simulator|null $journeysimulator  Optional override.
+     * @param group_profile_extractor|null  $profileextractor  Optional override.
+     * @param cascade_analyzer|null         $cascadeanalyzer   Optional override.
+     * @param finding_deduplicator|null     $deduplicator      Optional override.
      */
     public function __construct(
         ?dead_end_detector $deadenddetector = null,
         ?escape_path_checker $escapechecker = null,
         ?risk_prioritizer $prioritizer = null,
         ?consistency_runner $consistencyrunner = null,
-        ?deep_journey_simulator $journeysimulator = null
+        ?deep_journey_simulator $journeysimulator = null,
+        ?group_profile_extractor $profileextractor = null,
+        ?cascade_analyzer $cascadeanalyzer = null,
+        ?finding_deduplicator $deduplicator = null
     ) {
         $maxdepth = (int)(get_config('local_coursectrl', 'risk_maxdepth') ?: 10);
         $this->deadenddetector = $deadenddetector ?? new dead_end_detector($maxdepth);
@@ -77,6 +95,9 @@ class risk_assessment_runner {
         $this->prioritizer = $prioritizer ?? new risk_prioritizer();
         $this->consistencyrunner = $consistencyrunner ?? new consistency_runner();
         $this->journeysimulator = $journeysimulator ?? new deep_journey_simulator();
+        $this->profileextractor = $profileextractor ?? new group_profile_extractor();
+        $this->cascadeanalyzer = $cascadeanalyzer ?? new cascade_analyzer();
+        $this->deduplicator = $deduplicator ?? new finding_deduplicator();
     }
 
     /**
@@ -125,7 +146,10 @@ class risk_assessment_runner {
             ];
         }
 
-        $coursegroups = groups_get_all_groups($courseid);
+        // Derive structured learner group profiles from grouping dimensions.
+        // This replaces the naive power-set approach with a semantically correct
+        // Cartesian product of grouping-based choice dimensions.
+        $groupprofiles = $this->profileextractor->extract($courseid, $cms);
         $critcmids = array_map(
             'intval',
             $DB->get_fieldset_select(
@@ -164,7 +188,7 @@ class risk_assessment_runner {
 
         $journeyfindings = $this->journeysimulator->simulate(
             $cms,
-            array_values($coursegroups),
+            $groupprofiles,
             $gradeinfobycmid,
             $gradeitemmap,
             $critcmids,
@@ -202,6 +226,12 @@ class risk_assessment_runner {
 
         // Merge journey simulation findings.
         $items = array_merge($items, $journeyfindings);
+
+        // Classify journey findings as PRIMARY or DERIVED; fold derived into primary.
+        $items = $this->cascadeanalyzer->classify($items, $depindex);
+
+        // Collapse per-scenario duplicates and aggregate structurally identical cards.
+        $items = $this->deduplicator->deduplicate($items);
 
         // Re-sort after merge.
         usort($items, fn ($a, $b) => ($b['score'] ?? 0) - ($a['score'] ?? 0));

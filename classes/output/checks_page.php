@@ -588,7 +588,7 @@ class checks_page implements renderable, templatable {
             // Simulation link: use pre-built deep-link for journey findings,
             // ... otherwise generate a generic link with the relevant timestamp.
             $prebuiltlink = $item['simlink'] ?? '';
-            if ($prebuiltlink !== '' && ($type === 'journey_unreachable')) {
+            if ($prebuiltlink !== '' && in_array($type, ['journey_unreachable', 'journey_unreachable_group'], true)) {
                 $simurl = $prebuiltlink;
             } else {
                 $simts = (int)($item['ts_field'] ?? $item['ts_early'] ?? 0);
@@ -671,6 +671,11 @@ class checks_page implements renderable, templatable {
                 'grademode_label'  => $grademodelabel,
                 'hasgrademode'     => $grademodelabel !== '',
                 'completion_block' => !empty($item['completion_block']),
+                'affected_scenarios' => (int) ($item['affected_scenarios'] ?? 1),
+                'affected_profiles'  => (int) ($item['affected_profiles'] ?? 1),
+                'affected_count'     => (int) ($item['affected_count'] ?? 1),
+                'hasaffected'        => (($item['affected_count'] ?? 1) > 1 ||
+                    ($item['affected_scenarios'] ?? 1) > 1),
             ];
         }
         return $rows;
@@ -745,6 +750,15 @@ class checks_page implements renderable, templatable {
                 get_string('risk_action_deadline_before_dep_window', 'local_coursectrl'),
             ];
         }
+        if ($type === 'journey_unreachable_group') {
+            $a = new \stdClass();
+            $a->count = count($item['cmids'] ?? []);
+            return [
+                get_string('risk_problem_journey_unreachable_group', 'local_coursectrl', $a),
+                get_string('risk_action_journey_unreachable_group', 'local_coursectrl', $a),
+            ];
+        }
+
         if ($type === 'journey_unreachable') {
             $grademode = $item['grademode'] ?? 'pass';
             $a->grademode = get_string(

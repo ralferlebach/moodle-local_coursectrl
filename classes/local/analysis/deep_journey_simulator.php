@@ -81,7 +81,10 @@ class deep_journey_simulator {
      * Run the deep journey simulation for a course.
      *
      * @param cm_item[]   $cms            Course modules keyed by cmid.
-     * @param array       $coursegroups   Moodle group records for the course.
+     * @param array       $groupprofiles  Profiles from group_profile_extractor::extract().
+     *                                    Each profile: ['groupids'=>int[],
+     *                                    'groupingids'=>int[], 'label'=>string].
+     *                                    If empty the no-group profile is used.
      * @param array<int,array> $gradeinfobycmid cmid → {gradepass, grademax}.
      * @param array<int,int>   $gradeitemmap    grade_items.id → cmid.
      * @param int[]       $critcmids       Cmids required for course completion.
@@ -92,7 +95,7 @@ class deep_journey_simulator {
      */
     public function simulate(
         array $cms,
-        array $coursegroups,
+        array $groupprofiles,
         array $gradeinfobycmid = [],
         array $gradeitemmap = [],
         array $critcmids = [],
@@ -108,13 +111,17 @@ class deep_journey_simulator {
         $critset = array_flip($critcmids);
         $evaluator = new condition_evaluator($gradeitemmap);
 
-        // Generate group-combination scenarios (limited).
-        $groupsets = $this->build_group_combinations($coursegroups);
+        // Use provided profiles; fall back to no-group profile when none supplied.
+        if (empty($groupprofiles)) {
+            $groupprofiles = [['groupids' => [], 'groupingids' => [], 'label' => '(no groups)']];
+        }
 
         $allfindings = [];
         $seenkeys = []; // Deduplicate: same cmid + same scenario already reported.
 
-        foreach ($groupsets as $groupids) {
+        foreach ($groupprofiles as $profile) {
+            $groupids = (array) ($profile['groupids'] ?? []);
+            $groupingids = (array) ($profile['groupingids'] ?? []);
             // Simulate optimistic (all-pass) and pessimistic (all-fail) grade scenarios.
             foreach (['pass', 'fail'] as $grademode) {
                 $result = $this->simulate_journey(
@@ -122,6 +129,7 @@ class deep_journey_simulator {
                     $evaluator,
                     $gradeinfobycmid,
                     $groupids,
+                    $groupingids,
                     $grademode,
                     $startts,
                     $maxattemptsbycmid
@@ -184,6 +192,7 @@ class deep_journey_simulator {
      * @param condition_evaluator $evaluator    Availability evaluator.
      * @param array            $gradeinfobycmid cmid → {gradepass, grademax}.
      * @param int[]            $groupids        Group ids the learner is in.
+     * @param int[]            $groupingids     Grouping ids derived from the learner profile.
      * @param string           $grademode       'pass' or 'fail'.
      * @param int              $startts         Start timestamp.
      * @param array<int,int>   $maxattemptsbycmid cmid → max attempts (0=unlimited).
@@ -194,6 +203,7 @@ class deep_journey_simulator {
         condition_evaluator $evaluator,
         array $gradeinfobycmid,
         array $groupids,
+        array $groupingids,
         string $grademode,
         int $startts,
         array $maxattemptsbycmid = []
@@ -208,7 +218,7 @@ class deep_journey_simulator {
         $queue = [];
 
         // Seed queue with initially accessible activities.
-        $state = new learner_state($now, $completions, $groupids, [], $grades);
+        $state = new learner_state($now, $completions, $groupids, $groupingids, $grades);
         foreach ($cms as $cmid => $cm) {
             if (!$cm->visible) {
                 continue;
@@ -235,6 +245,9 @@ class deep_journey_simulator {
             $gradeinfo = $gradeinfobycmid[$cmid] ?? null;
             $gradepass = $gradeinfo ? (float)($gradeinfo['gradepass'] ?? 0.0) : 0.0;
             $haspassgrade = $gradepass > 0.0;
+            // Any CM with a grade item (even gradepass=0) gets a simulated grade so that
+            // Grade-based availability conditions on other CMs can be evaluated correctly.
+            $hasgradeable = $gradeinfo !== null;
             $maxattempts = (int)($maxattemptsbycmid[$cmid] ?? 0);
             $attemptsexhausted = false;
 
@@ -247,6 +260,10 @@ class deep_journey_simulator {
                     $grades[$cmid] = 0.0;
                     $attemptsexhausted = $maxattempts > 0;
                 }
+            } else if ($hasgradeable) {
+                // Grade item present but no pass threshold — simulate grade only.
+                $completionstate = 1; // COMPLETION_COMPLETE.
+                $grades[$cmid] = $grademode === 'pass' ? 100.0 : 0.0;
             } else {
                 $completionstate = 1; // COMPLETION_COMPLETE.
             }
@@ -264,7 +281,7 @@ class deep_journey_simulator {
             ];
 
             // Re-evaluate all unvisited activities with updated state.
-            $state = new learner_state($now, $completions, $groupids, [], $grades);
+            $state = new learner_state($now, $completions, $groupids, $groupingids, $grades);
             foreach ($cms as $candcmid => $candcm) {
                 if (isset($visited[$candcmid]) || in_array($candcmid, $queue, true)) {
                     continue;
@@ -340,7 +357,7 @@ class deep_journey_simulator {
      * @param int     $startts         Start timestamp of the scenario.
      * @param array   $gradeinfobycmid Grade info per cmid.
      * @param int     $courseid        Course id for the URL.
-     * @return string Relative URL string.
+     * @return string Absolute URL string with array params for group and grade state.
      */
     private function build_sim_link(
         string $component,
@@ -382,22 +399,30 @@ class deep_journey_simulator {
             'simtime'  => date('H:i', $simts),
         ];
 
-        // Build query string manually for array params (moodle_url doesn't support arrays).
-        $qs = http_build_query($params, '', '&');
+        // Build the base URL via moodle_url — this handles wwwroot, subdirectory
+        // installs, and config-driven URL rewriting automatically.
+        // moodle_url does not support PHP array-style parameters natively, so
+        // the scalar params are encoded via moodle_url and the array params
+        // (groupids[], sim_complete[N], etc.) are appended to the query string
+        // afterwards using the same percent-encoded bracket notation that
+        // Moodle's own core uses for such parameters.
+        $baseurl = new \moodle_url('/local/coursectrl/checks.php', $params);
+        $base = $baseurl->out_omit_querystring();
+        $scalarqs = substr($baseurl->out(false), strlen($base) + 1);
+        $arrayqs = '';
         foreach ($groupids as $gid) {
-            $qs .= '&groupids%5B%5D=' . (int)$gid;
+            $arrayqs .= '&groupids%5B%5D=' . (int)$gid;
         }
         foreach ($completeparams as $cmid => $v) {
-            $qs .= '&sim_complete%5B' . $cmid . '%5D=1';
+            $arrayqs .= '&sim_complete%5B' . $cmid . '%5D=1';
         }
         foreach ($passedparams as $cmid => $v) {
-            $qs .= '&sim_passed%5B' . $cmid . '%5D=1';
+            $arrayqs .= '&sim_passed%5B' . $cmid . '%5D=1';
         }
         foreach ($gradeparams as $cmid => $pct) {
-            $qs .= '&sim_grade%5B' . $cmid . '%5D=' . $pct;
+            $arrayqs .= '&sim_grade%5B' . $cmid . '%5D=' . $pct;
         }
-
-        return '/local/coursectrl/checks.php?' . $qs;
+        return $base . '?' . $scalarqs . $arrayqs;
     }
 
     /**

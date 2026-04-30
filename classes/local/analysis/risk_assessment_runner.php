@@ -38,6 +38,7 @@ use local_coursectrl\local\inventory\inventory_service;
 use local_coursectrl\local\analysis\group_profile_extractor;
 use local_coursectrl\local\analysis\cascade_analyzer;
 use local_coursectrl\local\analysis\finding_deduplicator;
+use local_coursectrl\local\analysis\completion_reachability_checker;
 
 /**
  * Orchestrates the full risk assessment pipeline for a course.
@@ -67,6 +68,9 @@ class risk_assessment_runner {
     /** @var finding_deduplicator */
     private finding_deduplicator $deduplicator;
 
+    /** @var completion_reachability_checker */
+    private completion_reachability_checker $completionchecker;
+
     /**
      * Constructor.
      *
@@ -77,7 +81,8 @@ class risk_assessment_runner {
      * @param deep_journey_simulator|null $journeysimulator  Optional override.
      * @param group_profile_extractor|null  $profileextractor  Optional override.
      * @param cascade_analyzer|null         $cascadeanalyzer   Optional override.
-     * @param finding_deduplicator|null     $deduplicator      Optional override.
+     * @param finding_deduplicator|null          $deduplicator       Optional override.
+     * @param completion_reachability_checker|null $completionchecker Optional override.
      */
     public function __construct(
         ?dead_end_detector $deadenddetector = null,
@@ -87,7 +92,8 @@ class risk_assessment_runner {
         ?deep_journey_simulator $journeysimulator = null,
         ?group_profile_extractor $profileextractor = null,
         ?cascade_analyzer $cascadeanalyzer = null,
-        ?finding_deduplicator $deduplicator = null
+        ?finding_deduplicator $deduplicator = null,
+        ?completion_reachability_checker $completionchecker = null
     ) {
         $maxdepth = (int)(get_config('local_coursectrl', 'risk_maxdepth') ?: 10);
         $this->deadenddetector = $deadenddetector ?? new dead_end_detector($maxdepth);
@@ -98,6 +104,7 @@ class risk_assessment_runner {
         $this->profileextractor = $profileextractor ?? new group_profile_extractor();
         $this->cascadeanalyzer = $cascadeanalyzer ?? new cascade_analyzer();
         $this->deduplicator = $deduplicator ?? new finding_deduplicator();
+        $this->completionchecker = $completionchecker ?? new completion_reachability_checker();
     }
 
     /**
@@ -139,7 +146,10 @@ class risk_assessment_runner {
             ['courseid' => $courseid]
         );
         foreach ($gradequeryrows as $row) {
-            $gradeitemmap[(int) $row->id] = (int) $row->cmid;
+            $gradeitemmap[(int) $row->id] = [
+                'cmid'     => (int) $row->cmid,
+                'grademax' => (float) ($row->grademax ?? 100.0),
+            ];
             $gradeinfobycmid[(int) $row->cmid] = [
                 'gradepass' => (float) ($row->gradepass ?? 0.0),
                 'grademax'  => (float) ($row->grademax ?? 100.0),
@@ -212,6 +222,11 @@ class risk_assessment_runner {
         $escapepaths = $this->escapechecker->analyse($findings, $cms, $depindex);
 
         // Score and sort static findings by priority.
+        // Prioritizer now receives grade maps so it can apply the remedial-pattern filter.
+        $this->prioritizer = new \local_coursectrl\local\analysis\risk_prioritizer(
+            $gradeitemmap,
+            $gradeinfobycmid
+        );
         $items = $this->prioritizer->score_and_sort($findings, $depindex);
 
         // Merge consistency-runner findings into the ranked list.
@@ -232,6 +247,16 @@ class risk_assessment_runner {
 
         // Collapse per-scenario duplicates and aggregate structurally identical cards.
         $items = $this->deduplicator->deduplicate($items);
+
+        // Check whether course completion criteria are reachable across all profiles.
+        $completionfindings = $this->completionchecker->check(
+            $courseid,
+            $cms,
+            $groupprofiles,
+            $gradeitemmap,
+            $gradeinfobycmid
+        );
+        $items = array_merge($items, $completionfindings);
 
         // Re-sort after merge.
         usort($items, fn ($a, $b) => ($b['score'] ?? 0) - ($a['score'] ?? 0));

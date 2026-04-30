@@ -750,6 +750,32 @@ class checks_page implements renderable, templatable {
                 get_string('risk_action_deadline_before_dep_window', 'local_coursectrl'),
             ];
         }
+        if ($type === 'completion_unreachable') {
+            $a = new \stdClass();
+            $a->failing = $item['message_params']['failing'] ?? 0;
+            $a->total   = $item['message_params']['total'] ?? 1;
+            return [
+                get_string('risk_completion_unreachable', 'local_coursectrl', $a),
+                get_string('consistency_action_r1_not_accessible', 'local_coursectrl'),
+            ];
+        }
+
+        if ($type === 'completion_reachable') {
+            $a = new \stdClass();
+            $a->profiles = $item['message_params']['profiles'] ?? 1;
+            return [
+                get_string('risk_completion_reachable', 'local_coursectrl', $a),
+                '',
+            ];
+        }
+
+        if ($type === 'remedial_path_available') {
+            return [
+                get_string('risk_remedial_path_available', 'local_coursectrl'),
+                '',
+            ];
+        }
+
         if ($type === 'journey_unreachable_group') {
             $a = new \stdClass();
             $a->count = count($item['cmids'] ?? []);

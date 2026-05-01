@@ -103,6 +103,16 @@ class completion_reachability_checker {
 
         $evaluator = new condition_evaluator($gradeitemmap);
 
+        // Build a best-case grade set: all graded CMs have score 100.
+        // This ensures grade-based availability conditions (e.g. grade < 75
+        // for remedial CMs) evaluate correctly instead of returning UNKNOWN.
+        // Main path CMs with no conditions are always accessible.
+        // Remedial CMs gated by a max-grade condition are correctly blocked.
+        $bestcasegrades = [];
+        foreach ($gradeinfobycmid as $gradecmid => $info) {
+            $bestcasegrades[(int) $gradecmid] = 100.0;
+        }
+
         // Classify criteria by type; skip types we cannot analyse.
         $activitycriteria = []; // Cmid → criterion record.
         $gradecriteria = [];    // Cmid → criterion record.
@@ -125,10 +135,9 @@ class completion_reachability_checker {
         }
 
         // For each profile, determine which criteria are satisfiable.
-        // A criterion is satisfiable in a profile when:
-        // - The CM is visible.
-        // - The CM's availability conditions pass for the profile's group set.
-        // - (Grade criteria only) gradepass <= grademax and grademax > 0.
+        // A criterion is satisfiable when the CM is visible, its availability
+        // conditions pass for the profile, and (grade criteria only) gradepass
+        // does not exceed grademax.
         $profilecount = count($groupprofiles);
         $failingprofiles = []; // Profile indexes that cannot complete the course.
         $failingcmids = [];    // Cmids whose criteria are never satisfiable.
@@ -136,7 +145,7 @@ class completion_reachability_checker {
         foreach ($groupprofiles as $profileidx => $profile) {
             $groupids = (array) ($profile['groupids'] ?? []);
             $groupingids = (array) ($profile['groupingids'] ?? []);
-            $state = new learner_state(time(), [], $groupids, $groupingids, []);
+            $state = new learner_state(time(), [], $groupids, $groupingids, $bestcasegrades);
 
             $profilecomplete = true;
 
@@ -147,7 +156,9 @@ class completion_reachability_checker {
                     continue;
                 }
                 $eval = $evaluator->evaluate($cms[$cmid]->availability, $state);
-                if (!$eval['accessible']) {
+                // Treat UNKNOWN as accessible: if we cannot determine availability,
+                // Assume the criterion might be satisfiable rather than failing.
+                if ($eval['status'] === 'fail') {
                     $profilecomplete = false;
                     $failingcmids[$cmid] = true;
                 }
@@ -160,7 +171,8 @@ class completion_reachability_checker {
                     continue;
                 }
                 $eval = $evaluator->evaluate($cms[$cmid]->availability, $state);
-                if (!$eval['accessible']) {
+                // Treat UNKNOWN as accessible — only explicit FAIL blocks this criterion.
+                if ($eval['status'] === 'fail') {
                     $profilecomplete = false;
                     $failingcmids[$cmid] = true;
                     continue;

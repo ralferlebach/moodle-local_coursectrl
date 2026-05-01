@@ -268,16 +268,23 @@ class deep_journey_simulator {
                 $completionstate = 1; // COMPLETION_COMPLETE.
             }
 
-            $completions[$cmid] = $completionstate;
+            // Only record completion state for CMs with completion tracking enabled.
+            // CMs with completion=0 are visited but cannot fulfil completion-based
+            // Prerequisites, and should not appear as 'completed' in the journey.
+            $hascompletiontracking = ($cms[$cmid]->completion ?? 0) > 0;
+            if ($hascompletiontracking) {
+                $completions[$cmid] = $completionstate;
+            }
             $now += $this->minactivityminutes * 60;
 
             $steps[] = [
-                'cmid'               => $cmid,
-                'cmname'             => $cms[$cmid]->name ?? '',
-                'modname'            => $cms[$cmid]->modname ?? '',
-                'outcome'            => $completionstate,
-                'attempts_exhausted' => $attemptsexhausted,
-                'ts'                 => $now,
+                'cmid'                => $cmid,
+                'cmname'              => $cms[$cmid]->name ?? '',
+                'modname'             => $cms[$cmid]->modname ?? '',
+                'outcome'             => $hascompletiontracking ? $completionstate : 0,
+                'attempts_exhausted'  => $attemptsexhausted,
+                'ts'                  => $now,
+                'completion_tracking' => $hascompletiontracking ? 1 : 0,
             ];
 
             // Re-evaluate all unvisited activities with updated state.
@@ -377,10 +384,11 @@ class deep_journey_simulator {
         foreach ($steps as $step) {
             $cmid = (int)$step['cmid'];
             $outcome = (int)$step['outcome'];
-            if ($outcome >= 1) {
+            $hastrack = !empty($step['completion_tracking']);
+            if ($hastrack && $outcome >= 1) {
                 $completeparams[$cmid] = 1;
             }
-            if ($outcome === 2) {
+            if ($hastrack && $outcome === 2) {
                 $passedparams[$cmid] = 1;
             }
             $gradeinfo = $gradeinfobycmid[$cmid] ?? null;
@@ -400,11 +408,11 @@ class deep_journey_simulator {
         ];
 
         // Build the base URL via moodle_url — this handles wwwroot, subdirectory
-        // installs, and config-driven URL rewriting automatically.
-        // moodle_url does not support PHP array-style parameters natively, so
-        // the scalar params are encoded via moodle_url and the array params
+        // Installs, and config-driven URL rewriting automatically.
+        // Moodle_url does not support PHP array-style parameters natively, so
+        // The scalar params are encoded via moodle_url and the array params
         // (groupids[], sim_complete[N], etc.) are appended to the query string
-        // afterwards using the same percent-encoded bracket notation that
+        // Afterwards using the same percent-encoded bracket notation that
         // Moodle's own core uses for such parameters.
         $baseurl = new \moodle_url('/local/coursectrl/checks.php', $params);
         $base = $baseurl->out_omit_querystring();

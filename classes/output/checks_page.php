@@ -605,7 +605,11 @@ class checks_page implements renderable, templatable {
             foreach ($item['journey_steps'] ?? [] as $step) {
                 $outcome = (int)($step['outcome'] ?? 1);
                 $exhausted = !empty($step['attempts_exhausted']);
-                if ($exhausted) {
+                $hastrack = !empty($step['completion_tracking']);
+                if (!$hastrack) {
+                    // CM has no completion tracking — show as visited, not completed.
+                    $outcomekey = 'visited';
+                } else if ($exhausted) {
                     $outcomekey = 'fail_exhausted';
                 } else {
                     $outcomekey = match ($outcome) {
@@ -626,6 +630,7 @@ class checks_page implements renderable, templatable {
                     ),
                     'is_pass'      => $outcomekey === 'pass',
                     'is_fail'      => str_starts_with($outcomekey, 'fail'),
+                    'is_visited'   => $outcomekey === 'visited',
                 ];
             }
 

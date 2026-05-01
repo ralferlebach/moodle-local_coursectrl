@@ -357,6 +357,7 @@ $string['risk_journey_affected_scenarios'] = '{$a} scenario(s) affected';
 $string['risk_journey_outcome_complete'] = 'completed';
 $string['risk_journey_outcome_fail'] = 'failed';
 $string['risk_journey_outcome_fail_exhausted'] = 'failed (attempts exhausted)';
+$string['risk_journey_outcome_visited'] = 'visited (no completion tracking)';
 $string['risk_journey_outcome_pass'] = 'passed';
 $string['risk_journey_scenario_fail'] = 'worst case';
 $string['risk_journey_scenario_pass'] = 'best case';

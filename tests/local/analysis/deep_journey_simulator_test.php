@@ -101,7 +101,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
         $this->resetAfterTest();
         $cms = [1 => $this->cm(1)];
         $ev = new condition_evaluator();
-        $result = $this->sim()->simulate_journey($cms, $ev, [], [], 'pass', self::TS);
+        $result = $this->sim()->simulate_journey($cms, $ev, [], [], [], 'pass', self::TS);
 
         $this->assertContains(1, $result['reachable']);
         $this->assertEmpty($result['unreachable']);
@@ -119,7 +119,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
             3 => $this->cm(3, $this->avail_requires(2)),
         ];
         $ev = new condition_evaluator();
-        $result = $this->sim()->simulate_journey($cms, $ev, [], [], 'pass', self::TS);
+        $result = $this->sim()->simulate_journey($cms, $ev, [], [], [], 'pass', self::TS);
 
         $this->assertContains(1, $result['reachable']);
         $this->assertContains(2, $result['reachable']);
@@ -138,7 +138,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
             2 => $this->cm(2, $this->avail_requires(1)),
         ];
         $ev = new condition_evaluator();
-        $result = $this->sim()->simulate_journey($cms, $ev, [], [], 'pass', self::TS);
+        $result = $this->sim()->simulate_journey($cms, $ev, [], [], [], 'pass', self::TS);
 
         $this->assertContains(2, $result['unreachable']);
     }
@@ -154,7 +154,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
             11 => $this->cm(11, $this->avail_requires(10)),
         ];
         $ev = new condition_evaluator();
-        $result = $this->sim()->simulate_journey($cms, $ev, [], [], 'pass', self::TS);
+        $result = $this->sim()->simulate_journey($cms, $ev, [], [], [], 'pass', self::TS);
 
         $this->assertContains(10, $result['unreachable']);
         $this->assertContains(11, $result['unreachable']);
@@ -171,7 +171,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
             2 => $this->cm(2, $this->avail_requires(1)),
         ];
         $ev = new condition_evaluator();
-        $result = $this->sim(30)->simulate_journey($cms, $ev, [], [], 'pass', self::TS);
+        $result = $this->sim(30)->simulate_journey($cms, $ev, [], [], [], 'pass', self::TS);
 
         $this->assertCount(2, $result['steps']);
         $this->assertSame(1, $result['steps'][0]['cmid']);

@@ -20,11 +20,12 @@
  * Accepts a POST request with:
  *   courseid  int     Course id.
  *   action    string  Fix action code (see switch below).
- *   cmid      int     Target course module id.
+ *   cmid      int     Single target course module id (legacy; optional if cmids provided).
+ *   cmids[]   int[]   Multiple target CM ids (takes precedence over cmid when present).
  *   sesskey   string  Session key (CSRF protection).
  *
  * Supported actions:
- *   unhide_cm — Makes a hidden CM visible via set_coursemodule_visible().
+ *   unhide_cm — Makes one or more hidden CMs visible via set_coursemodule_visible().
  *               Requires local/coursectrl:bulkaction capability.
  *
  * On success: redirects back to checks.php with a success notice.
@@ -39,7 +40,16 @@ require_once(__DIR__ . '/../../config.php');
 
 $courseid = required_param('courseid', PARAM_INT);
 $action = required_param('action', PARAM_ALPHANUMEXT);
-$cmid = required_param('cmid', PARAM_INT);
+// Accept either cmids[] (array) or a single cmid for backwards compatibility.
+$cmids = optional_param_array('cmids', [], PARAM_INT);
+if (empty($cmids)) {
+    $singlecmid = optional_param('cmid', 0, PARAM_INT);
+    if ($singlecmid > 0) {
+        $cmids = [$singlecmid];
+    }
+}
+// Filter out zero/invalid values.
+$cmids = array_values(array_filter($cmids, fn ($id) => $id > 0));
 
 $course = get_course($courseid);
 $context = context_course::instance($courseid);
@@ -53,19 +63,36 @@ $returnurl = new moodle_url(
     '/local/coursectrl/checks.php',
     ['courseid' => $courseid, 'tab' => $returntab]
 );
+// After a successful fix, trigger an automatic fresh deep analysis run
+// So the user immediately sees the updated check results.
+$returnurlwithrun = new moodle_url(
+    '/local/coursectrl/checks.php',
+    ['courseid' => $courseid, 'tab' => $returntab, 'run' => 1]
+);
 
 $success = false;
 $errormsg = '';
 
 switch ($action) {
     case 'unhide_cm':
-        $cm = get_coursemodule_from_id('', $cmid, $courseid, false, IGNORE_MISSING);
-        if ($cm === false) {
+        if (empty($cmids)) {
             $errormsg = get_string('fix_error_cmid_not_found', 'local_coursectrl');
-        } else {
-            set_coursemodule_visible($cmid, 1);
+            break;
+        }
+        $anyok = false;
+        foreach ($cmids as $targetcmid) {
+            $cm = get_coursemodule_from_id('', $targetcmid, $courseid, false, IGNORE_MISSING);
+            if ($cm === false) {
+                continue;
+            }
+            set_coursemodule_visible($targetcmid, 1);
+            $anyok = true;
+        }
+        if ($anyok) {
             rebuild_course_cache($courseid, true);
             $success = true;
+        } else {
+            $errormsg = get_string('fix_error_cmid_not_found', 'local_coursectrl');
         }
         break;
 
@@ -76,7 +103,7 @@ switch ($action) {
 
 if ($success) {
     redirect(
-        $returnurl,
+        $returnurlwithrun,
         get_string('fix_success_unhide_cm', 'local_coursectrl'),
         null,
         \core\output\notification::NOTIFY_SUCCESS

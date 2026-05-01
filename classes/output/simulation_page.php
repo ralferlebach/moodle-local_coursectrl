@@ -200,7 +200,9 @@ class simulation_page implements renderable, templatable {
 
         if ($hasresults) {
             $evaluator = new condition_evaluator($gradeitemmap);
-            $simulator = new visibility_simulator($evaluator);
+            // Pass sections so visibility_simulator can gate CMs by section availability.
+            $sections = $snapshot->sections ?? [];
+            $simulator = new visibility_simulator($evaluator, $sections);
             $simresults = $simulator->simulate($cms, $this->state);
             $engine = new next_step_engine();
             $nextstepids = $engine->find_next_steps($simresults, $cms, $this->state);

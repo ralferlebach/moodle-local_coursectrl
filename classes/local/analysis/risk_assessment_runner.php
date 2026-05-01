@@ -114,13 +114,15 @@ class risk_assessment_runner {
      * @param dependency_index $depindex Pre-built dependency index.
      * @param array            $datesbycm Date entries from date_collector.
      * @param int              $courseid Course id (for persistence).
+     * @param array            $sections Section items for section availability gating.
      * @return array[] Scored, sorted risk items.
      */
     public function run(
         array $cms,
         dependency_index $depindex,
         array $datesbycm,
-        int $courseid
+        int $courseid,
+        array $sections = []
     ): array {
         global $DB;
 
@@ -204,7 +206,16 @@ class risk_assessment_runner {
             $critcmids,
             0,
             $courseid,
-            $maxattemptsbycmid
+            $maxattemptsbycmid,
+            array_values($sections)
+        );
+
+        // Annotate findings with section cause when the parent section
+        // is blocked — this allows checks_page to show a targeted message.
+        $journeyfindings = $this->annotate_section_cause(
+            $journeyfindings,
+            $cms,
+            $sections
         );
 
         // Score journey findings (not processed by risk_prioritizer).
@@ -386,5 +397,55 @@ class risk_assessment_runner {
             }
         }
         return $items;
+    }
+
+    /**
+     * Annotate journey_unreachable findings with section-cause information.
+     *
+     * When a CM is unreachable and its parent section has availability conditions,
+     * the finding is tagged with section_cause=true, section_id, and section_name
+     * so the UI can render a targeted message and link to edit the section.
+     *
+     * @param array[]          $findings Raw journey findings.
+     * @param cm_item[]        $cms      Course modules keyed by cmid.
+     * @param array            $sections Section items keyed by section db id.
+     * @return array[] Annotated findings.
+     */
+    private function annotate_section_cause(
+        array $findings,
+        array $cms,
+        array $sections
+    ): array {
+        if (empty($sections)) {
+            return $findings;
+        }
+        // Build a lookup map keyed by section DB id regardless of how the
+        // $sections array was indexed — array_values() may have stripped keys.
+        $sectionmap = [];
+        foreach ($sections as $sec) {
+            $sectionmap[(int) $sec->id] = $sec;
+        }
+        foreach ($findings as &$finding) {
+            if (($finding['type'] ?? '') !== 'journey_unreachable') {
+                continue;
+            }
+            $cmid = (int) (($finding['cmids'] ?? [])[0] ?? 0);
+            $cm = $cms[$cmid] ?? null;
+            if ($cm === null) {
+                continue;
+            }
+            $sectionid = (int) ($cm->sectionid ?? 0);
+            $section = $sectionmap[$sectionid] ?? null;
+            if ($section === null || empty($section->availability)) {
+                continue;
+            }
+            // Section has availability conditions — mark as section-caused.
+            $finding['section_cause'] = true;
+            $finding['section_id'] = $sectionid;
+            $finding['section_name'] = $section->name ?? '';
+            $finding['section_num'] = $section->sectionnum ?? 0;
+        }
+        unset($finding);
+        return $findings;
     }
 }

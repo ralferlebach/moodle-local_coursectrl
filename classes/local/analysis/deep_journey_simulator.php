@@ -48,6 +48,7 @@
 namespace local_coursectrl\local\analysis;
 
 use local_coursectrl\local\entity\cm_item;
+use local_coursectrl\local\entity\section_item;
 use local_coursectrl\local\simulation\condition_evaluator;
 use local_coursectrl\local\simulation\learner_state;
 
@@ -101,7 +102,8 @@ class deep_journey_simulator {
         array $critcmids = [],
         int $startts = 0,
         int $courseid = 0,
-        array $maxattemptsbycmid = []
+        array $maxattemptsbycmid = [],
+        array $sections = []
     ): array {
         if (empty($cms)) {
             return [];
@@ -132,7 +134,8 @@ class deep_journey_simulator {
                     $groupingids,
                     $grademode,
                     $startts,
-                    $maxattemptsbycmid
+                    $maxattemptsbycmid,
+                    $sections
                 );
 
                 foreach ($result['unreachable'] as $cmid) {
@@ -206,7 +209,8 @@ class deep_journey_simulator {
         array $groupingids,
         string $grademode,
         int $startts,
-        array $maxattemptsbycmid = []
+        array $maxattemptsbycmid = [],
+        array $sections = []
     ): array {
         $now = $startts;
         $completions = [];
@@ -218,13 +222,18 @@ class deep_journey_simulator {
         $queue = [];
 
         // Seed queue with initially accessible activities.
+        // Visibility_simulator applies section gating before CM-level evaluation.
         $state = new learner_state($now, $completions, $groupids, $groupingids, $grades);
+        $visiblesim = new \local_coursectrl\local\simulation\visibility_simulator(
+            $evaluator,
+            $sections
+        );
         foreach ($cms as $cmid => $cm) {
             if (!$cm->visible) {
                 continue;
             }
-            $eval = $evaluator->evaluate($cm->availability, $state);
-            if ($eval['accessible']) {
+            $initresult = $visiblesim->simulate([$cmid => $cm], $state);
+            if (!empty($initresult[$cmid]['accessible'])) {
                 $queue[] = $cmid;
             }
         }
@@ -296,8 +305,13 @@ class deep_journey_simulator {
                 if (!$candcm->visible) {
                     continue;
                 }
-                $eval = $evaluator->evaluate($candcm->availability, $state);
-                if ($eval['accessible']) {
+                // Rebuild visiblesim with updated state to re-evaluate sections.
+                $visiblesim = new \local_coursectrl\local\simulation\visibility_simulator(
+                    $evaluator,
+                    $sections
+                );
+                $candresult = $visiblesim->simulate([$candcmid => $candcm], $state);
+                if (!empty($candresult[$candcmid]['accessible'])) {
                     $queue[] = $candcmid;
                 }
             }

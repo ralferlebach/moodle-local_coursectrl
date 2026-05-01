@@ -117,8 +117,8 @@ class finding_deduplicator {
             }
 
             // Prefer the Best Case (pass) scenario as the representative card —
-            // it produces error severity when the CM is critical, which is
-            // the most actionable representation.
+            // It produces error severity when the CM is critical, which is
+            // The most actionable representation.
             $existing = $canonical[$fingerprint];
             if (($item['grademode'] ?? '') === 'pass' && ($existing['grademode'] ?? '') !== 'pass') {
                 $canonical[$fingerprint] = $item;
@@ -134,7 +134,7 @@ class finding_deduplicator {
         }
 
         // Step 2: aggregate cards — group CMs that share the same severity and
-        // have no cascade children (they are independent primaries with same cause).
+        // Have no cascade children (they are independent primaries with same cause).
         // Heuristic: same severity + same cascade_count=0 + same grademode.
         $aggregategroups = []; // Aggkey → [item, ...].
 
@@ -147,13 +147,15 @@ class finding_deduplicator {
 
             // Only group independent primaries (cascade_count=0) with same profile coverage.
             if ($cascadecount === 0) {
-                $aggkey = $severity . '|' . $grademode . '|' . $profiles;
+                // Group by section_id when all CMs share the same section cause.
+                $sectionid = (int) ($item['section_id'] ?? 0);
+                $aggkey = $severity . '|' . $grademode . '|' . $profiles . '|s' . $sectionid;
                 $aggregategroups[$aggkey][] = $item;
             }
         }
 
         // Build result: aggregate groups above threshold → one group card;
-        // all others remain as individual cards.
+        // All others remain as individual cards.
         $groupedfingerprints = [];
         $result = [];
 
@@ -179,6 +181,44 @@ class finding_deduplicator {
                 // Use first item as template for aggregate card.
                 $template = $groupitems[0];
                 $template['type'] = 'journey_unreachable_group';
+                // Propagate section cause if all items share one.
+                // Propagate section_cause when all non-zero section_ids match.
+                // Use count of each section_id to find the dominant one.
+                $sectionidcounts = [];
+                foreach ($groupitems as $gi) {
+                    $gsid = (int) ($gi['section_id'] ?? 0);
+                    if ($gsid > 0) {
+                        $sectionidcounts[$gsid] = ($sectionidcounts[$gsid] ?? 0) + 1;
+                    }
+                }
+                arsort($sectionidcounts);
+                $dominantsid = (int) array_key_first($sectionidcounts);
+                $dominantcount = $sectionidcounts[$dominantsid] ?? 0;
+                if ($dominantsid > 0 && $dominantcount >= count($groupitems) - 1) {
+                    // All (or all but one) items share the same section_id.
+                    $template['section_cause'] = true;
+                    $template['section_id'] = $dominantsid;
+                    // Find a representative item for the section name.
+                    foreach ($groupitems as $gi) {
+                        if ((int) ($gi['section_id'] ?? 0) === $dominantsid && !empty($gi['section_name'])) {
+                            $template['section_name'] = $gi['section_name'];
+                            $template['section_num'] = $gi['section_num'] ?? 0;
+                            break;
+                        }
+                    }
+                    if (empty($template['section_name'])) {
+                        // All section names empty — use section_num from any item.
+                        foreach ($groupitems as $gi) {
+                            if ((int) ($gi['section_id'] ?? 0) === $dominantsid) {
+                                $template['section_num'] = $gi['section_num'] ?? 0;
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    $template['section_cause'] = false;
+                    $template['section_id'] = 0;
+                }
                 $template['cmids'] = $allcmids;
                 $template['affected_count'] = count($allcmids);
                 $template['score'] = $maxscore;

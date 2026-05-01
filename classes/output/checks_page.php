@@ -133,7 +133,8 @@ class checks_page implements renderable, templatable {
                 $cmnames,
                 $cmurls,
                 $courseid,
-                $snapshot->cms
+                $snapshot->cms,
+                array_values($snapshot->sections ?? [])
             ),
             'simulation'        => $this->build_simulation_tab($snapshot),
             'runurl'            => (new \moodle_url(
@@ -490,11 +491,12 @@ class checks_page implements renderable, templatable {
         array $cmnames,
         array $cmurls,
         int $courseid,
-        array $cmobjects = []
+        array $cmobjects = [],
+        array $sections = []
     ): array {
         if ($this->freshrun) {
             $runner = new risk_assessment_runner();
-            $items = $runner->run($cms, $depindex, $datesbycm, $courseid);
+            $items = $runner->run($cms, $depindex, $datesbycm, $courseid, $sections);
             $lastrun = time();
         } else {
             $items = risk_assessment_runner::load_last($courseid);
@@ -640,6 +642,14 @@ class checks_page implements renderable, templatable {
                 ? get_string('risk_journey_scenario_' . $grademode, 'local_coursectrl', null, true)
                 : '';
 
+            // For dep_on_hidden all related hidden prereqs must be unhidden.
+            // Pass them as cmids[] so fix_action.php can process all in one request.
+            $fixtargetcmid = $primarycmid;
+            $fixextraparams = [];
+            if ($type === 'dep_on_hidden' && !empty($item['related_cmids'])) {
+                $fixtargetcmid = (int) reset($item['related_cmids']);
+                $fixextraparams = ['cmids' => $item['related_cmids']];
+            }
             $rows[] = [
                 'type'             => $type,
                 'typelabel'        => $typelabel,
@@ -661,7 +671,14 @@ class checks_page implements renderable, templatable {
                 'cascade_count' => count($cascadelinked),
                 'simurl'        => $simurl,
                 'fix_type'      => $this->fix_type_for($type),
-                'fix_url'       => $this->fix_url_for($type, $primarycmid, $cm, $courseid, 'risks'),
+                'fix_url'       => $this->fix_url_for(
+                    $type,
+                    $fixtargetcmid,
+                    $cms[$fixtargetcmid] ?? $cm,
+                    $courseid,
+                    'risks',
+                    $fixextraparams
+                ),
                 'fix_label'     => $this->fix_label_for($type),
                 'has_fix'       => $this->fix_type_for($type) !== '',
                 'escape_message' => get_string(
@@ -681,6 +698,17 @@ class checks_page implements renderable, templatable {
                 'affected_count'     => (int) ($item['affected_count'] ?? 1),
                 'hasaffected'        => (($item['affected_count'] ?? 1) > 1 ||
                     ($item['affected_scenarios'] ?? 1) > 1),
+                'section_cause'      => !empty($item['section_cause']),
+                'section_id'         => (int) ($item['section_id'] ?? 0),
+                'section_name'       => $item['section_name'] ?? '',
+                'section_num'        => (int) ($item['section_num'] ?? 0),
+                'section_edit_url'   => (int) ($item['section_id'] ?? 0) > 0
+                    ? (new \moodle_url(
+                        '/course/editsection.php',
+                        ['id' => (int) ($item['section_id'] ?? 0)]
+                    ))->out(false)
+                    : '',
+                'has_section_edit'   => (int) ($item['section_id'] ?? 0) > 0,
             ];
         }
         return $rows;
@@ -798,6 +826,17 @@ class checks_page implements renderable, templatable {
                 null,
                 true
             ) ?: $grademode;
+            if (!empty($item['section_cause']) && (int)($item['section_id'] ?? 0) > 0) {
+                $sectionname = $item['section_name'] ?? '';
+                $snum = (int)($item['section_num'] ?? 0);
+                $a->section = $sectionname !== '' ? $sectionname
+                    : get_string('section') . ' ' . $snum;
+                $a->count = 1; // Single CM; count used in shared string.
+                return [
+                    get_string('risk_problem_journey_section_blocked', 'local_coursectrl', $a),
+                    get_string('risk_action_journey_section_blocked', 'local_coursectrl', $a),
+                ];
+            }
             return [
                 get_string('risk_problem_journey_unreachable', 'local_coursectrl', $a),
                 get_string('risk_action_journey_unreachable', 'local_coursectrl', $a),
@@ -926,22 +965,29 @@ class checks_page implements renderable, templatable {
      * @param string   $tab       Checks tab to return to after fix.
      * @return string URL or empty string.
      */
-    private function fix_url_for(string $type, int $cmid, $cm, int $courseid, string $tab): string {
+    private function fix_url_for(string $type, int $cmid, $cm, int $courseid, string $tab, array $extraparams = []): string {
         $fixtype = $this->fix_type_for($type);
         if ($fixtype === '') {
             return '';
         }
         if ($fixtype === 'unhide_cm') {
-            return (new \moodle_url(
-                '/local/coursectrl/fix_action.php',
-                [
-                    'courseid' => $courseid,
-                    'action'   => 'unhide_cm',
-                    'cmid'     => $cmid,
-                    'tab'      => $tab,
-                    'sesskey'  => sesskey(),
-                ]
-            ))->out(false);
+            $urlparams = [
+                'courseid' => $courseid,
+                'action'   => 'unhide_cm',
+                'tab'      => $tab,
+                'sesskey'  => sesskey(),
+            ];
+            // When multiple prereq cmids exist (dep_on_hidden), encode them all.
+            // Moodle_url does not support array-style params, so append manually.
+            if (!empty($extraparams['cmids'])) {
+                $basestr = (new \moodle_url('/local/coursectrl/fix_action.php', $urlparams))->out(false);
+                foreach ($extraparams['cmids'] as $ecmid) {
+                    $basestr .= '&cmids%5B%5D=' . (int)$ecmid;
+                }
+                return $basestr;
+            }
+            $urlparams['cmid'] = $cmid;
+            return (new \moodle_url('/local/coursectrl/fix_action.php', $urlparams))->out(false);
         }
         if ($fixtype === 'modedit_availability') {
             return (new \moodle_url(

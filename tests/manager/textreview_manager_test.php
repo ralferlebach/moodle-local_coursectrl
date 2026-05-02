@@ -369,4 +369,118 @@ final class textreview_manager_test extends \advanced_testcase {
         $newsummary = $DB->get_field('course', 'summary', ['id' => $course->id]);
         $this->assertStringNotContainsString(self::DATE_STRING, $newsummary);
     }
+
+    /**
+     * apply_changes accepts entitytype cm with fieldname 'activity' (assign field).
+     *
+     * Regression guard: before the fix, require_allowed_field threw a
+     * coding_exception for 'activity'; now it must fall through to
+     * the load step (which may fail for other reasons in a bare test DB,
+     * but must not fail on the whitelist check itself).
+     *
+     * @covers \local_coursectrl\manager\textreview_manager
+     */
+    public function test_apply_changes_cm_activity_field_passes_whitelist(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course();
+        $assign = $this->getDataGenerator()->create_module('assign', [
+            'course' => $course->id,
+            'name'   => 'Whitelist Test',
+            'intro'  => 'Start 03.06.2026.',
+        ]);
+
+        // Manually insert a hit for fieldname 'activity' (assign-specific field).
+        $hit = new text_hit(0, (object) [
+            'courseid'        => (int) $course->id,
+            'entitytype'      => 'cm',
+            'entityid'        => (int) $assign->cmid,
+            'fieldname'       => 'activity',
+            'matchedtext'     => '03.06.2026',
+            'normalizedvalue' => '2026-06-03',
+            'confidence'      => text_hit::CONFIDENCE_SAFE,
+            'contextjson'     => json_encode([
+                'offset'  => 6,
+                'length'  => 10,
+                'pattern' => 'de_numeric',
+                'before'  => 'Start ',
+                'after'   => '.',
+            ]),
+        ]);
+        $hit->create();
+        $hitid = (int) $hit->get('id');
+
+        $manager = $this->manager();
+
+        // Before the fix this threw:
+        // Coding_exception: Invalid text field for cm: activity.
+        // After the fix the whitelist passes; the only possible failures are
+        // load_failed (DB column might be absent in old schemas) or the
+        // rewriter finding no match — neither is a coding_exception.
+        try {
+            $result = $manager->apply_changes((int) $course->id, [$hitid], 86400);
+            // Either applied successfully or skipped — no whitelist error.
+            $this->assertIsArray($result);
+            $this->assertArrayHasKey('applied', $result);
+            $this->assertArrayHasKey('errors', $result);
+            // If errors occurred they must NOT be due to the whitelist.
+            foreach ($result['errors'] as $err) {
+                $this->assertNotSame(
+                    'invalid_field',
+                    $err['code'] ?? '',
+                    'Whitelist must not block the activity field.'
+                );
+            }
+        } catch (\coding_exception $e) {
+            $this->fail(
+                'coding_exception must not be thrown for fieldname "activity": ' .
+                $e->getMessage()
+            );
+        }
+    }
+
+    /**
+     * apply_changes accepts entitytype cm with fieldname 'page_after_submit'
+     * (feedback module field) — regression guard for the expanded whitelist.
+     *
+     * @covers \local_coursectrl\manager\textreview_manager
+     */
+    public function test_apply_changes_cm_page_after_submit_passes_whitelist(): void {
+        $this->resetAfterTest();
+
+        $course   = $this->getDataGenerator()->create_course();
+        $feedback = $this->getDataGenerator()->create_module('feedback', [
+            'course' => $course->id,
+            'name'   => 'Feedback Whitelist',
+            'intro'  => 'Test.',
+        ]);
+
+        $hit = new text_hit(0, (object) [
+            'courseid'        => (int) $course->id,
+            'entitytype'      => 'cm',
+            'entityid'        => (int) $feedback->cmid,
+            'fieldname'       => 'page_after_submit',
+            'matchedtext'     => '04.06.2026',
+            'normalizedvalue' => '2026-06-04',
+            'confidence'      => text_hit::CONFIDENCE_SAFE,
+            'contextjson'     => json_encode([
+                'offset'  => 0, 'length'  => 10,
+                'pattern' => 'de_numeric',
+                'before'  => '', 'after' => '.',
+            ]),
+        ]);
+        $hit->create();
+
+        $manager = $this->manager();
+        try {
+            $result = $manager->apply_changes((int) $course->id, [(int) $hit->get('id')], 86400);
+            $this->assertIsArray($result);
+        } catch (\coding_exception $e) {
+            $this->fail(
+                'coding_exception must not be thrown for fieldname "page_after_submit": ' .
+                $e->getMessage()
+            );
+        }
+    }
 }

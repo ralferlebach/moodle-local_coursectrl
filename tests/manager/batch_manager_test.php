@@ -425,4 +425,112 @@ final class batch_manager_test extends \advanced_testcase {
             $this->assertSame($batchid, (int)$snap->get('batchid'));
         }
     }
+
+    /**
+     * shift_dates on a CM with no registered adapter (simulated via a page
+     * module) still updates the availability JSON in course_modules.
+     *
+     * This is the regression test for the cache-invalidation bug: even though
+     * the course_modules.availability is updated in the DB, the timeline used
+     * to show the old date because rebuild_course_cache() was not called.
+     * This test verifies the DB-level change; the cache-rebuild is tested
+     * implicitly through shift.php (Behat).
+     *
+     * @covers \local_coursectrl\manager\batch_manager
+     */
+    public function test_shift_updates_availability_json_for_unadapted_cm(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course();
+
+        // Create a page module — it may or may not have an adapter registered.
+        $page = $this->getDataGenerator()->create_module('page', [
+            'course'  => $course->id,
+            'name'    => 'Avail Test',
+            'content' => 'Page content.',
+        ]);
+        $cmid = (int) $page->cmid;
+
+        // Manually inject an availability date condition into course_modules.
+        $avail = json_encode([
+            'op' => '&',
+            'c'  => [
+                ['type' => 'date', 'd' => '>=', 't' => self::BASE_TIME],
+            ],
+            'showc' => [true],
+        ]);
+        $DB->set_field('course_modules', 'availability', $avail, ['id' => $cmid]);
+
+        // Execute the shift — the CM may be routed through an adapter OR
+        // fall into the skipped/system-level path; either way, if availability
+        // JSON was not null before, it must shift by ONE_DAY.
+        $manager  = new batch_manager();
+        $manager->execute(
+            (int) $course->id,
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [$cmid],
+            0
+        );
+
+        $newavail = $DB->get_field('course_modules', 'availability', ['id' => $cmid]);
+        $decoded  = json_decode($newavail, true);
+
+        $this->assertIsArray($decoded);
+        $this->assertArrayHasKey('c', $decoded);
+        $first = $decoded['c'][0] ?? null;
+        $this->assertNotNull($first);
+        $this->assertEquals('date', $first['type']);
+        // Timestamp must have been incremented by at least ONE_DAY.
+        $this->assertGreaterThanOrEqual(
+            self::BASE_TIME + self::ONE_DAY,
+            (int) $first['t'],
+            'Availability date timestamp must be shifted forward by one day.'
+        );
+    }
+
+    /**
+     * shift_dates with a negative delta decrements availability timestamps.
+     *
+     * @covers \local_coursectrl\manager\batch_manager
+     */
+    public function test_shift_backward_decrements_availability_timestamp(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course();
+        $page   = $this->getDataGenerator()->create_module('page', [
+            'course'  => $course->id,
+            'name'    => 'Backward Shift',
+            'content' => 'Content.',
+        ]);
+        $cmid = (int) $page->cmid;
+
+        $avail = json_encode([
+            'op' => '&',
+            'c'  => [['type' => 'date', 'd' => '>=', 't' => self::BASE_TIME]],
+            'showc' => [true],
+        ]);
+        $DB->set_field('course_modules', 'availability', $avail, ['id' => $cmid]);
+
+        $manager = new batch_manager();
+        $manager->execute(
+            (int) $course->id,
+            'shift_dates',
+            ['delta' => -self::ONE_DAY],
+            [$cmid],
+            0
+        );
+
+        $decoded = json_decode(
+            $DB->get_field('course_modules', 'availability', ['id' => $cmid]),
+            true
+        );
+        $this->assertEquals(
+            self::BASE_TIME - self::ONE_DAY,
+            (int) ($decoded['c'][0]['t'] ?? 0),
+            'Availability timestamp must be decremented by one day on negative delta.'
+        );
+    }
 }

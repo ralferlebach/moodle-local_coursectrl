@@ -36,7 +36,7 @@
 
 <div class="local_coursectrl_simulation" data-region="local_coursectrl-simulation">
 
-  <form method="get" action="{{selfurl}}" class="mb-4">
+  <form method="get" action="{{selfurl}}" class="mb-4" id="local-coursectrl-simform">
     <input type="hidden" name="courseid" value="{{courseid}}">
     <input type="hidden" name="sesskey" value="{{sesskey}}">
     <input type="hidden" name="tab" value="simulation">
@@ -322,35 +322,115 @@
 
   {{! Next steps and blocked — moved to bottom }}
   {{#hasnextsteps}}
-  <h6>{{#str}} sim_nextsteps, local_coursectrl {{/str}} ({{nextstepcount}})</h6>
-  <ul class="list-group mb-3">
-    {{#nextsteprows}}
-    <li class="list-group-item list-group-item-success py-1 px-2">
-      <i class="fa fa-check fa-fw text-success"></i>
-      {{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}
-      <a href="{{cmurl}}" target="_blank" rel="noopener noreferrer">{{cmname}}</a>
-    </li>
-    {{/nextsteprows}}
-  </ul>
+  <div class="card mb-3 cc-card-success">
+    <div class="card-header py-2 cc-card-success-header">
+      <strong>{{#str}} sim_nextsteps, local_coursectrl {{/str}} ({{nextstepcount}})</strong>
+    </div>
+    <div class="table-responsive cc-card-success-body">
+      <table class="table table-sm mb-0" style="table-layout:fixed">
+        <colgroup>
+          <col>
+          <col style="width:2.25rem">
+          <col style="width:2.25rem">
+          <col style="width:5rem">
+        </colgroup>
+        <thead>
+          <tr class="border-bottom">
+            <th class="py-1 ps-1 small cc-card-col-label fw-normal"></th>
+            <th class="py-1 text-center small cc-card-col-label fw-semibold" title="{{sim_lbl_completed}}">&#10003;</th>
+            <th class="py-1 text-center small cc-card-col-label fw-semibold" title="{{sim_lbl_passed}}">&#9733;</th>
+            <th class="py-1 text-center small cc-card-col-label fw-semibold" title="{{sim_lbl_grade}}">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#nextstepformrows}}
+          <tr>
+            <td class="py-1 ps-1 small" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+              <i class="fa fa-check fa-fw text-success"></i>
+              {{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}
+              <a href="{{cmurl}}" target="_blank" rel="noopener noreferrer">{{cmname}}</a>
+            </td>
+            <td class="py-1 text-center align-middle">
+              {{#completion_enabled}}
+              <input type="checkbox" class="ms-1"
+                     form="local-coursectrl-simform"
+                     name="sim_complete[{{cmid}}]" value="1"
+                     title="{{lbl_completed}}"
+                     {{#assumed_complete}}checked{{/assumed_complete}}>
+              {{/completion_enabled}}
+              {{#completion_disabled}}
+              <input type="checkbox" class="ms-1"
+                     title="{{lbl_no_complete}}"
+                     disabled style="opacity:.35;cursor:not-allowed">
+              {{/completion_disabled}}
+            </td>
+            <td class="py-1 text-center align-middle">
+              {{#passgrade_visible}}
+              {{#passgrade_enabled}}
+              <input type="checkbox" class="ms-1"
+                     form="local-coursectrl-simform"
+                     name="sim_passed[{{cmid}}]" value="1"
+                     title="{{lbl_passed}}"
+                     {{#assumed_passed}}checked{{/assumed_passed}}>
+              {{/passgrade_enabled}}
+              {{#passgrade_disabled}}
+              <input type="checkbox" class="ms-1"
+                     title="{{lbl_no_passed}}"
+                     disabled style="opacity:.35;cursor:not-allowed">
+              {{/passgrade_disabled}}
+              {{/passgrade_visible}}
+            </td>
+            <td class="py-1 align-middle">
+              {{#grade_visible}}
+              <input type="number" class="form-control form-control-sm"
+                     form="local-coursectrl-simform"
+                     name="sim_grade[{{cmid}}]"
+                     min="0" max="100" step="0.1"
+                     value="{{assumed_grade}}"
+                     title="{{lbl_grade}}"
+                     style="width:4.5rem">
+              {{/grade_visible}}
+            </td>
+          </tr>
+          {{/nextstepformrows}}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer py-2 cc-card-success-footer text-end">
+      <button type="submit" form="local-coursectrl-simform"
+              class="btn btn-sm btn-outline-primary">
+        {{#str}} sim_rerun, local_coursectrl {{/str}}
+      </button>
+    </div>
+  </div>
   {{/hasnextsteps}}
   {{#hasblockedrows}}
-  <h6>{{#str}} sim_blocked_list, local_coursectrl {{/str}}</h6>
-  <ul class="list-group mb-3">
-    {{#blockedrows}}
-    <li class="list-group-item list-group-item-danger py-1 px-2">
-      <i class="fa fa-lock fa-fw text-danger"></i>
-      {{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}
-      <a href="{{cmurl}}" target="_blank" rel="noopener noreferrer">{{cmname}}</a>
-    </li>
-    {{/blockedrows}}
-  </ul>
+  <div class="card mb-3 cc-card-danger">
+    <div class="card-header py-2 cc-card-danger-header">
+      <strong>{{#str}} sim_blocked_list, local_coursectrl {{/str}} ({{blockedcount}})</strong>
+    </div>
+    <div class="table-responsive cc-card-danger-body">
+      <table class="table table-sm mb-0">
+        <tbody>
+          {{#blockedrows}}
+          <tr>
+            <td class="py-1 ps-1 small" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+              <i class="fa fa-lock fa-fw text-danger"></i>
+              {{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}
+              <a href="{{cmurl}}" target="_blank" rel="noopener noreferrer">{{cmname}}</a>
+            </td>
+          </tr>
+          {{/blockedrows}}
+        </tbody>
+      </table>
+    </div>
+  </div>
   {{/hasblockedrows}}
 
   {{! Dependency graph link + legend — moved to bottom }}
   {{#hasgraphurl_sim}}
   <div class="d-flex align-items-center gap-3 mb-3 mt-2">
     <a href="{{graphurl_sim}}" class="btn btn-sm btn-outline-primary">
-      <i class="fa fa-project-diagram fa-fw"></i>
       {{#str}} sim_show_in_graph, local_coursectrl {{/str}}
     </a>
     <span class="d-flex align-items-center gap-3 small text-muted">

@@ -188,6 +188,10 @@ class simulation_page implements renderable, templatable {
         foreach (groups_get_all_groups($courseid) as $g) {
             $groupnamemap[(int) $g->id] = $g->name;
         }
+        $groupingnamemap = [];
+        foreach (groups_get_all_groupings($courseid) as $gg) {
+            $groupingnamemap[(int) $gg->id] = $gg->name;
+        }
         $coursegroupings = array_map(function (array $grouping): array {
             $grouping['selected'] = $this->state ? in_array((int) $grouping['id'], $this->state->groupingids, true) : false;
             return $grouping;
@@ -227,7 +231,7 @@ class simulation_page implements renderable, templatable {
 
                 $reasonrows = [];
                 foreach ($result['reasons'] as $reason) {
-                    $reasonrows[] = $this->format_reason($reason, $dateformat, $cms, $groupnamemap);
+                    $reasonrows[] = $this->format_reason($reason, $dateformat, $cms, $groupnamemap, $groupingnamemap);
                 }
                 // Build OR/AND grouped reasons for structured display.
                 $rawgroups = $evaluator->evaluate_groups(
@@ -238,7 +242,7 @@ class simulation_page implements renderable, templatable {
                 foreach ($rawgroups as $gidx => $grp) {
                     $gconditions = [];
                     foreach ($grp as $r) {
-                        $gconditions[] = $this->format_reason($r, $dateformat, $cms, $groupnamemap);
+                        $gconditions[] = $this->format_reason($r, $dateformat, $cms, $groupnamemap, $groupingnamemap);
                     }
                     $reasongrouprows[] = [
                         'conditions'    => $gconditions,
@@ -299,36 +303,6 @@ class simulation_page implements renderable, templatable {
                     ))->out(false),
                 ];
             }
-
-            foreach ($nextstepids as $cmid) {
-                $nextsteprows[] = [
-                    'cmid' => $cmid,
-                    'name' => $cms[$cmid]->name ?? 'cmid ' . $cmid,
-                    'cmname' => $cms[$cmid]->name ?? 'cmid ' . $cmid,
-                    'modname' => $cms[$cmid]->modname ?? '',
-                    'url' => (new \moodle_url(
-                        '/mod/' . ($cms[$cmid]->modname ?? 'assign') . '/view.php',
-                        ['id' => $cmid]
-                    ))->out(false),
-                    'cmurl' => (new \moodle_url(
-                        '/mod/' . ($cms[$cmid]->modname ?? 'assign') . '/view.php',
-                        ['id' => $cmid]
-                    ))->out(false),
-                ];
-            }
-
-            foreach ($blockedids as $cmid) {
-                $blockedcount++;
-                $blockedrows[] = [
-                    'cmid' => $cmid,
-                    'name' => $cms[$cmid]->name ?? 'cmid ' . $cmid,
-                    'cmname' => $cms[$cmid]->name ?? 'cmid ' . $cmid,
-                    'cmurl' => (new \moodle_url(
-                        '/mod/' . ($cms[$cmid]->modname ?? 'assign') . '/view.php',
-                        ['id' => $cmid]
-                    ))->out(false),
-                ];
-            }
         }
 
         // Build section-structured result groups for the template.
@@ -362,9 +336,12 @@ class simulation_page implements renderable, templatable {
             }
             $sectionnamesbyid = [];
             try {
+                // Get_section_name() requires a full stdClass DB course object with ->format;
+                // course_item does not carry ->format, so fetch the real record here.
+                $dbcourse = get_course($courseid);
                 $modinfo = get_fast_modinfo($courseid);
                 foreach ($modinfo->get_section_info_all() as $sinfo) {
-                    $sectionnamesbyid[(int) $sinfo->id] = get_section_name($course, $sinfo);
+                    $sectionnamesbyid[(int) $sinfo->id] = get_section_name($dbcourse, $sinfo);
                 }
                 // Strategy 2 + 3: per subsection CM.
                 foreach ($modinfo->get_cms() as $cminfo) {
@@ -463,7 +440,7 @@ class simulation_page implements renderable, templatable {
                     $seceval = $evaluator->evaluate($section->availability, $this->state);
                     $secaccessible = $seceval['accessible'];
                     foreach ($seceval['reasons'] as $reason) {
-                        $secreasonrows[] = $this->format_reason($reason, $dateformat, $cms, $groupnamemap);
+                        $secreasonrows[] = $this->format_reason($reason, $dateformat, $cms, $groupnamemap, $groupingnamemap);
                     }
                     $secrawgroups = $evaluator->evaluate_groups(
                         $section->availability ?? null,
@@ -473,7 +450,7 @@ class simulation_page implements renderable, templatable {
                     foreach ($secrawgroups as $sgidx => $sgrp) {
                         $sgconditions = [];
                         foreach ($sgrp as $r) {
-                            $sgconditions[] = $this->format_reason($r, $dateformat, $cms, $groupnamemap);
+                            $sgconditions[] = $this->format_reason($r, $dateformat, $cms, $groupnamemap, $groupingnamemap);
                         }
                         $secreasongroups[] = [
                             'conditions'    => $sgconditions,
@@ -579,6 +556,103 @@ class simulation_page implements renderable, templatable {
             }
         }
 
+        // Re-derive nextsteprows and blockedrows AFTER the section loop so that
+        // section-blocking propagation (isblocked=true, isnextstep=false applied
+        // to $sectionrows) is reflected.  Also build nextstepformrows for the
+        // quick re-run form below the next-step list.
+        $cmformindex = [];
+        foreach ($cmformrows as $formrow) {
+            $cmformindex[(int) $formrow['cmid']] = $formrow;
+        }
+        $nextstepformrows = [];
+        $seenblocked = [];
+        if ($hasresults) {
+            foreach ($sectionresultgroups as $sgroup) {
+                foreach ($sgroup['rows'] as $srow) {
+                    $rowcmid = (int) ($srow['cmid'] ?? 0);
+                    // Collect next-step and blocked from top-level row.
+                    if (!empty($srow['is_subsection_header'])) {
+                        // Subsection header: check blocked only.
+                        if (
+                            $srow['isblocked'] && !isset($seenblocked[$rowcmid])
+                                && ($srow['teacher_visible'] ?? true)
+                        ) {
+                            $seenblocked[$rowcmid] = true;
+                            $blockedcount++;
+                            $blockedrows[] = [
+                                'cmid'    => $rowcmid,
+                                'name'    => $cms[$rowcmid]->name ?? 'cmid ' . $rowcmid,
+                                'cmname'  => $cms[$rowcmid]->name ?? 'cmid ' . $rowcmid,
+                                'modname' => $cms[$rowcmid]->modname ?? '',
+                                'cmurl'   => (new \moodle_url(
+                                    '/mod/' . ($cms[$rowcmid]->modname ?? 'assign') . '/view.php',
+                                    ['id' => $rowcmid]
+                                ))->out(false),
+                            ];
+                        }
+                        // Check subsection children.
+                        foreach ($srow['subsection_rows'] ?? [] as $subrow) {
+                            $subcmid = (int) ($subrow['cmid'] ?? 0);
+                            if ($subrow['isnextstep']) {
+                                $nextsteprows[] = $this->build_nextstep_row(
+                                    $subcmid,
+                                    $cms,
+                                    $cmformindex
+                                );
+                                if (isset($cmformindex[$subcmid])) {
+                                    $nextstepformrows[] = $cmformindex[$subcmid];
+                                }
+                            }
+                            if (
+                                $subrow['isblocked'] && !isset($seenblocked[$subcmid])
+                                    && ($subrow['teacher_visible'] ?? true)
+                            ) {
+                                $seenblocked[$subcmid] = true;
+                                $blockedcount++;
+                                $blockedrows[] = [
+                                    'cmid'    => $subcmid,
+                                    'name'    => $cms[$subcmid]->name ?? 'cmid ' . $subcmid,
+                                    'cmname'  => $cms[$subcmid]->name ?? 'cmid ' . $subcmid,
+                                    'modname' => $cms[$subcmid]->modname ?? '',
+                                    'cmurl'   => (new \moodle_url(
+                                        '/mod/' . ($cms[$subcmid]->modname ?? 'assign') . '/view.php',
+                                        ['id' => $subcmid]
+                                    ))->out(false),
+                                ];
+                            }
+                        }
+                        continue;
+                    }
+                    // Regular CM row.
+                    if ($srow['isnextstep']) {
+                        $nextsteprows[] = $this->build_nextstep_row($rowcmid, $cms, $cmformindex);
+                        if (isset($cmformindex[$rowcmid])) {
+                            $nextstepformrows[] = $cmformindex[$rowcmid];
+                        }
+                    }
+                    if (
+                        $srow['isblocked'] && !isset($seenblocked[$rowcmid])
+                            && ($srow['teacher_visible'] ?? true)
+                    ) {
+                        $seenblocked[$rowcmid] = true;
+                        $blockedcount++;
+                        $blockedrows[] = [
+                            'cmid'    => $rowcmid,
+                            'name'    => $cms[$rowcmid]->name ?? 'cmid ' . $rowcmid,
+                            'cmname'  => $cms[$rowcmid]->name ?? 'cmid ' . $rowcmid,
+                            'modname' => $cms[$rowcmid]->modname ?? '',
+                            'cmurl'   => (new \moodle_url(
+                                '/mod/' . ($cms[$rowcmid]->modname ?? 'assign') . '/view.php',
+                                ['id' => $rowcmid]
+                            ))->out(false),
+                        ];
+                    }
+                }
+            }
+            $nextstepids = array_column($nextsteprows, 'cmid');
+            $blockedids  = array_map(fn($r) => $r['cmid'], $blockedrows);
+        }
+
         return [
             'courseid' => $courseid,
             'coursefullname' => format_string($course->fullname),
@@ -602,8 +676,10 @@ class simulation_page implements renderable, templatable {
             'sectionresultgroups' => $sectionresultgroups,
             'hassectionresultgroups' => !empty($sectionresultgroups),
             'nextsteprows' => $nextsteprows,
-            'hasnextsteps' => count($nextsteprows) > 0,
-            'nextstepcount' => count($nextsteprows),
+            'hasnextsteps' => count($nextstepformrows) > 0,
+            'nextstepcount' => count($nextstepformrows),
+            'nextstepformrows' => $nextstepformrows,
+            'hasnextstepformrows' => count($nextstepformrows) > 0,
             'blockedrows' => $blockedrows,
             'hasblockedrows' => count($blockedrows) > 0,
             'blockedcount' => $blockedcount,
@@ -670,13 +746,43 @@ class simulation_page implements renderable, templatable {
     }
 
     /**
+     * Build a nextstep-list row array for the given cmid.
+     *
+     * @param int   $cmid        Course module id.
+     * @param array $cms         CM items keyed by cmid.
+     * @param array $formindex   cmformrows indexed by cmid.
+     * @return array Template row.
+     */
+    private function build_nextstep_row(int $cmid, array $cms, array $formindex): array {
+        $modname = $cms[$cmid]->modname ?? 'assign';
+        $url = (new \moodle_url(
+            '/mod/' . $modname . '/view.php',
+            ['id' => $cmid]
+        ))->out(false);
+        return [
+            'cmid'    => $cmid,
+            'name'    => $cms[$cmid]->name ?? 'cmid ' . $cmid,
+            'cmname'  => $cms[$cmid]->name ?? 'cmid ' . $cmid,
+            'modname' => $modname,
+            'url'     => $url,
+            'cmurl'   => $url,
+        ];
+    }
+
+    /**
      * Format a condition_evaluator reason array for Mustache.
      *
      * @param array  $reason     Raw reason from condition_evaluator.
      * @param string $dateformat Moodle date format string.
      * @return array Template-ready reason array.
      */
-    private function format_reason(array $reason, string $dateformat, array $cms = [], array $groups = []): array {
+    private function format_reason(
+        array $reason,
+        string $dateformat,
+        array $cms = [],
+        array $groups = [],
+        array $groupings = []
+    ): array {
         $type = $reason['type'] ?? '';
         $status = $reason['status'] ?? condition_evaluator::STATUS_UNKNOWN;
         $base = [
@@ -696,10 +802,19 @@ class simulation_page implements renderable, templatable {
             $depurl = $depcm
                 ? (new \moodle_url('/mod/' . $depmodname . '/view.php', ['id' => $depcmid]))->out(false)
                 : '';
+            // Translate Moodle completion state integer to a readable string.
+            // 0 = not complete, 1 = complete, 2 = passed, 3 = failed.
+            $expintmap = [
+                0 => get_string('sim_completion_none', 'local_coursectrl'),
+                1 => get_string('sim_completion_complete', 'local_coursectrl'),
+                2 => get_string('sim_completion_pass', 'local_coursectrl'),
+                3 => get_string('sim_completion_fail', 'local_coursectrl'),
+            ];
+            $expstr = $expintmap[(int) ($reason['expected'] ?? 1)] ?? (string) ($reason['expected'] ?? 1);
             $base['label'] = get_string(
                 'sim_reason_completion',
                 'local_coursectrl',
-                (object)['cmname' => $depname, 'cmurl' => $depurl, 'expected' => $reason['expected']]
+                (object)['cmname' => $depname, 'cmurl' => $depurl, 'expected' => $expstr]
             );
         } else if ($type === 'date') {
             $base['label'] = get_string(
@@ -719,10 +834,12 @@ class simulation_page implements renderable, templatable {
                 (object)['groupid' => $gid, 'groupname' => $gname]
             );
         } else if ($type === 'grouping') {
+            $ggid = (int) ($reason['groupingid'] ?? 0);
+            $ggname = $groupings[$ggid] ?? null;
             $base['label'] = get_string(
-                'sim_reason_grouping',
+                $ggname !== null ? 'sim_reason_grouping_named' : 'sim_reason_grouping',
                 'local_coursectrl',
-                (object)['groupingid' => $reason['groupingid']]
+                (object)['groupingid' => $ggid, 'groupingname' => $ggname]
             );
         } else if ($type === 'grade') {
             $gradecmid = (int) ($reason['cmid'] ?? 0);

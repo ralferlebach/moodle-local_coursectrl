@@ -1,25 +1,11 @@
 /**
- * Styles for local_coursectrl — Course Control Hub.
- *
- * This file is part of Moodle - http://moodle.org/
- *
- * Moodle is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Moodle is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Moodle. If not, see <http://www.gnu.org/licenses/>.
+ * Stylesheet for local_coursectrl (Course Control Hub).
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
 /* ── Calendar grid ───────────────────────────────────────────────────────── */
 
 /**
@@ -157,7 +143,6 @@
 }
 
 .coursectrl-simdrop-item .form-check-input {
-    float: none;
     margin: 0;
     flex-shrink: 0;
 }
@@ -167,6 +152,10 @@
     line-height: 1.4;
 }
 
+.local_coursectrl_simulation .coursectrl-simdrop-item .form-check-label {
+    margin: 0 0 0 20px;
+    line-height: 1.4;
+}
 
 /**
  * Table cell: activity name column for assumed-complete activities.
@@ -175,6 +164,17 @@
     background-color: #e2e3e5;
 }
 
+/**
+ * Override Bootstrap's float-based form-check-input positioning within
+ * simulation dropdowns. Bootstrap 5 uses float:left + margin-left:-1.5em
+ * which breaks flex layout without a matching padding-left on the parent.
+ * Our flex-based .coursectrl-simdrop-item handles alignment instead.
+ */
+.coursectrl-simdrop-item .form-check-input {
+    float: none;
+    margin: 0;
+    flex-shrink: 0;
+}
 
 /**
  * Ensure dropdown UL containers never add extra left padding
@@ -198,69 +198,6 @@
 }
 
 /**
- * Toolbar: ensure items never overlap on wrap and have consistent spacing.
- * Bootstrap gap-2 covers column gap; row-gap handles wrapped rows.
- */
-.local_coursectrl_toolbar {
-    row-gap: 0.5rem;
-    column-gap: 0.5rem;
-}
-
-.local_coursectrl_toolbar > * {
-    flex-shrink: 0;
-}
-
-/**
- * Toolbar toggles (plain checkbox+label in d-flex toolbars).
- * Reset Bootstrap float so checkboxes sit correctly in a flex row.
- */
-.local_coursectrl_toolbar .form-check {
-    padding-left: 0;
-    margin-bottom: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-}
-
-.local_coursectrl_toolbar .form-check .form-check-input {
-    float: none;
-    margin: 0;
-    flex-shrink: 0;
-    position: static;
-}
-
-.local_coursectrl_toolbar .form-check .form-check-label {
-    margin: 0;
-    line-height: 1.4;
-    cursor: pointer;
-}
-
-/**
- * Manage page: CM and section selection checkboxes use flexbox
- * so the checkbox sits cleanly beside the activity icon.
- */
-.local-coursectrl-manage .form-check {
-    display: flex;
-    align-items: center;
-    padding-left: 0;
-    gap: 0.5rem;
-    margin-bottom: 0;
-}
-
-.local-coursectrl-manage .form-check .form-check-input {
-    float: none;
-    margin: 0;
-    flex-shrink: 0;
-    position: static;
-}
-
-.local-coursectrl-manage .form-check .form-check-label {
-    margin: 0;
-    line-height: 1.4;
-    cursor: pointer;
-}
-
-/**
  * Native checkbox inside shift-workflow hit table — no Bootstrap overrides.
  */
 .ccwf-hit-table input[type="checkbox"] {
@@ -280,47 +217,67 @@
     display: inline-flex;
     align-items: center;
 }
-/* Fix-action button: outlined success with solid hover. */
-.local_coursectrl_checks .cc-fix-btn,
-.local_coursectrl_checks .cc-fix-btn:link,
-.local_coursectrl_checks .cc-fix-btn:visited {
+/* ── Simulation page — next-steps card (success) ──────────────────────── */
+.local_coursectrl_simulation .cc-card-success {
     border-color: #198754;
-    color: #198754;
-    background-color: transparent;
 }
-.local_coursectrl_checks .cc-fix-btn:hover,
-.local_coursectrl_checks .cc-fix-btn:focus {
-    background-color: #198754;
-    border-color: #198754;
-    color: #fff;
+.local_coursectrl_simulation .cc-card-success-header {
+    background-color: var(--bs-success-bg-subtle, #d1e7dd);
+    border-bottom-color: var(--bs-success-border-subtle, #a3cfbb);
+    color: var(--bs-success-text-emphasis, #0a3622);
 }
-
-/* Simulation jump button: outlined secondary with solid hover. */
-.local_coursectrl_checks .cc-sim-btn,
-.local_coursectrl_checks .cc-sim-btn:link,
-.local_coursectrl_checks .cc-sim-btn:visited {
-    border-color: #6c757d;
-    color: #6c757d;
-    background-color: transparent;
+.local_coursectrl_simulation .cc-card-success-body {
+    background-color: var(--bs-success-bg-subtle, #d1e7dd);
 }
-.local_coursectrl_checks .cc-sim-btn:hover,
-.local_coursectrl_checks .cc-sim-btn:focus {
-    background-color: #6c757d;
-    border-color: #6c757d;
-    color: #fff;
+.local_coursectrl_simulation .cc-card-success-footer {
+    background-color: var(--bs-success-bg-subtle, #d1e7dd);
+    border-top-color: var(--bs-success-border-subtle, #a3cfbb);
+}
+.local_coursectrl_simulation .cc-card-col-label {
+    color: var(--bs-success-text-emphasis, #0a3622);
 }
 
-/* Offset sticky navbar when jumping to a day anchor. */
-.local_coursectrl_timeline [id^="day-"] {
-    scroll-margin-top: 70px;
+/* ── Simulation page — blocked card (danger) ─────────────────────────── */
+.local_coursectrl_simulation .cc-card-danger {
+    border-color: #dc3545;
 }
-
+.local_coursectrl_simulation .cc-card-danger-header {
+    background-color: var(--bs-danger-bg-subtle, #f8d7da);
+    border-bottom-color: var(--bs-danger-border-subtle, #f1aeb5);
+    color: var(--bs-danger-text-emphasis, #58151c);
+}
+.local_coursectrl_simulation .cc-card-danger-body {
+    background-color: var(--bs-danger-bg-subtle, #f8d7da);
+}
 /**
- * Graph: hide independent nodes by default when PHP signals hideindependents=true.
- * The JS applyIndependentFilter() takes over after load; this ensures nodes are
- * hidden even before JS executes (avoids flash of independent nodes on page load).
+ * Timeline toolbar: neutralise Bootstrap float/absolute form-check layout.
+ * Each form-check becomes a flex row (checkbox + label), direct children of
+ * the toolbar get horizontal padding so items have visible breathing room.
  */
-[data-css-hide-indep="1"] .coursectrl-node[data-independent="1"] {
-    display: none;
-    pointer-events: none;
+.local_coursectrl_toolbar .form-check {
+    display: flex;
+    align-items: center;
+    gap: .375rem;
+    padding: .25rem .625rem;
+    margin-bottom: 0;
+    min-height: 0;
+    white-space: nowrap;
+}
+
+.local_coursectrl_toolbar .form-check-input {
+    float: none;
+    position: static;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.local_coursectrl_toolbar .form-check-label {
+    margin: 0;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.local_coursectrl_toolbar > form {
+    padding: 0;
+    margin: 0;
 }

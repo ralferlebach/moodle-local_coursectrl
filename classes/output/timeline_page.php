@@ -258,12 +258,13 @@ class timeline_page implements renderable, templatable {
         $fromshift  = !empty($this->filters['from_shift']);
         $batchid    = (int) ($this->filters['shift_batchid'] ?? 0);
 
-        // Read and clear collision notices stored by shift.php.
+        // Read and clear collision notices stored by shift.php via Moodle's $SESSION.
         $collisions = [];
         $sessionkey = 'coursectrl_collisions_' . $batchid;
-        if ($batchid && !empty($_SESSION[$sessionkey])) {
-            $raw = $_SESSION[$sessionkey];
-            unset($_SESSION[$sessionkey]);
+        global $SESSION;
+        if ($batchid && !empty($SESSION->$sessionkey)) {
+            $raw = $SESSION->$sessionkey;
+            unset($SESSION->$sessionkey);
             $decoded = json_decode($raw, true);
             if (is_array($decoded)) {
                 foreach ($decoded as $msg) {

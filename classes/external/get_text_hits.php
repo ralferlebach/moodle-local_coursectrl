@@ -63,13 +63,12 @@ class get_text_hits extends external_api {
      * @return array
      */
     public static function execute(int $courseid, bool $rescan = true): array {
-        global $PAGE;
         $params = self::validate_parameters(self::execute_parameters(), [
             'courseid' => $courseid,
             'rescan' => $rescan,
         ]);
 
-        global $DB, $PAGE;
+        global $PAGE;
         $context = \context_course::instance($params['courseid']);
         self::validate_context($context);
         require_capability('local/coursectrl:view', $context);

@@ -34,7 +34,9 @@
      "hascoursegroups":false,"hascoursegroupings":false,"hascmformrows":false}
 }}
 
-<div class="local_coursectrl_simulation" data-region="local_coursectrl-simulation">
+<div class="local_coursectrl_simulation" data-region="local_coursectrl-simulation"
+     data-lbl-more-cond="{{#str}} cond_show_more, local_coursectrl {{/str}}"
+     data-lbl-less-cond="{{#str}} cond_show_less, local_coursectrl {{/str}}">
 
   <form method="get" action="{{selfurl}}" class="mb-4" id="local-coursectrl-simform">
     <input type="hidden" name="courseid" value="{{courseid}}">
@@ -567,9 +569,9 @@ require(['local_coursectrl/simulation'], function(S) {
         for (var j = cutIdx; j < allLi.length; j++) { allLi[j].style.display = 'none'; }
 
         var remaining = realLi.length - LIMIT;
-        var lblShow = '+ ' + remaining + ' weitere Bedingung' +
-            (remaining === 1 ? '' : 'en') + ' anzeigen';
-        var lblHide = '\u2212 weniger anzeigen';
+        var lblMore = simRoot.getAttribute('data-lbl-more-cond') || 'more condition(s)';
+        var lblShow = '+ ' + remaining + ' ' + lblMore;
+        var lblHide = simRoot.getAttribute('data-lbl-less-cond') || '\u2212 show less';
 
         var btn = document.createElement('button');
         btn.type = 'button';

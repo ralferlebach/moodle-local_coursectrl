@@ -229,9 +229,13 @@ if (
             $collisionnotices[] = $result['message'] ?? get_string('shift_collision_generic', 'local_coursectrl');
         }
     }
-    // Store collision notices in session so timeline_page can read them.
+    // Store collision notices in Moodle's session object so timeline_page can read them.
+    // Using $SESSION (Moodle's global session stdClass) rather than $_SESSION directly,
+    // because Moodle may use non-PHP-native session backends (Redis, memcached, etc.).
     if (!empty($collisionnotices)) {
-        $_SESSION['coursectrl_collisions_' . $batchid] = json_encode($collisionnotices);
+        global $SESSION;
+        $sessionprop = 'coursectrl_collisions_' . $batchid;
+        $SESSION->$sessionprop = json_encode($collisionnotices);
     }
 
     redirect(new \moodle_url('/local/coursectrl/timeline.php', [

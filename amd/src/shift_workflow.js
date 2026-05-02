@@ -196,9 +196,15 @@ define([], function() {
      */
     var renderPreviewHtml = function(preview) {
         var s = preview.summary;
-        if (s.changes === 0) {
+        if (s.changes === 0 && (s.skipped || 0) === 0) {
             return '<div class="alert alert-warning py-2 small mb-0">' +
                 'Keine Datumsfelder zu verschieben. Bitte Tage oder Stunden eingeben.' +
+                '</div>';
+        }
+        if (s.changes === 0 && (s.skipped || 0) > 0) {
+            return '<div class="alert alert-info py-2 small mb-0">' +
+                s.skipped + ' Aktivit\u00e4t(en) werden \u00fcber' +
+                ' Systemfelder (Verf\u00fcgbarkeitsbedingungen) verschoben.' +
                 '</div>';
         }
         var summaryHtml =
@@ -629,7 +635,11 @@ define([], function() {
                         .then(function(preview) {
                             previewBtn.disabled = false;
                             previewBtn.textContent = 'Vorschau';
-                            var canExec = (preview.summary.changes || 0) > 0;
+                            // Allow execution when only system-level fields exist
+                    // (cmids without adapters are 'skipped' in preview
+                    // but batch_manager shifts their availability dates).
+                    var canExec = (preview.summary.changes || 0) > 0
+                        || (preview.summary.skipped || 0) > 0;
                             var html = renderPreviewHtml(preview);
 
                             // Scantext checkbox — only shown when changes exist.

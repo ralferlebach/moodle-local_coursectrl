@@ -417,9 +417,20 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
                                     closeTrModal();
                                     location.reload();
                                 },
-                                fail: function() {
+                                fail: function(err) {
                                     modalApplyBtn.disabled = false;
                                     modalApplyBtn.addEventListener('click', applyOnce);
+                                    var em = err && err.message
+                                        ? err.message
+                                        : 'Fehler beim Anwenden.';
+                                    var mb = document.getElementById(
+                                        'coursectrl-textreview-modal-body'
+                                    );
+                                    if (mb) {
+                                        mb.innerHTML +=
+                                            '<div class="alert alert-danger' +
+                                            ' mt-2 small">' + em + '</div>';
+                                    }
                                 },
                             }]);
                         });

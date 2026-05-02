@@ -105,9 +105,12 @@ class manage_page implements renderable, templatable {
         // Resolve locale-aware section names and build subsection nesting.
         $sectionnamesbyid = [];
         try {
+            // Get_section_name() requires a full DB stdClass with ->format.
+            // Course_item entity does not carry that property.
+            $dbcourse = get_course($course->id);
             $modinfo = get_fast_modinfo($course->id);
             foreach ($modinfo->get_section_info_all() as $sinfo) {
-                $sectionnamesbyid[(int) $sinfo->id] = get_section_name($course, $sinfo);
+                $sectionnamesbyid[(int) $sinfo->id] = get_section_name($dbcourse, $sinfo);
             }
         } catch (\Throwable $e) {
             // Non-fatal: section names fall back to raw name or section number.

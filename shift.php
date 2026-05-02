@@ -139,6 +139,11 @@ if ($nothingtodo) {
 $manager = new \local_coursectrl\manager\batch_manager();
 $batchid = $manager->execute($courseid, $actiontype, $payload, $cmids, (int) $USER->id);
 
+// Rebuild Moodle's coursemodinfo cache so availability-date changes are
+// immediately visible — system-level shifts update course_modules directly
+// and do not go through module APIs that normally trigger cache invalidation.
+rebuild_course_cache($courseid);
+
 // Purge cached text hits so the next text review sees fresh data.
 (new \local_coursectrl\manager\textreview_manager())->purge_hits($courseid);
 

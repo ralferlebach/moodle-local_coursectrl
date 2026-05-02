@@ -575,7 +575,7 @@ class simulation_page implements renderable, templatable {
                         // Subsection header: check blocked only.
                         if (
                             $srow['isblocked'] && !isset($seenblocked[$rowcmid])
-                                && ($srow['teacher_visible'] ?? true)
+                            && ($srow['teacher_visible'] ?? true)
                         ) {
                             $seenblocked[$rowcmid] = true;
                             $blockedcount++;
@@ -605,7 +605,7 @@ class simulation_page implements renderable, templatable {
                             }
                             if (
                                 $subrow['isblocked'] && !isset($seenblocked[$subcmid])
-                                    && ($subrow['teacher_visible'] ?? true)
+                                && ($subrow['teacher_visible'] ?? true)
                             ) {
                                 $seenblocked[$subcmid] = true;
                                 $blockedcount++;
@@ -632,7 +632,7 @@ class simulation_page implements renderable, templatable {
                     }
                     if (
                         $srow['isblocked'] && !isset($seenblocked[$rowcmid])
-                            && ($srow['teacher_visible'] ?? true)
+                        && ($srow['teacher_visible'] ?? true)
                     ) {
                         $seenblocked[$rowcmid] = true;
                         $blockedcount++;

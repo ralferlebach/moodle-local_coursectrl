@@ -62,7 +62,16 @@ class textreview_manager {
     private const SECTION_TEXT_FIELDS = ['summary', 'name'];
 
     /** @var string[] Allowed text fields on activity module tables. */
-    private const CM_TEXT_FIELDS = ['intro', 'content', 'name'];
+    private const CM_TEXT_FIELDS = [
+        'intro',
+        'content',
+        'name',
+        'activity', // Assign: activity description.
+        'page_after_submit', // Feedback: completion page text.
+        'instructauthors', // Workshop: author instructions.
+        'instructreviewers', // Workshop: reviewer instructions.
+        'conclusion', // Workshop: conclusion text.
+    ];
 
     /**
      * Construct the textreview_manager.

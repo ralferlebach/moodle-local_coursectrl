@@ -211,11 +211,12 @@ class risk_assessment_runner {
         );
 
         // Annotate findings with section cause when the parent section
-        // is blocked — this allows checks_page to show a targeted message.
+        // Is blocked — this allows checks_page to show a targeted message.
         $journeyfindings = $this->annotate_section_cause(
             $journeyfindings,
             $cms,
-            $sections
+            $sections,
+            $courseid
         );
 
         // Score journey findings (not processed by risk_prioritizer).
@@ -414,7 +415,8 @@ class risk_assessment_runner {
     private function annotate_section_cause(
         array $findings,
         array $cms,
-        array $sections
+        array $sections,
+        int $courseid = 0
     ): array {
         if (empty($sections)) {
             return $findings;
@@ -424,6 +426,23 @@ class risk_assessment_runner {
         $sectionmap = [];
         foreach ($sections as $sec) {
             $sectionmap[(int) $sec->id] = $sec;
+        }
+        // Pre-build locale-aware section names using get_section_name().
+        // This returns 'Allgemeines'/'General' for section 0 and similar
+        // Format-specific names instead of the raw empty name field.
+        $sectionnamesbysid = [];
+        if ($courseid > 0) {
+            try {
+                $modinfo = get_fast_modinfo($courseid);
+                $course = get_course($courseid);
+                foreach ($modinfo->get_section_info_all() as $sinfo) {
+                    $sname = get_section_name($course, $sinfo);
+                    $sectionnamesbysid[(int) $sinfo->id] = $sname;
+                }
+            } catch (\Throwable $e) {
+                // Non-fatal: fall back to raw name or section number.
+                $sectionnamesbysid = [];
+            }
         }
         foreach ($findings as &$finding) {
             if (($finding['type'] ?? '') !== 'journey_unreachable') {
@@ -442,10 +461,63 @@ class risk_assessment_runner {
             // Section has availability conditions — mark as section-caused.
             $finding['section_cause'] = true;
             $finding['section_id'] = $sectionid;
-            $finding['section_name'] = $section->name ?? '';
+            // Use locale-aware name (e.g. 'Allgemeines' / 'General') when available.
+            $finding['section_name'] = $sectionnamesbysid[$sectionid]
+                ?? ($section->name ?? '');
             $finding['section_num'] = $section->sectionnum ?? 0;
+            // Detect subsection CMs: find child section CMs blocked by this finding.
+            if (($cm->modname ?? '') === 'subsection') {
+                $finding['subsection_children'] = $this->find_subsection_children(
+                    $cmid,
+                    $cms,
+                    $sectionmap
+                );
+            }
         }
         unset($finding);
         return $findings;
+    }
+
+    /**
+     * Find CMs that are children of a subsection CM.
+     *
+     * In Moodle, a subsection CM (modname=subsection) corresponds to a
+     * course_section whose component='mod_subsection' and itemid=cmid.
+     * We identify the child section by matching section.itemid to the
+     * subsection CM's instance (stored as section_item->itemid when set).
+     * Fallback: find sections whose sequence contains only CMs not in
+     * the parent section's direct members.
+     *
+     * @param int          $subsectioncmid The subsection CM id.
+     * @param cm_item[]    $cms            All course modules keyed by cmid.
+     * @param array        $sectionmap     DB-id-keyed section_item map.
+     * @return int[] Child CM ids found inside the subsection.
+     */
+    private function find_subsection_children(
+        int $subsectioncmid,
+        array $cms,
+        array $sectionmap
+    ): array {
+        // Find all section_items whose itemid matches this subsection cmid.
+        // The itemid on a subsection section_item is the subsection CM's
+        // module instance id — which equals the CM id for this modtype.
+        $childsectionid = 0;
+        foreach ($sectionmap as $secid => $sec) {
+            if ((int) ($sec->itemid ?? 0) === $subsectioncmid) {
+                $childsectionid = $secid;
+                break;
+            }
+        }
+        if ($childsectionid === 0) {
+            return [];
+        }
+        // Return all CMs that belong to the child section.
+        $children = [];
+        foreach ($cms as $cmid => $cm) {
+            if ((int) $cm->sectionid === $childsectionid) {
+                $children[] = (int) $cmid;
+            }
+        }
+        return $children;
     }
 }

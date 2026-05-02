@@ -580,6 +580,68 @@ class checks_page implements renderable, templatable {
                 ];
             }
 
+            // All grouped CMs for journey_unreachable_group — listed in accordion.
+            $groupedcmslinked = [];
+            $subsectionchildlinked = [];
+            $subsectionchildcount = 0;
+            $allcmids = $item['cmids'] ?? [];
+            if ($type === 'journey_unreachable_group' && !empty($allcmids)) {
+                // Build a reverse map: section_id → [cmids] for quick child lookup.
+                $cmsbysection = [];
+                foreach ($cms as $lookcmid => $lookcm) {
+                    $cmsbysection[(int) $lookcm->sectionid][] = (int) $lookcmid;
+                }
+                // Build sectionmap from snapshot sections for subsection resolution.
+                $snapshotsections = $item['_sections'] ?? [];
+                foreach ($allcmids as $gcmid) {
+                    $gcmid = (int) $gcmid;
+                    $gcm = $cms[$gcmid] ?? null;
+                    $groupedcmslinked[] = [
+                        'cmid'          => $gcmid,
+                        'name'          => $cmnames[$gcmid] ?? 'ID ' . $gcmid,
+                        'url'           => $cmurls[$gcmid] ?? '#',
+                        'modname'       => $gcm !== null ? $gcm->modname : '',
+                        'is_subsection' => $gcm !== null && $gcm->modname === 'subsection',
+                        'is_derived'    => false,
+                    ];
+                    // When this CM is a subsection, list its child activities.
+                    if ($gcm !== null && $gcm->modname === 'subsection') {
+                        // Find the section whose component = mod_subsection and
+                        // itemid = this CM's instance id (= cmid for subsections).
+                        // Simpler heuristic: the section that only contains CMs
+                        // accessible through this subsection CM.
+                        // We use cm_item::sectionid of CMs not in $allcmids
+                        // to find the child section.
+                        foreach ($item['subsection_children'] ?? [] as $childcmid) {
+                            $childcmid = (int) $childcmid;
+                            $childcm = $cms[$childcmid] ?? null;
+                            $subsectionchildlinked[] = [
+                                'cmid'    => $childcmid,
+                                'name'    => $cmnames[$childcmid] ?? 'ID ' . $childcmid,
+                                'url'     => $cmurls[$childcmid] ?? '#',
+                                'modname' => $childcm !== null ? $childcm->modname : '',
+                                'parent_name' => $cmnames[$gcmid] ?? '',
+                            ];
+                        }
+                        $subsectionchildcount += count($item['subsection_children'] ?? []);
+                    }
+                }
+                // Fold cascade (derived) CMs into the grouped list with a derived flag.
+                // This removes the confusing separate cascade line on group cards.
+                foreach ($item['cascade_cmids'] ?? [] as $dercmid) {
+                    $dercmid = (int) $dercmid;
+                    $dercm = $cms[$dercmid] ?? null;
+                    $groupedcmslinked[] = [
+                        'cmid'          => $dercmid,
+                        'name'          => $cmnames[$dercmid] ?? 'ID ' . $dercmid,
+                        'url'           => $cmurls[$dercmid] ?? '#',
+                        'modname'       => $dercm !== null ? $dercm->modname : '',
+                        'is_subsection' => false,
+                        'is_derived'    => true,
+                    ];
+                }
+            }
+
             // Type label.
             $typelabelkey = 'risk_type_' . $type;
             $typelabel = get_string($typelabelkey, 'local_coursectrl', null, true) ?: $type;
@@ -655,7 +717,8 @@ class checks_page implements renderable, templatable {
                 'typelabel'        => $typelabel,
                 'severity'         => $severity,
                 'icon'             => $severityicon[$severity] ?? '⚠️',
-                'score'            => $item['score'] ?? 0,
+                // Boost score when group includes subsection CMs with child activities.
+                'score'            => ($item['score'] ?? 0) + ($subsectionchildcount > 0 ? 15 : 0),
                 'cmid'             => $primarycmid,
                 'cmname'           => $cmname,
                 'cmurl'            => $cmurl,
@@ -666,9 +729,17 @@ class checks_page implements renderable, templatable {
                 'hasaction'     => $action !== '',
                 'related'       => $relatedlinked,
                 'hasrelated'    => !empty($relatedlinked),
-                'cascade'       => $cascadelinked,
-                'hascascade'    => !empty($cascadelinked),
-                'cascade_count' => count($cascadelinked),
+                // Cascade is folded into grouped_cms for group cards.
+                'cascade'               => $type === 'journey_unreachable_group' ? [] : $cascadelinked,
+                'hascascade'            => $type !== 'journey_unreachable_group' && !empty($cascadelinked),
+                'cascade_count'         => $type === 'journey_unreachable_group' ? 0 : count($cascadelinked),
+                'grouped_cms'           => $groupedcmslinked,
+                'has_grouped_cms'       => !empty($groupedcmslinked),
+                // Count direct (non-derived) CMs only for the accordion header.
+                'grouped_cms_count'     => count(array_filter($groupedcmslinked, fn ($g) => !$g['is_derived'])),
+                'subsection_children'   => $subsectionchildlinked,
+                'has_subsection_children' => !empty($subsectionchildlinked),
+                'subsection_child_count' => $subsectionchildcount,
                 'simurl'        => $simurl,
                 'fix_type'      => $this->fix_type_for($type),
                 'fix_url'       => $this->fix_url_for(

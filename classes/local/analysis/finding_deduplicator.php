@@ -145,11 +145,17 @@ class finding_deduplicator {
             $grademode = $item['grademode'] ?? '';
             $profiles = (int) ($item['affected_profiles'] ?? 1);
 
-            // Only group independent primaries (cascade_count=0) with same profile coverage.
-            if ($cascadecount === 0) {
-                // Group by section_id when all CMs share the same section cause.
-                $sectionid = (int) ($item['section_id'] ?? 0);
-                $aggkey = $severity . '|' . $grademode . '|' . $profiles . '|s' . $sectionid;
+            // Group by shared section cause regardless of cascade_count:
+            // CMs blocked by the same section (same section_id) should appear
+            // On one card even when some have cascade entries.
+            $sectionid = (int) ($item['section_id'] ?? 0);
+            if (!empty($item['section_cause']) && $sectionid > 0) {
+                // Section-caused: group by section_id + severity (ignoring cascade).
+                $aggkey = $severity . '|s' . $sectionid;
+                $aggregategroups[$aggkey][] = $item;
+            } else if ($cascadecount === 0) {
+                // Non-section independent primaries: existing cascade-free grouping.
+                $aggkey = $severity . '|' . $grademode . '|' . $profiles . '|s0';
                 $aggregategroups[$aggkey][] = $item;
             }
         }
@@ -165,9 +171,14 @@ class finding_deduplicator {
                 $allcmids = [];
                 $maxscore = 0;
                 $maxscenarios = 0;
+                $allcascadecmids = [];
                 foreach ($groupitems as $gi) {
                     foreach ($gi['cmids'] ?? [] as $gcmid) {
                         $allcmids[] = (int) $gcmid;
+                    }
+                    // Collect cascade entries from all group members.
+                    foreach ($gi['cascade_cmids'] ?? [] as $ccmid) {
+                        $allcascadecmids[] = (int) $ccmid;
                     }
                     $maxscore = max($maxscore, (int) ($gi['score'] ?? 0));
                     $maxscenarios = max($maxscenarios, (int) ($gi['affected_scenarios'] ?? 1));
@@ -223,8 +234,18 @@ class finding_deduplicator {
                 $template['affected_count'] = count($allcmids);
                 $template['score'] = $maxscore;
                 $template['affected_scenarios'] = $maxscenarios;
-                $template['cascade_cmids'] = [];
-                $template['cascade_count'] = 0;
+                // Merge all cascade entries from grouped items.
+                $allcascadecmids = array_values(array_unique($allcascadecmids));
+                $template['cascade_cmids'] = $allcascadecmids;
+                $template['cascade_count'] = count($allcascadecmids);
+                // Merge subsection_children from all group members.
+                $allsubchildren = [];
+                foreach ($groupitems as $gi) {
+                    foreach ($gi['subsection_children'] ?? [] as $scmid) {
+                        $allsubchildren[] = (int) $scmid;
+                    }
+                }
+                $template['subsection_children'] = array_values(array_unique($allsubchildren));
                 $template['message_key'] = 'risk_journey_unreachable_group';
                 $result[] = $template;
             }

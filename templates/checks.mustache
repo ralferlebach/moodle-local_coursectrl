@@ -179,6 +179,51 @@
               <i class="fa fa-play-circle fa-fw me-1"></i>{{#str}} checks_simulate_link, local_coursectrl {{/str}}
             </a>
           </div>
+          {{#has_subsection_children}}
+          <div class="alert alert-warning py-1 px-2 mt-2 small mb-1">
+            <i class="fa fa-sitemap fa-fw me-1"></i>{{#str}} risk_subsection_children_note, local_coursectrl {{/str}}
+            <ul class="mb-0 mt-1 ps-3">
+              {{#subsection_children}}
+              <li>
+                {{#modname}}{{#pix}}monologo, mod_{{modname}}, {{name}}{{/pix}}{{/modname}}
+                <a href="{{url}}" target="_blank" rel="noopener">{{name}}</a>
+                <span class="text-muted">({{#str}} in {{/str}} {{parent_name}})</span>
+              </li>
+              {{/subsection_children}}
+            </ul>
+          </div>
+          {{/has_subsection_children}}
+          {{#has_grouped_cms}}
+          <details class="mt-2">
+            <summary class="small text-muted" style="cursor:pointer">
+              <i class="fa fa-list-ul fa-fw me-1"></i>{{#str}} risk_grouped_cms_summary, local_coursectrl {{/str}} ({{grouped_cms_count}})
+            </summary>
+            <ul class="mt-1 mb-0 ps-3 small">
+              {{#grouped_cms}}
+              <li class="py-1{{#is_derived}} text-muted{{/is_derived}}">
+                {{#modname}}{{#pix}}monologo, mod_{{modname}}, {{name}}{{/pix}}{{/modname}}
+                <a href="{{url}}" target="_blank" rel="noopener">{{name}}</a>{{#is_derived}}<span class="badge bg-light border text-muted ms-1 small">{{#str}} risk_cascade_derived, local_coursectrl {{/str}}</span>{{/is_derived}}
+              </li>
+              {{/grouped_cms}}
+            </ul>
+          </details>
+          {{/has_grouped_cms}}
+          {{#has_subsection_children}}
+          <details class="mt-2">
+            <summary class="small text-warning fw-semibold" style="cursor:pointer">
+              <i class="fa fa-sitemap fa-fw me-1"></i>{{#str}} risk_subsection_children_summary, local_coursectrl {{/str}} ({{subsection_child_count}})
+            </summary>
+            <ul class="mt-1 mb-0 ps-3 small">
+              {{#subsection_children}}
+              <li class="py-1">
+                <img class="icon" alt="{{name}}" title="{{name}}"
+                  src="{{wwwroot}}/theme/image.php/{{theme}}/mod_{{modname}}/{{rev}}/monologo">
+                <a href="{{url}}" target="_blank" rel="noopener">{{name}}</a>
+              </li>
+              {{/subsection_children}}
+            </ul>
+          </details>
+          {{/has_subsection_children}}
           {{#hascascade}}
           <p class="mb-0 text-info small mt-1">
             <i class="fa fa-chain fa-fw me-1"></i>{{cascade_count}} {{#str}} checks_cascade_suffix, local_coursectrl {{/str}}:

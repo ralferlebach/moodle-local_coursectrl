@@ -53,6 +53,12 @@ final class section_item extends inventory_item {
     public readonly ?string $availability;
 
     /**
+     * @var int Instance id of the owning subsection CM, or 0 when not a subsection.
+     * Populated from course_sections.itemid (set by mod_subsection on creation).
+     */
+    public readonly int $itemid;
+
+    /**
      * Constructor.
      *
      * @param int         $id            Moodle course_sections.id.
@@ -71,7 +77,8 @@ final class section_item extends inventory_item {
         string $summary,
         int $summaryformat,
         bool $visible,
-        ?string $availability = null
+        ?string $availability = null,
+        int $itemid = 0
     ) {
         $this->id = $id;
         $this->courseid = $courseid;
@@ -81,6 +88,7 @@ final class section_item extends inventory_item {
         $this->summaryformat = $summaryformat;
         $this->visible = $visible;
         $this->availability = $availability;
+        $this->itemid = $itemid;
     }
 
     /**
@@ -108,6 +116,7 @@ final class section_item extends inventory_item {
             'summaryformat' => $this->summaryformat,
             'visible'       => $this->visible,
             'availability'  => $this->availability,
+            'itemid'        => $this->itemid,
         ];
     }
 

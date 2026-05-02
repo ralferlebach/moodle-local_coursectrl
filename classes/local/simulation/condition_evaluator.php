@@ -316,6 +316,8 @@ class condition_evaluator {
                 'status' => self::STATUS_UNKNOWN,
                 'detail' => 'grade_not_simulated',
                 'itemid' => $itemid,
+                // Grade item may not map to any CM; cmid will be null in that case.
+                'cmid'   => $cmid,
                 'min'    => $min,
                 'max'    => $max,
             ];
@@ -410,5 +412,61 @@ class condition_evaluator {
         }
         // Exact match required for e=2 and e=3.
         return $actual === $expected;
+    }
+
+    /**
+     * Evaluate conditions and return OR-grouped reason arrays for structured display.
+     *
+     * Returns an array of groups. Each group represents one OR-branch (or the
+     * whole condition set for AND-only conditions). Within a group, all conditions
+     * must be satisfied simultaneously (AND). Between groups, one group suffices (OR).
+     *
+     * @param string|null   $json  Raw availability JSON from course_modules.availability.
+     * @param learner_state $state Current learner state.
+     * @return array[] Array of groups; each group is an array of raw reason arrays.
+     */
+    public function evaluate_groups(?string $json, learner_state $state): array {
+        if ($json === null || $json === '') {
+            return [];
+        }
+        $tree = json_decode($json, true);
+        if (!is_array($tree)) {
+            return [];
+        }
+        return $this->build_display_groups($tree, $state);
+    }
+
+    /**
+     * Recursively build display groups from an availability tree node.
+     *
+     * @param array         $node  Decoded availability JSON node.
+     * @param learner_state $state Learner state.
+     * @return array[]
+     */
+    private function build_display_groups(array $node, learner_state $state): array {
+        if (isset($node['type'])) {
+            // Leaf: single group with single condition.
+            $reasons = [];
+            $this->eval_leaf($node, $state, $reasons);
+            return [$reasons];
+        }
+        $op = $node['op'] ?? '&';
+        $children = $node['c'] ?? [];
+        if ($op === '|' || $op === '!|') {
+            // OR at top level: each child is its own branch.
+            $groups = [];
+            foreach ($children as $child) {
+                $childreasons = [];
+                $this->eval_node($child, $state, $childreasons);
+                $groups[] = $childreasons;
+            }
+            return $groups;
+        }
+        // AND: everything in a single group.
+        $reasons = [];
+        foreach ($children as $child) {
+            $this->eval_node($child, $state, $reasons);
+        }
+        return [$reasons];
     }
 }

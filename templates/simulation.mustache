@@ -143,13 +143,13 @@
                   </td>
                   <td class="py-1 text-center align-middle">
                     {{#completion_enabled}}
-                    <input type="checkbox" class="form-check-input mt-0"
+                    <input type="checkbox" class="ms-1"
                            name="sim_complete[{{cmid}}]" value="1"
                            title="{{lbl_completed}}"
                            {{#assumed_complete}} checked{{/assumed_complete}}>
                     {{/completion_enabled}}
                     {{#completion_disabled}}
-                    <input type="checkbox" class="form-check-input mt-0"
+                    <input type="checkbox" class="ms-1"
                            name="sim_complete[{{cmid}}]" value="1"
                            title="{{lbl_no_complete}}"
                            disabled style="opacity:.35;cursor:not-allowed">
@@ -157,13 +157,13 @@
                   </td>
                   <td class="py-1 text-center align-middle">
                     {{#passgrade_enabled}}
-                    <input type="checkbox" class="form-check-input mt-0"
+                    <input type="checkbox" class="ms-1"
                            name="sim_passed[{{cmid}}]" value="1"
                            title="{{lbl_passed}}"
                            {{#assumed_passed}} checked{{/assumed_passed}}>
                     {{/passgrade_enabled}}
                     {{#passgrade_disabled}}
-                    <input type="checkbox" class="form-check-input mt-0"
+                    <input type="checkbox" class="ms-1"
                            name="sim_passed[{{cmid}}]" value="1"
                            title="{{lbl_no_passed}}"
                            disabled style="opacity:.35;cursor:not-allowed">
@@ -207,6 +207,7 @@
   </form>
 
   {{#hasresults}}
+  {{! Stats cards }}
   <div class="row g-3 mb-3">
     <div class="col-md-4">
       <div class="card text-center border-success">
@@ -233,50 +234,9 @@
       </div>
     </div>
   </div>
-  {{#hasnextsteps}}
-  <h6>{{#str}} sim_nextsteps, local_coursectrl {{/str}} ({{nextstepcount}})</h6>
-  <ul class="list-group mb-3">
-    {{#nextsteprows}}
-    <li class="list-group-item list-group-item-success py-1 px-2">
-      <i class="fa fa-check fa-fw text-success"></i>
-      <a href="{{cmurl}}" target="_blank" rel="noopener noreferrer">{{cmname}}</a>
-    </li>
-    {{/nextsteprows}}
-  </ul>
-  {{/hasnextsteps}}
-  {{#hasblockedrows}}
-  <h6>{{#str}} sim_blocked_list, local_coursectrl {{/str}}</h6>
-  <ul class="list-group mb-3">
-    {{#blockedrows}}
-    <li class="list-group-item list-group-item-danger py-1 px-2">
-      <i class="fa fa-lock fa-fw text-danger"></i>
-      <a href="{{cmurl}}" target="_blank" rel="noopener noreferrer">{{cmname}}</a>
-    </li>
-    {{/blockedrows}}
-  </ul>
-  {{/hasblockedrows}}
 
-  {{! Link to dependency graph with simulation overlay }}
-  {{#hasgraphurl_sim}}
-  <div class="d-flex align-items-center gap-3 mb-3 mt-1">
-    <a href="{{graphurl_sim}}" class="btn btn-sm btn-outline-primary">
-      <i class="fa fa-project-diagram fa-fw"></i>
-      {{#str}} sim_show_in_graph, local_coursectrl {{/str}}
-    </a>
-    <span class="d-flex align-items-center gap-3 small text-muted">
-      <span class="d-inline-flex align-items-center gap-1">
-        <span style="display:inline-block;width:1rem;height:1rem;background:#fef2f2;border:2px solid #dc3545;border-radius:3px"></span>
-        {{#str}} sim_legend_blocked, local_coursectrl {{/str}}
-      </span>
-      <span class="d-inline-flex align-items-center gap-1">
-        <span style="display:inline-block;width:1rem;height:1rem;background:#f0fdf4;border:2px solid #198754;border-radius:3px"></span>
-        {{#str}} sim_legend_nextstep, local_coursectrl {{/str}}
-      </span>
-    </span>
-  </div>
-  {{/hasgraphurl_sim}}
 
-  {{#hasresultrows}}
+  {{#hassectionresultgroups}}
   <div class="card mb-3">
     <div class="card-header py-2">
       <strong>{{#str}} sim_result_all, local_coursectrl {{/str}}</strong>
@@ -292,73 +252,119 @@
             <th>{{#str}} sim_col_reasons, local_coursectrl {{/str}}</th>
           </tr>
         </thead>
-        <tbody>
-          {{#resultrows}}
-          <tr>
-            <td class="{{#iscomplete}}cc-sim-completed{{/iscomplete}}">
-              {{#pix}}monologo, mod_{{modname}}, {{modname}}{{/pix}}
-              <a href="{{url}}" target="_blank" rel="noopener noreferrer">{{name}}</a>
+          {{#sectionresultgroups}}
+          <tbody>
+          <tr class="table-secondary" style="cursor:pointer" data-cc-toggle="{{collapse_id}}">
+            <td colspan="3" class="py-1 fw-semibold">
+              <span data-cc-arrow="{{collapse_id}}">&#9660;</span>&nbsp;<a href="{{sectionurl}}" target="_blank" rel="noopener">{{name}}</a>
             </td>
-            <td>
-              {{#teacher_visible}}
-                <span class="badge cc-badge-success">
-                  {{#str}} sim_tracking_active, local_coursectrl {{/str}}
-                </span>
-              {{/teacher_visible}}
-              {{^teacher_visible}}
-                <span class="badge cc-badge-secondary">
-                  {{#str}} sim_tracking_off, local_coursectrl {{/str}}
-                </span>
-              {{/teacher_visible}}
+            <td class="py-1 fw-semibold">
+              {{#sec_accessible}}<span class="badge cc-badge-success">{{#str}} yes, core {{/str}}</span>{{/sec_accessible}}
+              {{#sec_blocked}}<span class="badge cc-badge-danger">{{#str}} no, core {{/str}}</span>{{/sec_blocked}}
             </td>
-            <td>
-              {{#status_pass}}
-                <span class="badge cc-badge-success">
-                  {{#str}} sim_status_pass, local_coursectrl {{/str}}
-                </span>
-              {{/status_pass}}
-              {{#status_fail}}
-                <span class="badge cc-badge-danger">
-                  {{#str}} sim_status_fail, local_coursectrl {{/str}}
-                </span>
-              {{/status_fail}}
-              {{#status_unknown}}
-                <span class="badge cc-badge-secondary">
-                  {{#str}} sim_status_unknown, local_coursectrl {{/str}}
-                </span>
-              {{/status_unknown}}
-            </td>
-            <td>
-              {{#accessible}}
-                <span class="badge cc-badge-success">
-                  {{#str}} yes, core {{/str}}
-                </span>
-              {{/accessible}}
-              {{^accessible}}
-                <span class="badge cc-badge-danger">
-                  {{#str}} no, core {{/str}}
-                </span>
-              {{/accessible}}
-              {{#isnextstep}}<span class="badge cc-badge-info ms-1">{{#str}} sim_badge_next, local_coursectrl {{/str}}</span>{{/isnextstep}}
-              {{#isblocked}}<span class="badge cc-badge-warning ms-1">{{#str}} sim_badge_blocked, local_coursectrl {{/str}}</span>{{/isblocked}}
-            </td>
-            <td>
-              {{#hasreasons}}
-                <ul class="mb-0 small ps-3">
-                  {{#reasons}}
-                  <li>{{{label}}}</li>
-                  {{/reasons}}
-                </ul>
-              {{/hasreasons}}
-              {{^hasreasons}}<span class="text-muted small">–</span>{{/hasreasons}}
+            <td class="py-1 fw-semibold">
+              {{#sec_has_reasons}}<ul class="mb-0 small fw-normal ps-3">{{#sec_reason_groups}}{{#has_or_before}}<li class="list-unstyled ps-0 text-muted fst-italic">&#8212; {{#str}} sim_or_separator, local_coursectrl {{/str}} &#8212;</li>{{/has_or_before}}{{#conditions}}<li>{{{label}}}</li>{{/conditions}}{{/sec_reason_groups}}</ul>{{/sec_has_reasons}}
+              {{^sec_has_reasons}}<span class="text-muted small">&#8211;</span>{{/sec_has_reasons}}
             </td>
           </tr>
-          {{/resultrows}}
-        </tbody>
+          </tbody>
+          <tbody data-cc-body="{{collapse_id}}">
+{{#rows}}
+          {{#is_subsection_header}}
+          <tr class="table-secondary" style="cursor:pointer" data-cc-toggle="ccsub{{cmid}}">
+            <td colspan="3" class="py-1 ps-1 fw-semibold">
+              <span data-cc-arrow="ccsub{{cmid}}">&#9660;</span>&nbsp;
+              <a href="{{url}}" target="_blank" rel="noopener">{{name}}</a>
+            </td>
+            <td class="py-1 fw-semibold">
+              {{#accessible}}<span class="badge cc-badge-success">{{#str}} yes, core {{/str}}</span>{{/accessible}}
+              {{^accessible}}<span class="badge cc-badge-danger">{{#str}} no, core {{/str}}</span>{{/accessible}}
+            </td>
+            <td class="py-1 fw-semibold">
+              {{#hasreasons}}<ul class="mb-0 small fw-normal ps-3">{{#reason_groups}}{{#has_or_before}}<li class="list-unstyled ps-0 text-muted fst-italic">&#8212; {{#str}} sim_or_separator, local_coursectrl {{/str}} &#8212;</li>{{/has_or_before}}{{#conditions}}<li>{{{label}}}</li>{{/conditions}}{{/reason_groups}}</ul>{{/hasreasons}}
+              {{^hasreasons}}<span class="text-muted small">&#8211;</span>{{/hasreasons}}
+            </td>
+          </tr>
+          {{#has_subsection_rows}}
+          {{#subsection_rows}}
+          <tr class="{{#iscomplete}}cc-sim-completed{{/iscomplete}} cc-subrow" data-cc-subbody="ccsub{{subcmid}}">
+            <td class="ps-5 small">
+              {{#pix}}monologo, mod_{{modname}}, {{name}}{{/pix}}
+              <a href="{{url}}" target="_blank" rel="noopener">{{name}}</a>
+            </td>
+            <td>{{#tracking_active}}<span class="badge cc-badge-success">{{#str}} sim_tracking_active, local_coursectrl {{/str}}</span>{{/tracking_active}}{{#tracking_hidden}}<span class="badge cc-badge-secondary">{{#str}} sim_tracking_hidden, local_coursectrl {{/str}}</span>{{/tracking_hidden}}{{#tracking_off}}<span class="badge cc-badge-secondary">{{#str}} sim_tracking_off, local_coursectrl {{/str}}</span>{{/tracking_off}}</td>
+            <td>{{#has_completion_tracking}}{{#status_pass}}<span class="badge cc-badge-success">{{#str}} sim_status_pass, local_coursectrl {{/str}}</span>{{/status_pass}}{{#status_fail}}<span class="badge cc-badge-danger">{{#str}} sim_status_fail, local_coursectrl {{/str}}</span>{{/status_fail}}{{#status_unknown}}<span class="badge cc-badge-secondary">{{#str}} sim_status_unknown, local_coursectrl {{/str}}</span>{{/status_unknown}}{{/has_completion_tracking}}{{^has_completion_tracking}}<span class="text-muted small">–</span>{{/has_completion_tracking}}</td>
+            <td>{{#accessible}}<span class="badge cc-badge-success">{{#str}} yes, core {{/str}}</span>{{/accessible}}{{^accessible}}<span class="badge cc-badge-danger">{{#str}} no, core {{/str}}</span>{{/accessible}}{{#isnextstep}}<span class="badge cc-badge-info ms-1">{{#str}} sim_badge_next, local_coursectrl {{/str}}</span>{{/isnextstep}}{{#isblocked}}<span class="badge cc-badge-warning ms-1">{{#str}} sim_badge_blocked, local_coursectrl {{/str}}</span>{{/isblocked}}</td>
+            <td>{{#hasreasons}}<ul class="mb-0 small ps-3">{{#reason_groups}}{{#has_or_before}}<li class="list-unstyled ps-0 text-muted fst-italic">&#8212; {{#str}} sim_or_separator, local_coursectrl {{/str}} &#8212;</li>{{/has_or_before}}{{#conditions}}<li>{{{label}}}</li>{{/conditions}}{{/reason_groups}}</ul>{{/hasreasons}}{{^hasreasons}}<span class="text-muted small">–</span>{{/hasreasons}}</td>
+          </tr>
+          {{/subsection_rows}}
+          {{/has_subsection_rows}}
+          {{/is_subsection_header}}
+          {{^is_subsection_header}}
+          <tr class="{{#iscomplete}}cc-sim-completed{{/iscomplete}}">
+            <td class="ps-1">
+              {{#pix}}monologo, mod_{{modname}}, {{name}}{{/pix}}
+              <a href="{{url}}" target="_blank" rel="noopener">{{name}}</a>
+            </td>
+            <td>{{#tracking_active}}<span class="badge cc-badge-success">{{#str}} sim_tracking_active, local_coursectrl {{/str}}</span>{{/tracking_active}}{{#tracking_hidden}}<span class="badge cc-badge-secondary">{{#str}} sim_tracking_hidden, local_coursectrl {{/str}}</span>{{/tracking_hidden}}{{#tracking_off}}<span class="badge cc-badge-secondary">{{#str}} sim_tracking_off, local_coursectrl {{/str}}</span>{{/tracking_off}}</td>
+            <td>{{#has_completion_tracking}}{{#status_pass}}<span class="badge cc-badge-success">{{#str}} sim_status_pass, local_coursectrl {{/str}}</span>{{/status_pass}}{{#status_fail}}<span class="badge cc-badge-danger">{{#str}} sim_status_fail, local_coursectrl {{/str}}</span>{{/status_fail}}{{#status_unknown}}<span class="badge cc-badge-secondary">{{#str}} sim_status_unknown, local_coursectrl {{/str}}</span>{{/status_unknown}}{{/has_completion_tracking}}{{^has_completion_tracking}}<span class="text-muted small">–</span>{{/has_completion_tracking}}</td>
+            <td>{{#accessible}}<span class="badge cc-badge-success">{{#str}} yes, core {{/str}}</span>{{/accessible}}{{^accessible}}<span class="badge cc-badge-danger">{{#str}} no, core {{/str}}</span>{{/accessible}}{{#isnextstep}}<span class="badge cc-badge-info ms-1">{{#str}} sim_badge_next, local_coursectrl {{/str}}</span>{{/isnextstep}}{{#isblocked}}<span class="badge cc-badge-warning ms-1">{{#str}} sim_badge_blocked, local_coursectrl {{/str}}</span>{{/isblocked}}</td>
+            <td>{{#hasreasons}}<ul class="mb-0 small ps-3">{{#reason_groups}}{{#has_or_before}}<li class="list-unstyled ps-0 text-muted fst-italic">&#8212; {{#str}} sim_or_separator, local_coursectrl {{/str}} &#8212;</li>{{/has_or_before}}{{#conditions}}<li>{{{label}}}</li>{{/conditions}}{{/reason_groups}}</ul>{{/hasreasons}}{{^hasreasons}}<span class="text-muted small">–</span>{{/hasreasons}}</td>
+          </tr>
+          {{/is_subsection_header}}
+          {{/rows}}
+          </tbody>
+          {{/sectionresultgroups}}
       </table>
     </div>
   </div>
-  {{/hasresultrows}}
+  {{/hassectionresultgroups}}
+
+  {{! Next steps and blocked — moved to bottom }}
+  {{#hasnextsteps}}
+  <h6>{{#str}} sim_nextsteps, local_coursectrl {{/str}} ({{nextstepcount}})</h6>
+  <ul class="list-group mb-3">
+    {{#nextsteprows}}
+    <li class="list-group-item list-group-item-success py-1 px-2">
+      <i class="fa fa-check fa-fw text-success"></i>
+      {{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}
+      <a href="{{cmurl}}" target="_blank" rel="noopener noreferrer">{{cmname}}</a>
+    </li>
+    {{/nextsteprows}}
+  </ul>
+  {{/hasnextsteps}}
+  {{#hasblockedrows}}
+  <h6>{{#str}} sim_blocked_list, local_coursectrl {{/str}}</h6>
+  <ul class="list-group mb-3">
+    {{#blockedrows}}
+    <li class="list-group-item list-group-item-danger py-1 px-2">
+      <i class="fa fa-lock fa-fw text-danger"></i>
+      {{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}
+      <a href="{{cmurl}}" target="_blank" rel="noopener noreferrer">{{cmname}}</a>
+    </li>
+    {{/blockedrows}}
+  </ul>
+  {{/hasblockedrows}}
+
+  {{! Dependency graph link + legend — moved to bottom }}
+  {{#hasgraphurl_sim}}
+  <div class="d-flex align-items-center gap-3 mb-3 mt-2">
+    <a href="{{graphurl_sim}}" class="btn btn-sm btn-outline-primary">
+      <i class="fa fa-project-diagram fa-fw"></i>
+      {{#str}} sim_show_in_graph, local_coursectrl {{/str}}
+    </a>
+    <span class="d-flex align-items-center gap-3 small text-muted">
+      <span class="d-inline-flex align-items-center gap-2">
+        <span style="display:inline-block;width:1rem;height:1rem;background:#fef2f2;border:2px solid #dc3545;border-radius:3px;flex-shrink:0;margin-left:1.25rem"></span>
+        {{#str}} sim_legend_blocked, local_coursectrl {{/str}}
+      </span>
+      <span class="d-inline-flex align-items-center gap-2">
+        <span style="display:inline-block;width:1rem;height:1rem;background:#f0fdf4;border:2px solid #198754;border-radius:3px;flex-shrink:0;margin-left:1.25rem"></span>
+        {{#str}} sim_legend_nextstep, local_coursectrl {{/str}}
+      </span>
+    </span>
+  </div>
+  {{/hasgraphurl_sim}}
   {{/hasresults}}
 
 </div>
@@ -367,4 +373,34 @@
 require(['local_coursectrl/simulation'], function(S) {
     S.init(document.querySelector('[data-region="local_coursectrl-simulation"]'));
 });
+// Pure-JS section/subsection toggle — event delegation on the table,
+// so timing of script execution relative to DOM does not matter.
+(function() {
+    var root = document.querySelector('[data-region="local_coursectrl-simulation"]');
+    if (!root) { return; }
+    var cstate = {};
+    root.addEventListener('click', function(e) {
+        var hdr = e.target.closest('[data-cc-toggle]');
+        if (!hdr) { return; }
+        var cid   = hdr.getAttribute('data-cc-toggle');
+        var arrow = hdr.querySelector('[data-cc-arrow]');
+        cstate[cid] = !cstate[cid];
+        var hide  = cstate[cid];
+        // Section: find <tbody data-cc-body="cid">.
+        var body = root.querySelector('tbody[data-cc-body="' + cid + '"]');
+        if (body) {
+            var rows = body.querySelectorAll('tr');
+            for (var i = 0; i < rows.length; i++) {
+                rows[i].style.display = hide ? 'none' : '';
+            }
+        } else {
+            // Subsection: toggle rows with matching data-cc-subbody.
+            var srows = root.querySelectorAll('tr[data-cc-subbody="' + cid + '"]');
+            for (var j = 0; j < srows.length; j++) {
+                srows[j].style.display = hide ? 'none' : '';
+            }
+        }
+        if (arrow) { arrow.innerHTML = hide ? '&#9654;' : '&#9660;'; }
+    });
+})();
 {{/js}}

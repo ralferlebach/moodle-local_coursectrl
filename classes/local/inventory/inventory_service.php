@@ -125,7 +125,7 @@ class inventory_service {
             'course_sections',
             ['course' => $courseid],
             'section ASC',
-            'id,section,name,summary,summaryformat,visible,availability'
+            'id,section,name,summary,summaryformat,visible,availability,itemid'
         );
         $result = [];
         foreach ($rows as $row) {
@@ -139,6 +139,7 @@ class inventory_service {
                 summaryformat: (int) ($row->summaryformat ?? 1),
                 visible: !empty($row->visible),
                 availability: $avail,
+                itemid: (int) ($row->itemid ?? 0),
             );
         }
         return $result;

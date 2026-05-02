@@ -279,7 +279,7 @@ class textreview_manager {
                     $where['course'] = $courseid;
                 }
                 $record = $DB->get_record('course_sections', $where, $fieldname, MUST_EXIST);
-                return $record->$fieldname;
+                return (string) ($record->$fieldname ?? '');
             case 'cm':
                 $cmwhere = ['id' => $entityid];
                 if ($courseid > 0) {
@@ -288,7 +288,7 @@ class textreview_manager {
                 $cm = $DB->get_record('course_modules', $cmwhere, 'module, instance', MUST_EXIST);
                 $modulename = $DB->get_field('modules', 'name', ['id' => $cm->module]);
                 $record = $DB->get_record($modulename, ['id' => $cm->instance], $fieldname, MUST_EXIST);
-                return $record->$fieldname;
+                return (string) ($record->$fieldname ?? '');
             default:
                 throw new \coding_exception('Unknown entity type: ' . $entitytype);
         }

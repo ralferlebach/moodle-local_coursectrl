@@ -444,13 +444,13 @@ final class batch_manager_test extends \advanced_testcase {
 
         $course = $this->getDataGenerator()->create_course();
 
-        // Create a page module — it may or may not have an adapter registered.
-        $page = $this->getDataGenerator()->create_module('page', [
-            'course'  => $course->id,
-            'name'    => 'Avail Test',
-            'content' => 'Page content.',
+        // Use label module (no coursectrlmod_label adapter) so the CM
+        // falls into the system-level shift_cm_level_dates() path.
+        $label = $this->getDataGenerator()->create_module('label', [
+            'course' => $course->id,
+            'intro'  => 'Avail test label.',
         ]);
-        $cmid = (int) $page->cmid;
+        $cmid = (int) $label->cmid;
 
         // Manually inject an availability date condition into course_modules.
         $avail = json_encode([
@@ -500,11 +500,11 @@ final class batch_manager_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course();
-        $book = $this->getDataGenerator()->create_module('book', [
+        $label = $this->getDataGenerator()->create_module('label', [
             'course' => $course->id,
-            'name'   => 'Backward Shift',
+            'intro'  => 'Backward shift label.',
         ]);
-        $cmid = (int) $book->cmid;
+        $cmid = (int) $label->cmid;
 
         $avail = json_encode([
             'op' => '&',

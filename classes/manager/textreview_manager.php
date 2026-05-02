@@ -272,7 +272,7 @@ class textreview_manager {
         switch ($entitytype) {
             case 'course':
                 $record = $DB->get_record('course', ['id' => $entityid], $fieldname, MUST_EXIST);
-                return $record->$fieldname;
+                return (string) ($record->$fieldname ?? '');
             case 'section':
                 $where = ['id' => $entityid];
                 if ($courseid > 0) {

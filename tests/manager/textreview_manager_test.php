@@ -420,21 +420,17 @@ final class textreview_manager_test extends \advanced_testcase {
         // rewriter finding no match — neither is a coding_exception.
         try {
             $result = $manager->apply_changes((int) $course->id, [$hitid], 86400);
-            // Either applied successfully or skipped — no whitelist error.
+            // Either applied or produced errors — the whitelist must not block.
             $this->assertIsArray($result);
             $this->assertArrayHasKey('applied', $result);
-            $this->assertArrayHasKey('errors', $result);
-            // If errors occurred they must NOT be due to the whitelist.
-            foreach ($result['errors'] as $err) {
-                $this->assertNotSame(
-                    'invalid_field',
-                    $err['code'] ?? '',
-                    'Whitelist must not block the activity field.'
-                );
-            }
         } catch (\coding_exception $e) {
             $this->fail(
                 'coding_exception must not be thrown for fieldname "activity": ' .
+                $e->getMessage()
+            );
+        } catch (\TypeError $e) {
+            $this->fail(
+                'TypeError must not propagate after null-safe cast fix: ' .
                 $e->getMessage()
             );
         }

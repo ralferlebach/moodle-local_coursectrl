@@ -158,6 +158,9 @@ class simulation_page implements renderable, templatable {
                 'grade_visible'       => $gradevisible,
                 'grade_enabled'       => $gradeenabled,
                 'grade_disabled'      => $gradedisabled,
+                // Grade threshold as percentage for JS grade/pass sync.
+                'gradepass_pct'       => ($grademax > 0.0 && $gradepass > 0.0)
+                    ? round($gradepass / $grademax * 100.0, 1) : 0.0,
                 // Assumed values.
                 'assumed_complete'    => $assumed >= 1,
                 'assumed_passed'      => $assumed === 2,

@@ -210,7 +210,9 @@
   {{! Stats cards }}
   <div class="row g-3 mb-3">
     <div class="col-md-4">
-      <div class="card text-center border-success">
+      <div class="card text-center border-success"
+           data-action="scroll-to-nextsteps" style="cursor:pointer"
+           title="{{#str}} sim_nextsteps, local_coursectrl {{/str}}">
         <div class="card-body py-2">
           <div class="h4 mb-0 text-success">{{accessiblecount}}</div>
           <div class="small text-muted">{{#str}} sim_accessible, local_coursectrl {{/str}}</div>
@@ -218,7 +220,9 @@
       </div>
     </div>
     <div class="col-md-4">
-      <div class="card text-center border-danger">
+      <div class="card text-center border-danger"
+           data-action="scroll-to-blocked" style="cursor:pointer"
+           title="{{#str}} sim_blocked_list, local_coursectrl {{/str}}">
         <div class="card-body py-2">
           <div class="h4 mb-0 text-danger">{{blockedcount}}</div>
           <div class="small text-muted">{{#str}} sim_blocked, local_coursectrl {{/str}}</div>
@@ -322,7 +326,7 @@
 
   {{! Next steps and blocked — moved to bottom }}
   {{#hasnextsteps}}
-  <div class="card mb-3 cc-card-success">
+  <div class="card mb-3 cc-card-success" id="sim-card-nextsteps">
     <div class="card-header py-2 cc-card-success-header">
       <strong>{{#str}} sim_nextsteps, local_coursectrl {{/str}} ({{nextstepcount}})</strong>
     </div>
@@ -344,7 +348,7 @@
         </thead>
         <tbody>
           {{#nextstepformrows}}
-          <tr>
+          <tr class="sim-nextstep-row" data-gradepass="{{gradepass_pct}}">
             <td class="py-1 ps-1 small" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
               <i class="fa fa-check fa-fw text-success"></i>
               {{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}
@@ -367,7 +371,7 @@
             <td class="py-1 text-center align-middle">
               {{#passgrade_visible}}
               {{#passgrade_enabled}}
-              <input type="checkbox" class="ms-1"
+              <input type="checkbox" class="ms-1 sim-passed-cb"
                      form="local-coursectrl-simform"
                      name="sim_passed[{{cmid}}]" value="1"
                      title="{{lbl_passed}}"
@@ -382,7 +386,7 @@
             </td>
             <td class="py-1 align-middle">
               {{#grade_visible}}
-              <input type="number" class="form-control form-control-sm"
+              <input type="number" class="form-control form-control-sm sim-grade-input"
                      form="local-coursectrl-simform"
                      name="sim_grade[{{cmid}}]"
                      min="0" max="100" step="0.1"
@@ -405,7 +409,7 @@
   </div>
   {{/hasnextsteps}}
   {{#hasblockedrows}}
-  <div class="card mb-3 cc-card-danger">
+  <div class="card mb-3 cc-card-danger" id="sim-card-blocked">
     <div class="card-header py-2 cc-card-danger-header">
       <strong>{{#str}} sim_blocked_list, local_coursectrl {{/str}} ({{blockedcount}})</strong>
     </div>
@@ -481,6 +485,107 @@ require(['local_coursectrl/simulation'], function(S) {
             }
         }
         if (arrow) { arrow.innerHTML = hide ? '&#9654;' : '&#9660;'; }
+    });
+})();
+
+// Stat-card scroll navigation with fixed-navbar offset.
+(function() {
+    var root = document.querySelector('[data-region="local_coursectrl-simulation"]');
+    if (!root) { return; }
+    // Account for Moodle's fixed-top navbar so the card is not hidden behind it.
+    var navbar = document.querySelector('.navbar.fixed-top, nav.fixed-top');
+    var navH = navbar ? (navbar.offsetHeight + 8) : 68;
+    ['scroll-to-nextsteps', 'scroll-to-blocked'].forEach(function(action) {
+        var targetId = action === 'scroll-to-nextsteps' ? 'sim-card-nextsteps' : 'sim-card-blocked';
+        root.querySelectorAll('[data-action="' + action + '"]').forEach(function(el) {
+            el.addEventListener('click', function() {
+                var target = document.getElementById(targetId);
+                if (!target) { return; }
+                var top = target.getBoundingClientRect().top + window.pageYOffset - navH;
+                window.scrollTo({top: top, behavior: 'smooth'});
+            });
+        });
+    });
+})();
+
+// Grade input / passed-checkbox bidirectional synchronisation.
+(function() {
+    function syncRow(row) {
+        var gp = parseFloat(row.getAttribute('data-gradepass') || '0');
+        if (!(gp > 0)) { return; }
+        var gi = row.querySelector('.sim-grade-input');
+        var pc = row.querySelector('.sim-passed-cb');
+        if (!gi || !pc) { return; }
+        // Checking Bestehen → fill grade with threshold.
+        pc.addEventListener('change', function() {
+            if (pc.checked && gi.value === '') { gi.value = gp; }
+        });
+        // Grade >= threshold → auto-check Bestehen.
+        gi.addEventListener('input', function() {
+            var v = parseFloat(gi.value);
+            if (!isNaN(v)) { pc.checked = v >= gp; }
+        });
+    }
+    document.querySelectorAll('.sim-nextstep-row').forEach(syncRow);
+
+    // On submit: if Bestehen checked but grade empty → fill with threshold.
+    var simForm = document.getElementById('local-coursectrl-simform');
+    if (simForm) {
+        simForm.addEventListener('submit', function() {
+            document.querySelectorAll('.sim-nextstep-row').forEach(function(row) {
+                var gp = parseFloat(row.getAttribute('data-gradepass') || '0');
+                if (!(gp > 0)) { return; }
+                var gi = row.querySelector('.sim-grade-input');
+                var pc = row.querySelector('.sim-passed-cb');
+                if (gi && pc && pc.checked && gi.value === '') { gi.value = gp; }
+            });
+        });
+    }
+})();
+
+// Condition-list collapse: hide items beyond the first two real conditions.
+(function() {
+    var LIMIT = 2;
+    var simRoot = document.querySelector('[data-region="local_coursectrl-simulation"]');
+    if (!simRoot) { return; }
+    simRoot.querySelectorAll('ul.mb-0.small.fw-normal.ps-3').forEach(function(ul) {
+        var allLi  = Array.from(ul.querySelectorAll('li'));
+        var realLi = allLi.filter(function(li) {
+            return !li.classList.contains('list-unstyled');
+        });
+        if (realLi.length <= LIMIT) { return; }
+
+        // Find index at which to start hiding (after LIMIT real conditions).
+        var shown = 0;
+        var cutIdx = allLi.length;
+        for (var i = 0; i < allLi.length; i++) {
+            if (!allLi[i].classList.contains('list-unstyled')) {
+                shown++;
+                if (shown > LIMIT) { cutIdx = i; break; }
+            }
+        }
+        for (var j = cutIdx; j < allLi.length; j++) { allLi[j].style.display = 'none'; }
+
+        var remaining = realLi.length - LIMIT;
+        var lblShow = '+ ' + remaining + ' weitere Bedingung' +
+            (remaining === 1 ? '' : 'en') + ' anzeigen';
+        var lblHide = '\u2212 weniger anzeigen';
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-link btn-sm p-0 mt-1 small cc-cond-toggle';
+        btn.style.cssText = 'font-size:.8rem;display:block';
+        btn.textContent = lblShow;
+        (function(liSlice, b, ls, lh) {
+            b.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var open = b.textContent !== ls;
+                liSlice.forEach(function(li) { li.style.display = open ? 'none' : ''; });
+                b.textContent = open ? ls : lh;
+            });
+        }(allLi.slice(cutIdx), btn, lblShow, lblHide));
+
+        ul.parentNode.insertBefore(btn, ul.nextSibling);
     });
 })();
 {{/js}}

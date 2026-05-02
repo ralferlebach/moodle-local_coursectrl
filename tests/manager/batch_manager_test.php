@@ -500,12 +500,11 @@ final class batch_manager_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course();
-        $page   = $this->getDataGenerator()->create_module('page', [
-            'course'  => $course->id,
-            'name'    => 'Backward Shift',
-            'content' => 'Content.',
+        $book = $this->getDataGenerator()->create_module('book', [
+            'course' => $course->id,
+            'name'   => 'Backward Shift',
         ]);
-        $cmid = (int) $page->cmid;
+        $cmid = (int) $book->cmid;
 
         $avail = json_encode([
             'op' => '&',

@@ -122,7 +122,17 @@ final class manage_page_test extends \advanced_testcase {
         $this->resetAfterTest();
         global $PAGE;
 
-        $course = new course_item(2, 'Empty', 'EMPTY', '', 1, 0, null, true);
+        $moodlecourse = $this->getDataGenerator()->create_course();
+        $course = new course_item(
+            (int) $moodlecourse->id,
+            'Empty',
+            'EMPTY',
+            '',
+            1,
+            0,
+            null,
+            true
+        );
         $snapshot = new inventory_snapshot($course, [], [], []);
 
         $page = new manage_page($snapshot);

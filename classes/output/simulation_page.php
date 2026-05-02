@@ -268,8 +268,9 @@ class simulation_page implements renderable, templatable {
                     'cmid'    => $cmid,
                     'name'    => $result['name'],
                     'modname' => $result['modname'],
-                    'accessible' => $accessible,
-                    'status'  => $result['status'],
+                    'accessible'      => $accessible,
+                    'teacher_visible' => $cmvisible,
+                    'status'          => $result['status'],
                     // Tracking column.
                     'tracking_active'  => $hascompletiontracking && $cmvisible,
                     // Show 'hidden' for any hidden CM, regardless of tracking config.

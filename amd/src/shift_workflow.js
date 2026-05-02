@@ -239,7 +239,8 @@ define([], function() {
                 var oldVal = fd.oldformatted || fmtDate(fd.old);
                 var newVal = fd.newformatted || fmtDate(fd.new);
                 return '<div class="d-flex align-items-center flex-wrap gap-2 py-1 border-top">' +
-                    '<span class="badge bg-light text-dark border" style="font-size:.8rem">' + escHtml(fname) + '</span>' +
+                    '<span class="badge bg-light text-dark border" style="font-size:.8rem">' +
+                    escHtml(fd.label || fname) + '</span>' +
                     '<span class="small text-muted">' + escHtml(oldVal) + '</span>' +
                     '<span class="text-muted">→</span>' +
                     '<span class="small text-success fw-semibold">' + escHtml(newVal) + '</span>' +

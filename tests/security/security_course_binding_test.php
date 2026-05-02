@@ -50,7 +50,7 @@ use local_coursectrl\local\persistent\text_hit;
  * @covers \local_coursectrl\manager\rollback_manager
  * @covers \local_coursectrl\manager\textreview_manager
  */
-final class secutrity_course_binding_test extends \advanced_testcase {
+final class security_course_binding_test extends \advanced_testcase {
     // Helpers.
     /**
      * Create two courses, each with one assign instance.

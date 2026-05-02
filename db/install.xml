@@ -89,16 +89,6 @@
     </TABLE>
 
     <!-- ============================================================
-         local_coursectrl_preset
-         Saved action templates for recurring bulk operations.
-         ============================================================ -->
-
-    <!-- ============================================================
-         local_coursectrl_report
-         Stored analysis and consistency-check reports.
-         ============================================================ -->
-
-    <!-- ============================================================
          local_coursectrl_text_hit
          Detected date/time references inside free-text fields.
          ============================================================ -->

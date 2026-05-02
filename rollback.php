@@ -37,7 +37,11 @@ require_capability('local/coursectrl:rollback', $context);
 $manager = new \local_coursectrl\manager\rollback_manager();
 $result = $manager->rollback_batch($courseid, $batchid, (int) $USER->id);
 
-$redirecturl = new moodle_url('/local/coursectrl/history.php', ['courseid' => $courseid]);
+// Redirect to history and highlight the rolled-back batch.
+$redirecturl = new moodle_url('/local/coursectrl/history.php', [
+    'courseid'  => $courseid,
+    'highlight' => $batchid,
+]);
 if (!empty($result['success'])) {
     redirect(
         $redirecturl,

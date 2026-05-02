@@ -708,8 +708,8 @@ class simulation_page implements renderable, templatable {
     /**
      * Build the simulation overlay URL for the dependency graph.
      *
-     * moodle_url does not accept array values as parameters, so array params
-     * are appended manually using http_build_query with Brackets notation.
+     * Array parameters (blockedids, nextstepids, groupids) are appended
+     * via moodle_url::param() to keep URL construction fully Moodle-native.
      *
      * @param int   $courseid    Course id.
      * @param int[] $blockedids  CM ids that are blocked in the simulation.
@@ -724,28 +724,26 @@ class simulation_page implements renderable, templatable {
         if (!$this->state) {
             return null;
         }
-        $base = (new \moodle_url(
+        $url = new \moodle_url(
             '/local/coursectrl/dependencies.php',
             ['courseid' => $courseid]
-        ))->out(false);
-
-        $parts = [];
+        );
         foreach (array_values($blockedids) as $id) {
-            $parts[] = 'blockedids%5B%5D=' . (int) $id;
+            $url->param('blockedids[]', (int) $id);
         }
         foreach (array_values($nextstepids) as $id) {
-            $parts[] = 'nextstepids%5B%5D=' . (int) $id;
+            $url->param('nextstepids[]', (int) $id);
         }
         if (!empty($this->state->groupids)) {
-            $parts[] = 'filterbygroup=1';
+            $url->param('filterbygroup', 1);
             foreach (array_values($this->state->groupids) as $id) {
-                $parts[] = 'groupids%5B%5D=' . (int) $id;
+                $url->param('groupids[]', (int) $id);
             }
         }
-        if (empty($parts)) {
-            return $base;
+        if (empty($blockedids) && empty($nextstepids) && empty($this->state->groupids)) {
+            return null;
         }
-        return $base . '&' . implode('&', $parts);
+        return $url->out(false);
     }
 
     /**

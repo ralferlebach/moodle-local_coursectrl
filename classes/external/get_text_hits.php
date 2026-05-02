@@ -68,7 +68,7 @@ class get_text_hits extends external_api {
             'rescan' => $rescan,
         ]);
 
-        global $PAGE;
+        global $DB, $PAGE;
         $context = \context_course::instance($params['courseid']);
         self::validate_context($context);
         require_capability('local/coursectrl:view', $context);

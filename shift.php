@@ -38,8 +38,8 @@ $followdeps = optional_param('followdeps', 0, PARAM_INT);
 $deltadays  = optional_param('delta_days', 0, PARAM_INT);
 $deltahours   = optional_param('delta_hours', 0, PARAM_INT);
 $deltaminutes = optional_param('delta_minutes', 0, PARAM_INT);
-$fieldsraw  = optional_param('fields', '', PARAM_RAW);
-$shiftfieldsraw = optional_param('shift_fields', '', PARAM_RAW);
+$fieldsraw      = optional_param('fields', '', PARAM_TEXT);
+$shiftfieldsraw = optional_param('shift_fields', '', PARAM_TEXT);
 $scantext   = optional_param('scan_text', 0, PARAM_INT);
 $formatjson = optional_param('format', '', PARAM_ALPHA) === 'json';
 

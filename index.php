@@ -26,7 +26,6 @@ require_once(__DIR__ . '/../../config.php');
 
 use local_coursectrl\local\navigation\navigation_builder;
 
-
 $courseid = optional_param('courseid', 0, PARAM_INT);
 
 if (!$courseid) {

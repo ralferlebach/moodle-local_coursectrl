@@ -17,8 +17,9 @@
 /**
  * PHPUnit tests for the db/upgrade.php upgrade path.
  *
- * Verifies that each upgrade step exits cleanly and that conditions
- * and savepoints are consistent across the supported oldversion range.
+ * Each test sets the plugin's stored version to the desired oldversion
+ * before calling xmldb_local_coursectrl_upgrade(), so upgrade_plugin_savepoint()
+ * does not see a downgrade and every step that fires is idempotent.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -35,54 +36,65 @@ namespace local_coursectrl;
  */
 final class upgrade_test extends \advanced_testcase {
     /**
-     * Load upgrade infrastructure and the plugin upgrade function.
+     * Load upgrade infrastructure and the plugin upgrade function exactly once.
      *
      * @return void
      */
     public static function setUpBeforeClass(): void {
         parent::setUpBeforeClass();
         global $CFG;
-        // Moodle upgrade helpers (upgrade_plugin_savepoint etc.) live in upgradelib.
+        // Upgrade_plugin_savepoint() is defined in lib/upgradelib.php.
         require_once($CFG->dirroot . '/lib/upgradelib.php');
         require_once($CFG->dirroot . '/local/coursectrl/db/upgrade.php');
     }
 
     /**
+     * Set the plugin's stored version so upgrade_plugin_savepoint() does not
+     * see a downgrade when the upgrade function fires subsequent savepoints.
+     *
+     * @param int $oldversion Version to pretend was previously installed.
+     * @return void
+     */
+    private function set_installed_version(int $oldversion): void {
+        set_config('version', $oldversion, 'local_coursectrl');
+    }
+
+    /**
      * Upgrading from a version that has already passed all steps is a no-op.
-     * This avoids table-drop side effects and tests the fast-forward path.
      */
     public function test_upgrade_from_current_version_is_noop(): void {
         $this->resetAfterTest();
-        // Passing the current plugin version: all conditions are false, returns true.
+        // All conditions are false; upgrade returns true without touching DB.
+        $this->set_installed_version(2026050300);
         $this->assertTrue(xmldb_local_coursectrl_upgrade(2026050300));
     }
 
     /**
-     * Upgrading from 2026042952 (the preset/report drop savepoint) skips that step.
-     * The savepoint condition is strictly less-than, so passing 2026042952 is a no-op
-     * for that step, and only the final 1.0.0 no-schema step runs.
+     * Upgrading from 2026042952 skips the drop step (condition: < 2026042952)
+     * and runs only the final no-schema step for 2026050300.
      */
     public function test_upgrade_from_2026042952_skips_drop_step(): void {
         $this->resetAfterTest();
-        // Starting exactly at the drop step's savepoint: must skip it cleanly.
+        $this->set_installed_version(2026042952);
         $this->assertTrue(xmldb_local_coursectrl_upgrade(2026042952));
     }
 
     /**
-     * Upgrading from 2026042963 (between the two highest steps) runs only the
-     * final 1.0.0 no-schema step, which is safe to run in a test environment.
+     * Upgrading from 2026042963 runs only the final 2026050300 no-schema step.
      */
     public function test_upgrade_from_2026042963(): void {
         $this->resetAfterTest();
+        $this->set_installed_version(2026042963);
         $this->assertTrue(xmldb_local_coursectrl_upgrade(2026042963));
     }
 
     /**
      * Upgrading from 2026050299 (one below the 1.0.0 savepoint) triggers only
-     * the savepoint-only final step, which must return true.
+     * the final savepoint step and must return true.
      */
     public function test_upgrade_from_2026050299(): void {
         $this->resetAfterTest();
+        $this->set_installed_version(2026050299);
         $this->assertTrue(xmldb_local_coursectrl_upgrade(2026050299));
     }
 }

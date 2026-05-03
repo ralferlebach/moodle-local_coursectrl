@@ -47,10 +47,10 @@ lint-phpdoc:
 	-cd $(MOODLE_ROOT) && php local/moodlecheck/cli/moodlecheck.php \
 	    --path=$(PLUGIN_PATH) \
 	    --exclude=$(PLUGIN_PATH)/tools \
-	    --format=text
+	    --format=text 2>&1 | grep -B1 '    Line' | grep -v '^--$$' || true
 
 lint-mustache:
 	@echo ""
 	@echo "=== Mustache syntax check ==="
 	-$(PHP) $(MOODLE_ROOT)/$(PLUGIN_PATH)/tools/mustache_check.php \
-	    $(MOODLE_ROOT)/$(PLUGIN_PATH)/templates
+	    $(MOODLE_ROOT)/$(PLUGIN_PATH)/templates 2>&1 | grep -v '^OK:' || true

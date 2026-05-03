@@ -69,6 +69,10 @@ echo "\nDone. Files changed: $totalfiles. @param adjustments: $totalparams\n";
  *
  * Arguments: string $filepath (absolute path), bool $dryrun (report only).
  * Returns int: number of docblocks adjusted.
+ *
+ * @param string $filepath Absolute path to the PHP file.
+ * @param bool   $dryrun   When true, report but do not write.
+ * @return int Number of docblocks adjusted.
  */
 function fix_file(string $filepath, bool $dryrun): int {
     $src = file_get_contents($filepath);
@@ -198,6 +202,9 @@ function fix_file(string $filepath, bool $dryrun): int {
  * Extract parameter names from a function signature fragment.
  *
  * Argument: string $sig (source fragment). Returns string[] of names.
+ *
+ * @param string $sig The function signature source fragment.
+ * @return string[] Parameter names without leading dollar sign.
  */
 function extract_params(string $sig): array {
     $start = strpos($sig, '(');

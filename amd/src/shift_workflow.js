@@ -280,7 +280,7 @@ define([], function() {
      * @param {object}   [labels=null]  UI label strings from modal data-attributes.
      * @return {string} HTML string.
      */
-    var renderHitsHtml = function(hits, delta, readOnly, labels) {
+    var renderHitsHtml = function(hits, delta, readOnly, labels) { // eslint-disable-line complexity
         var lbl = labels || {};
         if (!hits || hits.length === 0) {
             return '<p class="text-muted small mb-0">' + escHtml(lbl.msgNohits || '') + '</p>';

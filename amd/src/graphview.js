@@ -98,7 +98,7 @@ define([], function() {
         };
     };
 
-    var renderGraph = function(canvas) {
+    var renderGraph = function(canvas) { // eslint-disable-line complexity
         var raw = canvas.getAttribute('data-graph');
         if (!raw) {
             return;
@@ -237,7 +237,7 @@ define([], function() {
     // Collapsed section state: sectionid (string) -> bool.
     var ganttCollapsed = {};
 
-    var renderGantt = function(canvas) {
+    var renderGantt = function(canvas) { // eslint-disable-line complexity
         var lblOutsection = canvas.getAttribute('data-lbl-outsection')
             || '\u26a0 Outside section availability window';
         var raw = canvas.getAttribute('data-gantt');

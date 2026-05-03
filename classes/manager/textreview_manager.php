@@ -61,9 +61,6 @@ class textreview_manager {
     /** @var string[] Allowed text fields on the course_sections table. */
     private const SECTION_TEXT_FIELDS = ['summary', 'name'];
 
-* @param text_change_builder $builder Change-builder dependency.
-* @param text_datetime_rewriter $rewriter Rewriter dependency.
-* @param inventory_service $inventoryservice Inventory-service dependency.
     /** @var string[] Allowed text fields on activity module tables. */
     private const CM_TEXT_FIELDS = [
         'intro',
@@ -82,6 +79,7 @@ class textreview_manager {
      * @param inventory_service|null     $inventoryservice Inventory service; defaults to new instance.
      * @param text_datetime_extractor|null $extractor      Text extractor; defaults to new instance.
      * @param text_datetime_rewriter|null  $rewriter       Text rewriter; defaults to new instance.
+     * @param text_change_builder $builder Change-builder dependency.
      */
     public function __construct(
         ?text_change_builder $builder = null,

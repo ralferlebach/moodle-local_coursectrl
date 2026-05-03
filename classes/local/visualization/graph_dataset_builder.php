@@ -43,9 +43,6 @@ use local_coursectrl\local\entity\cm_item;
 
 /**
  * Builds a layered graph dataset from CMs and a dependency index.
- * @param cm_item[] $cms Course modules keyed by cmid.
- * @param dependency_index $depindex Pre-built dependency index.
- * @param int[] $groupids Group ids to filter dependency edges.
  */
 class graph_dataset_builder {
     /**

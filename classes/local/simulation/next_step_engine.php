@@ -40,9 +40,6 @@ use local_coursectrl\local\entity\cm_item;
 
 /**
  * Identifies the learner's next actionable steps from simulation results.
- * @param array<int,array> $simresults Per-CM results from visibility_simulator::simulate().
- * @param cm_item[] $cms Course modules keyed by cmid.
- * @param learner_state $state The learner state used for the simulation.
  */
 class next_step_engine {
     /**

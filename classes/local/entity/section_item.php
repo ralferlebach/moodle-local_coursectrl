@@ -49,7 +49,6 @@ final class section_item extends inventory_item {
     /** @var bool Section visibility flag. */
     public readonly bool $visible;
 
-* @param bool $visible Section visibility flag.
     /** @var string|null JSON availability string, or null when unrestricted. */
     public readonly ?string $availability;
 
@@ -62,6 +61,7 @@ final class section_item extends inventory_item {
      * @param string|null $name Explicit section name, or null.
      * @param string $summary Section summary HTML or text.
      * @param int $summaryformat FORMAT_* constant for the summary.
+     * @param bool $visible Section visibility flag.
      */
     public readonly int $itemid;
 

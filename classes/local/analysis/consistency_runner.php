@@ -70,9 +70,6 @@ class consistency_runner {
     /** @var course_frame_checker */
     private course_frame_checker $framechecker;
 
-* @param temporal_conflict_detector|null $conflictdetector Optional conflict-detector override for testing.
-* @param reachability_analyzer|null $reachabilityanalyzer Optional reachability-analyzer override for testing.
-* @param frame_checker|null $framechecker Optional frame-checker override for testing.
     /** @var accessibility_checker */
     private accessibility_checker $accessibilitychecker;
 
@@ -81,6 +78,7 @@ class consistency_runner {
      *
      * @param temporal_conflict_detector|null $conflictdetector   Optional override.
      * @param reachability_analyzer|null      $reachabilityanalyzer Optional override.
+     * @param frame_checker|null $framechecker Optional frame-checker override for testing.
      */
     public function __construct(
         ?temporal_conflict_detector $conflictdetector = null,

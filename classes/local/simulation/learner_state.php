@@ -50,11 +50,6 @@ final class learner_state {
     /** @var int[] Group ids the simulated learner belongs to. */
     public readonly array $groupids;
 
-* @param int $timestamp Simulated unix timestamp.
-* @param array<int,int> $completions Cmid → completion state map.
-* @param int[] $groupids Group ids the learner is assumed to be in.
-* @param int[] $groupingids Grouping ids the learner is assumed to be in.
-* @param array<int,float> $grades Cmid → grade percentage map.
     /** @var int[] Grouping ids the simulated learner belongs to. */
     public readonly array $groupingids;
 

@@ -51,8 +51,6 @@ class visibility_simulator {
     /** @var condition_evaluator */
     private condition_evaluator $evaluator;
 
-* @param condition_evaluator|null $evaluator Optional dependency-injection override.
-* @param array<int,section_item> $sections Section items keyed by id for availability gating.
     /** @var array<int, section_item> Section items keyed by section_item.id. */
     private array $sections;
 

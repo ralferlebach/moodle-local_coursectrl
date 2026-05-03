@@ -150,6 +150,18 @@ jobs:
           done
           [ "$MISSING" -eq 0 ] && echo "AMD OK." || { echo "ERROR: $MISSING file(s) missing."; exit 1; }
 
+      - name: PHPDoc check (local_moodlecheck — matches Moodle prechecker)
+        run: moodle-plugin-ci phpdoc
+
+      - name: Mustache lint
+        run: moodle-plugin-ci mustache
+
+      - name: Savepoint check
+        run: moodle-plugin-ci savepoint
+
+      - name: Third-party library check
+        run: moodle-plugin-ci thirdpartylibs
+
   # ── 2. PHPUnit ────────────────────────────────────────────────────────────
   phpunit:
     name: "PHPUnit (${{ matrix.moodle }} / PHP ${{ matrix.php }} / ${{ matrix.db.engine }})"

@@ -46,8 +46,6 @@ class graph_page implements renderable, templatable {
     /** @var inventory_snapshot */
     protected inventory_snapshot $snapshot;
 
-* @param inventory_snapshot $snapshot Course inventory snapshot.
-* @param array $filters Active graph filter values.
     /** @var array UI filter state. */
     protected array $filters;
 
@@ -55,6 +53,7 @@ class graph_page implements renderable, templatable {
      * Constructor.
      *
      * @param inventory_snapshot $snapshot Course inventory snapshot.
+     * @param array $filters Active graph filter values.
      */
     public function __construct(inventory_snapshot $snapshot, array $filters = []) {
         $this->snapshot = $snapshot;

@@ -35,3 +35,12 @@ Feature: Rollback of executed bulk actions in the history page
     Given I log in as "noperms"
     When I am on the history page for course "ROLLBACK"
     Then I should not see "Rückgängig"
+
+  # Direct URL access without rollback capability.
+
+  @javascript
+  Scenario: A student without rollback capability sees no rollback buttons
+    Given I log in as "noperms"
+    When I am on the history page for course "ROLLBACK"
+    Then I should not see "Rückgängig"
+    And I should not see "rollback"

@@ -17,7 +17,7 @@
 /**
  * Integration tests: Lernenden-Simulation.
  *
- * Prüft visibility_simulator + condition_evaluator gegen echte Kurse
+ * Tests for visibility_simulator and condition_evaluator against courses
  * mit Gruppen-, Abschluss- und Datum-Bedingungen.
  *
  * @package    local_coursectrl
@@ -104,10 +104,10 @@ final class fixture_simulation_test extends \advanced_testcase {
         ]);
     }
 
-    // Simulation: Grundfälle.
+    // Simulation: basic cases.
 
     /**
-     * CM ohne Bedingungen ist für alle Lernenden zugänglich.
+     * A CM without conditions is accessible to all learners.
      * @covers \local_coursectrl\local\simulation\visibility_simulator
      * @covers \local_coursectrl\local\simulation\condition_evaluator
      * @covers \local_coursectrl\local\simulation\learner_state
@@ -129,7 +129,7 @@ final class fixture_simulation_test extends \advanced_testcase {
     }
 
     /**
-     * Verstecktes CM ist für Lernende nicht zugänglich.
+     * A hidden CM is not accessible to learners.
      * @covers \local_coursectrl\local\simulation\visibility_simulator
      * @covers \local_coursectrl\local\simulation\condition_evaluator
      * @covers \local_coursectrl\local\simulation\learner_state
@@ -154,7 +154,7 @@ final class fixture_simulation_test extends \advanced_testcase {
     // Simulation: Abschluss-Bedingungen.
 
     /**
-     * CM mit completion-Bedingung: Voraussetzung NICHT erfüllt → nicht zugänglich.
+     * CM with completion condition: prerequisite NOT met → not accessible.
      * @covers \local_coursectrl\local\simulation\visibility_simulator
      * @covers \local_coursectrl\local\simulation\condition_evaluator
      * @covers \local_coursectrl\local\simulation\learner_state
@@ -191,7 +191,7 @@ final class fixture_simulation_test extends \advanced_testcase {
     }
 
     /**
-     * CM mit completion-Bedingung: Voraussetzung erfüllt → zugänglich.
+     * CM with completion condition: prerequisite met → accessible.
      * @covers \local_coursectrl\local\simulation\visibility_simulator
      * @covers \local_coursectrl\local\simulation\condition_evaluator
      * @covers \local_coursectrl\local\simulation\learner_state
@@ -230,7 +230,7 @@ final class fixture_simulation_test extends \advanced_testcase {
     // Simulation: Gruppen-Bedingungen.
 
     /**
-     * CM mit Gruppen-Bedingung: Lernender in richtiger Gruppe → zugänglich.
+     * CM with group condition: learner in the required group → accessible.
      * @covers \local_coursectrl\local\simulation\visibility_simulator
      * @covers \local_coursectrl\local\simulation\condition_evaluator
      * @covers \local_coursectrl\local\simulation\learner_state
@@ -264,7 +264,7 @@ final class fixture_simulation_test extends \advanced_testcase {
     }
 
     /**
-     * CM mit Gruppen-Bedingung: falsche Gruppe → nicht zugänglich.
+     * CM with group condition: learner in the wrong group → not accessible.
      * @covers \local_coursectrl\local\simulation\visibility_simulator
      * @covers \local_coursectrl\local\simulation\condition_evaluator
      * @covers \local_coursectrl\local\simulation\learner_state
@@ -330,7 +330,7 @@ final class fixture_simulation_test extends \advanced_testcase {
     }
 
     /**
-     * CM mit Datum-Bedingung in der Vergangenheit: Datum bereits erreicht → zugänglich.
+     * CM with a past date condition: date already passed → accessible.
      * @covers \local_coursectrl\local\simulation\visibility_simulator
      * @covers \local_coursectrl\local\simulation\condition_evaluator
      * @covers \local_coursectrl\local\simulation\learner_state
@@ -362,7 +362,7 @@ final class fixture_simulation_test extends \advanced_testcase {
         );
     }
 
-    // Simulation: Ergebnis-Shape.
+    // Simulation: result shape.
 
     /**
      * Jedes Simulationsergebnis hat die Pflichtfelder.

@@ -169,4 +169,33 @@ final class preview_bulk_action_test extends \advanced_testcase {
 
         $this->assertGreaterThanOrEqual(2, $result['summary']['changes']);
     }
+
+    /**
+     * preview_bulk_action must reject CMIDs from a foreign course.
+     * preview_manager::build() throws invalidcmid when a CMID does not
+     * belong to the requested course.
+     * @covers \local_coursectrl\external\preview_bulk_action
+     */
+    public function test_preview_filters_cmid_from_foreign_course(): void {
+        $this->resetAfterTest();
+
+        $course1  = $this->getDataGenerator()->create_course();
+        $course2  = $this->getDataGenerator()->create_course();
+        $teacher  = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($teacher->id, $course1->id, 'editingteacher');
+        $this->getDataGenerator()->enrol_user($teacher->id, $course2->id, 'editingteacher');
+
+        $assign2 = $this->getDataGenerator()
+            ->get_plugin_generator('mod_assign')
+            ->create_instance(['course' => $course2->id, 'duedate' => self::BASE_TIME]);
+
+        $this->setUser($teacher);
+        $this->expectException(\moodle_exception::class);
+        preview_bulk_action::execute(
+            (int) $course1->id,
+            'shift_dates',
+            json_encode(['delta' => self::ONE_DAY]),
+            [(int) $assign2->cmid]
+        );
+    }
 }

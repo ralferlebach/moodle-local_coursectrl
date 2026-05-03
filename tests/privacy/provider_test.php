@@ -394,4 +394,136 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
         $this->assertTrue($DB->record_exists('local_coursectrl_batch', ['id' => $batchid]));
     }
+
+    // A1.1b  get_metadata covers text_hit and risk.
+
+    /**
+     * Metadata collection declares local_coursectrl_text_hit and local_coursectrl_risk.
+     * These tables hold course-level data only (no userid); they are declared to
+     * document their existence and data categories, not because they are exported
+     * per-user.
+     *
+     * @covers \local_coursectrl\privacy\provider
+     */
+    public function test_get_metadata_contains_text_hit_and_risk_tables(): void {
+        $this->resetAfterTest();
+
+        $collection = new collection('local_coursectrl');
+        $result = provider::get_metadata($collection);
+
+        $names = array_map(fn ($item) => $item->get_name(), $result->get_collection());
+
+        $this->assertContains('local_coursectrl_text_hit', $names);
+        $this->assertContains('local_coursectrl_risk', $names);
+    }
+
+    // A1.5b  delete_data_for_all_users_in_context removes text_hit and risk rows.
+
+    /**
+     * Deleting all data in a course context also removes text_hit and risk rows.
+     * These tables do not carry a userid but belong to the course context and
+     * must be purged when the context is deleted.
+     *
+     * @covers \local_coursectrl\privacy\provider
+     */
+    public function test_delete_data_for_all_users_removes_text_hits_and_risks(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $course1 = $this->getDataGenerator()->create_course();
+        $course2 = $this->getDataGenerator()->create_course();
+
+        // Insert a text_hit and a risk record for course1.
+        $DB->insert_record('local_coursectrl_text_hit', (object) [
+            'courseid'        => $course1->id,
+            'entitytype'      => 'cm',
+            'entityid'        => 1,
+            'fieldname'       => 'intro',
+            'matchedtext'     => '01.06.2026',
+            'normalizedvalue' => '2026-06-01',
+            'confidence'      => 'safe',
+            'contextjson'     => '{}',
+            'timecreated'     => time(),
+        ]);
+        $DB->insert_record('local_coursectrl_risk', (object) [
+            'courseid'    => $course1->id,
+            'risktype'    => 'date_inversion',
+            'severity'    => 'warning',
+            'entitytype'  => 'cm',
+            'entityid'    => 1,
+            'detailsjson' => '{}',
+            'timecreated' => time(),
+        ]);
+
+        // Control rows in course2 — must survive.
+        $DB->insert_record('local_coursectrl_text_hit', (object) [
+            'courseid'        => $course2->id,
+            'entitytype'      => 'cm',
+            'entityid'        => 2,
+            'fieldname'       => 'intro',
+            'matchedtext'     => '01.06.2026',
+            'normalizedvalue' => '2026-06-01',
+            'confidence'      => 'safe',
+            'contextjson'     => '{}',
+            'timecreated'     => time(),
+        ]);
+
+        $context1 = \context_course::instance($course1->id);
+        provider::delete_data_for_all_users_in_context($context1);
+
+        $this->assertFalse(
+            $DB->record_exists('local_coursectrl_text_hit', ['courseid' => $course1->id]),
+            'text_hit rows for course1 must be deleted'
+        );
+        $this->assertFalse(
+            $DB->record_exists('local_coursectrl_risk', ['courseid' => $course1->id]),
+            'risk rows for course1 must be deleted'
+        );
+        // Course2 text_hit must survive.
+        $this->assertTrue(
+            $DB->record_exists('local_coursectrl_text_hit', ['courseid' => $course2->id]),
+            'text_hit rows for course2 must survive'
+        );
+    }
+
+    // A1.4b  export_user_data does NOT export text_hit/risk (course-level, no userid).
+
+    /**
+     * export_user_data must not export text_hit or risk records because these
+     * tables contain course-level analysis data and carry no userid column.
+     * This test documents the deliberate non-export decision.
+     *
+     * @covers \local_coursectrl\privacy\provider
+     */
+    public function test_export_user_data_does_not_export_text_hits_or_risks(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course();
+        $user   = $this->getDataGenerator()->create_user();
+
+        $DB->insert_record('local_coursectrl_text_hit', (object) [
+            'courseid'        => $course->id,
+            'entitytype'      => 'cm',
+            'entityid'        => 1,
+            'fieldname'       => 'intro',
+            'matchedtext'     => '01.06.2026',
+            'normalizedvalue' => '2026-06-01',
+            'confidence'      => 'safe',
+            'contextjson'     => '{}',
+            'timecreated'     => time(),
+        ]);
+
+        $contextlist = $this->make_contextlist($user, \context_course::instance($course->id));
+        provider::export_user_data($contextlist);
+
+        // Exporting a user that has no batch records must produce no export data.
+        // text_hit data is course-level and must not appear in the user export.
+        $context = \context_course::instance($course->id);
+        $writer  = writer::with_context($context);
+        $this->assertFalse(
+            $writer->has_any_data(),
+            'No user-specific data should be exported for text_hit/risk tables'
+        );
+    }
 }

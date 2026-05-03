@@ -17,7 +17,7 @@
 /**
  * Integration tests: Text-Datetime-Erkennung (S7 Fixture-Texte).
  *
- * Prüft ob der text_datetime_extractor alle relevanten Datumsformate
+ * Tests that text_datetime_extractor detects all relevant date formats
  * aus den Fixture-Texten erkennt und Nicht-Daten korrekt ignoriert.
  *
  * @package    local_coursectrl
@@ -77,7 +77,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
     // LB_TXT1: Deutsche und ISO-Formate.
 
     /**
-     * Deutsches Langformat "1. Mai 2026" wird erkannt.
+     * German long format '1. Mai 2026' is detected.
      * @covers \local_coursectrl\local\text\text_datetime_extractor
      * @covers \local_coursectrl\local\text\text_datetime_parser
      * @covers \local_coursectrl\local\text\text_hit_classifier
@@ -92,7 +92,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
     }
 
     /**
-     * Numerisch-deutsches Format "01.05.2026" wird erkannt.
+     * German numeric format '01.05.2026' is detected.
      * @covers \local_coursectrl\local\text\text_datetime_extractor
      * @covers \local_coursectrl\local\text\text_datetime_parser
      * @covers \local_coursectrl\local\text\text_hit_classifier
@@ -107,7 +107,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
     }
 
     /**
-     * ISO-Format "2026-06-01" wird erkannt.
+     * ISO date format '2026-06-01' is detected.
      * @covers \local_coursectrl\local\text\text_datetime_extractor
      * @covers \local_coursectrl\local\text\text_datetime_parser
      * @covers \local_coursectrl\local\text\text_hit_classifier
@@ -121,7 +121,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
     }
 
     /**
-     * ISO-Datetime mit T "2026-10-15T23:59:00" wird erkannt.
+     * ISO datetime with T separator '2026-10-15T23:59:00' is detected.
      * @covers \local_coursectrl\local\text\text_datetime_extractor
      * @covers \local_coursectrl\local\text\text_datetime_parser
      * @covers \local_coursectrl\local\text\text_hit_classifier
@@ -135,7 +135,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
     }
 
     /**
-     * Wochentag + Datum "Freitag, 30.10.2026" wird erkannt.
+     * Weekday plus date 'Freitag, 30.10.2026' is detected.
      * @covers \local_coursectrl\local\text\text_datetime_extractor
      * @covers \local_coursectrl\local\text\text_datetime_parser
      * @covers \local_coursectrl\local\text\text_hit_classifier
@@ -149,7 +149,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
     }
 
     /**
-     * Historische Jahreszahlen (1947, 1994, 1930) werden erkannt.
+     * Historical year numbers (1947, 1994, 1930) are detected.
      * @covers \local_coursectrl\local\text\text_datetime_extractor
      * @covers \local_coursectrl\local\text\text_datetime_parser
      * @covers \local_coursectrl\local\text\text_hit_classifier
@@ -164,7 +164,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
     // PA_TXT2: Englische und internationale Formate.
 
     /**
-     * Englisches Format "May 1, 2026" wird erkannt.
+     * English format 'May 1, 2026' is detected.
      * @covers \local_coursectrl\local\text\text_datetime_extractor
      * @covers \local_coursectrl\local\text\text_datetime_parser
      * @covers \local_coursectrl\local\text\text_hit_classifier
@@ -180,7 +180,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
     }
 
     /**
-     * Englisches Format "10 May 2026" (Tag-Monat-Jahr ohne Komma) wird erkannt.
+     * English format '10 May 2026' (day-month-year without comma) is detected.
      * @covers \local_coursectrl\local\text\text_datetime_extractor
      * @covers \local_coursectrl\local\text\text_datetime_parser
      * @covers \local_coursectrl\local\text\text_hit_classifier
@@ -194,7 +194,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
     }
 
     /**
-     * Reine Zahlen ohne Datumskontext (42, 60, 3, 10) werden NICHT als Daten erkannt.
+     * Bare numbers without date context (42, 60, 3, 10) are NOT recognised as dates.
      * @covers \local_coursectrl\local\text\text_datetime_extractor
      * @covers \local_coursectrl\local\text\text_datetime_parser
      * @covers \local_coursectrl\local\text\text_hit_classifier
@@ -214,7 +214,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
     // URL_TXT3: Gemischte Formate, gleiches Datum viermal.
 
     /**
-     * Dasselbe Datum in vier Schreibweisen — mindestens 3 werden erkannt.
+     * The same date in four different notations — at least three are recognised.
      * @covers \local_coursectrl\local\text\text_datetime_extractor
      * @covers \local_coursectrl\local\text\text_datetime_parser
      * @covers \local_coursectrl\local\text\text_hit_classifier
@@ -233,7 +233,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
     // AS_TXT4: Historische und technische Referenzdaten.
 
     /**
-     * Datum "01.01.2000" (Y2K) wird erkannt.
+     * Y2K date '01.01.2000' is detected.
      * @covers \local_coursectrl\local\text\text_datetime_extractor
      * @covers \local_coursectrl\local\text\text_datetime_parser
      * @covers \local_coursectrl\local\text\text_hit_classifier
@@ -246,7 +246,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
     }
 
     /**
-     * Unix-Grenze "2038-01-19" wird erkannt.
+     * Unix epoch boundary date '2038-01-19' is detected.
      * @covers \local_coursectrl\local\text\text_datetime_extractor
      * @covers \local_coursectrl\local\text\text_datetime_parser
      * @covers \local_coursectrl\local\text\text_hit_classifier
@@ -293,7 +293,7 @@ final class fixture_text_extraction_test extends \advanced_testcase {
     // Klassifizierung.
 
     /**
-     * ISO-Datum mit vollständigem Jahr → Klassifizierung 'safe'.
+     * ISO date with a four-digit year is classified as 'safe'.
      * @covers \local_coursectrl\local\text\text_datetime_extractor
      * @covers \local_coursectrl\local\text\text_datetime_parser
      * @covers \local_coursectrl\local\text\text_hit_classifier

@@ -191,14 +191,15 @@ define([], function() {
      * change count + expand button). Clicking the button reveals per-field
      * details (field badge, old value → new value) inline below.
      *
-     * @param {object} preview Result from fetchPreview.
+     * @param {object} preview       Result from fetchPreview.
+     * @param {object} [labels=null] UI label strings from modal data-attributes.
      * @return {string} HTML string.
      */
-    var renderPreviewHtml = function(preview) {
+    var renderPreviewHtml = function(preview, labels) {
         var s = preview.summary;
         if (s.changes === 0 && (s.skipped || 0) === 0) {
             return '<div class="alert alert-warning py-2 small mb-0">' +
-                'Keine Datumsfelder zu verschieben. Bitte Tage oder Stunden eingeben.' +
+                (labels && labels.errNodelta ? labels.errNodelta : 'No date fields to shift.') +
                 '</div>';
         }
         if (s.changes === 0 && (s.skipped || 0) > 0) {
@@ -238,7 +239,8 @@ define([], function() {
                 var oldVal = fd.oldformatted || fmtDate(fd.old);
                 var newVal = fd.newformatted || fmtDate(fd.new);
                 return '<div class="d-flex align-items-center flex-wrap gap-2 py-1 border-top">' +
-                    '<span class="badge bg-light text-dark border" style="font-size:.8rem">' + escHtml(fname) + '</span>' +
+                    '<span class="badge bg-light text-dark border" style="font-size:.8rem">' +
+                    escHtml(fd.label || fname) + '</span>' +
                     '<span class="small text-muted">' + escHtml(oldVal) + '</span>' +
                     '<span class="text-muted">→</span>' +
                     '<span class="small text-success fw-semibold">' + escHtml(newVal) + '</span>' +
@@ -267,14 +269,16 @@ define([], function() {
     /**
      * Render the text hits review panel HTML.
      *
-     * @param {object[]} hits     Hits from fetchTextHits.
-     * @param {number}   delta    Shift delta in seconds (to compute new date).
-     * @param {boolean}  readOnly When true: no checkboxes, confirmation-only view.
+     * @param {object[]} hits           Hits from fetchTextHits.
+     * @param {number}   delta          Shift delta in seconds (to compute new date).
+     * @param {boolean}  readOnly       When true: no checkboxes, confirmation-only view.
+     * @param {object}   [labels=null]  UI label strings from modal data-attributes.
      * @return {string} HTML string.
      */
-    var renderHitsHtml = function(hits, delta, readOnly) {
+    var renderHitsHtml = function(hits, delta, readOnly, labels) {
+        var lbl = labels || {};
         if (!hits || hits.length === 0) {
-            return '<p class="text-muted small mb-0">Keine Datumsangaben in Freitexten gefunden.</p>';
+            return '<p class="text-muted small mb-0">' + escHtml(lbl.msgNohits || '') + '</p>';
         }
 
         var sorted = hits.slice().sort(function(a, b) {
@@ -304,8 +308,8 @@ define([], function() {
             var checked = hit.confidence === 'safe' ? ' checked' : '';
             var bc = hit.confidence === 'safe' ? 'badge-success'
                 : (hit.confidence === 'ambiguous' ? 'badge-warning' : 'badge-secondary');
-            var bl = hit.confidence === 'safe' ? 'Sicher'
-                : (hit.confidence === 'ambiguous' ? 'Mehrdeutig' : 'Informativ');
+            var bl = hit.confidence === 'safe' ? lbl.confSafe
+                : (hit.confidence === 'ambiguous' ? lbl.confAmbiguous : lbl.confInfo);
             var rc = hit.confidence === 'informational' ? ' table-light text-muted' : '';
 
             var locHtml;
@@ -386,10 +390,10 @@ define([], function() {
             }
             var yearNote = '';
             if (hit.noyear && hit.assumedyear) {
+                var yearTitle = lbl.lblYearAssumed.replace('{$a}', hit.assumedyear);
+                var yearText  = lbl.lblYearLabel.replace('{$a}', hit.assumedyear);
                 yearNote = ' <span class="badge badge-warning ms-1" title="' +
-                    'Das Datum im Text enth\u00e4lt keine Jahresangabe. ' +
-                    'F\u00fcr die Verschiebung wird das Jahr ' + hit.assumedyear + ' angenommen.">' +
-                    'Jahr fehlt – ' + hit.assumedyear + ' angenommen</span>';
+                    escHtml(yearTitle) + '">' + escHtml(yearText) + '</span>';
             }
             var normHtml = normDisplay
                 ? normDisplay + ' <span class="badge ' + bc + ' ms-1">' + bl + '</span>' + yearNote
@@ -436,19 +440,18 @@ define([], function() {
 
         var btnAffected =
             '<button type="button" class="btn btn-sm btn-outline-primary py-0 mr-1" id="ccwf-sel-affected">' +
-            'Betroffene markieren</button>';
+            escHtml(lbl.lblMark) + '</button>';
         var btnDesel =
             '<button type="button" class="btn btn-sm btn-outline-secondary py-0" id="ccwf-desel-all">' +
-            'Alle abw\u00e4hlen</button>';
+            escHtml(lbl.lblDeselect) + '</button>';
         var selHtml = (!readOnly && selectable.length > 0) ? btnAffected + btnDesel : '';
 
         return '<div class="d-flex justify-content-between align-items-center mb-2">' +
             '<div>' +
             '<strong class="small">' + hits.length + ' Datumsangaben gefunden</strong>' +
-            '<span class="text-muted small ms-2" title="Eintr\u00e4ge ohne Jahreszahl oder nicht eindeutig ' +
-            'erkannte Datumsangaben k\u00f6nnen nicht automatisch verschoben werden. ' +
-            'Sie werden zur manuellen Pr\u00fcfung angezeigt.">' +
-            '\u24d8 Informative Eintr\u00e4ge: kein Jahrgang oder mehrdeutig</span>' +
+            '<span class="text-muted small ms-2" title="' +
+            escHtml(lbl.lblAmbiguousNotice) + '">' +
+            '\u24d8 ' + escHtml(lbl.lblAmbiguousNotice) + '</span>' +
             '</div>' +
             '<span>' + selHtml + '</span></div>' +
             '<div class="table-responsive" style="max-height:35vh;overflow-y:auto">' +
@@ -568,6 +571,29 @@ define([], function() {
         var form     = opts.form;
         var courseid = opts.courseid;
 
+        // Extract all UI labels from modal data-attributes so no
+        // hardcoded language strings remain in the JS source.
+        var lbl = {
+            confSafe       : modal.getAttribute('data-lbl-conf-safe')         || 'Safe',
+            confAmbiguous  : modal.getAttribute('data-lbl-conf-ambiguous')    || 'Ambiguous',
+            confInfo       : modal.getAttribute('data-lbl-conf-info')         || 'Informational',
+            btnPreview     : modal.getAttribute('data-label-preview')         || 'Preview',
+            btnClose       : modal.getAttribute('data-lbl-close')             || 'Close',
+            errNoselect    : modal.getAttribute('data-err-noselect')          || 'Please select at least one activity.',
+            errNodelta     : modal.getAttribute('data-err-nodelta')           || 'Please enter a number of days or hours.',
+            errGeneric     : modal.getAttribute('data-err-generic')           || 'An error occurred.',
+            msgNohits      : modal.getAttribute('data-msg-nohits')            || 'No date references found.',
+            msgLoading     : modal.getAttribute('data-msg-loading')           || 'Shifting dates…',
+            msgShifted     : modal.getAttribute('data-msg-shifted')           || 'date(s) shifted.',
+            msgErrors      : modal.getAttribute('data-msg-errors')            || 'error(s).',
+            lblMark        : modal.getAttribute('data-lbl-mark')              || 'Mark affected',
+            lblDeselect    : modal.getAttribute('data-lbl-deselect')          || 'Deselect all',
+            lblYearAssumed : modal.getAttribute('data-lbl-yearassumed')       || 'Year {$a} assumed.',
+            lblYearLabel   : modal.getAttribute('data-lbl-yearlabel')         || 'Year missing – {$a}',
+            lblAmbiguousNotice: modal.getAttribute('data-lbl-ambiguous-notice') || 'Some dates shown for manual review.',
+            lblErrTitle    : modal.getAttribute('data-lbl-errtitle')          || 'Unknown error',
+        };
+
         var step1 = modal.querySelector('[data-ccwf-step="1"]');
         var step2 = modal.querySelector('[data-ccwf-step="2"]');
         var step3 = modal.querySelector('[data-ccwf-step="3"]');
@@ -616,14 +642,14 @@ define([], function() {
                     }
                     if (cmids.length === 0) {
                         if (errEl) {
-                            errEl.textContent = 'Bitte mindestens eine Aktivität auswählen.';
+                            errEl.textContent = lbl.errNoselect;
                             errEl.classList.remove('d-none');
                         }
                         return;
                     }
                     if (delta === 0) {
                         if (errEl) {
-                            errEl.textContent = 'Bitte Tage oder Stunden eingeben.';
+                            errEl.textContent = lbl.errNodelta;
                             errEl.classList.remove('d-none');
                         }
                         return;
@@ -634,7 +660,7 @@ define([], function() {
                     fetchPreview(courseid, 'shift_dates', payload, cmids)
                         .then(function(preview) {
                             previewBtn.disabled = false;
-                            previewBtn.textContent = 'Vorschau';
+                            previewBtn.textContent = lbl.btnPreview;
                             // Allow execution when only system-level fields exist
                     // (cmids without adapters are 'skipped' in preview
                     // but batch_manager shifts their availability dates).
@@ -664,12 +690,12 @@ define([], function() {
                                     execBtn.style.display = canExec ? '' : 'none';
                                 }
                             }
-                            setTitle(modal.getAttribute('data-label-preview') || 'Vorschau');
+                            setTitle(modal.getAttribute('data-label-preview') || '');
                             showStep('2');
                         })
                         .catch(function() {
                             previewBtn.disabled = false;
-                            previewBtn.textContent = 'Vorschau';
+                            previewBtn.textContent = lbl.btnPreview;
                         });
                 });
             }
@@ -681,7 +707,7 @@ define([], function() {
             var backBtn = step2.querySelector('[data-ccwf-action="back"]');
             if (backBtn) {
                 backBtn.addEventListener('click', function() {
-                    setTitle(modal.getAttribute('data-label-config') || 'Termine verschieben');
+                    setTitle(modal.getAttribute('data-label-config') || '');
                     showStep('1');
                 });
             }
@@ -721,7 +747,7 @@ define([], function() {
                         previewBody.innerHTML =
                             '<div class="text-center py-3">' +
                             '<div class="spinner-border spinner-border-sm text-primary" role="status"></div>' +
-                            '<p class="small text-muted mt-2 mb-0">Termine werden verschoben\u2026</p>' +
+                            '<p class="small text-muted mt-2 mb-0">' + escHtml(lbl.msgLoading) + '</p>' +
                             '</div>';
                     }
 
@@ -729,9 +755,12 @@ define([], function() {
                         .then(function(result) {
                             if (!result.success) {
                                 if (previewBody) {
-                                    previewBody.innerHTML =
-                                        '<div class="alert alert-danger py-2 small">' +
-                                        (result.error || 'Fehler') + '</div>';
+                                    // Use textContent to prevent XSS from error message content.
+                                    var errDiv = document.createElement('div');
+                                    errDiv.className = 'alert alert-danger py-2 small';
+                                    errDiv.textContent = result.error || lbl.errGeneric;
+                                    previewBody.innerHTML = '';
+                                    previewBody.appendChild(errDiv);
                                 }
                                 execBtn.disabled = false;
                                 return;
@@ -740,9 +769,14 @@ define([], function() {
                             var successHtml =
                                 '<div class="alert alert-success py-2 mb-2 small">' +
                                 '<i class="fa fa-check-circle mr-1"></i>' +
-                                '<strong>' + s.success + '</strong> Termin(e) verschoben' +
-                                (s.error > 0 ? ', <strong class="text-danger">' + s.error + ' Fehler</strong>' : '') +
-                                '.</div>';
+                                '<strong>' + s.success + '</strong> ' +
+                                escHtml(lbl.msgShifted) +
+                                (s.error > 0
+                                    ? ', <strong class="text-danger">' +
+                                      s.error + ' ' + escHtml(lbl.msgErrors) +
+                                      '</strong>'
+                                    : '') +
+                                '</div>';
 
                             if (doScan === 0) {
                                 if (previewBody) {
@@ -752,7 +786,7 @@ define([], function() {
                                     execBtn.classList.add('d-none');
                                 }
                                 if (backBtn) {
-                                    backBtn.textContent = 'Schlie\u00dfen';
+                                    backBtn.textContent = lbl.btnClose;
                                     backBtn.removeEventListener('click', function() {});
                                     backBtn.addEventListener('click', function() {
                                         if (opts.onComplete) {
@@ -772,12 +806,12 @@ define([], function() {
                                     '<p class="small text-muted mt-2 mb-0">Texte werden analysiert\u2026</p>' +
                                     '</div>';
                             }
-                            setTitle(modal.getAttribute('data-label-textreview') || 'Textprüfung');
+                            setTitle(modal.getAttribute('data-label-textreview') || '');
 
                             fetchTextHits(courseid)
                                 .then(function(data) {
                                     var deltaSec = opts.getDelta();
-                                    var hitsHtml = renderHitsHtml(data.hits, deltaSec);
+                                    var hitsHtml = renderHitsHtml(data.hits, deltaSec, false, lbl);
                                     if (step3) {
                                         step3.querySelector('[data-ccwf-hits-body]').innerHTML = hitsHtml;
                                         step3.querySelector('[data-ccwf-shift-result]').innerHTML = successHtml;
@@ -829,7 +863,7 @@ define([], function() {
                             if (previewBody) {
                                 previewBody.innerHTML =
                                     '<div class="alert alert-danger py-2 small">' +
-                                    escHtml(err.message || 'Unbekannter Fehler') + '</div>';
+                                    escHtml(err.message || lbl.lblErrTitle) + '</div>';
                             }
                             execBtn.disabled = false;
                         });

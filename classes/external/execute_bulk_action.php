@@ -36,6 +36,7 @@ use core_external\external_value;
 use local_coursectrl\local\persistent\batch;
 use local_coursectrl\local\persistent\batch_item;
 use local_coursectrl\manager\batch_manager;
+use local_coursectrl\manager\textreview_manager;
 
 /**
  * AJAX-callable wrapper around batch_manager::execute().
@@ -97,6 +98,14 @@ class execute_bulk_action extends external_api {
             $params['cmids'],
             (int)$USER->id
         );
+
+        // Rebuild coursemodinfo cache so availability-date changes are immediately
+        // visible — system-level shifts write to course_modules directly and bypass
+        // the module APIs that normally trigger cache invalidation.
+        rebuild_course_cache((int) $params['courseid']);
+
+        // Purge stale text-hit cache so the next text-review sees fresh content.
+        (new \local_coursectrl\manager\textreview_manager())->purge_hits((int) $params['courseid']);
 
         $batchrow = new batch($batchid);
         $items = batch_item::get_records(['batchid' => $batchid]);

@@ -18,7 +18,6 @@
  * Cascade analyzer for the Course Control Hub risk pipeline.
  *
  * Problem solved
- * --------------
  * When a primary blockage (e.g. a group condition prevents access to an
  * activity) exists, all downstream activities that require the blocked CM's
  * completion will also appear as unreachable — as independent errors. This
@@ -34,7 +33,6 @@
  * visible card count from O(blocked CMs) to O(root causes).
  *
  * Algorithm
- * ---------
  *  1. Build a set of all cmids that are unreachable in ANY scenario
  *     (across both grade modes and all group profiles).
  *  2. For each finding, inspect its e=1 unlock-prerequisites via the

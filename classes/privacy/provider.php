@@ -73,6 +73,36 @@ class provider implements
             'local_coursectrl_immediateapply',
             'privacy:metadata:pref:immediateapply'
         );
+        // Text-hit records capture matched course-text fragments — no personal user data.
+        $collection->add_database_table(
+            'local_coursectrl_text_hit',
+            [
+                'courseid'        => 'privacy:metadata:local_coursectrl_text_hit:courseid',
+                'entitytype'      => 'privacy:metadata:local_coursectrl_text_hit:entitytype',
+                'entityid'        => 'privacy:metadata:local_coursectrl_text_hit:entityid',
+                'fieldname'       => 'privacy:metadata:local_coursectrl_text_hit:fieldname',
+                'matchedtext'     => 'privacy:metadata:local_coursectrl_text_hit:matchedtext',
+                'normalizedvalue' => 'privacy:metadata:local_coursectrl_text_hit:normalizedvalue',
+                'confidence'      => 'privacy:metadata:local_coursectrl_text_hit:confidence',
+                'contextjson'     => 'privacy:metadata:local_coursectrl_text_hit:contextjson',
+                'timecreated'     => 'privacy:metadata:local_coursectrl_text_hit:timecreated',
+            ],
+            'privacy:metadata:local_coursectrl_text_hit'
+        );
+        // Risk records are system-generated analysis results — no personal user data.
+        $collection->add_database_table(
+            'local_coursectrl_risk',
+            [
+                'courseid'    => 'privacy:metadata:local_coursectrl_risk:courseid',
+                'risktype'    => 'privacy:metadata:local_coursectrl_risk:risktype',
+                'severity'    => 'privacy:metadata:local_coursectrl_risk:severity',
+                'entitytype'  => 'privacy:metadata:local_coursectrl_risk:entitytype',
+                'entityid'    => 'privacy:metadata:local_coursectrl_risk:entityid',
+                'detailsjson' => 'privacy:metadata:local_coursectrl_risk:detailsjson',
+                'timecreated' => 'privacy:metadata:local_coursectrl_risk:timecreated',
+            ],
+            'privacy:metadata:local_coursectrl_risk'
+        );
         return $collection;
     }
 
@@ -186,6 +216,8 @@ class provider implements
             $DB->delete_records_select('local_coursectrl_snapshot', "batchid $insql", $inparams);
             $DB->delete_records_select('local_coursectrl_batch', "id $insql", $inparams);
         }
+        $DB->delete_records('local_coursectrl_text_hit', ['courseid' => $courseid]);
+        $DB->delete_records('local_coursectrl_risk', ['courseid' => $courseid]);
     }
 
     /**

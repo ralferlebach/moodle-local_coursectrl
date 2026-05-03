@@ -26,7 +26,6 @@ require_once(__DIR__ . '/../../config.php');
 
 use local_coursectrl\local\navigation\navigation_builder;
 
-
 $courseid       = required_param('courseid', PARAM_INT);
 $hideindependents = optional_param('hideindependents', 1, PARAM_INT);
 $groupids       = optional_param_array('groupids', [], PARAM_INT);

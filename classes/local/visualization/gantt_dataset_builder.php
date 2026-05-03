@@ -232,7 +232,8 @@ class gantt_dataset_builder {
         $buildcmrow = function (
             \local_coursectrl\local\entity\cm_item $cm,
             int $sectionid,
-            int $depth
+            int $depth,
+            ?array $parentwindow = null
         ) use (
             $bycm,
             $datetimefmt,
@@ -246,9 +247,15 @@ class gantt_dataset_builder {
             $opents   = [];
             $closets  = [];
             $hasavail = false;
+            // Section boundary timestamps for out-of-window detection.
+            $secfrom = $parentwindow['from_ts'] ?? null;
+            $secto = $parentwindow['to_ts'] ?? null;
             foreach ($entries as $entry) {
                 $kind = $this->classify_field((string) $entry['field']);
-                $ts   = (int) $entry['timestamp'];
+                $ts = (int) $entry['timestamp'];
+                // Flag bars that fall outside the parent section's accessible window.
+                $outsection = ($secfrom !== null && $ts < $secfrom)
+                    || ($secto !== null && $ts > $secto);
                 $bars[] = [
                     'field'      => $entry['field'],
                     'fieldlabel' => $entry['fieldlabel'],
@@ -263,6 +270,7 @@ class gantt_dataset_builder {
                     'formatted'  => userdate($ts, $datetimefmt),
                     'source'     => $entry['source'],
                     'kind'       => $kind,
+                    'outsection' => $outsection,
                 ];
                 if ($entry['source'] === 'availability') {
                     $hasavail = true;
@@ -277,6 +285,7 @@ class gantt_dataset_builder {
                 $hasdata = true;
             }
             usort($bars, fn($a, $b) => $a['timestamp'] <=> $b['timestamp']);
+            // Own usability window from open/close markers.
             $window = null;
             if (!empty($opents) || !empty($closets)) {
                 $window = [
@@ -289,23 +298,31 @@ class gantt_dataset_builder {
                     'to_formatted'   => !empty($closets)
                         ? userdate(max($closets), $dateonlyfmt) : '',
                 ];
+            } else if ($parentwindow !== null && empty($bars)) {
+                // No own dates: inherit section window so the Gantt shows
+                // the period during which this CM is actually accessible.
+                $window = $parentwindow;
             }
             $cmurl = (new \moodle_url(
                 '/mod/' . $cm->modname . '/view.php',
                 ['id' => $cm->id]
             ))->out(false);
             return [
-                'issection'  => false,
-                'sectionid'  => $sectionid,
-                'depth'      => $depth,
-                'cmid'       => $cm->id,
-                'name'       => $cm->name,
-                'modname'    => $cm->modname,
-                'visible'    => (bool) $cm->visible,
-                'cmurl'      => $cmurl,
-                'bars'       => $bars,
-                'window'     => $window,
-                'unlimited'  => !$hasavail,
+                'issection'    => false,
+                'sectionid'    => $sectionid,
+                'depth'        => $depth,
+                'cmid'         => $cm->id,
+                'name'         => $cm->name,
+                'modname'      => $cm->modname,
+                'visible'      => (bool) $cm->visible,
+                'cmurl'        => $cmurl,
+                'bars'         => $bars,
+                'window'       => $window,
+                // Cascade: unlimited only when no availability condition applies
+                // AND the section window does not restrict an empty-bar CM.
+                'unlimited'    => !$hasavail && !($parentwindow !== null && empty($bars)),
+                // Pass section window to JS for shading outside-window areas.
+                'parentwindow' => $parentwindow,
             ];
         };
 
@@ -382,6 +399,16 @@ class gantt_dataset_builder {
                     $hasdata = true;
                 }
             }
+            // Compute the section's accessible window (used for CM cascade).
+            $sectionwindow = (!empty($secopents) || !empty($secclosets)) ? [
+                'from_ts'        => !empty($secopents) ? min($secopents) : null,
+                'to_ts'          => !empty($secclosets) ? max($secclosets) : null,
+                'from_formatted' => !empty($secopents)
+                    ? userdate(min($secopents), $dateonlyfmt) : '',
+                'to_formatted'   => !empty($secclosets)
+                    ? userdate(max($secclosets), $dateonlyfmt) : '',
+            ] : null;
+
             if (!empty($secavailbars)) {
                 usort($secavailbars, fn($a, $b) => $a['timestamp'] <=> $b['timestamp']);
                 $secwindow = [
@@ -472,10 +499,52 @@ class gantt_dataset_builder {
                     ];
                     // Render child CMs of this subsection at depth 2.
                     foreach ($cmsbysection[$childsectionid] ?? [] as $childcm) {
-                        $rows[] = $buildcmrow($childcm, $childsectionid, 2);
+                        // Merge section + subsection windows; tightest boundary wins.
+                        $subsecwindowdata = (!empty($subopents) || !empty($subclosets))
+                            ? [
+                                'from_ts' => !empty($subopents) ? min($subopents) : null,
+                                'to_ts' => !empty($subclosets) ? max($subclosets) : null,
+                            ]
+                            : null;
+                        $candidatefrom = [];
+                        $candidateto   = [];
+                        foreach ([$sectionwindow, $subsecwindowdata] as $cw) {
+                            if ($cw === null) {
+                                continue;
+                            }
+                            if ($cw['from_ts'] !== null) {
+                                $candidatefrom[] = $cw['from_ts'];
+                            }
+                            if ($cw['to_ts'] !== null) {
+                                $candidateto[] = $cw['to_ts'];
+                            }
+                        }
+                        $childfrom = !empty($candidatefrom) ? max($candidatefrom) : null;
+                        $childto   = !empty($candidateto) ? min($candidateto) : null;
+                        $childwindow = ($childfrom !== null || $childto !== null)
+                            ? [
+                                'from_ts' => $childfrom,
+                                'to_ts' => $childto,
+                                'from_formatted' => $childfrom !== null
+                                    ? userdate($childfrom, $dateonlyfmt) : '',
+                                'to_formatted' => $childto !== null
+                                    ? userdate($childto, $dateonlyfmt) : '',
+                            ]
+                            : null;
+                        $rows[] = $buildcmrow(
+                            $childcm,
+                            $childsectionid,
+                            2,
+                            $childwindow
+                        );
                     }
                 } else {
-                    $rows[] = $buildcmrow($cm, $section->id, 1);
+                    $rows[] = $buildcmrow(
+                        $cm,
+                        $section->id,
+                        1,
+                        $sectionwindow
+                    );
                 }
             }
         }

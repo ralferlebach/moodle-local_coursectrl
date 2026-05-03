@@ -66,6 +66,8 @@ define([], function() {
     // marker and latest close marker. Tooltip shows the localized window.
     var COL_GANTT_VISIBLE = '#eef0f3';
     var COL_GANTT_USABLE = '#d8dde4';
+    // Subtle danger: bar falls outside parent section accessible window.
+    var COL_GANTT_DANGER = '#e07070';
     var GANTT_VISIBLE_H = 4;
     var GANTT_USABLE_H = 10;
     // Simulation overlay colors.
@@ -234,6 +236,8 @@ define([], function() {
     var ganttCollapsed = {};
 
     var renderGantt = function(canvas) {
+        var lblOutsection = canvas.getAttribute('data-lbl-outsection')
+            || '\u26a0 Outside section availability window';
         var raw = canvas.getAttribute('data-gantt');
         if (!raw) {
             return;
@@ -557,6 +561,46 @@ define([], function() {
                 }
             }
 
+            // Parent section window shading: dim areas outside accessible period.
+            // Only rendered for CMs that have their own bars (empty-bar CMs
+            // already inherit the section window as their own window band).
+            if (row.parentwindow && row.bars && row.bars.length > 0) {
+                var pwFrom = row.parentwindow.from_ts;
+                var pwTo   = row.parentwindow.to_ts;
+                // Shade the period before the section opens.
+                if (pwFrom !== null && pwFrom > mints) {
+                    var shadeW = Math.round(((pwFrom - mints) / span) * barAreaW);
+                    if (shadeW > 0) {
+                        svg.appendChild(svgEl('rect', {
+                            x: GANTT_LABEL_W, y: rowY,
+                            width: shadeW, height: rh,
+                            fill: '#e8e8e8', 'fill-opacity': '0.55'}));
+                        // Dashed boundary line at section open.
+                        var bndX = GANTT_LABEL_W + shadeW;
+                        svg.appendChild(svgEl('line', {
+                            x1: bndX, y1: rowY, x2: bndX, y2: rowY + rh,
+                            stroke: '#999', 'stroke-width': '1',
+                            'stroke-dasharray': '3,2'}));
+                    }
+                }
+                // Shade the period after the section closes.
+                if (pwTo !== null && pwTo < maxts) {
+                    var shadeStart = GANTT_LABEL_W + Math.round(((pwTo - mints) / span) * barAreaW);
+                    var shadeEnd   = GANTT_LABEL_W + barAreaW;
+                    if (shadeEnd > shadeStart) {
+                        svg.appendChild(svgEl('rect', {
+                            x: shadeStart, y: rowY,
+                            width: shadeEnd - shadeStart, height: rh,
+                            fill: '#e8e8e8', 'fill-opacity': '0.55'}));
+                        // Dashed boundary line at section close.
+                        svg.appendChild(svgEl('line', {
+                            x1: shadeStart, y1: rowY, x2: shadeStart, y2: rowY + rh,
+                            stroke: '#999', 'stroke-width': '1',
+                            'stroke-dasharray': '3,2'}));
+                    }
+                }
+            }
+
             // Date marker bars.
             row.bars.forEach(function(bar) {
                 var pct = (bar.timestamp - mints) / span;
@@ -565,16 +609,23 @@ define([], function() {
                 var tip = svgEl('title', {});
                 var label = bar.humanlabel || bar.fieldlabel || bar.field;
                 tip.textContent = bar.formatted ? (label + ': ' + bar.formatted) : label;
+                // Append warning to tooltip for bars outside section window.
+                if (bar.outsection) {
+                    tip.textContent += ' ' + lblOutsection;
+                }
                 g.appendChild(tip);
+                var barColor = bar.outsection ? COL_GANTT_DANGER
+                    : (bar.source === 'adapter' ? COL_GANTT_BAR : COL_GANTT_MARK);
                 if (bar.source === 'adapter') {
                     g.appendChild(svgEl('rect', {
                         x: bx - 2, y: midY - GANTT_BAR_H / 2,
                         width: 4, height: GANTT_BAR_H,
-                        fill: COL_GANTT_BAR, rx: '2'}));
+                        fill: barColor, rx: '2'}));
                 } else {
                     g.appendChild(svgEl('circle', {
                         cx: bx, cy: midY, r: GANTT_MARKER_R,
-                        fill: COL_GANTT_MARK, 'fill-opacity': '0.7'}));
+                        fill: barColor,
+                        'fill-opacity': bar.outsection ? '0.9' : '0.7'}));
                 }
                 svg.appendChild(g);
             });

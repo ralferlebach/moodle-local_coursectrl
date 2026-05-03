@@ -71,14 +71,8 @@ function xmldb_local_coursectrl_upgrade(int $oldversion): bool {
         // up to 24 hours for the next nightly cron tick. The adhoc fallback
         // is also queued in case the synchronous run fails (network down,
         // misconfigured provider, etc.).
-        try {
-            \local_coursectrl\task\warm_calendar_cache::do_warm();
-        } catch (\Throwable $e) {
-            debugging(
-                'local_coursectrl synchronous warm during upgrade failed: ' . $e->getMessage(),
-                DEBUG_DEVELOPER
-            );
-        }
+        // Queue adhoc task only; synchronous warming removed from upgrade
+        // to keep upgrade deterministic and free of external IO.
         \local_coursectrl\task\warm_calendar_cache_adhoc::queue();
 
         upgrade_plugin_savepoint(true, 2026042830, 'local', 'coursectrl');
@@ -89,14 +83,8 @@ function xmldb_local_coursectrl_upgrade(int $oldversion): bool {
         // Moodle purges all caches after any plugin upgrade, so the MUC caldata
         // cache becomes empty. Queue the adhoc task so the next cron tick
         // repopulates holiday data without requiring an admin intervention.
-        try {
-            \local_coursectrl\task\warm_calendar_cache::do_warm();
-        } catch (\Throwable $e) {
-            debugging(
-                'local_coursectrl synchronous warm during upgrade failed: ' . $e->getMessage(),
-                DEBUG_DEVELOPER
-            );
-        }
+        // Queue adhoc task only; synchronous warming removed from upgrade
+        // to keep upgrade deterministic and free of external IO.
         \local_coursectrl\task\warm_calendar_cache_adhoc::queue();
 
         upgrade_plugin_savepoint(true, 2026042908, 'local', 'coursectrl');
@@ -112,7 +100,12 @@ function xmldb_local_coursectrl_upgrade(int $oldversion): bool {
                 $dbman->drop_table($table);
             }
         }
-        upgrade_plugin_savepoint(true, 2026042964, 'local', 'coursectrl');
+        upgrade_plugin_savepoint(true, 2026042952, 'local', 'coursectrl');
+    }
+
+    if ($oldversion < 2026050300) {
+        // Version 1.0.0: no schema changes; savepoint marks stable release.
+        upgrade_plugin_savepoint(true, 2026050300, 'local', 'coursectrl');
     }
 
     return true;

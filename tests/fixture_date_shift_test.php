@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Integration tests: Termin-Erkennung und -Verschiebung (mit und ohne Text).
+ * Integration tests for date detection and bulk date shifting (with and without free-text review).
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -91,7 +91,7 @@ final class fixture_date_shift_test extends \advanced_testcase {
         ];
     }
 
-    // Termin-Erkennung (date_collector).
+    // Date detection (date_collector).
 
     /**
      * date_collector findet die assign-Datumsfelder.
@@ -139,7 +139,7 @@ final class fixture_date_shift_test extends \advanced_testcase {
     }
 
     /**
-     * Datum-Einträge haben korrekte Timestamps.
+     * Date entries carry correct timestamps.
      * @covers \local_coursectrl\local\analysis\date_collector
      * @covers \local_coursectrl\manager\preview_manager
      * @covers \local_coursectrl\manager\batch_manager
@@ -162,7 +162,7 @@ final class fixture_date_shift_test extends \advanced_testcase {
     // Vorschau (preview_manager).
 
     /**
-     * preview_manager::build gibt Preview-Objekte mit old/new-Werten zurück.
+     * preview_manager::build() returns preview objects with old/new values.
      * @covers \local_coursectrl\local\analysis\date_collector
      * @covers \local_coursectrl\manager\preview_manager
      * @covers \local_coursectrl\manager\batch_manager
@@ -191,7 +191,7 @@ final class fixture_date_shift_test extends \advanced_testcase {
     }
 
     /**
-     * Preview zeigt old_value und new_value für duedate.
+     * Preview shows old_value and new_value for duedate.
      * @covers \local_coursectrl\local\analysis\date_collector
      * @covers \local_coursectrl\manager\preview_manager
      * @covers \local_coursectrl\manager\batch_manager
@@ -225,7 +225,7 @@ final class fixture_date_shift_test extends \advanced_testcase {
         $this->assertSame(self::T_BASE + self::WEEK * 2, (int)$c['new']);
     }
 
-    // Termin-Verschiebung ohne Text (batch_manager).
+    // Date shifting without text scan (batch_manager).
 
     /**
      * batch_manager::execute verschiebt assign-Daten um 7 Tage.
@@ -256,7 +256,7 @@ final class fixture_date_shift_test extends \advanced_testcase {
     }
 
     /**
-     * batch_manager verschiebt alle Felder einer Aktivität proportional.
+     * batch_manager shifts all date fields of an activity by the given delta.
      * @covers \local_coursectrl\local\analysis\date_collector
      * @covers \local_coursectrl\manager\preview_manager
      * @covers \local_coursectrl\manager\batch_manager
@@ -284,7 +284,7 @@ final class fixture_date_shift_test extends \advanced_testcase {
     }
 
     /**
-     * batch_manager erstellt einen Snapshot (für Rollback).
+     * batch_manager creates a rollback snapshot after a successful shift.
      * @covers \local_coursectrl\local\analysis\date_collector
      * @covers \local_coursectrl\manager\preview_manager
      * @covers \local_coursectrl\manager\batch_manager
@@ -310,7 +310,7 @@ final class fixture_date_shift_test extends \advanced_testcase {
         $this->assertNotEmpty($snapshots, 'Snapshot should be created for rollback');
     }
 
-    // Termin-Verschiebung MIT Text (rewriter).
+    // Date shifting with free-text rewriting (text_datetime_rewriter).
 
     /**
      * text_datetime_rewriter verschiebt ein ISO-Datum im Text.
@@ -352,7 +352,7 @@ final class fixture_date_shift_test extends \advanced_testcase {
     }
 
     /**
-     * text_datetime_rewriter überspringt Treffer ohne normalisierten Wert.
+     * text_datetime_rewriter skips hits that have no normalised timestamp value.
      * @covers \local_coursectrl\local\analysis\date_collector
      * @covers \local_coursectrl\manager\preview_manager
      * @covers \local_coursectrl\manager\batch_manager

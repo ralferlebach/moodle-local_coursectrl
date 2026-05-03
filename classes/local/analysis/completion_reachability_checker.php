@@ -18,7 +18,6 @@
  * Course completion reachability checker for the Course Control Hub.
  *
  * Problem solved
- * --------------
  * The existing checks (R0–R7) inspect individual activities and time windows
  * but do not verify whether the course completion criteria defined in
  * mdl_course_completion_criteria are actually achievable by any learner.
@@ -42,7 +41,6 @@
  *   implicit completion requirement.
  *
  * Findings produced
- * -----------------
  *   error   — course completion unreachable for every valid learner profile.
  *   warning — course completion unreachable for some learner profiles.
  *   notice  — all profiles can complete the course; informational summary.

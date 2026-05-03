@@ -33,6 +33,7 @@ use core_external\external_function_parameters;
 use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
+use local_coursectrl\local\field_label_resolver;
 use local_coursectrl\manager\preview_manager;
 
 /**
@@ -110,7 +111,20 @@ class preview_bulk_action extends external_api {
                 'name'       => $change->get_name(),
                 'iconurl'    => $iconurl,
                 'haschanges' => $change->has_changes(),
-                'fieldsjson' => json_encode($change->get_fields()),
+                'fieldsjson' => (static function (
+                    array $fields,
+                    string $modname
+                ): string {
+                    foreach ($fields as $fname => &$fd) {
+                        $fd['label'] = field_label_resolver::resolve(
+                            $fname,
+                            $modname,
+                            'cm'
+                        );
+                    }
+                    unset($fd);
+                    return json_encode($fields);
+                })($change->get_fields(), $modname),
             ];
         }
 

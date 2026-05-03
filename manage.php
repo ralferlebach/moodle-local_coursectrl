@@ -28,7 +28,6 @@ require_once(__DIR__ . '/../../config.php');
 
 use local_coursectrl\local\navigation\navigation_builder;
 
-
 $courseid = required_param('courseid', PARAM_INT);
 
 $course = get_course($courseid);

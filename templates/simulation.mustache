@@ -17,7 +17,7 @@
 {{!
     @template local_coursectrl/simulation
 
-    Plausibilitäts- und Kollisionsprüfung (learner simulation).
+    Learner journey simulation: accessibility, blocked activities, next-step form.
 
     Context variables required for this template:
     * courseid (int), sesskey (string), selfurl (string)
@@ -34,7 +34,9 @@
      "hascoursegroups":false,"hascoursegroupings":false,"hascmformrows":false}
 }}
 
-<div class="local_coursectrl_simulation" data-region="local_coursectrl-simulation">
+<div class="local_coursectrl_simulation" data-region="local_coursectrl-simulation"
+     data-lbl-more-cond="{{#str}} cond_show_more, local_coursectrl {{/str}}"
+     data-lbl-less-cond="{{#str}} cond_show_less, local_coursectrl {{/str}}">
 
   <form method="get" action="{{selfurl}}" class="mb-4" id="local-coursectrl-simform">
     <input type="hidden" name="courseid" value="{{courseid}}">
@@ -267,6 +269,10 @@
               {{#sec_blocked}}<span class="badge cc-badge-danger">{{#str}} no, core {{/str}}</span>{{/sec_blocked}}
             </td>
             <td class="py-1 fw-semibold">
+              {{! label is produced by simulation_page.php via get_string(); user-contributed
+    values (activity names, group names) are wrapped with s()/s(format_string())
+    before interpolation. Triple-mustache is required for sim_reason_completion
+    which intentionally contains an <a href> link. }}
               {{#sec_has_reasons}}<ul class="mb-0 small fw-normal ps-3">{{#sec_reason_groups}}{{#has_or_before}}<li class="list-unstyled ps-0 text-muted fst-italic">&#8212; {{#str}} sim_or_separator, local_coursectrl {{/str}} &#8212;</li>{{/has_or_before}}{{#conditions}}<li>{{{label}}}</li>{{/conditions}}{{/sec_reason_groups}}</ul>{{/sec_has_reasons}}
               {{^sec_has_reasons}}<span class="text-muted small">&#8211;</span>{{/sec_has_reasons}}
             </td>
@@ -567,9 +573,9 @@ require(['local_coursectrl/simulation'], function(S) {
         for (var j = cutIdx; j < allLi.length; j++) { allLi[j].style.display = 'none'; }
 
         var remaining = realLi.length - LIMIT;
-        var lblShow = '+ ' + remaining + ' weitere Bedingung' +
-            (remaining === 1 ? '' : 'en') + ' anzeigen';
-        var lblHide = '\u2212 weniger anzeigen';
+        var lblMore = simRoot.getAttribute('data-lbl-more-cond') || 'more condition(s)';
+        var lblShow = '+ ' + remaining + ' ' + lblMore;
+        var lblHide = simRoot.getAttribute('data-lbl-less-cond') || '\u2212 show less';
 
         var btn = document.createElement('button');
         btn.type = 'button';

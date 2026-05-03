@@ -234,7 +234,14 @@ class simulation_page implements renderable, templatable {
 
                 $reasonrows = [];
                 foreach ($result['reasons'] as $reason) {
-                    $reasonrows[] = $this->format_reason($reason, $dateformat, $cms, $groupnamemap, $groupingnamemap);
+                    $reasonrows[] = $this->format_reason(
+                        $reason,
+                        $dateformat,
+                        $courseid,
+                        $cms,
+                        $groupnamemap,
+                        $groupingnamemap
+                    );
                 }
                 // Build OR/AND grouped reasons for structured display.
                 $rawgroups = $evaluator->evaluate_groups(
@@ -245,7 +252,14 @@ class simulation_page implements renderable, templatable {
                 foreach ($rawgroups as $gidx => $grp) {
                     $gconditions = [];
                     foreach ($grp as $r) {
-                        $gconditions[] = $this->format_reason($r, $dateformat, $cms, $groupnamemap, $groupingnamemap);
+                        $gconditions[] = $this->format_reason(
+                            $r,
+                            $dateformat,
+                            $courseid,
+                            $cms,
+                            $groupnamemap,
+                            $groupingnamemap
+                        );
                     }
                     $reasongrouprows[] = [
                         'conditions'    => $gconditions,
@@ -443,7 +457,14 @@ class simulation_page implements renderable, templatable {
                     $seceval = $evaluator->evaluate($section->availability, $this->state);
                     $secaccessible = $seceval['accessible'];
                     foreach ($seceval['reasons'] as $reason) {
-                        $secreasonrows[] = $this->format_reason($reason, $dateformat, $cms, $groupnamemap, $groupingnamemap);
+                        $secreasonrows[] = $this->format_reason(
+                            $reason,
+                            $dateformat,
+                            $courseid,
+                            $cms,
+                            $groupnamemap,
+                            $groupingnamemap
+                        );
                     }
                     $secrawgroups = $evaluator->evaluate_groups(
                         $section->availability ?? null,
@@ -453,7 +474,14 @@ class simulation_page implements renderable, templatable {
                     foreach ($secrawgroups as $sgidx => $sgrp) {
                         $sgconditions = [];
                         foreach ($sgrp as $r) {
-                            $sgconditions[] = $this->format_reason($r, $dateformat, $cms, $groupnamemap, $groupingnamemap);
+                            $sgconditions[] = $this->format_reason(
+                                $r,
+                                $dateformat,
+                                $courseid,
+                                $cms,
+                                $groupnamemap,
+                                $groupingnamemap
+                            );
                         }
                         $secreasongroups[] = [
                             'conditions'    => $sgconditions,
@@ -708,8 +736,8 @@ class simulation_page implements renderable, templatable {
     /**
      * Build the simulation overlay URL for the dependency graph.
      *
-     * moodle_url does not accept array values as parameters, so array params
-     * are appended manually using http_build_query with Brackets notation.
+     * Array parameters (blockedids, nextstepids, groupids) are appended
+     * via moodle_url::param() to keep URL construction fully Moodle-native.
      *
      * @param int   $courseid    Course id.
      * @param int[] $blockedids  CM ids that are blocked in the simulation.
@@ -724,28 +752,26 @@ class simulation_page implements renderable, templatable {
         if (!$this->state) {
             return null;
         }
-        $base = (new \moodle_url(
+        $url = new \moodle_url(
             '/local/coursectrl/dependencies.php',
             ['courseid' => $courseid]
-        ))->out(false);
-
-        $parts = [];
+        );
         foreach (array_values($blockedids) as $id) {
-            $parts[] = 'blockedids%5B%5D=' . (int) $id;
+            $url->param('blockedids[]', (int) $id);
         }
         foreach (array_values($nextstepids) as $id) {
-            $parts[] = 'nextstepids%5B%5D=' . (int) $id;
+            $url->param('nextstepids[]', (int) $id);
         }
         if (!empty($this->state->groupids)) {
-            $parts[] = 'filterbygroup=1';
+            $url->param('filterbygroup', 1);
             foreach (array_values($this->state->groupids) as $id) {
-                $parts[] = 'groupids%5B%5D=' . (int) $id;
+                $url->param('groupids[]', (int) $id);
             }
         }
-        if (empty($parts)) {
-            return $base;
+        if (empty($blockedids) && empty($nextstepids) && empty($this->state->groupids)) {
+            return null;
         }
-        return $base . '&' . implode('&', $parts);
+        return $url->out(false);
     }
 
     /**
@@ -782,6 +808,7 @@ class simulation_page implements renderable, templatable {
     private function format_reason(
         array $reason,
         string $dateformat,
+        int $courseid,
         array $cms = [],
         array $groups = [],
         array $groupings = []
@@ -800,7 +827,13 @@ class simulation_page implements renderable, templatable {
         if ($type === 'completion') {
             $depcmid = (int) ($reason['cmid'] ?? 0);
             $depcm = $cms[$depcmid] ?? null;
-            $depname = $depcm ? $depcm->name : 'cmid ' . $depcmid;
+            // Format_string() with the CM context applies activity-specific text
+            // filters; s() escapes the result for safe interpolation into the
+            // HTML link produced by the sim_reason_completion lang string.
+            $depctx = \context_module::instance($depcmid, IGNORE_MISSING);
+            $depname = $depcm
+                ? s(format_string($depcm->name, true, ['context' => $depctx ?: \context_course::instance($courseid)]))
+                : 'cmid ' . (int) $depcmid;
             $depmodname = $depcm ? $depcm->modname : '';
             $depurl = $depcm
                 ? (new \moodle_url('/mod/' . $depmodname . '/view.php', ['id' => $depcmid]))->out(false)
@@ -834,7 +867,7 @@ class simulation_page implements renderable, templatable {
             $base['label'] = get_string(
                 $gname !== null ? 'sim_reason_group_named' : 'sim_reason_group',
                 'local_coursectrl',
-                (object)['groupid' => $gid, 'groupname' => $gname]
+                (object)['groupid' => $gid, 'groupname' => $gname !== null ? s($gname) : null]
             );
         } else if ($type === 'grouping') {
             $ggid = (int) ($reason['groupingid'] ?? 0);
@@ -842,7 +875,7 @@ class simulation_page implements renderable, templatable {
             $base['label'] = get_string(
                 $ggname !== null ? 'sim_reason_grouping_named' : 'sim_reason_grouping',
                 'local_coursectrl',
-                (object)['groupingid' => $ggid, 'groupingname' => $ggname]
+                (object)['groupingid' => $ggid, 'groupingname' => $ggname !== null ? s($ggname) : null]
             );
         } else if ($type === 'grade') {
             $gradecmid = (int) ($reason['cmid'] ?? 0);
@@ -852,7 +885,12 @@ class simulation_page implements renderable, templatable {
                     'sim_reason_grade_simulated',
                     'local_coursectrl',
                     (object)[
-                        'cmname'    => $gradecm->name,
+                        'cmname'    => s(format_string(
+                            $gradecm->name,
+                            true,
+                            ['context' => \context_module::instance($gradecmid, IGNORE_MISSING)
+                                ?: \context_course::instance($courseid)]
+                        )),
                         'grade'     => round((float) $reason['grade'], 1),
                         'direction' => isset($reason['min']) ? '>=' : '<',
                         'threshold' => round((float) ($reason['min'] ?? $reason['max'] ?? 0), 1),
@@ -864,7 +902,7 @@ class simulation_page implements renderable, templatable {
                 $base['label'] = get_string(
                     'sim_reason_grade_named',
                     'local_coursectrl',
-                    (object)['cmname' => $gradecm->name, 'direction' => $dir, 'threshold' => $thresh]
+                    (object)['cmname' => s(format_string($gradecm->name)), 'direction' => $dir, 'threshold' => $thresh]
                 );
             } else {
                 $base['label'] = get_string('sim_reason_grade', 'local_coursectrl');

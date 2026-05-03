@@ -15,10 +15,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Integration tests: Logging und Rollback (Undo).
+ * Integration tests for the audit-log and rollback (undo) pipeline.
  *
- * Prüft den vollständigen Zyklus: batch_manager::execute → Snapshot-Erzeugung →
- * rollback_manager::rollback_batch → Werte-Wiederherstellung.
+ * Covers the full cycle: batch_manager::execute() → snapshot creation →
+ * rollback_manager::rollback_batch() → field-value restoration.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -47,13 +47,13 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
     /** @var int 2026-06-01 00:00 UTC */
     private const T_BASE = 1748736000;
 
-    /** @var int 7 Tage in Sekunden */
+    /** @var int Seven days in seconds. */
     private const WEEK = 604800;
 
-    // Helpers.
+    // Fixture helpers.
 
     /**
-     * Erstelle Kurs mit Assign und Quiz.
+     * Create a course containing an Assignment and a Quiz with known due dates.
      *
      * @return array{courseid:int, assigncmid:int, quizcmid:int, assigniid:int, quiziid:int}
      */
@@ -82,10 +82,10 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
         ];
     }
 
-    // Logging: Batch-Persistierung.
+    // Logging: batch persistence.
 
     /**
-     * execute() erzeugt eine Batch-Zeile mit Status 'executed'.
+     * execute() creates a batch record with status 'executed'.
      * @covers \local_coursectrl\manager\batch_manager
      * @covers \local_coursectrl\manager\rollback_manager
      * @covers \local_coursectrl\local\persistent\batch
@@ -115,7 +115,7 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
     }
 
     /**
-     * execute() erzeugt Batch-Item-Zeilen für jede bearbeitete Aktivität.
+     * execute() creates batch-item rows for every affected activity.
      * @covers \local_coursectrl\manager\batch_manager
      * @covers \local_coursectrl\manager\rollback_manager
      * @covers \local_coursectrl\local\persistent\batch
@@ -141,7 +141,7 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
     }
 
     /**
-     * execute() erzeugt Snapshot-Zeilen für den Rollback.
+     * execute() creates snapshot rows that enable rollback.
      * @covers \local_coursectrl\manager\batch_manager
      * @covers \local_coursectrl\manager\rollback_manager
      * @covers \local_coursectrl\local\persistent\batch
@@ -171,7 +171,7 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
     }
 
     /**
-     * rollback_manager::get_course_batches gibt Batches für Kurs zurück.
+     * get_course_batches() returns the batch list for a course.
      * @covers \local_coursectrl\manager\batch_manager
      * @covers \local_coursectrl\manager\rollback_manager
      * @covers \local_coursectrl\local\persistent\batch
@@ -201,7 +201,7 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
     // Rollback.
 
     /**
-     * rollback_batch stellt den ursprünglichen duedate-Wert wieder her.
+     * rollback_batch() restores the original duedate value.
      * @covers \local_coursectrl\manager\batch_manager
      * @covers \local_coursectrl\manager\rollback_manager
      * @covers \local_coursectrl\local\persistent\batch
@@ -223,11 +223,11 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
             $admin->id
         );
 
-        // Datum wurde verschoben.
+        // Verify the date was actually shifted before rolling back.
         $shiftedduedate = (int) $DB->get_field('assign', 'duedate', ['id' => $data['assigniid']]);
         $this->assertSame($originalduedate + self::WEEK, $shiftedduedate, 'Shift should have been applied');
 
-        // Rollback.
+        // Execute rollback.
         $rollbackmgr = new rollback_manager();
         $result = $rollbackmgr->rollback_batch($data['courseid'], $batchid, $admin->id);
 
@@ -239,7 +239,7 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
     }
 
     /**
-     * rollback_batch stellt quiz-Zeiten korrekt wieder her.
+     * rollback_batch() restores both quiz timeopen and timeclose.
      * @covers \local_coursectrl\manager\batch_manager
      * @covers \local_coursectrl\manager\rollback_manager
      * @covers \local_coursectrl\local\persistent\batch
@@ -270,7 +270,7 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
     }
 
     /**
-     * Nach Rollback ist Batch-Status NICHT mehr 'executed' (kein doppelter Rollback).
+     * After rollback the batch is no longer in 'executed' state and cannot be rolled back again.
      * @covers \local_coursectrl\manager\batch_manager
      * @covers \local_coursectrl\manager\rollback_manager
      * @covers \local_coursectrl\local\persistent\batch
@@ -301,7 +301,7 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
     }
 
     /**
-     * Rollback auf nicht existierende Batch-ID liefert Fehler.
+     * Rollback with a non-existent batch ID returns an error result.
      * @covers \local_coursectrl\manager\batch_manager
      * @covers \local_coursectrl\manager\rollback_manager
      * @covers \local_coursectrl\local\persistent\batch
@@ -317,7 +317,7 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
     }
 
     /**
-     * Mehrstufige Verschiebung: zwei aufeinanderfolgende Batches sind unabhängig rollbackbar.
+     * Two consecutive shift batches can each be rolled back independently.
      * @covers \local_coursectrl\manager\batch_manager
      * @covers \local_coursectrl\manager\rollback_manager
      * @covers \local_coursectrl\local\persistent\batch
@@ -346,7 +346,7 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
             $admin->id
         );
 
-        // Rollback des zweiten Batch → zurück auf +1 Woche.
+        // Roll back the second batch; value should return to +1 week.
         $rollbackmgr = new rollback_manager();
         $r2 = $rollbackmgr->rollback_batch($data['courseid'], $batchid2, $admin->id);
         $this->assertTrue($r2['success']);
@@ -358,10 +358,81 @@ final class fixture_logging_rollback_test extends \advanced_testcase {
             'After rolling back batch 2, value should be back to +1 week'
         );
 
-        // Rollback des ersten Batch → zurück auf original.
+        // Roll back the first batch; value should return to the original.
         $r1 = $rollbackmgr->rollback_batch($data['courseid'], $batchid1, $admin->id);
         $this->assertTrue($r1['success']);
         $afterr1 = (int) $DB->get_field('assign', 'duedate', ['id' => $data['assigniid']]);
         $this->assertSame($original, $afterr1, 'After rolling back batch 1, value should be fully restored');
+    }
+
+    /**
+     * Adapter-backed date shift with completionexpected set: full rollback.
+     *
+     * Verifies that rolling back an adapter-based shift batch restores both
+     * the adapter-owned date fields (duedate) and the CM-level field
+     * completionexpected to their original values.
+     *
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\manager\rollback_manager
+     * @covers \local_coursectrl\local\contract\shift_dates_executor
+     */
+    public function test_rollback_restores_completionexpected_from_adapter_shift(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $origdue = self::T_BASE + self::WEEK;
+        $origce = self::T_BASE + (int) (self::WEEK * 0.5);
+        $delta = self::WEEK;
+
+        // Enable completion tracking so completionexpected is meaningful.
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $assign = $this->getDataGenerator()
+            ->get_plugin_generator('mod_assign')
+            ->create_instance([
+                'course'      => $course->id,
+                'duedate'     => $origdue,
+                'completion'  => 2,
+            ]);
+        $cmid = (int) $assign->cmid;
+
+        // Set completionexpected via direct DB write to simulate a prior shift.
+        $DB->set_field('course_modules', 'completionexpected', $origce, ['id' => $cmid]);
+
+        // Execute the date shift.
+        $admin = get_admin();
+        $batchmgr = new batch_manager();
+        $batchid = $batchmgr->execute(
+            (int) $course->id,
+            'shift_dates',
+            ['delta' => $delta],
+            [$cmid],
+            $admin->id
+        );
+
+        // Verify both fields are shifted by the delta.
+        $shifteddue = (int) $DB->get_field('assign', 'duedate', ['id' => $assign->id]);
+        $shiftedce = (int) $DB->get_field('course_modules', 'completionexpected', ['id' => $cmid]);
+        $this->assertSame($origdue + $delta, $shifteddue, 'duedate must be shifted');
+        $this->assertSame($origce + $delta, $shiftedce, 'completionexpected must be shifted');
+
+        // Rollback.
+        $rollbackmgr = new rollback_manager();
+        $result = $rollbackmgr->rollback_batch((int) $course->id, $batchid, $admin->id);
+        $this->assertTrue($result['success'], 'Rollback must succeed');
+
+        // Verify both fields are back to their original values.
+        $restoreddue = (int) $DB->get_field('assign', 'duedate', ['id' => $assign->id]);
+        $restoredce = (int) $DB->get_field('course_modules', 'completionexpected', ['id' => $cmid]);
+        $this->assertSame($origdue, $restoreddue, 'duedate must be restored');
+        $this->assertSame($origce, $restoredce, 'completionexpected must be restored');
+
+        // No item must fail with a no_adapter error.
+        foreach ($result['items'] as $item) {
+            $this->assertNotSame(
+                'no_adapter',
+                $item['message'],
+                'No item should fail with no_adapter'
+            );
+        }
     }
 }

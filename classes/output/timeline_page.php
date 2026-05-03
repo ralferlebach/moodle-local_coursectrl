@@ -242,7 +242,7 @@ class timeline_page implements renderable, templatable {
         ] + $this->build_textreview_context($course->id);
     }
     /**
-     * Build textreview context variables for the Textprüfung tab.
+     * Build textreview context variables for the text-review tab.
      *
      * Loads persisted text_hit records for the course, pre-populates the
      * delta inputs from the shift that triggered this tab, and surfaces any
@@ -258,12 +258,13 @@ class timeline_page implements renderable, templatable {
         $fromshift  = !empty($this->filters['from_shift']);
         $batchid    = (int) ($this->filters['shift_batchid'] ?? 0);
 
-        // Read and clear collision notices stored by shift.php.
+        // Read and clear collision notices stored by shift.php via Moodle's $SESSION.
         $collisions = [];
         $sessionkey = 'coursectrl_collisions_' . $batchid;
-        if ($batchid && !empty($_SESSION[$sessionkey])) {
-            $raw = $_SESSION[$sessionkey];
-            unset($_SESSION[$sessionkey]);
+        global $SESSION;
+        if ($batchid && !empty($SESSION->$sessionkey)) {
+            $raw = $SESSION->$sessionkey;
+            unset($SESSION->$sessionkey);
             $decoded = json_decode($raw, true);
             if (is_array($decoded)) {
                 foreach ($decoded as $msg) {

@@ -150,8 +150,8 @@ class temporal_conflict_detector {
     /**
      * Detect temporal conflicts for a set of CMs.
      *
-     * @param cm_item[] $cms       Course modules keyed by cmid.
-     * @param array     $datesbycm Per-CM date entries from date_collector.
+     * @param cm_item[] $cms Course modules keyed by cmid.
+     * @param array $datesbycm Per-CM date entries from date_collector.
      * @return array<int, array[]> cmid → list of conflict arrays.
      */
     public function detect(array $cms, array $datesbycm): array {
@@ -212,10 +212,10 @@ class temporal_conflict_detector {
      *     (for multi-phase activities notice is never raised — the multi-phase
      *      span makes large gaps expected)
      *
-     * @param cm_item            $cm            The course module.
-     * @param array<string, int> $fieldmap      Adapter-sourced field → timestamp map.
-     * @param int                $warningoffset Unused (kept for symmetry; warning fires at 0).
-     * @param int                $noticeoffset  Seconds before deadline that trigger notice.
+     * @param cm_item $cm The course module being checked.
+     * @param array $fieldmap See function signature.
+     * @param int $warningoffset Unused (kept for symmetry; warning fires at 0).
+     * @param int $noticeoffset Seconds before deadline that trigger notice.
      * @return array[] Issue arrays (empty if no issue).
      */
     private function check_r2(
@@ -293,8 +293,8 @@ class temporal_conflict_detector {
     /**
      * Apply R3 ordering rules against a field map.
      *
-     * @param array<int, string[]> $rules
-     * @param array<string, int>   $fieldmap
+     * @param array $rules Ordered rule pairs: [field_a, field_b].
+     * @param array $fieldmap Field → timestamp map for this CM.
      * @return array[]
      */
     private function apply_rules(array $rules, array $fieldmap): array {
@@ -322,10 +322,10 @@ class temporal_conflict_detector {
      * should be >= anchor + min_gap_seconds. Only fires when both fields
      * are set and following < anchor + min_gap_seconds.
      *
-     * @param array<int, string[]> $rules
-     * @param array<string, int>   $fieldmap
-     * @param int                  $mingapsecs Configured minimum gap in seconds.
-     * @param string               $severity   Configured severity ('notice'|'warning').
+     * @param array $rules See function signature.
+     * @param array $fieldmap See function signature.
+     * @param int $mingapsecs Configured minimum gap in seconds.
+     * @param string $severity Configured severity ('notice'|'warning').
      * @return array[]
      */
     private function apply_coupling_rules(

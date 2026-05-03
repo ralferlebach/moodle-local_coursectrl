@@ -30,7 +30,7 @@
     * hasresults (bool), resultrows, nextsteprows, blockedrows
 
     Example context (json):
-    {"courseid":2,"sesskey":"x","simdate":"2026-06-01","simtime":"09:00",
+    {"courseid":2,"sesskey":"x","selfurl":"#","simdate":"2026-06-01","simtime":"09:00",
      "hascoursegroups":false,"hascoursegroupings":false,"hascmformrows":false}
 }}
 
@@ -467,15 +467,19 @@ require(['local_coursectrl/simulation'], function(S) {
 // so timing of script execution relative to DOM does not matter.
 (function() {
     var root = document.querySelector('[data-region="local_coursectrl-simulation"]');
-    if (!root) { return; }
+    if (!root) {
+        return;
+    }
     var cstate = {};
     root.addEventListener('click', function(e) {
         var hdr = e.target.closest('[data-cc-toggle]');
-        if (!hdr) { return; }
-        var cid   = hdr.getAttribute('data-cc-toggle');
+        if (!hdr) {
+            return;
+        }
+        var cid = hdr.getAttribute('data-cc-toggle');
         var arrow = hdr.querySelector('[data-cc-arrow]');
         cstate[cid] = !cstate[cid];
-        var hide  = cstate[cid];
+        var hide = cstate[cid];
         // Section: find <tbody data-cc-body="cid">.
         var body = root.querySelector('tbody[data-cc-body="' + cid + '"]');
         if (body) {
@@ -490,14 +494,18 @@ require(['local_coursectrl/simulation'], function(S) {
                 srows[j].style.display = hide ? 'none' : '';
             }
         }
-        if (arrow) { arrow.innerHTML = hide ? '&#9654;' : '&#9660;'; }
+        if (arrow) {
+            arrow.innerHTML = hide ? '&#9654;' : '&#9660;';
+        }
     });
 })();
 
 // Stat-card scroll navigation with fixed-navbar offset.
 (function() {
     var root = document.querySelector('[data-region="local_coursectrl-simulation"]');
-    if (!root) { return; }
+    if (!root) {
+        return;
+    }
     // Account for Moodle's fixed-top navbar so the card is not hidden behind it.
     var navbar = document.querySelector('.navbar.fixed-top, nav.fixed-top');
     var navH = navbar ? (navbar.offsetHeight + 8) : 68;
@@ -506,7 +514,9 @@ require(['local_coursectrl/simulation'], function(S) {
         root.querySelectorAll('[data-action="' + action + '"]').forEach(function(el) {
             el.addEventListener('click', function() {
                 var target = document.getElementById(targetId);
-                if (!target) { return; }
+                if (!target) {
+                    return;
+                }
                 var top = target.getBoundingClientRect().top + window.pageYOffset - navH;
                 window.scrollTo({top: top, behavior: 'smooth'});
             });
@@ -518,18 +528,26 @@ require(['local_coursectrl/simulation'], function(S) {
 (function() {
     function syncRow(row) {
         var gp = parseFloat(row.getAttribute('data-gradepass') || '0');
-        if (!(gp > 0)) { return; }
+        if (!(gp > 0)) {
+            return;
+        }
         var gi = row.querySelector('.sim-grade-input');
         var pc = row.querySelector('.sim-passed-cb');
-        if (!gi || !pc) { return; }
+        if (!gi || !pc) {
+            return;
+        }
         // Checking Bestehen → fill grade with threshold.
         pc.addEventListener('change', function() {
-            if (pc.checked && gi.value === '') { gi.value = gp; }
+            if (pc.checked && gi.value === '') {
+                gi.value = gp;
+            }
         });
         // Grade >= threshold → auto-check Bestehen.
         gi.addEventListener('input', function() {
             var v = parseFloat(gi.value);
-            if (!isNaN(v)) { pc.checked = v >= gp; }
+            if (!isNaN(v)) {
+                pc.checked = v >= gp;
+            }
         });
     }
     document.querySelectorAll('.sim-nextstep-row').forEach(syncRow);
@@ -540,10 +558,14 @@ require(['local_coursectrl/simulation'], function(S) {
         simForm.addEventListener('submit', function() {
             document.querySelectorAll('.sim-nextstep-row').forEach(function(row) {
                 var gp = parseFloat(row.getAttribute('data-gradepass') || '0');
-                if (!(gp > 0)) { return; }
+                if (!(gp > 0)) {
+                    return;
+                }
                 var gi = row.querySelector('.sim-grade-input');
                 var pc = row.querySelector('.sim-passed-cb');
-                if (gi && pc && pc.checked && gi.value === '') { gi.value = gp; }
+                if (gi && pc && pc.checked && gi.value === '') {
+                    gi.value = gp;
+                }
             });
         });
     }
@@ -553,13 +575,17 @@ require(['local_coursectrl/simulation'], function(S) {
 (function() {
     var LIMIT = 2;
     var simRoot = document.querySelector('[data-region="local_coursectrl-simulation"]');
-    if (!simRoot) { return; }
+    if (!simRoot) {
+        return;
+    }
     simRoot.querySelectorAll('ul.mb-0.small.fw-normal.ps-3').forEach(function(ul) {
-        var allLi  = Array.from(ul.querySelectorAll('li'));
+        var allLi = Array.from(ul.querySelectorAll('li'));
         var realLi = allLi.filter(function(li) {
             return !li.classList.contains('list-unstyled');
         });
-        if (realLi.length <= LIMIT) { return; }
+        if (realLi.length <= LIMIT) {
+            return;
+        }
 
         // Find index at which to start hiding (after LIMIT real conditions).
         var shown = 0;
@@ -567,10 +593,15 @@ require(['local_coursectrl/simulation'], function(S) {
         for (var i = 0; i < allLi.length; i++) {
             if (!allLi[i].classList.contains('list-unstyled')) {
                 shown++;
-                if (shown > LIMIT) { cutIdx = i; break; }
+                if (shown > LIMIT) {
+                    cutIdx = i;
+                    break;
+                }
             }
         }
-        for (var j = cutIdx; j < allLi.length; j++) { allLi[j].style.display = 'none'; }
+        for (var j = cutIdx; j < allLi.length; j++) {
+            allLi[j].style.display = 'none';
+        }
 
         var remaining = realLi.length - LIMIT;
         var lblMore = simRoot.getAttribute('data-lbl-more-cond') || 'more condition(s)';
@@ -586,7 +617,9 @@ require(['local_coursectrl/simulation'], function(S) {
             b.addEventListener('click', function(e) {
                 e.stopPropagation();
                 var open = b.textContent !== ls;
-                liSlice.forEach(function(li) { li.style.display = open ? 'none' : ''; });
+                liSlice.forEach(function(li) {
+                    li.style.display = open ? 'none' : '';
+                });
                 b.textContent = open ? ls : lh;
             });
         }(allLi.slice(cutIdx), btn, lblShow, lblHide));

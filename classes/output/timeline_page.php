@@ -358,7 +358,9 @@ class timeline_page implements renderable, templatable {
     /**
      * Build Gantt dataset for the 'Grafische Übersicht' tab.
      *
+     * @param array $sections See function signature.
      * @param array $cms CMs keyed by cmid.
+     * @param int $courseid See function signature.
      * @return array Gantt dataset export.
      */
     private function build_gantt_data(array $sections, array $cms, int $courseid): array {

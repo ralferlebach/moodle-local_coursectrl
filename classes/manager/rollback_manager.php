@@ -137,8 +137,9 @@ class rollback_manager {
      * Everything runs inside a DB transaction; on failure the transaction
      * is rolled back and the batch status is unchanged.
      *
-     * @param int $batchid Batch id to roll back.
-     * @param int $userid  User performing the rollback (for audit).
+     * @param int $courseid Course id the batch belongs to.
+     * @param int $batchid  Batch id to roll back.
+     * @param int $userid   User performing the rollback (for audit).
      * @return array{
      *     success: bool,
      *     error: string,

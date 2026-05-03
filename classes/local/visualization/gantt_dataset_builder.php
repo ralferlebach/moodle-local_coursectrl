@@ -73,7 +73,7 @@ class gantt_dataset_builder {
     /**
      * Build the Gantt dataset.
      *
-     * @param cm_item[]             $cms    Course modules keyed by cmid.
+     * @param array $cms Course modules keyed by cmid.
      * @param calendar_manager|null $calman Optional calendar manager for holiday bands.
      * @return array{
      *     rows: array,
@@ -202,6 +202,9 @@ class gantt_dataset_builder {
      * @param cm_item[]             $cms      Course modules keyed by cmid, in course order.
      * @param int                   $courseid Course id for section URLs.
      * @param calendar_manager|null $calman   Optional calendar manager for holiday bands.
+     * @param array $sectionnames See function signature.
+     * @param array $subsectionmap See function signature.
+     * @param array $subsectionsectionids See function signature.
      * @return array Same shape as build(), with additional row fields.
      */
     public function build_with_structure(
@@ -520,7 +523,7 @@ class gantt_dataset_builder {
                             }
                         }
                         $childfrom = !empty($candidatefrom) ? max($candidatefrom) : null;
-                        $childto   = !empty($candidateto) ? min($candidateto) : null;
+                        $childto = !empty($candidateto) ? min($candidateto) : null;
                         $childwindow = ($childfrom !== null || $childto !== null)
                             ? [
                                 'from_ts' => $childfrom,
@@ -686,6 +689,7 @@ class gantt_dataset_builder {
      * Always returns a non-empty string.
      *
      * @param string $field Raw field name.
+     * @param string $modname See function signature.
      * @return string Localised label fit for hover tooltip display.
      */
     private function localised_field_label(string $field, string $modname = ''): string {

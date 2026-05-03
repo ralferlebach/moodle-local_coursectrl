@@ -457,7 +457,7 @@ class checks_page implements renderable, templatable {
      * the field name itself.
      *
      * @param string $field Field identifier (e.g. 'duedate').
-     * @param mixed  $cm    CM item (used to find the subplugin component).
+     * @param mixed $cm CM item (used to find the subplugin component).
      * @return string
      */
     private function field_label(string $field, $cm): string {
@@ -482,6 +482,8 @@ class checks_page implements renderable, templatable {
      * @param array            $cmnames
      * @param array            $cmurls
      * @param int              $courseid
+     * @param array $cmobjects See function signature.
+     * @param array $sections See function signature.
      * @return array
      */
     private function build_risks_tab(
@@ -530,10 +532,10 @@ class checks_page implements renderable, templatable {
      * problem description, consequence, and concrete action.
      *
      * @param array[] $items
-     * @param array   $cmnames
-     * @param array   $cmurls
-     * @param array   $cms      Full cm_item objects keyed by cmid.
-     * @param int     $courseid Course id (required for fix URLs).
+     * @param array $cmnames
+     * @param array $cmurls
+     * @param array $cms Full cm_item objects keyed by cmid.
+     * @param int $courseid Course id (required for fix URLs).
      * @return array[]
      */
     private function group_risk_items(
@@ -793,6 +795,7 @@ class checks_page implements renderable, templatable {
      * @param string  $cmname
      * @param array[] $relatedlinked
      * @param string  $dateformat
+     * @param string $modname See function signature.
      * @return array{0: string, 1: string}
      */
     private function risk_type_texts(
@@ -1034,6 +1037,7 @@ class checks_page implements renderable, templatable {
      * @param mixed    $cm        CM item object or null.
      * @param int      $courseid  Course id.
      * @param string   $tab       Checks tab to return to after fix.
+     * @param array $extraparams See function signature.
      * @return string URL or empty string.
      */
     private function fix_url_for(string $type, int $cmid, $cm, int $courseid, string $tab, array $extraparams = []): string {

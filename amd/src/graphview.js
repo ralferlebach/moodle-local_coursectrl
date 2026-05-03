@@ -98,7 +98,7 @@ define([], function() {
         };
     };
 
-    var renderGraph = function(canvas) {
+    var renderGraph = function(canvas) { // eslint-disable-line complexity
         var raw = canvas.getAttribute('data-graph');
         if (!raw) {
             return;
@@ -235,7 +235,7 @@ define([], function() {
     // Collapsed section state: sectionid (string) -> bool.
     var ganttCollapsed = {};
 
-    var renderGantt = function(canvas) {
+    var renderGantt = function(canvas) { // eslint-disable-line complexity
         var lblOutsection = canvas.getAttribute('data-lbl-outsection')
             || '\u26a0 Outside section availability window';
         var raw = canvas.getAttribute('data-gantt');
@@ -402,11 +402,11 @@ define([], function() {
                         ? row.window.to_ts : maxts;
                     if (swTo > swFrom) {
                         var swPctFrom = (swFrom - mints) / span;
-                        var swPctTo   = (swTo   - mints) / span;
-                        var swx  = GANTT_LABEL_W + Math.round(swPctFrom * barAreaW);
-                        var swxe = GANTT_LABEL_W + Math.round(swPctTo   * barAreaW);
-                        var sww  = Math.max(2, swxe - swx);
-                        var sug  = svgEl('g', {cursor: 'default'});
+                        var swPctTo = (swTo - mints) / span;
+                        var swx = GANTT_LABEL_W + Math.round(swPctFrom * barAreaW);
+                        var swxe = GANTT_LABEL_W + Math.round(swPctTo * barAreaW);
+                        var sww = Math.max(2, swxe - swx);
+                        var sug = svgEl('g', {cursor: 'default'});
                         var sutip = svgEl('title', {});
                         sutip.textContent = (row.window.from_formatted || '\u2026')
                             + ' \u2013 ' + (row.window.to_formatted || '\u2026');
@@ -423,8 +423,8 @@ define([], function() {
                 if (row.bars && row.bars.length) {
                     row.bars.forEach(function(bar) {
                         var pct = (bar.timestamp - mints) / span;
-                        var bx  = GANTT_LABEL_W + Math.max(2, Math.round(pct * barAreaW));
-                        var bg  = svgEl('g', {cursor: 'default'});
+                        var bx = GANTT_LABEL_W + Math.max(2, Math.round(pct * barAreaW));
+                        var bg = svgEl('g', {cursor: 'default'});
                         var btip = svgEl('title', {});
                         var blbl = bar.humanlabel || bar.fieldlabel || bar.field;
                         btip.textContent = bar.formatted
@@ -538,14 +538,14 @@ define([], function() {
                     rx: '2'}));
             } else if (row.window) {
                 var wFrom = row.window.from_ts !== null ? row.window.from_ts : mints;
-                var wTo   = row.window.to_ts   !== null ? row.window.to_ts   : maxts;
+                var wTo = row.window.to_ts !== null ? row.window.to_ts : maxts;
                 if (wTo > wFrom) {
                     var wPctFrom = (wFrom - mints) / span;
-                    var wPctTo   = (wTo   - mints) / span;
-                    var wx  = GANTT_LABEL_W + Math.round(wPctFrom * barAreaW);
-                    var wxe = GANTT_LABEL_W + Math.round(wPctTo   * barAreaW);
-                    var ww  = Math.max(2, wxe - wx);
-                    var ug  = svgEl('g', {cursor: 'default'});
+                    var wPctTo = (wTo - mints) / span;
+                    var wx = GANTT_LABEL_W + Math.round(wPctFrom * barAreaW);
+                    var wxe = GANTT_LABEL_W + Math.round(wPctTo * barAreaW);
+                    var ww = Math.max(2, wxe - wx);
+                    var ug = svgEl('g', {cursor: 'default'});
                     var utip = svgEl('title', {});
                     utip.textContent = (row.window.from_formatted || '…') +
                         ' – ' + (row.window.to_formatted || '…');
@@ -566,7 +566,7 @@ define([], function() {
             // already inherit the section window as their own window band).
             if (row.parentwindow && row.bars && row.bars.length > 0) {
                 var pwFrom = row.parentwindow.from_ts;
-                var pwTo   = row.parentwindow.to_ts;
+                var pwTo = row.parentwindow.to_ts;
                 // Shade the period before the section opens.
                 if (pwFrom !== null && pwFrom > mints) {
                     var shadeW = Math.round(((pwFrom - mints) / span) * barAreaW);
@@ -586,7 +586,7 @@ define([], function() {
                 // Shade the period after the section closes.
                 if (pwTo !== null && pwTo < maxts) {
                     var shadeStart = GANTT_LABEL_W + Math.round(((pwTo - mints) / span) * barAreaW);
-                    var shadeEnd   = GANTT_LABEL_W + barAreaW;
+                    var shadeEnd = GANTT_LABEL_W + barAreaW;
                     if (shadeEnd > shadeStart) {
                         svg.appendChild(svgEl('rect', {
                             x: shadeStart, y: rowY,
@@ -604,8 +604,8 @@ define([], function() {
             // Date marker bars.
             row.bars.forEach(function(bar) {
                 var pct = (bar.timestamp - mints) / span;
-                var bx  = GANTT_LABEL_W + Math.max(2, Math.round(pct * barAreaW));
-                var g   = svgEl('g', {cursor: 'default'});
+                var bx = GANTT_LABEL_W + Math.max(2, Math.round(pct * barAreaW));
+                var g = svgEl('g', {cursor: 'default'});
                 var tip = svgEl('title', {});
                 var label = bar.humanlabel || bar.fieldlabel || bar.field;
                 tip.textContent = bar.formatted ? (label + ': ' + bar.formatted) : label;
@@ -614,8 +614,14 @@ define([], function() {
                     tip.textContent += ' ' + lblOutsection;
                 }
                 g.appendChild(tip);
-                var barColor = bar.outsection ? COL_GANTT_DANGER
-                    : (bar.source === 'adapter' ? COL_GANTT_BAR : COL_GANTT_MARK);
+                var barColor;
+                if (bar.outsection) {
+                    barColor = COL_GANTT_DANGER;
+                } else if (bar.source === 'adapter') {
+                    barColor = COL_GANTT_BAR;
+                } else {
+                    barColor = COL_GANTT_MARK;
+                }
                 if (bar.source === 'adapter') {
                     g.appendChild(svgEl('rect', {
                         x: bx - 2, y: midY - GANTT_BAR_H / 2,

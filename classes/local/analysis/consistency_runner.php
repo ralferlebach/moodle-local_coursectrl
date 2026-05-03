@@ -76,8 +76,9 @@ class consistency_runner {
     /**
      * Constructor.
      *
-     * @param temporal_conflict_detector|null $conflictdetector   Optional override.
-     * @param reachability_analyzer|null      $reachabilityanalyzer Optional override.
+     * @param temporal_conflict_detector|null $conflictdetector Optional override; null = new instance.
+     * @param reachability_analyzer|null $reachabilityanalyzer Optional override; null = new instance.
+     * @param course_frame_checker|null $framechecker Optional override for testing; null = new instance.
      */
     public function __construct(
         ?temporal_conflict_detector $conflictdetector = null,

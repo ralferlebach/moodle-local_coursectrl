@@ -61,7 +61,7 @@ abstract class inventory_item implements \JsonSerializable {
     /**
      * Reconstruct an entity from its array representation.
      *
-     * @param array<string,mixed> $data serialised entity.
+     * @param array $data serialised entity.
      * @return static
      * @throws \coding_exception when a required key is missing.
      */
@@ -81,7 +81,7 @@ abstract class inventory_item implements \JsonSerializable {
      *
      * Helper for concrete from_array() implementations.
      *
-     * @param array<string,mixed> $data  source array.
+     * @param array $data  source array.
      * @param string              $key   required key.
      * @param string              $class calling class for error context.
      * @return mixed the value at $key.

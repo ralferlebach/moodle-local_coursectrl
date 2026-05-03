@@ -53,9 +53,9 @@ final class inventory_snapshot implements \JsonSerializable {
      * Constructor.
      *
      * @param course_item             $course   The normalised course entity.
-     * @param array<int,section_item> $sections Sections keyed by section id.
-     * @param array<int,cm_item>      $cms      Course modules keyed by cmid.
-     * @param array<string,text_item> $texts    Editable texts keyed by text_item::get_key().
+     * @param array $sections Sections keyed by section id.
+     * @param array $cms      Course modules keyed by cmid.
+     * @param array $texts    Editable texts keyed by text_item::get_key().
      */
     public function __construct(course_item $course, array $sections, array $cms, array $texts) {
         $this->course = $course;

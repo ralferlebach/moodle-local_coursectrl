@@ -224,7 +224,11 @@ define([], function() {
 
         var rows = changes.map(function(change, idx) {
             var fields = {};
-            try { fields = JSON.parse(change.fieldsjson || '{}'); } catch (e) { fields = {}; }
+            try {
+                fields = JSON.parse(change.fieldsjson || '{}');
+            } catch (e) {
+                fields = {};
+            }
             var fieldNames = Object.keys(fields);
             var detailId = 'ccwf-prev-det-' + idx;
 
@@ -275,7 +279,7 @@ define([], function() {
      * @param {object}   [labels=null]  UI label strings from modal data-attributes.
      * @return {string} HTML string.
      */
-    var renderHitsHtml = function(hits, delta, readOnly, labels) {
+    var renderHitsHtml = function(hits, delta, readOnly, labels) { // eslint-disable-line complexity
         var lbl = labels || {};
         if (!hits || hits.length === 0) {
             return '<p class="text-muted small mb-0">' + escHtml(lbl.msgNohits || '') + '</p>';
@@ -299,15 +303,21 @@ define([], function() {
             } catch (e) {
                 ctx = {};
             }
-            var beforeFull  = escHtml(ctx.before || '');
-            var afterFull   = escHtml(ctx.after || '');
+            var beforeFull = escHtml(ctx.before || '');
+            var afterFull = escHtml(ctx.after || '');
             var beforeShort = escHtml((ctx.before || '').slice(-30));
-            var afterShort  = escHtml((ctx.after || '').slice(0, 30));
+            var afterShort = escHtml((ctx.after || '').slice(0, 30));
             var matched = escHtml(hit.matchedtext || '');
             var isSel = hit.confidence !== 'informational';
             var checked = hit.confidence === 'safe' ? ' checked' : '';
-            var bc = hit.confidence === 'safe' ? 'badge-success'
-                : (hit.confidence === 'ambiguous' ? 'badge-warning' : 'badge-secondary');
+            var bc;
+            if (hit.confidence === 'safe') {
+                bc = 'badge-success';
+            } else if (hit.confidence === 'ambiguous') {
+                bc = 'badge-warning';
+            } else {
+                bc = 'badge-secondary';
+            }
             var bl = hit.confidence === 'safe' ? lbl.confSafe
                 : (hit.confidence === 'ambiguous' ? lbl.confAmbiguous : lbl.confInfo);
             var rc = hit.confidence === 'informational' ? ' table-light text-muted' : '';
@@ -391,7 +401,7 @@ define([], function() {
             var yearNote = '';
             if (hit.noyear && hit.assumedyear) {
                 var yearTitle = lbl.lblYearAssumed.replace('{$a}', hit.assumedyear);
-                var yearText  = lbl.lblYearLabel.replace('{$a}', hit.assumedyear);
+                var yearText = lbl.lblYearLabel.replace('{$a}', hit.assumedyear);
                 yearNote = ' <span class="badge badge-warning ms-1" title="' +
                     escHtml(yearTitle) + '">' + escHtml(yearText) + '</span>';
             }
@@ -566,32 +576,32 @@ define([], function() {
      * @param {boolean} opts.getScanText Function returning whether text scan is wanted.
      * @param {Function} opts.onComplete Optional callback when workflow is done.
      */
-    var runWorkflow = function(opts) {
-        var modal    = opts.modal;
-        var form     = opts.form;
+    var runWorkflow = function(opts) { // eslint-disable-line complexity
+        var modal = opts.modal;
+        var form = opts.form;
         var courseid = opts.courseid;
 
         // Extract all UI labels from modal data-attributes so no
         // hardcoded language strings remain in the JS source.
         var lbl = {
-            confSafe       : modal.getAttribute('data-lbl-conf-safe')         || 'Safe',
-            confAmbiguous  : modal.getAttribute('data-lbl-conf-ambiguous')    || 'Ambiguous',
-            confInfo       : modal.getAttribute('data-lbl-conf-info')         || 'Informational',
-            btnPreview     : modal.getAttribute('data-label-preview')         || 'Preview',
-            btnClose       : modal.getAttribute('data-lbl-close')             || 'Close',
-            errNoselect    : modal.getAttribute('data-err-noselect')          || 'Please select at least one activity.',
-            errNodelta     : modal.getAttribute('data-err-nodelta')           || 'Please enter a number of days or hours.',
-            errGeneric     : modal.getAttribute('data-err-generic')           || 'An error occurred.',
-            msgNohits      : modal.getAttribute('data-msg-nohits')            || 'No date references found.',
-            msgLoading     : modal.getAttribute('data-msg-loading')           || 'Shifting dates…',
-            msgShifted     : modal.getAttribute('data-msg-shifted')           || 'date(s) shifted.',
-            msgErrors      : modal.getAttribute('data-msg-errors')            || 'error(s).',
-            lblMark        : modal.getAttribute('data-lbl-mark')              || 'Mark affected',
-            lblDeselect    : modal.getAttribute('data-lbl-deselect')          || 'Deselect all',
+            confSafe : modal.getAttribute('data-lbl-conf-safe')         || 'Safe',
+            confAmbiguous : modal.getAttribute('data-lbl-conf-ambiguous')    || 'Ambiguous',
+            confInfo : modal.getAttribute('data-lbl-conf-info')         || 'Informational',
+            btnPreview : modal.getAttribute('data-label-preview')         || 'Preview',
+            btnClose : modal.getAttribute('data-lbl-close')             || 'Close',
+            errNoselect : modal.getAttribute('data-err-noselect')          || 'Please select at least one activity.',
+            errNodelta : modal.getAttribute('data-err-nodelta')           || 'Please enter a number of days or hours.',
+            errGeneric : modal.getAttribute('data-err-generic')           || 'An error occurred.',
+            msgNohits : modal.getAttribute('data-msg-nohits')            || 'No date references found.',
+            msgLoading : modal.getAttribute('data-msg-loading')           || 'Shifting dates…',
+            msgShifted : modal.getAttribute('data-msg-shifted')           || 'date(s) shifted.',
+            msgErrors : modal.getAttribute('data-msg-errors')            || 'error(s).',
+            lblMark : modal.getAttribute('data-lbl-mark')              || 'Mark affected',
+            lblDeselect : modal.getAttribute('data-lbl-deselect')          || 'Deselect all',
             lblYearAssumed : modal.getAttribute('data-lbl-yearassumed')       || 'Year {$a} assumed.',
-            lblYearLabel   : modal.getAttribute('data-lbl-yearlabel')         || 'Year missing – {$a}',
+            lblYearLabel : modal.getAttribute('data-lbl-yearlabel')         || 'Year missing – {$a}',
             lblAmbiguousNotice: modal.getAttribute('data-lbl-ambiguous-notice') || 'Some dates shown for manual review.',
-            lblErrTitle    : modal.getAttribute('data-lbl-errtitle')          || 'Unknown error',
+            lblErrTitle : modal.getAttribute('data-lbl-errtitle')          || 'Unknown error',
         };
 
         var step1 = modal.querySelector('[data-ccwf-step="1"]');
@@ -718,17 +728,17 @@ define([], function() {
                     execBtn.disabled = true;
 
                     // Push cmids + delta into form hidden fields.
-                    var cmids   = opts.getCmids();
-                    var deltaS  = opts.getDelta();
-                    var fCmids  = form.querySelector('[name="cmids"]') ||
+                    var cmids = opts.getCmids();
+                    var deltaS = opts.getDelta();
+                    var fCmids = form.querySelector('[name="cmids"]') ||
                                   form.querySelector('[id$="shift-cmids"]');
-                    var fDays   = form.querySelector('[name="delta_days"]');
-                    var fHours  = form.querySelector('[name="delta_hours"]');
+                    var fDays = form.querySelector('[name="delta_days"]');
+                    var fHours = form.querySelector('[name="delta_hours"]');
                     if (fCmids) {
                         fCmids.value = cmids.join(',');
                     }
-                    var days    = Math.trunc(deltaS / 86400);
-                    var hours   = Math.trunc((deltaS % 86400) / 3600);
+                    var days = Math.trunc(deltaS / 86400);
+                    var hours = Math.trunc((deltaS % 86400) / 3600);
                     var minutes = Math.trunc((deltaS % 3600) / 60);
                     if (fDays) {
                         fDays.value = days;
@@ -808,6 +818,7 @@ define([], function() {
                             }
                             setTitle(modal.getAttribute('data-label-textreview') || '');
 
+                            // eslint-disable-next-line promise/no-nesting
                             fetchTextHits(courseid)
                                 .then(function(data) {
                                     var deltaSec = opts.getDelta();
@@ -834,7 +845,8 @@ define([], function() {
                                                 }
                                                 applyBtn3.disabled = true;
                                                 applyTextChanges(courseid, ids, applyDelta)
-                                                    .then(function() {
+                                                    // eslint-disable-next-line promise/always-return
+                        .then(function() {
                                                         if (opts.onComplete) {
                                                             opts.onComplete(result);
                                                         }

@@ -35,7 +35,7 @@
 
     Example context (json):
     {"courseid":2,"tab_timeline":true,"days":[],"months":[],"showcalendar":true,
-     "sesskey":"x","shifturl":"","timelineurl":""}
+     "sesskey":"x","shifturl":"#","timelineurl":"#"}
 }}
 
 <div class="local_coursectrl_timeline" data-region="local_coursectrl-timeline"
@@ -670,7 +670,9 @@
       // Clicking any other (i) or anywhere outside collapses all.
       function collapseAll(except) {
         table && table.querySelectorAll('.coursectrl-ctx-btn').forEach(function(b) {
-          if (b === except) { return; }
+          if (b === except) {
+              return;
+          }
           var long = b.nextElementSibling;
           var short = b.previousElementSibling;
           if (long) { long.classList.add('d-none'); }

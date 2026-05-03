@@ -54,7 +54,7 @@ final class section_item extends inventory_item {
 
     /**
      * @var int Instance id of the owning subsection CM, or 0 when not a subsection.
-     * Populated from course_sections.itemid (set by mod_subsection on creation).
+     *     Populated from course_sections.itemid (set by mod_subsection on creation).
      */
     public readonly int $itemid;
 
@@ -68,6 +68,8 @@ final class section_item extends inventory_item {
      * @param string      $summary       Section summary HTML or text.
      * @param int         $summaryformat FORMAT_* constant for the summary.
      * @param bool        $visible       Section visibility flag.
+     * @param string|null $availability Availability JSON, or null when unrestricted.
+     * @param int         $itemid       Subsection CM id; 0 when not a subsection.
      */
     public function __construct(
         int $id,
@@ -123,7 +125,7 @@ final class section_item extends inventory_item {
     /**
      * Reconstruct a section_item from its array representation.
      *
-     * @param array<string,mixed> $data serialised entity.
+     * @param array $data serialised entity.
      * @return static
      * @throws \coding_exception when a required key is missing.
      */

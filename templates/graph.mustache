@@ -152,7 +152,9 @@ require(['local_coursectrl/graphview'], function(G) {
 (function() {
     var btn = document.getElementById('coursectrl-depgroup-btn');
     var menu = document.querySelector('[data-region="local_coursectrl-depgroupfilter-menu"]');
-    if (!btn || !menu) { return; }
+    if (!btn || !menu) {
+        return;
+    }
     btn.addEventListener('click', function(e) {
         e.stopPropagation();
         menu.classList.toggle('d-none');

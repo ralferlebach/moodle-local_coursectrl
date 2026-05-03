@@ -57,11 +57,11 @@ final class learner_state {
      * Constructor.
      *
      * @param int            $timestamp   Simulated unix timestamp (default: now).
-     * @param array<int,int> $completions cmid → completion state (0=incomplete, 1=complete,
+     * @param array $completions cmid → completion state (0=incomplete, 1=complete,
      *                                    2=complete with pass, 3=complete with fail).
      * @param int[]          $groupids    Group ids the learner is assumed to be in.
      * @param int[]          $groupingids Grouping ids the learner is assumed to be in.
-     * @param array<int,float> $grades    cmid → grade percentage (0.0–100.0).
+     * @param array $grades    cmid → grade percentage (0.0–100.0).
      */
     public function __construct(
         int $timestamp = 0,
@@ -135,7 +135,7 @@ final class learner_state {
     /**
      * Reconstruct a learner_state from its array representation.
      *
-     * @param array<string,mixed> $data Serialised state.
+     * @param array $data Serialised state.
      * @return self
      */
     public static function from_array(array $data): self {

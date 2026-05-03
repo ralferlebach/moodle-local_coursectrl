@@ -801,8 +801,12 @@ class simulation_page implements renderable, templatable {
     /**
      * Format a condition_evaluator reason array for Mustache.
      *
-     * @param array  $reason     Raw reason from condition_evaluator.
+     * @param array $reason Raw reason from condition_evaluator.
      * @param string $dateformat Moodle date format string.
+     * @param int $courseid See function signature.
+     * @param array $cms See function signature.
+     * @param array $groups See function signature.
+     * @param array $groupings See function signature.
      * @return array Template-ready reason array.
      */
     private function format_reason(

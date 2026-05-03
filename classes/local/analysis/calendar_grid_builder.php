@@ -148,6 +148,7 @@ class calendar_grid_builder {
      * @param int   $monthstart First-of-month timestamp at midnight.
      * @param array $byday      Entries grouped by Y-m-d.
      * @param int   $now        Reference time for ispast flag.
+     * @param array $holidays Holiday entries keyed by Y-m-d date string.
      * @return array Month block with label and weeks.
      */
     private function build_month(int $monthstart, array $byday, int $now, array $holidays = []): array {

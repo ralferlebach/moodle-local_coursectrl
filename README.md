@@ -1,186 +1,122 @@
-# Course Control Hub
+# Moodle Plugin: Course Control Hub (`local_coursectrl`)
 
-**Moodle plugin:** `local_coursectrl`  
-**Version:** 1.0.0  
-**Maturity:** Stable  
-**License:** [GNU GPL v3 or later](https://www.gnu.org/licenses/gpl-3.0.html)  
-**Author:** Ralf Erlebach  
+## Description
 
----
+Course Control Hub is a Moodle local plugin that gives teachers and course managers a
+single, integrated workspace for inspecting, correcting, and future-proofing their course
+configurations. It detects problems that are otherwise invisible — date inversions,
+circular completion dependencies, unreachable activities, ambiguous date references in
+free-text fields — and provides safe, preview-first bulk-editing tools to fix them.
 
-Course Control Hub gives teachers and course coordinators a single interface to
-inspect, analyse, and bulk-edit the structure, dates, and availability logic of a
-Moodle course. It surfaces configuration problems that are otherwise invisible,
-and provides safe, preview-first bulk-editing tools to correct them efficiently.
-
----
+Every action requires an explicit preview and confirmation step. No data is changed
+automatically. All bulk operations are fully logged and can be rolled back.
 
 ## Features
 
-### Dashboard
-- At-a-glance cockpit: section count, activity count, open problems, text date references
-- Problem summary with direct links and one-click action buttons
-- Upcoming dates, monthly calendar, collapsible activity inventory
-
-### Timeline & Text Review
-- Chronological list of all structured date fields across all activities
-- Three-step bulk date shift: configure → preview → confirm
-- Gantt view of overlapping date windows
-- Free-text date detection and controlled rewriting (AJAX-based, no page reload)
-
-### Dependency Graph
-- Interactive completion-dependency graph with group-aware filter
-- Grade-based dependency edges (activities gated on a passing grade)
-- Simulation overlay: blocked activities (red) and next steps (green)
-
-### Checks
-Three tabs in one page:
-
-- **Problems** — Live consistency checks: temporal conflicts, dangling prerequisites,
-  impossible completion conditions, date/course-frame violations, adapter rule checks.
-  Runs every time the tab is opened; results are not persisted.
-
-- **Solutions** — Persistent risk assessment: structural dead ends, circular dependency
-  cycles, long chains, hidden activities with completion tracking, and dynamic learner
-  journey simulation (see below). Results stored per course; refresh with *Run now*.
-
-- **Simulation** — Learner-perspective simulation. Set a date, group membership,
-  completion states, and grade to see which activities are accessible, blocked, or
-  recommended as next steps.
-
-### Dynamic Journey Simulation
-The risk scanner simulates all plausible learner journeys through the course:
-
-- Iterates every group-membership combination (configurable limit)
-- Two grade scenarios per combination: *best case* (all passed) and *worst case* (all failed)
-- Detects activities that can never be reached in any scenario
-- Escalates severity to **error** when a blocked activity is required for course completion
-- Generates a direct **Replay in Simulation** deep-link for each finding
-
-### History & Rollback
-- Paginated audit log of all executed bulk actions
-- Per-batch rollback via pre-operation snapshots
-- Configurable retention limits (count and age)
-
----
-
-## Requirements
-
-| Component | Minimum version |
-|---|---|
-| Moodle | 4.5 |
-| PHP | 8.2 |
-| Database | MariaDB 10.6 · PostgreSQL 14 |
-
-Tested on Moodle 4.5, 5.0, 5.1 and 5.2 with PHP 8.2, 8.3, and 8.4.
-
----
+* **Dashboard / Cockpit** — at-a-glance view of upcoming activity dates, open issues, and
+  recent bulk actions for the current course.
+* **Timeline & Gantt** — visual overview of all activity dates and availability windows;
+  supports bulk date shifting directly from the timeline with a 3-step modal workflow.
+* **Dependency Graph** — interactive graph of completion and availability dependencies;
+  highlights circular locks, unreachable nodes, and simulation state overlays.
+* **Checks — Problems** — rule-based scan (rules R0–R7) covering date inversions,
+  hidden-but-tracked activities, missing completion settings, stale group conditions,
+  and structural dead ends.
+* **Checks — Solutions** — prioritised fix suggestions linked directly to each detected
+  problem, with one-click navigation to the affected activity.
+* **Checks — Simulation** — learner journey simulator evaluating visibility and
+  accessibility for a defined learner state (point in time, group membership, assumed
+  completion and grade results), detecting dead ends before learners encounter them.
+* **Bulk Date Shift** — shift structured date fields across all selected activities by
+  days, hours, and minutes; preview shows every changed field with old/new values,
+  resolved locale-aware field labels, and human-readable dates.
+* **Text Review** — scans free-text fields (descriptions, labels, section texts) for
+  embedded date references, classifies them as safe / ambiguous / informational, and
+  offers controlled in-place updates in a dedicated review step.
+* **History & Rollback** — full audit log of all executed bulk actions; individual
+  batches can be selected and rolled back with a single click.
+* **Extensible via subplugins** — `coursectrlmod_*` adapters encapsulate
+  activity-type-specific logic; new activity types can be added without modifying the
+  core plugin code.
 
 ## Installation
 
-1. Download and extract the archive into `<moodleroot>/local/coursectrl/`.
-2. Log in as a site administrator and navigate to
+1. Copy the `coursectrl` directory into `<moodleroot>/local/`.
+   The directory **must** be named exactly `coursectrl`.
+
+2. Log in as administrator and navigate to
    **Site administration → Notifications**.
-3. Complete the installer prompts. Database tables are created automatically.
-4. Assign capabilities (see the [User Guide](docs/user-guide.md)).
-5. Optionally install the companion **Course Control Hub Block**
-   (`block_coursectrl`) to add a visible entry point in courses.
+   Moodle detects the new plugin and runs the database installer automatically.
 
----
+3. Navigate to **Site administration → Users → Permissions → Define roles** and assign
+   the plugin capabilities to the appropriate roles (see *Settings* below).
 
-## Upgrade
+4. Optionally install the companion **Course Control Hub Block** (`block_coursectrl`)
+   to give teachers a one-click entry point directly inside each course page.
 
-Replace the `local/coursectrl/` directory with the new version and visit
-**Site administration → Notifications**. Database migrations are applied
-automatically.
+**Upgrade:** Replace the contents of `local/coursectrl/` with the new version and visit
+**Site administration → Notifications**. Database migrations run automatically; no manual
+SQL is required.
 
----
+### Requirements
 
-## Capabilities
-
-| Capability | Suggested role | Description |
+| Component | Minimum | Tested up to |
 |---|---|---|
-| `local/coursectrl:view` | editingteacher, manager | Open the plugin and all read-only pages |
-| `local/coursectrl:bulkaction` | editingteacher | Execute bulk date shifts and text changes |
-| `local/coursectrl:rollback` | manager | Roll back a previously executed bulk action |
+| Moodle | 4.5 | 5.2 |
+| PHP | 8.2 | 8.4 |
+| Database | MariaDB 10.6 / PostgreSQL 14 | MariaDB 10.11 / PostgreSQL 16 |
 
----
+### Included subplugin adapters (1.0.0)
 
-## Configuration
-
-All settings are in **Site administration → Plugins → Local plugins → Course Control Hub**.
-
-Key settings include risk rule severities (R0–R7, each independently configurable),
-dashboard display options, history retention limits, and the journey simulation
-parameters (`risk_min_activity_minutes`, `risk_max_group_combinations`).
-
-Full documentation: [docs/user-guide.md](docs/user-guide.md)
-
----
-
-## Subplugins
-
-Activity-type logic is encapsulated in `coursectrlmod_*` subplugins. Each
-subplugin provides date field mappings, validation, preview, execution, rollback,
-and rule-check logic for one Moodle activity type.
-
-| Subplugin | Activity |
+| Subplugin | Activity type |
 |---|---|
 | `coursectrlmod_assign` | Assignment |
-| `coursectrlmod_quiz` | Quiz |
+| `coursectrlmod_capquiz` | CAPQuiz |
+| `coursectrlmod_choice` | Choice |
+| `coursectrlmod_choicegroup` | Group Choice |
 | `coursectrlmod_feedback` | Feedback |
 | `coursectrlmod_forum` | Forum |
+| `coursectrlmod_glossary` | Glossary |
+| `coursectrlmod_h5pactivity` | H5P Activity |
 | `coursectrlmod_lesson` | Lesson |
 | `coursectrlmod_page` | Page |
-| `coursectrlmod_h5pactivity` | H5P Activity |
+| `coursectrlmod_questionnaire` | Questionnaire |
+| `coursectrlmod_quiz` | Quiz |
+| `coursectrlmod_scorm` | SCORM Package |
+| `coursectrlmod_studentquiz` | StudentQuiz |
 | `coursectrlmod_workshop` | Workshop |
 
-Subplugins for activity types not installed on the site are silently ignored.
+## Settings
 
----
+Navigate to **Site administration → Plugins → Local plugins → Course Control Hub**.
 
-## Scheduled Tasks
+### Capabilities
 
-| Task | Default schedule | Description |
+| Capability | Suggested role | Purpose |
 |---|---|---|
-| `purge_old_batches` | Daily 03:00 | Removes batch records beyond retention limits |
+| `local/coursectrl:view` | `editingteacher`, `manager` | Access all read-only analysis pages |
+| `local/coursectrl:bulkaction` | `editingteacher` | Execute bulk date shifts and text changes |
+| `local/coursectrl:rollback` | `manager` | Roll back a previously executed bulk action |
 
----
+### Key admin settings
 
-## Privacy
+| Setting | Default | Purpose |
+|---|---|---|
+| `history_maxcount` | 100 | Maximum batch records retained per course |
+| `history_maxdays` | 365 | Maximum age of batch records in days |
+| Risk rules R0–R7 | `warning` | Severity level for each consistency-check rule |
+| `risk_max_group_combinations` | 32 | Maximum group combinations simulated per run |
 
-This plugin stores bulk action history, pre-action snapshots, and user presets
-in the Moodle database. It implements the Moodle Privacy API for GDPR compliance:
-user data can be exported and deleted on request. Risk assessment results and
-text hit records contain no personal data.
+Full documentation of all settings and pages is in the [User Guide](docs/user-guide.md).
 
-Details: [docs/user-guide.md § 3.5](docs/user-guide.md#35-privacy--data-retention)
+## Contributors
 
----
-
-## Documentation
-
-| Document | Audience |
-|---|---|
-| [docs/user-guide.md](docs/user-guide.md) | Administrators, teachers |
-
----
-
-## Support
-
-Please report bugs and feature requests via the project's issue tracker.
-
----
+* **Ralf Erlebach** — author and lead developer
 
 ## License
 
-Course Control Hub is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the Free
-Software Foundation, either version 3 of the License, or (at your option)
-any later version.
+This plugin is free software: you can redistribute it and/or modify it under the terms of
+the **GNU General Public License** as published by the Free Software Foundation, either
+version 3 of the License, or (at your option) any later version.
 
-This program is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-
-Copyright © 2026 Ralf Erlebach
+See <https://www.gnu.org/licenses/> for details.

@@ -269,6 +269,10 @@
               {{#sec_blocked}}<span class="badge cc-badge-danger">{{#str}} no, core {{/str}}</span>{{/sec_blocked}}
             </td>
             <td class="py-1 fw-semibold">
+              {{! label is produced by simulation_page.php via get_string(); user-contributed
+    values (activity names, group names) are wrapped with s()/s(format_string())
+    before interpolation. Triple-mustache is required for sim_reason_completion
+    which intentionally contains an <a href> link. }}
               {{#sec_has_reasons}}<ul class="mb-0 small fw-normal ps-3">{{#sec_reason_groups}}{{#has_or_before}}<li class="list-unstyled ps-0 text-muted fst-italic">&#8212; {{#str}} sim_or_separator, local_coursectrl {{/str}} &#8212;</li>{{/has_or_before}}{{#conditions}}<li>{{{label}}}</li>{{/conditions}}{{/sec_reason_groups}}</ul>{{/sec_has_reasons}}
               {{^sec_has_reasons}}<span class="text-muted small">&#8211;</span>{{/sec_has_reasons}}
             </td>

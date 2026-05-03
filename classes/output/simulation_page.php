@@ -798,7 +798,9 @@ class simulation_page implements renderable, templatable {
         if ($type === 'completion') {
             $depcmid = (int) ($reason['cmid'] ?? 0);
             $depcm = $cms[$depcmid] ?? null;
-            $depname = $depcm ? $depcm->name : 'cmid ' . $depcmid;
+            // S(format_string()) ensures the name is safe inside the HTML link
+            // produced by the sim_reason_completion lang string.
+            $depname = $depcm ? s(format_string($depcm->name)) : 'cmid ' . (int) $depcmid;
             $depmodname = $depcm ? $depcm->modname : '';
             $depurl = $depcm
                 ? (new \moodle_url('/mod/' . $depmodname . '/view.php', ['id' => $depcmid]))->out(false)
@@ -832,7 +834,7 @@ class simulation_page implements renderable, templatable {
             $base['label'] = get_string(
                 $gname !== null ? 'sim_reason_group_named' : 'sim_reason_group',
                 'local_coursectrl',
-                (object)['groupid' => $gid, 'groupname' => $gname]
+                (object)['groupid' => $gid, 'groupname' => $gname !== null ? s($gname) : null]
             );
         } else if ($type === 'grouping') {
             $ggid = (int) ($reason['groupingid'] ?? 0);
@@ -840,7 +842,7 @@ class simulation_page implements renderable, templatable {
             $base['label'] = get_string(
                 $ggname !== null ? 'sim_reason_grouping_named' : 'sim_reason_grouping',
                 'local_coursectrl',
-                (object)['groupingid' => $ggid, 'groupingname' => $ggname]
+                (object)['groupingid' => $ggid, 'groupingname' => $ggname !== null ? s($ggname) : null]
             );
         } else if ($type === 'grade') {
             $gradecmid = (int) ($reason['cmid'] ?? 0);
@@ -850,7 +852,7 @@ class simulation_page implements renderable, templatable {
                     'sim_reason_grade_simulated',
                     'local_coursectrl',
                     (object)[
-                        'cmname'    => $gradecm->name,
+                        'cmname'    => s(format_string($gradecm->name)),
                         'grade'     => round((float) $reason['grade'], 1),
                         'direction' => isset($reason['min']) ? '>=' : '<',
                         'threshold' => round((float) ($reason['min'] ?? $reason['max'] ?? 0), 1),
@@ -862,7 +864,7 @@ class simulation_page implements renderable, templatable {
                 $base['label'] = get_string(
                     'sim_reason_grade_named',
                     'local_coursectrl',
-                    (object)['cmname' => $gradecm->name, 'direction' => $dir, 'threshold' => $thresh]
+                    (object)['cmname' => s(format_string($gradecm->name)), 'direction' => $dir, 'threshold' => $thresh]
                 );
             } else {
                 $base['label'] = get_string('sim_reason_grade', 'local_coursectrl');

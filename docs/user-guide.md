@@ -20,15 +20,16 @@
    - 4.3 [Timeline & Gantt](#43-timeline--gantt)
    - 4.4 [Dependency Graph](#44-dependency-graph)
    - 4.5 [Checks — Problems Tab](#45-checks--problems-tab)
-   - 4.6 [Checks — Solutions Tab (Risk Assessment)](#46-checks--solutions-tab-risk-assessment)
+   - 4.6 [Checks — Solutions Tab](#46-checks--solutions-tab)
    - 4.7 [Checks — Simulation Tab](#47-checks--simulation-tab)
    - 4.8 [Bulk Date Shift](#48-bulk-date-shift)
    - 4.9 [Text Review](#49-text-review)
    - 4.10 [History & Rollback](#410-history--rollback)
 5. [Concepts](#5-concepts)
    - 5.1 [Risk Severity Levels](#51-risk-severity-levels)
-   - 5.2 [How the Journey Simulation Works](#52-how-the-journey-simulation-works)
-   - 5.3 [Subplugin Adapters](#53-subplugin-adapters)
+   - 5.2 [Consistency Check Rules (R0–R7)](#52-consistency-check-rules-r0r7)
+   - 5.3 [How the Journey Simulation Works](#53-how-the-journey-simulation-works)
+   - 5.4 [Subplugin Adapters](#54-subplugin-adapters)
 6. [Troubleshooting](#6-troubleshooting)
 
 ---
@@ -36,13 +37,16 @@
 ## 1. Introduction
 
 Course Control Hub gives teachers a single place to inspect, fix, and future-proof their
-Moodle courses. It detects configuration problems that are otherwise invisible — date
-inversions, circular completion dependencies, activities that can never be reached —
-and provides bulk-editing tools to correct them efficiently.
+Moodle courses. It surfaces configuration problems that are otherwise invisible — date
+inversions, circular completion dependencies, activities that can never be reached — and
+provides bulk-editing tools to correct them efficiently and safely.
 
-**What it does not do.** The plugin does not change any data without an explicit preview
-and confirmation step. It never acts automatically, autonomously, or on behalf of learners.
-All bulk actions are logged and can be rolled back.
+**Core principles:**
+
+- **Preview first.** No data changes without an explicit preview and confirmation step.
+- **Logged always.** Every bulk action is recorded in the audit log.
+- **Reversible.** Bulk actions can be rolled back from the History page.
+- **Non-intrusive.** The plugin never acts automatically or on behalf of learners.
 
 ---
 
@@ -50,13 +54,11 @@ All bulk actions are logged and can be rolled back.
 
 ### Requirements
 
-| Component | Minimum |
-|---|---|
-| Moodle | 4.5 |
-| PHP | 8.2 |
-| Database | MariaDB 10.6 · PostgreSQL 14 |
-
-Tested: Moodle 4.5, 5.0, 5.1, 5.2 · PHP 8.2–8.4 · MariaDB 10.11 · PostgreSQL 16.
+| Component | Minimum | Tested up to |
+|---|---|---|
+| Moodle | 4.5 | 5.2 |
+| PHP | 8.2 | 8.4 |
+| Database | MariaDB 10.6 / PostgreSQL 14 | MariaDB 10.11 / PostgreSQL 16 |
 
 ### Steps
 
@@ -65,18 +67,18 @@ Tested: Moodle 4.5, 5.0, 5.1, 5.2 · PHP 8.2–8.4 · MariaDB 10.11 · PostgreSQ
 
 2. Log in as administrator and navigate to
    **Site administration → Notifications**.
-   Moodle will run the database installer automatically.
+   Moodle will detect the plugin and run the database installer automatically.
 
-3. Assign capabilities (see [§ 3.1](#31-capabilities)).
+3. Assign capabilities to the appropriate roles (see [§ 3.1](#31-capabilities)).
 
-4. Optionally install the companion **Course Control Hub Block**
-   (`block_coursectrl`) to give teachers a visible entry point in the course.
+4. Optionally install the companion **Course Control Hub Block** (`block_coursectrl`)
+   to give teachers a visible entry point inside each course.
 
 ### Upgrade
 
 Replace the `local/coursectrl/` directory with the new version and visit
-**Site administration → Notifications**.  
-Database migrations are applied automatically. No manual SQL is required.
+**Site administration → Notifications**.
+Database migrations run automatically. No manual SQL is required.
 
 ---
 
@@ -84,115 +86,109 @@ Database migrations are applied automatically. No manual SQL is required.
 
 ### 3.1 Capabilities
 
-Navigate to **Site administration → Users → Permissions → Define roles** to assign
-capabilities per role.
+Capabilities are defined per course context. Assign them via
+**Site administration → Users → Permissions → Define roles**.
 
-| Capability | Suggested default | Description |
+| Capability | Default roles | Description |
 |---|---|---|
-| `local/coursectrl:view` | `editingteacher`, `manager` | Open the plugin and view all read-only pages |
+| `local/coursectrl:view` | `editingteacher`, `manager` | View all analysis pages (read-only) |
 | `local/coursectrl:bulkaction` | `editingteacher` | Execute bulk date shifts and text changes |
 | `local/coursectrl:rollback` | `manager` | Roll back a previously executed bulk action |
 
-> **Note.** A user who has `view` but not `bulkaction` can use all analysis features
-> (Dashboard, Timeline, Graph, Checks, Simulation) but cannot modify course content.
-
 ### 3.2 Plugin Settings
 
-Navigate to **Site administration → Plugins → Local plugins → Course Control Hub**.
+**Site administration → Plugins → Local plugins → Course Control Hub**
 
-#### Dashboard
-
-| Setting | Default | Description |
-|---|---|---|
-| `dashboard_inventory` | `show` | Whether to display the full activity inventory on the Dashboard. `admin_only` restricts it to managers; `hide` removes it entirely. |
-| `dashboard_upcoming_count` | `7` | Number of upcoming dates shown in the Cockpit tile. |
-| `dashboard_warning_cap` | `0` | Maximum warnings shown in the problem summary (0 = auto). |
-| `dashboard_textfind_count` | `0` | Maximum free-text date references shown (0 = auto). |
-
-#### History
+#### History and data retention
 
 | Setting | Default | Description |
 |---|---|---|
-| `history_maxcount` | `100` | Maximum number of batch records retained per course. Older batches are removed by the scheduled task. |
-| `history_maxdays` | `365` | Maximum age of batch records in days. |
+| `history_maxcount` | 100 | Maximum number of batch records retained per course |
+| `history_maxdays` | 365 | Maximum age of batch records in days |
 
-#### Risk Assessment — Rules R0 to R7
+A scheduled task runs nightly to remove records older than these limits.
 
-Each rule has a **severity** selector: `off`, `notice`, `warning`, `error`.
+#### Consistency check rules (R0–R7)
 
-| Rule | What it checks |
-|---|---|
-| **R0** | Activity dates outside the course start/end window; deadlines in the past |
-| **R1** | Hidden activities with completion-tracking enabled |
-| **R2** | Gap between activity deadline and `completionexpected` date |
-| **R3** | Date inversions within an activity (e.g. open date after due date) |
-| **R4** | Minimum gap between two sequenced dates (configurable threshold in days) |
-| **R5** | Activities with availability conditions but no completion tracking |
-| **R6** | Availability conditions referencing deleted or non-existent groups/groupings |
-| **R7** | Adapter-specific checks (per activity type, configured per subplugin) |
+Each rule can be set to **disabled**, **info**, **warning**, or **error** independently.
+This allows administrators to tune the noise level for their specific Moodle installation.
 
-#### Dynamic Journey Simulation
+| Rule | Default | Description |
+|---|---|---|
+| R0 — Date inversion | `warning` | A close/end date is set before the open/start date |
+| R1 — Hidden tracked | `warning` | A completion-tracked activity is not visible to learners |
+| R2 — Circular lock | `error` | A completion dependency cycle is detected |
+| R3 — Stale group condition | `warning` | An availability condition references a group that no longer exists |
+| R4 — Missing completion | `info` | An activity has availability conditions but no completion tracking |
+| R5 — Unreachable activity | `warning` | An activity can never be accessed given the current condition chain |
+| R6 — Section dead end | `warning` | A section has no reachable onward path for learners |
+| R7 — No next step | `info` | A learner who completes the last available activity has no explicit next step |
+
+#### Simulation settings
 
 | Setting | Default | Description |
 |---|---|---|
-| `risk_min_activity_minutes` | `30` | Minutes assumed per activity when the simulation advances the clock. Used to evaluate time-based availability conditions. |
-| `risk_max_group_combinations` | `32` | Maximum number of group-membership combinations simulated per run. Covers all combinations for up to 5 groups; larger courses may need a higher value (performance impact). |
+| `risk_max_group_combinations` | 32 | Maximum number of group-membership combinations the simulator evaluates per run |
+
+Increasing this limit improves simulation completeness for courses with many groups but
+increases server load.
 
 ### 3.3 Subplugins
 
-Activity-type-specific logic is encapsulated in `coursectrlmod_*` subplugins
-located in `local/coursectrl/mod/`. Each subplugin handles one Moodle activity
-type and provides date field mappings, validation, and adapter-specific checks.
+Activity-type-specific logic is encapsulated in `coursectrlmod_*` subplugins located in
+`local/coursectrl/mod/<modname>/`. Each subplugin contains an adapter class that
+implements the `activity_adapter` interface: it declares which date fields are editable,
+validates changes, and provides rollback state snapshots.
 
-| Subplugin | Activity type |
-|---|---|
-| `coursectrlmod_assign` | Assignment |
-| `coursectrlmod_quiz` | Quiz |
-| `coursectrlmod_feedback` | Feedback |
-| `coursectrlmod_forum` | Forum |
-| `coursectrlmod_lesson` | Lesson |
-| `coursectrlmod_page` | Page |
-| `coursectrlmod_h5pactivity` | H5P Activity |
-| `coursectrlmod_workshop` | Workshop |
+Subplugins bundled with version 1.0.0:
 
-A subplugin for an activity type that is not installed on the Moodle instance is
-silently ignored. No settings for that adapter are shown in the admin panel.
+| Subplugin | Activity | Editable date fields |
+|---|---|---|
+| `coursectrlmod_assign` | Assignment | `duedate`, `allowsubmissionsfromdate`, `cutoffdate`, `gradingduedate` |
+| `coursectrlmod_capquiz` | CAPQuiz | `timedue` |
+| `coursectrlmod_choice` | Choice | `timeopen`, `timeclose` |
+| `coursectrlmod_choicegroup` | Group Choice | `timeopen`, `timeclose` |
+| `coursectrlmod_feedback` | Feedback | `timeopen`, `timeclose` |
+| `coursectrlmod_forum` | Forum | `duedate`, `cutoffdate`, `assesstimestart`, `assesstimefinish` |
+| `coursectrlmod_glossary` | Glossary | `assesstimestart`, `assesstimefinish` |
+| `coursectrlmod_h5pactivity` | H5P Activity | no date fields (date-less adapter) |
+| `coursectrlmod_lesson` | Lesson | `available`, `deadline` |
+| `coursectrlmod_page` | Page | no date fields (date-less adapter) |
+| `coursectrlmod_questionnaire` | Questionnaire | `opendate`, `closedate` |
+| `coursectrlmod_quiz` | Quiz | `timeopen`, `timeclose` |
+| `coursectrlmod_scorm` | SCORM Package | `timeopen`, `timeclose` |
+| `coursectrlmod_studentquiz` | StudentQuiz | `opensubmissionsat`, `closesubmissionsat`, `openansweringat`, `closeansweringat` |
+| `coursectrlmod_workshop` | Workshop | `submissionstart`, `submissionend`, `assessmentstart`, `assessmentend` |
 
-To add support for a new activity type, create a new `coursectrlmod_*` subplugin
-following the interface defined in
-`classes/local/contract/activity_adapter.php`.
+Activities without a registered adapter can still be shifted at the availability-condition
+level (completion-expected dates in `course_modules`).
+
+To add support for a new activity type, create a `coursectrlmod_<modname>` subplugin
+following the structure in any existing adapter.
 
 ### 3.4 Scheduled Tasks
 
-| Task class | Default schedule | Purpose |
+| Task | Default schedule | Purpose |
 |---|---|---|
-| `purge_old_batches` | Daily at 03:00 | Removes batch records and their snapshots beyond the configured retention limits (`history_maxcount`, `history_maxdays`). |
+| `\local_coursectrl\task\purge_old_batches` | Daily at 02:30 | Removes audit log records older than `history_maxdays` or beyond `history_maxcount` per course |
 
-Configure the schedule at **Site administration → Server → Scheduled tasks**.
+Configure via **Site administration → Server → Scheduled tasks**.
 
 ### 3.5 Privacy & Data Retention
 
-The plugin stores the following data in the Moodle database:
+Course Control Hub stores the following data:
 
-| Table | Contains | Linked to user |
-|---|---|---|
-| `local_coursectrl_batch` | Bulk action header records | Yes — `userid` |
-| `local_coursectrl_batch_item` | Per-CM action results | Via batch |
-| `local_coursectrl_snapshot` | Pre-action state for rollback | Via batch |
-| `local_coursectrl_preset` | Saved action presets | Yes — `userid` |
-| `local_coursectrl_risk` | Risk assessment results | No |
-| `local_coursectrl_text_hit` | Detected date references in texts | No |
+| Table | Content | Personal data | Retention |
+|---|---|---|---|
+| `local_coursectrl_batch` | Audit log header; references `userid` of the person who executed the action | Yes — userid | Deleted when course is deleted; purged by scheduled task |
+| `local_coursectrl_batch_item` | Per-activity result linked to a batch | No direct personal data | Deleted with parent batch |
+| `local_coursectrl_snapshot` | State snapshot for rollback, linked to batch | No direct personal data | Deleted with parent batch |
+| `local_coursectrl_text_hit` | Date references found in course texts; course-level data | No — course content only | Deleted when course is deleted |
+| `local_coursectrl_risk` | Detected consistency issues; course-level data | No — course content only | Deleted when course is deleted |
 
-The plugin implements Moodle's Privacy API:
-
-- **Export:** All batches, snapshots, and presets owned by a user are included in
-  their GDPR data export.
-- **Deletion:** Deleting a user's data removes all their batch and preset records.
-  Risk and text-hit records are not personal and are unaffected.
-
-Risk assessment results and text hit records contain no personal data and are
-scoped to course context. They are purged when a new analysis run is triggered for
-the same course.
+The Privacy API (`classes/privacy/provider.php`) exports batch records and user
+preferences when a GDPR subject-access request is made, and deletes personal data
+when a deletion request is received.
 
 ---
 
@@ -200,302 +196,177 @@ the same course.
 
 ### 4.1 Opening the Plugin
 
-**Via the block:** If the **Course Control Hub Block** is added to your course,
-click the block's link.
+**From the course page:**
+- If the **Course Control Hub Block** is installed, click the link in the block.
+- Otherwise, navigate directly:
+  `<moodleroot>/local/coursectrl/index.php?courseid=<id>`
 
-**Via the course navigation:** In the course view, look for **Course Control Hub**
-in the course-level navigation.
-
-**Direct URL:**
-```
-/local/coursectrl/index.php?courseid=<id>
-```
-
-You must be enrolled in the course with a role that has `local/coursectrl:view`.
-
----
+The plugin opens to the **Dashboard**. Use the navigation tabs at the top to switch
+between views.
 
 ### 4.2 Dashboard (Cockpit)
 
-The Dashboard is the starting point. It shows a compact overview of your course
-without running any deep analysis.
+The Dashboard provides a quick overview of the course's health:
 
-**Cockpit tiles** (top row):
+- **Upcoming dates** — a chronological list of the next activity open/close events.
+- **Open issues** — a count of problems detected by the last consistency scan.
+- **Recent actions** — the five most recent bulk actions executed in this course.
 
-| Tile | What it shows |
-|---|---|
-| Sections | Total number of course sections |
-| Activities | Total number of course modules |
-| Open problems | Errors + warnings found in the last scan |
-| Dates in texts | Free-text fields containing date references |
-
-**Problem summary.** Below the tiles, errors and warnings are listed with a link
-directly to the affected activity and a one-click action button where applicable.
-
-**Upcoming dates.** A chronological list of the next scheduled dates across all
-activities. Click any date to jump to the Timeline.
-
-**Calendar.** A monthly calendar that highlights days with scheduled dates.
-Click a day to filter the Timeline to that day.
-
-> **Tip.** The Dashboard does not run a full risk analysis automatically.
-> Use **Checks → Solutions** to run the risk scanner.
-
----
+The Dashboard auto-refreshes its date list from the current course state. It does not
+cache results across browser sessions.
 
 ### 4.3 Timeline & Gantt
 
-Navigate to **Timeline** from the top navigation.
+The Timeline page shows all activity date fields in two complementary views:
 
-The Timeline lists all structured date fields across all activities in
-chronological order. Each entry shows:
+**Schedule view** (default) lists every activity with its open and close dates. Use the
+filter controls at the top to narrow by section, activity type, or date range.
 
-- Activity name and type icon
-- Field name (e.g. "Due date", "Close date")
-- Date and time
-- A **Shift** button to move that single date
+**Gantt view** renders the same data as horizontal bars on a time axis. Hover over any
+bar to see the exact dates in a tooltip. The Gantt supports scrolling and zooming for
+large courses.
 
-**Bulk shift.** Use the **Shift all dates** button at the top to open the
-three-step bulk shift workflow:
+#### Bulk Date Shift from the Timeline
 
-1. **Configure.** Set the delta (days, hours, minutes), select which field types
-   to include, and optionally skip weekends or public holidays.
-2. **Preview.** Review old and new values for every affected field. Conflicts and
-   warnings are highlighted.
-3. **Confirm.** The changes are applied and logged as a batch. You can roll back
-   from the History page.
+Any row in the Schedule view has a shift icon (⇄) that opens the **Shift workflow modal**
+for that activity. To shift multiple activities at once, select them using the row
+checkboxes and click **Shift selected** in the toolbar.
 
-**Gantt tab.** Switch to the Gantt view for a horizontal timeline showing
-overlapping date windows across all activities.
-
-**Filters.** Filter by activity type or date field type using the dropdowns at the top.
-
----
+See [§ 4.8](#48-bulk-date-shift) for the full shift workflow.
 
 ### 4.4 Dependency Graph
 
-Navigate to **Graph** from the top navigation.
+The Dependency Graph renders the course's completion and availability structure as an
+interactive directed graph.
 
-The graph shows all activities as nodes connected by completion-dependency edges.
-An arrow from A to B means "B requires A to be completed before it becomes
-accessible."
+**Navigation:**
+- Drag to pan; scroll to zoom.
+- Click any node to highlight its incoming and outgoing edges.
+- Use the **Group filter** dropdown to restrict the graph to a specific group context.
 
-**Reading the graph:**
+**Node colours:**
+- Blue — normal, reachable activity.
+- Orange — available to the group but blocked by a condition.
+- Red — activity detected as a dead end or circular lock.
 
-| Visual element | Meaning |
-|---|---|
-| Arrow A → B | B has a completion condition on A |
-| Red node | Involved in a structural problem (circular dep or dead end) |
-| Yellow node | Has a warning-level issue |
-| Red arrow | Part of a circular dependency cycle |
-
-**Group filter.** Use the group dropdown to restrict the graph to activities
-accessible to a specific group.
-
-**Simulation overlay.** After running a simulation (see [§ 4.7](#47-checks--simulation-tab)),
-the graph highlights:
-
-- **Red nodes** — activities blocked in the simulated state
-- **Green nodes** — the next accessible but incomplete activities (suggested next steps)
-
----
+**Simulation overlay:**
+When a simulation result is active (from the Simulation tab), the graph applies a
+second colour layer:
+- Red border — activity is blocked in the simulated learner state.
+- Green border — activity is the recommended next step for the simulated learner.
 
 ### 4.5 Checks — Problems Tab
 
-Navigate to **Checks** from the top navigation, then select the **Problems** tab.
+The Problems tab runs all enabled consistency rules (R0–R7) against the current course
+and lists each finding with its severity, affected activity, and a short explanation.
 
-Problems are live consistency checks that run every time you open the tab. They
-do not persist to the database and are always current.
+Rules are evaluated server-side on demand. Click **Run checks** to trigger a fresh scan.
+Results are not cached between page loads.
 
-**What is checked:**
+Each finding includes a direct link to the affected activity in Moodle's normal editing
+interface for immediate correction.
 
-| Check category | Examples |
-|---|---|
-| Temporal conflicts | Due date before open date; gradingdue before duedate |
-| Date/course-frame conflicts | Activity date after course end; deadline in the past |
-| Dangling prerequisites | Completion condition referencing a non-existent or deleted activity |
-| Impossible prerequisites | Completion condition on an activity with no completion tracking |
-| Dangling groups/groupings | Availability condition referencing a deleted group |
-| Adapter checks (R7) | Activity-type-specific rule violations |
-| Completion date mismatch | `completionexpected` more than N days after the activity deadline |
+### 4.6 Checks — Solutions Tab
 
-Each problem row shows:
-
-- **Severity icon** (❗ error / ⚠ warning / ℹ notice)
-- **Activity name** with a link to the activity settings
-- **What the problem is** and **what to do**
-- A **Fix** button where a one-click correction is possible (e.g. open the
-  activity settings, jump to the Timeline)
-- A **▶ Play** button that opens the Simulation tab pre-loaded with the
-  relevant date and state
-
----
-
-### 4.6 Checks — Solutions Tab (Risk Assessment)
-
-The Solutions tab runs a deeper, persistent risk analysis. Results are stored
-and shown immediately on subsequent visits until you run a new scan.
-
-**Running a scan.** Click **Run now**. The scanner may take a few seconds for
-large courses. The timestamp of the last scan is shown next to the button.
-
-**What the scanner checks in addition to the Problems tab:**
-
-- Structural dead ends (activities no learner can ever reach)
-- Circular dependency cycles
-- Long dependency chains
-- Completion conditions on hidden activities
-- **Journey simulation** (see below)
-
-**Journey simulation findings.** The scanner simulates learner journeys through
-the course for every group-membership combination and for two grade scenarios
-(best case: all activities passed; worst case: all grade-gated activities failed).
-If an activity is unreachable in any scenario, a finding is generated.
-
-Each finding shows:
-
-- The affected activity and severity
-- Whether the block occurs in the **best case** or **worst case** scenario
-- **Show journey steps** — a collapsible list of every activity visited before
-  the simulation stopped, with timestamps and outcomes (completed / passed /
-  failed / failed – attempts exhausted)
-- A **▶ Replay in Simulation** button that opens the Simulation tab with the
-  exact group membership, dates, completion states, and grades that caused the block
-
-> **Understanding the scenarios.**
-> *Best case* means the simulation assumed every learner passes all grade-gated
-> activities. If an activity is still unreachable, it is structurally blocked
-> regardless of learner performance.
-> *Worst case* means the simulation assumed every learner fails every grade-gated
-> activity. Findings in this scenario indicate a conditional block that can be
-> resolved by learners who do pass.
-
----
+The Solutions tab groups the findings from the Problems tab by issue type and suggests
+concrete fixes. Each suggestion links back to the relevant problem entry and, where
+possible, provides a pre-configured action link (e.g., opening the shift modal with the
+correct activity pre-selected).
 
 ### 4.7 Checks — Simulation Tab
 
-The Simulation tab lets you inspect the course from the perspective of a specific
+The Simulation tab lets you evaluate the course from the perspective of a specific
 learner state.
 
-**Parameters:**
+**Simulation parameters:**
 
-| Field | Description |
+| Parameter | Description |
 |---|---|
-| Date / Time | The simulated point in time. All time-based availability conditions are evaluated as if it were this moment. |
-| Groups | Which groups the hypothetical learner belongs to. |
-| Completed activities | Activities the learner has already completed (tick the checkbox). |
-| Passed activities | Activities the learner has passed (requires a passing grade). |
-| Grade | A percentage grade for grade-gated activities. |
+| **Simulated date and time** | The point in time the simulation assumes; defaults to now |
+| **Group membership** | One or more groups the simulated learner belongs to |
+| **Completion assumptions** | Which activities the simulated learner has already completed |
+| **Grade assumptions** | Pass/fail assumptions for graded activities with grade conditions |
 
-Click **Run simulation** to evaluate all activities. The result table shows:
+Click **Run simulation** to evaluate the course. The result shows:
 
-| Column | Meaning |
-|---|---|
-| Activity | Name and type of the activity |
-| Accessible | ✓ if the learner can open the activity at the given date/time |
-| Reason | Why the activity is blocked (if applicable) |
-| Status | Completed, passed, failed, or not yet attempted |
-| Next step | ★ marks the recommended next activity (accessible and not yet completed) |
+- A list of all activities that are **accessible** at the simulated state.
+- A list of **blocked** activities with the specific conditions that block them.
+- The **next recommended step(s)** — activities the learner should work on now.
 
-The simulation result also feeds into the **Dependency Graph overlay**
-(see [§ 4.4](#44-dependency-graph)).
+The simulation result is also applied as an overlay to the Dependency Graph (see
+[§ 4.4](#44-dependency-graph)).
 
-**Using simulation links from the Solutions tab.** When you click **▶ Replay in Simulation**
-on a risk finding, all parameters are pre-filled. This lets you immediately reproduce
-the exact scenario in which the activity was found to be unreachable.
-
----
+**Scope:** The simulation evaluates date conditions, group-membership conditions,
+completion conditions, and visibility rules. Grade conditions are simulated using your
+assumed pass/fail values. Restrictions set at the section level cascade to all activities
+within the section.
 
 ### 4.8 Bulk Date Shift
 
-Bulk date shifting is available from both the Timeline (all dates or filtered)
-and from individual activity rows.
+The Bulk Date Shift workflow moves one or more date fields by a fixed offset
+(days + hours + minutes, positive or negative).
 
-#### The three-step workflow
+**Workflow steps:**
 
-**Step 1 — Configure**
+1. **Configuration** — enter the delta, optionally tick *Shift dependants* to cascade
+   the shift to downstream completion-dependent activities, and click **Preview**.
 
-| Option | Description |
-|---|---|
-| Delta days / hours / minutes | Positive = move forward, negative = move backward |
-| Field types | Which date fields to include (e.g. due dates only, all dates, …) |
-| Activities | Limit to specific activities or apply to the whole course |
-| Skip weekends | Move dates that would land on Saturday or Sunday to the next Monday |
-| Skip holidays | Requires a calendar subplugin; moves dates landing on public holidays |
+2. **Preview** — the modal shows every activity that will be changed, with each date
+   field listed by its resolved label (e.g. "Due date") along with the old and new values
+   in locale-aware format. Fields that have no date set are shown as `–` and are skipped.
+   Confirm by clicking **Apply shift**.
 
-**Step 2 — Preview**
+3. **Text review** (optional) — if you ticked *Show text review after shift*, the modal
+   proceeds to the Text Review step after the shift completes, allowing you to update any
+   date references found in free-text fields in the same workflow.
 
-Every affected field is listed with its old and new value. Conflicts are
-highlighted in amber. Entries that cannot be shifted (e.g. already at the
-minimum/maximum allowed value) are shown as skipped with a reason.
+The shift is recorded in the audit log and can be rolled back from the History page.
 
-Review the preview carefully before confirming. The preview does not modify
-any data.
-
-**Step 3 — Confirm**
-
-Click **Apply** to execute the shift. The action is logged as a batch entry
-(visible in History) and pre-action snapshots are stored for rollback.
-
----
+**Availability-condition dates** (dates stored in `course_modules.availability`) are also
+shifted, even for activity types that do not have a registered subplugin adapter.
 
 ### 4.9 Text Review
 
-Many courses contain dates written in free text — in activity descriptions,
-section summaries, labels, or the course description itself. The Text Review
-tab finds these references and helps you update them when shifting the course.
+The Text Review step scans the following free-text fields for embedded date and time
+references:
 
-Navigate to **Timeline → Text Review** tab.
+- Activity intro / description
+- Section name and summary
+- Course summary
+- Labels (the Label activity type)
 
-**Detection levels:**
+Each found reference is classified:
 
-| Level | Meaning |
+| Classification | Meaning |
 |---|---|
-| Safe | Date format is unambiguous and includes a year; the rewriter can transform it reliably |
-| Ambiguous | Date format is ambiguous (e.g. numeric month/day) or missing the year; manual review required |
-| Informational | A date-like string was found but cannot be reliably extracted for editing; shown for awareness |
+| **Safe** | Unambiguous date that can be shifted automatically |
+| **Ambiguous** | Date without a year, or a pattern that could be interpreted in multiple ways |
+| **Informational** | Relative expression (e.g. "next week") — shown for awareness only; not shifted |
 
-For each detected date reference, the table shows:
+**Safe** references are pre-selected for update. **Ambiguous** references are shown but
+not pre-selected; you can inspect the surrounding context and manually select them.
+**Informational** entries cannot be automatically updated and are shown read-only.
 
-- Where it was found (activity, field)
-- The detected text snippet
-- The normalised date value
-- Confidence level
-
-Tick the checkboxes for the references you want to update, enter a date delta,
-and click **Apply selected**. Ambiguous references require you to confirm the
-intended date manually before the rewriter acts on them.
-
----
+Click **Apply selected text changes** to update the selected references. Changes are
+recorded in the audit log alongside the corresponding date shift batch.
 
 ### 4.10 History & Rollback
 
-Navigate to **History** from the top navigation.
+The History page lists all bulk actions executed in this course, most recent first.
 
-The History page lists all bulk actions executed in this course, newest first.
+Each entry shows:
+- Date and time of the action.
+- Action type (e.g. *shift_dates*).
+- Number of activities affected.
+- Current status (completed / rolled back).
 
-Each batch entry shows:
+Click **Roll back** on any completed entry to restore the affected activities to their
+state immediately before that action. The rollback itself is also recorded as a new
+entry in the log.
 
-- Date and time of execution
-- Action type (e.g. shift\_dates)
-- Number of affected activities
-- Status (executed, partially executed, rolled back)
-- A **Roll back** button (if the batch is eligible)
-
-**Rolling back.** Click **Roll back** on a batch entry. The plugin restores the
-pre-action state for each affected activity from the stored snapshot and marks
-the batch as rolled back. Only users with `local/coursectrl:rollback` can
-perform this action.
-
-**Eligibility.** A batch can be rolled back if:
-
-- It was fully executed (not just previewed)
-- It has not already been rolled back
-- The activity still exists in the course (deleted activities cannot be restored)
-
-**Retention.** Batch records are kept according to the administrator's retention
-settings (`history_maxcount`, `history_maxdays`). After the retention period,
-rollback is no longer possible.
+**Note:** Rollback restores the field values captured at the time of the action. Changes
+made by other means (e.g. direct editing of an activity) between the original action and
+the rollback are not affected.
 
 ---
 
@@ -503,122 +374,112 @@ rollback is no longer possible.
 
 ### 5.1 Risk Severity Levels
 
-| Level | Icon | What it means |
+| Level | Visual | Meaning |
 |---|---|---|
-| **Error** | ❗ | The configuration is broken. Learners are definitively blocked or cannot complete the course. Immediate action required. |
-| **Warning** | ⚠ | The configuration is suspicious and likely to cause confusion or partial blockage. Review recommended. |
-| **Notice** | ℹ | A best-practice deviation. Not immediately harmful but worth noting. |
+| **Error** | 🔴 Red | Critical misconfiguration; learners are likely to be blocked |
+| **Warning** | 🟡 Yellow | Probable problem; review recommended |
+| **Info** | 🔵 Blue | Observation; not necessarily a problem |
+| **Disabled** | — | Rule is turned off globally by the administrator |
 
-Severity levels for individual rules can be adjusted or disabled by an
-administrator (see [§ 3.2](#32-plugin-settings)). A finding with severity
-`error` is automatically escalated when the affected activity is required
-for course completion.
+Severity levels are configurable per rule by the administrator (see [§ 3.2](#32-plugin-settings)).
 
----
+### 5.2 Consistency Check Rules (R0–R7)
 
-### 5.2 How the Journey Simulation Works
+| Rule | Name | Description |
+|---|---|---|
+| R0 | Date inversion | An activity's close/end date is set before its open/start date |
+| R1 | Hidden tracked | A completion-tracked activity is hidden — learners cannot complete it |
+| R2 | Circular lock | Two or more activities form a completion dependency cycle |
+| R3 | Stale group condition | An availability condition references a group or grouping that no longer exists |
+| R4 | Missing completion | An activity is required by an availability condition but has no completion tracking enabled |
+| R5 | Unreachable activity | The activity's conditions can never be satisfied given the current course state |
+| R6 | Section dead end | A section contains no onward path for learners who complete all activities within it |
+| R7 | No next step | A learner at the end of their path has no clear next activity |
 
-The **Solutions tab** risk scanner includes a dynamic journey simulator that goes
-beyond static structural analysis. It models how a real learner would progress
-through the course.
+### 5.3 How the Journey Simulation Works
 
-**Algorithm:**
+The simulation uses a breadth-first traversal of the course dependency graph, evaluating
+all reachable group-membership combinations up to the configured limit.
 
-1. Start with all initially accessible activities (those with no conditions, or
-   whose conditions are met at the simulation start time with no completed activities).
-2. "Complete" the first accessible activity. The simulated clock advances by the
-   configured minimum activity duration (default: 30 minutes).
-3. Re-evaluate all remaining activities with the updated completion state and time.
-   Newly accessible activities are added to the queue.
-4. Repeat until no more activities become accessible.
-5. Activities never added to the queue are **unreachable**.
+For each combination, it evaluates:
 
-**Scenarios.** The simulation runs this BFS twice per group combination:
+1. **Date conditions** — compared against the simulated timestamp.
+2. **Group and grouping conditions** — checked against the simulated membership.
+3. **Completion conditions** — checked against the assumed completion state you provided.
+4. **Grade conditions** — evaluated using your assumed pass/fail values (if provided); if
+   no assumption is given, the condition is treated as unknown.
+5. **Section-level restrictions** — propagated to all activities within the section.
+6. **Teacher-hidden flag** — any activity hidden by a teacher is always blocked regardless
+   of other conditions.
 
-- **All-pass:** Every grade-gated activity is completed with a passing grade.
-  Unreachable activities in this scenario are structurally blocked, regardless
-  of learner ability.
-- **All-fail:** Every grade-gated activity is completed with a failing grade.
-  Additional unreachable activities in this scenario are conditionally blocked
-  (learners who fail can no longer progress past a certain point).
+An activity is **accessible** only when all conditions on both its own entry and its
+parent section evaluate to pass.
 
-**Group combinations.** The simulation runs once per unique combination of group
-memberships. For a course with 3 groups, there are 8 combinations (2³). The
-administrator can limit the maximum number of combinations to control
-performance.
+The **next step** is the set of accessible activities that the simulated learner has not
+yet completed and that have no unsatisfied prerequisites.
 
-**Trial limits.** For activities with a maximum number of allowed attempts
-(Quiz, Lesson), the simulation marks an activity as "attempts exhausted" in the
-all-fail scenario. This is reflected in the journey step log.
+### 5.4 Subplugin Adapters
 
----
+Each `coursectrlmod_*` subplugin implements the `activity_adapter` interface defined in
+`classes/local/contract/activity_adapter.php`. The interface requires:
 
-### 5.3 Subplugin Adapters
+- `component()` — returns the Moodle component name (e.g. `mod_assign`).
+- `get_supported_fields()` — returns the list of date fields the adapter handles.
+- `preview_action()` — builds a preview of what would change for given cmids and payload.
+- `execute_action()` — applies the change and returns a result record.
+- `export_state()` / `restore_state()` — capture and restore field values for rollback.
+- `run_checks()` — runs activity-type-specific consistency checks.
 
-Each `coursectrlmod_*` subplugin provides:
-
-- **Field map** — which database columns represent date fields, and in what order
-  they must occur (e.g. for Assignment: `allowsubmissionsfromdate` < `duedate`
-  < `cutoffdate` < `gradingduedate`)
-- **Validation** — what payloads are acceptable for each action
-- **Preview** — how proposed changes look before execution
-- **Execution** — how to apply the change to the database
-- **Snapshot / restore** — how to capture and restore the pre-change state
-- **Checks** — adapter-specific rule violations (R7)
-
-If a subplugin for a given activity type is not installed, that activity type
-is silently omitted from all bulk actions and adapter-specific checks. Its dates
-can still be shifted if the date fields are registered in the generic field map.
+Adapters are discovered automatically at runtime via Moodle's plugin registry. No
+configuration is required after installation.
 
 ---
 
 ## 6. Troubleshooting
 
-### The plugin is not visible in a course
+### "Text analysis not available" after a bulk shift
 
-1. Confirm the plugin is installed: **Site administration → Plugins → Local plugins**.
-2. Check that the user's role has `local/coursectrl:view`.
-3. If using the block: confirm the block is added to the course and is visible.
+The text-analysis step calls the `local_coursectrl_get_text_hits` web service. If this
+message appears, check the Moodle server error log for a PHP exception from this
+external function. The most common causes are:
 
-### The Timeline or Graph shows no data
+- A database connection error during the CM bulk-lookup phase.
+- A permission error if the user lost the `local/coursectrl:view` capability between the
+  shift and the text-scan step.
 
-The course must have at least one activity with structured date fields (assign,
-quiz, etc.) for Timeline data to appear. The Graph requires at least one activity
-with a completion condition.
+### Dates in the preview appear as `–` (dash)
 
-### The Risk Scanner takes a very long time
+A dash means the field's stored value is 0 (disabled/not set). The shift workflow skips
+these fields; they are shown for transparency only. Enable the date field in the
+activity's settings to make it available for shifting.
 
-For courses with many groups, the journey simulation tries up to
-`risk_max_group_combinations` combinations. Reduce this value in
-**Site administration → Course Control Hub → Dynamic journey simulation**
-to speed up the scan.
+### Dependency Graph is empty or missing edges
 
-### A rollback failed partially
+The graph is built from the availability conditions stored in `course_modules.availability`.
+If a course has no availability or completion conditions configured, the graph will show
+nodes only, with no edges. This is expected — it means the course has no dependency
+structure.
 
-If a rollback reports that some activities could not be restored, the most
-common cause is that an activity was deleted after the batch was executed.
-Deleted activities cannot be restored. The successfully restored activities
-are listed in the rollback result.
+### A rolled-back batch did not restore all fields
 
-### "Subplugin not found" errors in the Moodle upgrade log
+Rollback restores the values captured in the snapshot at the time the original action was
+executed. If you edited an activity's dates between the original action and the rollback
+(e.g. manually in the activity settings), the manual changes are overwritten by the
+rollback. Fields that were changed by means other than Course Control Hub are not
+tracked and cannot be restored.
 
-This usually means a `coursectrlmod_*` directory exists but the subplugin was
-not correctly registered. Ensure `db/subplugins.json` contains both the
-`subplugintypes` and `plugintypes` keys (both are required as of MDL-83705).
+### Scheduled task not running
 
-### PHPCS or CI failures after extending the plugin
+Check **Site administration → Server → Scheduled tasks** and confirm the
+`purge_old_batches` task is enabled and its last run time is recent. If the task is
+failing, check the Moodle cron log and server PHP error log for details.
 
-Follow the coding standards documented in `docs/coding-standards-prompt.md`.
-The most common pitfalls are:
+### A subplugin activity type is not detected
 
-- Multi-line function calls must have one argument per continuation line
-- Class properties must not contain underscores
-- Every class constant needs its own docblock
-- Inline comments must start with a capital letter
+If an activity type is not listed in the bulk action preview, either:
 
----
+1. No `coursectrlmod_<modname>` adapter is installed for that type, or
+2. The adapter is installed but not yet visible to Moodle — visit
+   **Site administration → Notifications** to complete the installation.
 
-*Course Control Hub is free software: you can redistribute it and/or modify it under the
-terms of the GNU General Public License version 3 or later.*
-
-*Copyright 2026 Ralf Erlebach.*
+Activities without an adapter can still be shifted at the availability-condition level.

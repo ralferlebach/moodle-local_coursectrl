@@ -242,7 +242,7 @@ class timeline_page implements renderable, templatable {
         ] + $this->build_textreview_context($course->id);
     }
     /**
-     * Build textreview context variables for the Textprüfung tab.
+     * Build textreview context variables for the text-review tab.
      *
      * Loads persisted text_hit records for the course, pre-populates the
      * delta inputs from the shift that triggered this tab, and surfaces any

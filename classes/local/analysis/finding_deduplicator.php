@@ -18,7 +18,6 @@
  * Finding deduplicator for the Course Control Hub risk pipeline.
  *
  * Problem solved
- * --------------
  * The deep_journey_simulator produces one finding per (cmid, grademode,
  * group-profile) tuple. When the same CM is unreachable across many scenarios,
  * it generates N cards for the same root cause. This overwhelms the UI and
@@ -29,7 +28,6 @@
  * share an identical root cause.
  *
  * Deduplication logic
- * -------------------
  *  Fingerprint for journey_unreachable:
  *    fingerprint = cmid + '|' + severity (ignoring grademode/groupids).
  *

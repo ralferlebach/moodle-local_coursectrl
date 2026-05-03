@@ -24,7 +24,6 @@
  * completion states, and grade thresholds all affect reachability.
  *
  * Algorithm overview
- * ------------------
  *  For each group-combination scenario (up to max_group_combinations):
  *    For each grade scenario (all-pass / all-fail):
  *      BFS: start from all initially accessible activities.
@@ -36,7 +35,6 @@
  *      and a deep-link into the simulation tab.
  *
  * Settings
- * --------
  *  local_coursectrl/risk_min_activity_minutes  (default 30)
  *  local_coursectrl/risk_max_group_combinations (default 32)
  *

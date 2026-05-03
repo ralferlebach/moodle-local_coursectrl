@@ -25,9 +25,9 @@
  * "Standardisierte Adapter-Schnittstelle", and backs the following functional
  * requirements:
  *
- *   F1  Kursinventar                -> get_instances_for_course, describe_instance
+ *   F1  Course inventory            -> get_instances_for_course, describe_instance
  *   F3  Vorschau                    -> validate_action, preview_action
- *   F4  Terminänderung              -> execute_action (shift_dates, set_dates)
+ *   F4  Date shifting               -> execute_action (shift_dates, set_dates)
  *   F8  Lernenden-Simulation        -> get_dependency_hints
  *   F9  Konsistenz-/Sackgassenanalyse -> run_checks
  *   F10 Audit / Rollback            -> export_state, restore_state

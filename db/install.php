@@ -33,16 +33,9 @@
  * @return bool Always true.
  */
 function xmldb_local_coursectrl_install(): bool {
-    try {
-        \local_coursectrl\task\warm_calendar_cache::do_warm();
-    } catch (\Throwable $e) {
-        debugging(
-            'local_coursectrl synchronous warm during install failed: ' . $e->getMessage(),
-            DEBUG_DEVELOPER
-        );
-    }
-    // Always queue the adhoc fallback. If do_warm() succeeded, the task is
-    // a cheap no-op (cache already warm). If it failed, the task retries.
+    // Queue the adhoc task so the first cron tick warms the holiday cache.
+    // Synchronous warming is intentionally avoided in install to keep the
+    // installer fast and deterministic (no external network calls).
     \local_coursectrl\task\warm_calendar_cache_adhoc::queue();
     return true;
 }

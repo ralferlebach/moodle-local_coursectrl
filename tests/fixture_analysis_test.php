@@ -17,8 +17,8 @@
 /**
  * Integration tests: Problemanalyse und Risikoanalyse.
  *
- * Prüft consistency_runner (R0/R3/R7) und risk_assessment_runner
- * gegen synthetische Kurse die den Fixture-Testfällen entsprechen.
+ * Tests for consistency_runner (rules R0/R3/R7) and risk_assessment_runner
+ * against synthetic courses that match the fixture test cases.
  *
  * @package    local_coursectrl
  * @copyright  2026 Ralf Erlebach
@@ -46,10 +46,10 @@ use local_coursectrl\local\inventory\inventory_service;
  * @covers \local_coursectrl\local\analysis\dead_end_detector
  */
 final class fixture_analysis_test extends \advanced_testcase {
-    /** @var int 2026-05-01 00:00 UTC (Kursbeginn) */
+    /** @var int 2026-05-01 00:00 UTC — course start. */
     private const COURSE_START = 1746057600;
 
-    /** @var int 2026-10-31 23:59 UTC (Kursende) */
+    /** @var int 2026-10-31 23:59 UTC — course end. */
     private const COURSE_END = 1762041540;
 
     /** @var int 7 Tage in Sekunden */
@@ -58,7 +58,7 @@ final class fixture_analysis_test extends \advanced_testcase {
     // Helpers.
 
     /**
-     * Erstelle Kurs mit Datum-Rahmen.
+     * Create a course with start and end date boundaries.
      *
      * @return \stdClass course record
      */
@@ -71,7 +71,7 @@ final class fixture_analysis_test extends \advanced_testcase {
     }
 
     /**
-     * Baue Inventory-Snapshot + dependency_index + datesbycm für einen Kurs.
+     * Build an inventory snapshot, dependency index, and dates-by-CM map for a course.
      *
      * @param int $courseid
      * @return array{cms: array, depindex: dependency_index, datesbycm: array}
@@ -85,10 +85,10 @@ final class fixture_analysis_test extends \advanced_testcase {
         return ['cms' => $snapshot->cms, 'depindex' => $depindex, 'datesbycm' => $datesbycm];
     }
 
-    // R0: Kursrahmen.
+    // R0: course date boundary rules.
 
     /**
-     * R0a: assign mit duedate nach Kursende → r0_after_course_end.
+     * R0a: assign duedate set after course end → finds r0_after_course_end risk.
      * @covers \local_coursectrl\local\analysis\consistency_runner
      * @covers \local_coursectrl\local\analysis\risk_assessment_runner
      * @covers \local_coursectrl\local\analysis\course_frame_checker
@@ -114,7 +114,7 @@ final class fixture_analysis_test extends \advanced_testcase {
     }
 
     /**
-     * R0b: quiz mit timeopen vor Kursbeginn → r0_before_course_start.
+     * R0b: quiz timeopen set before course start → finds r0_before_course_start risk.
      * @covers \local_coursectrl\local\analysis\consistency_runner
      * @covers \local_coursectrl\local\analysis\risk_assessment_runner
      * @covers \local_coursectrl\local\analysis\course_frame_checker
@@ -224,10 +224,10 @@ final class fixture_analysis_test extends \advanced_testcase {
         $this->assertContains('temporal_conflict', $alltypes);
     }
 
-    // Kursrahmen-Konsistenz bei gültiger Konfiguration.
+    // Boundary consistency with valid configuration.
 
     /**
-     * Ein korrekt konfigurierter Kurs produziert KEINE R0-Fehler.
+     * A correctly configured course produces no R0 findings.
      * @covers \local_coursectrl\local\analysis\consistency_runner
      * @covers \local_coursectrl\local\analysis\risk_assessment_runner
      * @covers \local_coursectrl\local\analysis\course_frame_checker
@@ -257,7 +257,7 @@ final class fixture_analysis_test extends \advanced_testcase {
     // Risikoanalyse.
 
     /**
-     * risk_assessment_runner liefert mindestens einen Befund für Kurs mit Zirkel.
+     * risk_assessment_runner produces at least one finding for a course with a circular dependency.
      * @covers \local_coursectrl\local\analysis\consistency_runner
      * @covers \local_coursectrl\local\analysis\risk_assessment_runner
      * @covers \local_coursectrl\local\analysis\course_frame_checker
@@ -300,7 +300,7 @@ final class fixture_analysis_test extends \advanced_testcase {
     }
 
     /**
-     * risk_assessment_runner Ergebnisse werden persistiert und sind via load_last abrufbar.
+     * risk_assessment_runner results are persisted and retrievable via load_last().
      * @covers \local_coursectrl\local\analysis\consistency_runner
      * @covers \local_coursectrl\local\analysis\risk_assessment_runner
      * @covers \local_coursectrl\local\analysis\course_frame_checker

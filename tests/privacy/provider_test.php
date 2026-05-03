@@ -443,6 +443,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
             'normalizedvalue' => '2026-06-01',
             'confidence'      => 'safe',
             'contextjson'     => '{}',
+            'timecreated'     => time(),
         ]);
         $DB->insert_record('local_coursectrl_risk', (object) [
             'courseid'    => $course1->id,
@@ -464,6 +465,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
             'normalizedvalue' => '2026-06-01',
             'confidence'      => 'safe',
             'contextjson'     => '{}',
+            'timecreated'     => time(),
         ]);
 
         $context1 = \context_course::instance($course1->id);
@@ -509,6 +511,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
             'normalizedvalue' => '2026-06-01',
             'confidence'      => 'safe',
             'contextjson'     => '{}',
+            'timecreated'     => time(),
         ]);
 
         $contextlist = $this->make_contextlist($user, \context_course::instance($course->id));

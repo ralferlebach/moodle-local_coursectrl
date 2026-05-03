@@ -171,8 +171,9 @@ final class preview_bulk_action_test extends \advanced_testcase {
     }
 
     /**
-     * preview_bulk_action must silently filter out CMIDs from a foreign course
-     * (batch_manager rejects them; the response skips them).
+     * preview_bulk_action must reject CMIDs from a foreign course.
+     * preview_manager::build() throws invalidcmid when a CMID does not
+     * belong to the requested course.
      * @covers \local_coursectrl\external\preview_bulk_action
      */
     public function test_preview_filters_cmid_from_foreign_course(): void {

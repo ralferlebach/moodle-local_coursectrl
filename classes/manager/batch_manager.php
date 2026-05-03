@@ -151,6 +151,18 @@ class batch_manager {
                     $summary,
                     $hasanyfailure
                 );
+                // Persist core_coursemodule snapshots for completionexpected
+                // captured by the executor before shifting. This enables
+                // the rollback_manager to restore these CM-level fields
+                // alongside the adapter's own field snapshots.
+                foreach ($result['cm_snapshots'] ?? [] as $cmid => $state) {
+                    $this->persist_snapshot(
+                        $batchid,
+                        (int) $cmid,
+                        'core_coursemodule',
+                        $state
+                    );
+                }
                 if (!empty($successfulcmids)) {
                     $successfulbyadapter[$component] = [
                         'adapter' => $adapter,

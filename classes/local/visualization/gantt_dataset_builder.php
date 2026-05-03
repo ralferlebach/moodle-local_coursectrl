@@ -232,7 +232,8 @@ class gantt_dataset_builder {
         $buildcmrow = function (
             \local_coursectrl\local\entity\cm_item $cm,
             int $sectionid,
-            int $depth
+            int $depth,
+            bool $sectionrestricted = false
         ) use (
             $bycm,
             $datetimefmt,
@@ -305,7 +306,12 @@ class gantt_dataset_builder {
                 'cmurl'      => $cmurl,
                 'bars'       => $bars,
                 'window'     => $window,
-                'unlimited'  => !$hasavail,
+                // A CM is unlimited only when it has no availability-condition
+                // date entries of its own AND the section cascade does not apply.
+                // The cascade only fires for CMs with NO bars at all: an activity
+                // that has its own adapter dates (e.g. quiz timeopen/timeclose) still
+                // renders those bars and does not need the section indicator.
+                'unlimited'  => !$hasavail && !($sectionrestricted && empty($bars)),
             ];
         };
 
@@ -472,10 +478,22 @@ class gantt_dataset_builder {
                     ];
                     // Render child CMs of this subsection at depth 2.
                     foreach ($cmsbysection[$childsectionid] ?? [] as $childcm) {
-                        $rows[] = $buildcmrow($childcm, $childsectionid, 2);
+                        // Child CMs inherit restriction from both their parent
+                        // subsection and the grandparent section.
+                        $rows[] = $buildcmrow(
+                            $childcm,
+                            $childsectionid,
+                            2,
+                            !empty($secavailbars) || !empty($subsecbars)
+                        );
                     }
                 } else {
-                    $rows[] = $buildcmrow($cm, $section->id, 1);
+                    $rows[] = $buildcmrow(
+                        $cm,
+                        $section->id,
+                        1,
+                        !empty($secavailbars)
+                    );
                 }
             }
         }

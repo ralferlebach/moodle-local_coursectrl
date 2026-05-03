@@ -22,7 +22,6 @@
  * group profiles that should be simulated.
  *
  * Problem solved
- * --------------
  * The naive approach (power-set of all course groups) produces O(2^n)
  * scenarios, most of which are unrealistic:
  *  - Two groups from the same "choice dimension" (e.g. two Lehrveranstaltung
@@ -35,7 +34,6 @@
  * realistic learner profiles while generating no redundant simulations.
  *
  * Algorithm
- * ---------
  *  1. Load all groups referenced in any CM availability tree.
  *  2. Load grouping membership for those groups from mdl_groupings_groups.
  *  3. Classify referenced groups into dimensions:

@@ -45,7 +45,7 @@ class next_step_engine {
     /**
      * Find next-step candidate cmids.
      *
-     * @param array<int,array> $simresults Per-CM results from visibility_simulator::simulate().
+     * @param array $simresults Per-CM results from visibility_simulator::simulate().
      * @param cm_item[] $cms Course modules keyed by cmid.
      * @param learner_state $state The learner state used for the simulation.
      * @return int[] cmids of next-step candidates, in cmid order.
@@ -79,7 +79,6 @@ class next_step_engine {
      * Returns CMs where accessible === false and teacher_visible === true,
      * i.e. activities blocked by availability conditions (not hidden).
      *
-     * @param array<int, array> $simresults Per-CM results from visibility_simulator::simulate().
      * @param array $simresults See function signature.
      * @return int[] cmids of blocked activities, in cmid order.
      */

@@ -48,11 +48,11 @@ class graph_dataset_builder {
     /**
      * Build the full graph dataset.
      *
-     * @param cm_item[] $cms Course modules keyed by cmid.
+     * @param array $cms Course modules keyed by cmid.
      * @param dependency_index $depindex Prebuilt dependency index.
-     * @param array $warnings Per-CM warning lists from consistency_runner
-     * @param mixed $blockedids See function signature.
-     * @param mixed $nextstepids See function signature.
+     * @param array $warnings Per-CM warning lists from consistency_runner.
+     * @param array $blockedids Blocked cm ids to highlight in red.
+     * @param array $nextstepids Next-step cm ids to highlight in green.
      * @return array Graph dataset with keys: nodes, edges, nodecount, edgecount,
      *               layercount, hasonlynodes, hasdata.
      */
@@ -183,10 +183,10 @@ class graph_dataset_builder {
      * forward dependencies from the index. The dependency_index is still used
      * for circular-cycle detection over the full graph.
      *
-     * @param cm_item[]        $cms      Course modules keyed by cmid.
+     * @param array $cms Course modules keyed by cmid.
      * @param dependency_index $depindex Prebuilt dependency index (for cycle detection).
-     * @param array            $forward  Filtered forward map: cmid → prerequisite cmids.
-     * @param array            $warnings Per-CM warning lists from consistency_runner.
+     * @param array $forward Filtered forward map: cmid → prerequisite cmids.
+     * @param array $warnings Per-CM warning lists from consistency_runner.
      * @param mixed $blockedids See function signature.
      * @param mixed $nextstepids See function signature.
      * @return array Graph dataset.
@@ -316,7 +316,7 @@ class graph_dataset_builder {
      * R3: Layer of B = max(layer of prereqs) + 1 (only e=1 deps used).
      * R5: Independents (no deps, not a prereq) go to layer 0.
      *
-     * @param cm_item[] $cms CMs keyed by cmid, in course order.
+     * @param array $cms CMs keyed by cmid, in course order.
      * @param array $forward Forward map: cmid → list of prerequisite cmids.
      * @return array<int, int> cmid → layer index (0-based).
      */
@@ -376,9 +376,9 @@ class graph_dataset_builder {
      *     course-order position of their prerequisites/successors.
      * R5: Independents (layer 0, no reverse deps) fill remaining slots.
      *
-     * @param mixed $layers See function signature.
-     * @param array $forward Forward map: cmid → prereqs.
-     * @param array $reverse Reverse map: cmid → dependents.
+     * @param array $layers  cmid to layer index.
+     * @param array $forward Forward map: cmid to prerequisite cmids.
+     * @param array $reverse Reverse map: cmid to dependent cmids.
      * @return array<int, int> cmid → 0-based position within its layer.
      */
     private function assign_layer_positions(

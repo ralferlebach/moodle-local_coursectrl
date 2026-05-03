@@ -125,7 +125,7 @@ final class section_item extends inventory_item {
     /**
      * Reconstruct a section_item from its array representation.
      *
-     * @param array<string,mixed> $data serialised entity.
+     * @param array $data serialised entity.
      * @return static
      * @throws \coding_exception when a required key is missing.
      */

@@ -212,8 +212,8 @@ class inventory_service {
      * extra fields) are read in that single query.
      *
      * @param course_item            $course   Course entity.
-     * @param array<int,section_item> $sections Section entities.
-     * @param array<int,cm_item>      $cms      Course-module entities.
+     * @param array $sections Section entities.
+     * @param array $cms      Course-module entities.
      * @return array<string, text_item> Text items keyed by their entity key.
      */
     protected function collect_texts(course_item $course, array $sections, array $cms): array {

@@ -73,7 +73,7 @@ class gantt_dataset_builder {
     /**
      * Build the Gantt dataset.
      *
-     * @param array<int,\local_coursectrl\local\entity\cm_item> $cms Course modules keyed by cmid.
+     * @param array $cms Course modules keyed by cmid.
      * @param calendar_manager|null $calman Optional calendar manager for holiday bands.
      * @return array{
      *     rows: array,

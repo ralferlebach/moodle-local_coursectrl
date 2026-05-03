@@ -48,13 +48,6 @@ class textreview_manager {
     /** @var inventory_service */
     private inventory_service $inventoryservice;
 
-    /**
-     * Constructor.
-     *
-     * @param text_change_builder|null    $builder          Optional custom builder.
-     * @param text_datetime_rewriter|null $rewriter         Optional custom rewriter.
-     * @param inventory_service|null      $inventoryservice Optional custom inventory service.
-     */
     /** @var string[] Allowed text fields on the course table. */
     private const COURSE_TEXT_FIELDS = ['summary', 'fullname', 'shortname'];
 
@@ -77,8 +70,8 @@ class textreview_manager {
      * Construct the textreview_manager.
      *
      * @param text_change_builder $builder Change-builder dependency.
-     * @param text_datetime_rewriter|null $rewriter Text rewriter; defaults to new instance.
-     * @param inventory_service|null $inventoryservice Inventory service; defaults to new instance.
+     * @param text_datetime_rewriter $rewriter Text rewriter; null defaults to new instance.
+     * @param inventory_service $inventoryservice Inventory service; null defaults to new instance.
      */
     public function __construct(
         ?text_change_builder $builder = null,

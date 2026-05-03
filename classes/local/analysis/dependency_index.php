@@ -95,7 +95,7 @@ class dependency_index {
      * Build the index from cm_items.
      *
      * @param cm_item[] $cms          Keyed by cmid.
-     * @param array<int,int> $gradeitemmap Grade item id → cmid mapping.
+     * @param array $gradeitemmap Grade item id → cmid mapping.
      *                                 Required to resolve grade-based availability
      *                                 conditions to cmid pairs for graph edges.
      *                                 Obtained from the grade_items table; pass []
@@ -267,7 +267,7 @@ class dependency_index {
      *
      *                                     grade-based availability conditions.
      * @param cm_item[] $cms Course modules keyed by cmid.
-     * @param array<int,int> $gradeitemmap Grade item id → cmid. Used to resolve
+     * @param array $gradeitemmap Grade item id → cmid. Used to resolve
      */
     private function build(array $cms, array $gradeitemmap = []): void {
         foreach ($cms as $cm) {

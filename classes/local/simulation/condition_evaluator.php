@@ -76,7 +76,8 @@ class condition_evaluator {
     /**
      * Constructor.
      *
-     * @param mixed $gradeitemmap See function signature.
+     * @param array $gradeitemmap Optional map of grade item id →
+     *   ['cmid' => int, 'grademax' => float]. Required to evaluate grade conditions.
      */
     public function __construct(array $gradeitemmap = []) {
         $this->gradeitemmap = $gradeitemmap;

@@ -84,13 +84,13 @@ class deep_journey_simulator {
      *                                    Each profile: ['groupids'=>int[],
      *                                    'groupingids'=>int[], 'label'=>string].
      *                                    If empty the no-group profile is used.
-     * @param array<int,array> $gradeinfobycmid cmid → {gradepass, grademax}.
-     * @param array<int,int>   $gradeitemmap    grade_items.id → cmid.
+     * @param array $gradeinfobycmid cmid → {gradepass, grademax}.
+     * @param array $gradeitemmap    grade_items.id → cmid.
      * @param int[]       $critcmids       Cmids required for course completion.
      * @param int         $startts         Simulation start timestamp (default: now).
      * @param int         $courseid        Course id (used in deep-link URLs).
-     * @param array<int,int>   $maxattemptsbycmid  cmid → max attempts (0=unlimited).
-     * @param array<int,\local_coursectrl\local\entity\section_item> $sections
+     * @param array $maxattemptsbycmid  cmid → max attempts (0=unlimited).
+     * @param array $sections
      *     Section items keyed by section id, used for section-level gating.
      * @return array[] Findings: one entry per (scenario, unreachable-cmid) pair.
      */
@@ -198,8 +198,8 @@ class deep_journey_simulator {
      * @param int[]            $groupingids     Grouping ids derived from the learner profile.
      * @param string           $grademode       'pass' or 'fail'.
      * @param int              $startts         Start timestamp.
-     * @param array<int,int>   $maxattemptsbycmid cmid → max attempts (0=unlimited).
-     * @param array<int,\local_coursectrl\local\entity\section_item> $sections
+     * @param array $maxattemptsbycmid cmid → max attempts (0=unlimited).
+     * @param array $sections
      *     Section items keyed by section id, used for section-level gating.
      * @return array{reachable: int[], unreachable: int[], steps: array[]}
      */

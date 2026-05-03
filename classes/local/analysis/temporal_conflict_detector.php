@@ -293,8 +293,8 @@ class temporal_conflict_detector {
     /**
      * Apply R3 ordering rules against a field map.
      *
-     * @param array<int,string[]> $rules Ordered rule pairs: [field_a, field_b].
-     * @param array<string,int> $fieldmap Field → timestamp map for this CM.
+     * @param array $rules Ordered rule pairs: [field_a, field_b].
+     * @param array $fieldmap Field → timestamp map for this CM.
      * @return array[]
      */
     private function apply_rules(array $rules, array $fieldmap): array {

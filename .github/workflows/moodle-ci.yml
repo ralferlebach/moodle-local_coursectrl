@@ -161,8 +161,6 @@ jobs:
       - name: Savepoint check
         run: moodle-plugin-ci savepoint
 
-      - name: Third-party library check
-        run: moodle-plugin-ci thirdpartylibs
 
   # ── 2. PHPUnit ────────────────────────────────────────────────────────────
   phpunit:

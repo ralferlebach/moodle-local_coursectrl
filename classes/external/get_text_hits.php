@@ -109,13 +109,30 @@ class get_text_hits extends external_api {
                       JOIN {modules} m ON m.id = cm.module
                      WHERE cm.course = :courseid
                        AND cm.id {$insql}";
+
+            // Group rows by module type so we can bulk-load instance names
+            // with one query per module table instead of one per CM row.
+            $bymodname = [];
+            $cmrowbyid = [];
             foreach ($DB->get_records_sql($sql, $inparams) as $row) {
-                $modname = (string) $row->modname;
-                $cmname = $DB->get_field($modname, 'name', ['id' => (int) $row->instance]) ?: '';
-                $cminfobycmid[(int) $row->id] = [
-                    'name'    => $cmname,
-                    'modname' => $modname,
-                ];
+                $bymodname[(string) $row->modname][(int) $row->id] = (int) $row->instance;
+                $cmrowbyid[(int) $row->id] = (string) $row->modname;
+            }
+            foreach ($bymodname as $modname => $cmidtoinstance) {
+                $instanceids = array_values($cmidtoinstance);
+                $namebyinstance = $DB->get_records_list(
+                    $modname,
+                    'id',
+                    $instanceids,
+                    '',
+                    'id, name'
+                );
+                foreach ($cmidtoinstance as $cmid => $instanceid) {
+                    $cminfobycmid[$cmid] = [
+                        'name'    => $namebyinstance[$instanceid]->name ?? '',
+                        'modname' => $modname,
+                    ];
+                }
             }
         }
 

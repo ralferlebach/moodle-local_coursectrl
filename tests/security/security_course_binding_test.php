@@ -142,8 +142,7 @@ final class security_course_binding_test extends \advanced_testcase {
      */
     public function test_execute_rejects_cmid_from_other_course(): void {
         $this->resetAfterTest();
-        [, $courseid2, , $cmid2] = $this->two_courses_with_assign();
-        $courseid1 = $this->two_courses_with_assign()[0];
+        [$courseid1, $courseid2, , $cmid2] = $this->two_courses_with_assign();
 
         // Execute against course1 but supply a CMID that lives in course2.
         $manager = new batch_manager();

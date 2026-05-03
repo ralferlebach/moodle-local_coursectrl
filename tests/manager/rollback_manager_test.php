@@ -202,4 +202,49 @@ final class rollback_manager_test extends \advanced_testcase {
         $this->assertSame('error', $result['items'][0]['status']);
         $this->assertSame('no_adapter', $result['items'][0]['message']);
     }
+
+    /**
+     * rollback_batch restores core_coursemodule snapshot without an adapter.
+     * Verifies P0 fix: completionexpected and availability are written back
+     * directly to course_modules; no adapter is required.
+     * @covers \local_coursectrl\manager\rollback_manager
+     */
+    public function test_rollback_core_coursemodule_restores_fields(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $course  = $this->getDataGenerator()->create_course();
+        $assign  = $this->getDataGenerator()->create_module('assign', ['course' => $course->id]);
+        $cmid    = (int) $assign->cmid;
+        $oldval  = mktime(9, 0, 0, 6, 1, 2026);
+        $newval  = $oldval + 86400;
+
+        // Simulate a CM-level shift: set completionexpected to the shifted value.
+        $DB->set_field('course_modules', 'completionexpected', $newval, ['id' => $cmid]);
+
+        // Create a batch and a core_coursemodule snapshot with the old value.
+        $batchid = $this->create_batch($course->id, batch::STATUS_EXECUTED);
+        $this->create_snapshot(
+            $batchid,
+            $cmid,
+            'core_coursemodule',
+            ['completionexpected' => $oldval, 'availability' => '']
+        );
+
+        $manager = new rollback_manager();
+        $result  = $manager->rollback_batch($course->id, $batchid, 2);
+
+        $this->assertTrue($result['success'], 'Rollback must succeed');
+        $this->assertSame(1, $result['restored']);
+        $this->assertSame(0, $result['failed']);
+
+        // Verify the DB row was actually restored.
+        $restored = $DB->get_field('course_modules', 'completionexpected', ['id' => $cmid]);
+        $this->assertSame($oldval, (int) $restored, 'completionexpected must be rolled back');
+
+        // No no_adapter errors.
+        foreach ($result['items'] as $item) {
+            $this->assertNotSame('no_adapter', $item['message']);
+        }
+    }
 }

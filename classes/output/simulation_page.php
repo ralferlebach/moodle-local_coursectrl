@@ -798,9 +798,13 @@ class simulation_page implements renderable, templatable {
         if ($type === 'completion') {
             $depcmid = (int) ($reason['cmid'] ?? 0);
             $depcm = $cms[$depcmid] ?? null;
-            // S(format_string()) ensures the name is safe inside the HTML link
-            // produced by the sim_reason_completion lang string.
-            $depname = $depcm ? s(format_string($depcm->name)) : 'cmid ' . (int) $depcmid;
+            // Format_string() with the CM context applies activity-specific text
+            // filters; s() escapes the result for safe interpolation into the
+            // HTML link produced by the sim_reason_completion lang string.
+            $depctx = \context_module::instance($depcmid, IGNORE_MISSING);
+            $depname = $depcm
+                ? s(format_string($depcm->name, true, ['context' => $depctx ?: \context_course::instance($courseid)]))
+                : 'cmid ' . (int) $depcmid;
             $depmodname = $depcm ? $depcm->modname : '';
             $depurl = $depcm
                 ? (new \moodle_url('/mod/' . $depmodname . '/view.php', ['id' => $depcmid]))->out(false)
@@ -852,7 +856,12 @@ class simulation_page implements renderable, templatable {
                     'sim_reason_grade_simulated',
                     'local_coursectrl',
                     (object)[
-                        'cmname'    => s(format_string($gradecm->name)),
+                        'cmname'    => s(format_string(
+                            $gradecm->name,
+                            true,
+                            ['context' => \context_module::instance($gradecmid, IGNORE_MISSING)
+                                ?: \context_course::instance($courseid)]
+                        )),
                         'grade'     => round((float) $reason['grade'], 1),
                         'direction' => isset($reason['min']) ? '>=' : '<',
                         'threshold' => round((float) ($reason['min'] ?? $reason['max'] ?? 0), 1),

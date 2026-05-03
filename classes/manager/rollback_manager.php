@@ -192,6 +192,51 @@ class rollback_manager {
                     continue;
                 }
 
+                // Core CM-level fields (completionexpected, availability) are
+                // snapshotted with component = core_coursemodule and must be
+                // restored directly without going through an adapter.
+                if ($component === 'core_coursemodule') {
+                    $allowedfields = ['completionexpected', 'availability'];
+                    $update = new \stdClass();
+                    $update->id = $entityid;
+                    $hasfield = false;
+                    foreach ($allowedfields as $field) {
+                        if (array_key_exists($field, $state)) {
+                            $update->$field = $state[$field];
+                            $hasfield = true;
+                        }
+                    }
+                    if (!$hasfield) {
+                        $items[] = [
+                            'entityid' => $entityid,
+                            'component' => $component,
+                            'status' => 'noop',
+                            'message' => 'no_recognised_fields',
+                        ];
+                        continue;
+                    }
+                    try {
+                        $DB->update_record('course_modules', $update);
+                        rebuild_course_cache($courseid);
+                        $items[] = [
+                            'entityid' => $entityid,
+                            'component' => $component,
+                            'status' => 'restored',
+                            'message' => 'core_coursemodule',
+                        ];
+                        $restored++;
+                    } catch (\Throwable $e) {
+                        $items[] = [
+                            'entityid' => $entityid,
+                            'component' => $component,
+                            'status' => 'error',
+                            'message' => $e->getMessage(),
+                        ];
+                        $failed++;
+                    }
+                    continue;
+                }
+
                 $adapter = $this->registry->get_for_component($component);
                 if ($adapter === null) {
                     $items[] = [

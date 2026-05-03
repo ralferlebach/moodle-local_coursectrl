@@ -59,6 +59,7 @@ class visibility_simulator {
      *
      * @param condition_evaluator|null $evaluator Optional override for DI.
      * @param array<int,section_item>  $sections  Section items keyed by id (for availability gating).
+     * @param mixed $this See function signature.
      */
     public function __construct(?condition_evaluator $evaluator = null, array $sections = []) {
         $this->evaluator = $evaluator ?? new condition_evaluator();

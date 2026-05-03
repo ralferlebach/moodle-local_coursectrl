@@ -67,6 +67,7 @@ final class inventory_snapshot implements \JsonSerializable {
     /**
      * Number of course sections in the snapshot.
      *
+     * @param mixed $this See function signature.
      * @return int
      */
     public function count_sections(): int {
@@ -76,6 +77,7 @@ final class inventory_snapshot implements \JsonSerializable {
     /**
      * Number of course modules in the snapshot.
      *
+     * @param mixed $this See function signature.
      * @return int
      */
     public function count_cms(): int {
@@ -85,6 +87,7 @@ final class inventory_snapshot implements \JsonSerializable {
     /**
      * Number of editable texts in the snapshot.
      *
+     * @param mixed $this See function signature.
      * @return int
      */
     public function count_texts(): int {
@@ -108,6 +111,7 @@ final class inventory_snapshot implements \JsonSerializable {
     /**
      * JsonSerializable hook.
      *
+     * @param mixed $this See function signature.
      * @return array<string,mixed>
      */
     public function jsonSerialize(): array {

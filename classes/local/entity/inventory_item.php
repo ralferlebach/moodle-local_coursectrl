@@ -74,6 +74,7 @@ abstract class inventory_item implements \JsonSerializable {
      * @param array<string,mixed> $data Source array to validate.
      * @param string $key Required key name.
      * @param string $class Calling class name used in error context.
+     * @param mixed $this See function signature.
      * @return array<string,mixed>
      */
     public function jsonSerialize(): array {

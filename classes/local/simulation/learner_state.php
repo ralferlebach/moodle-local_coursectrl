@@ -91,6 +91,7 @@ final class learner_state {
      * Return the assumed grade percentage for the given cmid, or null if not set.
      *
      * @param int $cmid Course module id.
+     * @param mixed $this See function signature.
      * @return float|null Grade percentage (0.0–100.0), or null when not specified.
      */
     public function get_grade(int $cmid): ?float {
@@ -101,6 +102,7 @@ final class learner_state {
      * Whether the learner is assumed to be in the given group.
      *
      * @param int $groupid Moodle group id.
+     * @param mixed $this See function signature.
      * @return bool
      */
     public function is_in_group(int $groupid): bool {
@@ -111,6 +113,7 @@ final class learner_state {
      * Whether the learner is assumed to be in the given grouping.
      *
      * @param int $groupingid Moodle grouping id.
+     * @param mixed $this See function signature.
      * @return bool
      */
     public function is_in_grouping(int $groupingid): bool {

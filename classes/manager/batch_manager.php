@@ -55,6 +55,7 @@ class batch_manager {
      * Constructor.
      *
      * @param registry|null $registry optional registry instance, mainly for
+     * @param mixed $this See function signature.
      *                                tests. When null, a fresh registry with
      *                                live discovery is created.
      */
@@ -282,6 +283,7 @@ class batch_manager {
      *
      * @param array $successfulbyadapter Map of component -> {adapter, cmids}.
      * @param int   $batchid             Parent batch id (for debug output).
+     * @param mixed $entry See function signature.
      * @return void
      */
     private function refresh_calendars(array $successfulbyadapter, int $batchid): void {
@@ -304,6 +306,7 @@ class batch_manager {
      * @param int    $userid   acting user id.
      * @param string $action   canonical action identifier.
      * @param array  $payload  action-specific parameters.
+     * @param mixed $data See function signature.
      * @return batch
      */
     private function create_batch_row(int $courseid, int $userid, string $action, array $payload): batch {
@@ -322,6 +325,7 @@ class batch_manager {
      * @param int   $batchid Parent batch id.
      * @param int   $cmid    Course module id.
      * @param array $skip    Skip descriptor with 'reason' and optional 'component'.
+     * @param mixed $this See function signature.
      * @return void
      */
     private function persist_skipped_item(int $batchid, int $cmid, array $skip): void {
@@ -342,6 +346,7 @@ class batch_manager {
      * @param int    $cmid      Course module id.
      * @param string $component Frankenstyle component name.
      * @param array  $state     Snapshot payload.
+     * @param mixed $this See function signature.
      * @return void
      */
     private function persist_snapshot(int $batchid, int $cmid, string $component, array $state): void {
@@ -493,6 +498,7 @@ class batch_manager {
      *
      * @param string $json  Raw availability JSON from {course_modules}.availability.
      * @param int    $delta Seconds to add.
+     * @param mixed $data See function signature.
      * @return string Modified JSON string, or the original on parse failure.
      */
     private function shift_availability_dates(string $json, int $delta): string {

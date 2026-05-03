@@ -80,6 +80,8 @@ class inventory_service {
      * Build a complete inventory snapshot for a course.
      *
      * @param int $courseid Moodle course id.
+     * @param mixed $course See function signature.
+     * @param mixed $this See function signature.
      * @return inventory_snapshot
      * @throws \dml_missing_record_exception when the course does not exist.
      */

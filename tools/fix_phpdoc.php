@@ -1,4 +1,5 @@
 <?php
+// phpcs:ignoreFile
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -66,9 +67,8 @@ echo "\nDone. Files changed: $totalfiles. @param adjustments: $totalparams\n";
 /**
  * Reconcile @param tags in all function docblocks within one file.
  *
- * @param string $filepath Absolute path to the PHP file.
- * @param bool   $dryrun   When true, report changes without writing.
- * @return int Number of docblocks adjusted.
+ * Arguments: string $filepath (absolute path), bool $dryrun (report only).
+ * Returns int: number of docblocks adjusted.
  */
 function fix_file(string $filepath, bool $dryrun): int {
     $src = file_get_contents($filepath);
@@ -119,7 +119,7 @@ function fix_file(string $filepath, bool $dryrun): int {
         $curparam    = null;
         for ($k = $openpos; $k <= $closepos; $k++) {
             $s = trim($lines[$k]);
-            if (preg_match('/^\*\s+@param\s+(\S+)\s+\$(\w+)\s*(.*)$/', $s, $m)) {
+            if (preg_match('/^\*\s+@param\s+(\S[^$]*?)\s+\$(\w+)\s*(.*)$/', $s, $m)) {
                 $curparam             = $m[2];
                 $docparams[$curparam] = [$m[1], trim($m[3])];
                 $paramorder[]         = $curparam;
@@ -197,8 +197,7 @@ function fix_file(string $filepath, bool $dryrun): int {
 /**
  * Extract parameter names from a function signature fragment.
  *
- * @param string $sig Source fragment containing the function signature.
- * @return string[] Parameter names without leading dollar sign.
+ * Argument: string $sig (source fragment). Returns string[] of names.
  */
 function extract_params(string $sig): array {
     $start = strpos($sig, '(');

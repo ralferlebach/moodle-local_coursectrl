@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<ruleset name="local_coursectrl">
+    <description>Moodle coding standard for local_coursectrl.</description>
+    <rule ref="moodle"/>
+    <!-- Developer tools are CLI scripts excluded from plugin coding standards. -->
+    <exclude-pattern>tools/</exclude-pattern>
+</ruleset>

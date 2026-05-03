@@ -35,3 +35,12 @@ Feature: Rollback of executed bulk actions in the history page
     Given I log in as "noperms"
     When I am on the history page for course "ROLLBACK"
     Then I should not see "Rückgängig"
+
+  # Direct URL access without rollback capability.
+
+  @javascript
+  Scenario: A student without rollback capability is refused access to rollback.php
+    Given I log in as "noperms"
+    When I am on rollback page for course "ROLLBACK"
+    Then I should see "Sorry" in the page
+    Or the response status code should be "403"

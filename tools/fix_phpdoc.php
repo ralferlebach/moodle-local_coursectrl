@@ -16,13 +16,11 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * CLI tool: reconcile function param tags with actual signatures.
+ * CLI tool: reconcile function param tag COUNT with actual signatures.
  *
- * Ensures the param tag count in every docblock equals the number of
- * parameters in the corresponding function signature. Uses the actual
- * type hint from the signature (including |null for nullable parameters).
- * Existing descriptions are preserved; surplus tags are removed; missing
- * tags are generated from the signature type.
+ * ONLY adds missing param tags or removes surplus ones.
+ * Never rewrites existing param tags — types, descriptions, and line
+ * breaks of existing tags are preserved exactly as found.
  *
  * Usage (from plugin root):
  *   php tools/fix_phpdoc.php [--dry-run] [<plugin-dir>]
@@ -66,7 +64,10 @@ foreach ($it as $file) {
 echo "\nDone. Files changed: $totalfiles. Param adjustments: $totalparams\n";
 
 /**
- * Reconcile param tags in all function docblocks within one file.
+ * Reconcile param tag COUNT in all function docblocks within one file.
+ *
+ * Existing param tags are never rewritten. Only missing tags are added
+ * (as "mixed $name") and surplus tags are removed.
  *
  * @param string $filepath Absolute path to the PHP file.
  * @param bool   $dryrun   When true, report but do not write.
@@ -97,8 +98,7 @@ function fix_file(string $filepath, bool $dryrun): int {
                 break;
             }
         }
-        // Extract parameters with their types from the signature.
-        $sigparams = extract_params_typed($sig);
+        $sigparams = extract_params($sig);
 
         // Locate the preceding docblock.
         $closepos = $i - 1;
@@ -116,33 +116,16 @@ function fix_file(string $filepath, bool $dryrun): int {
             continue;
         }
 
-        // Gather existing param info from docblock.
-        $docparams   = [];
-        $paramorder  = [];
-        $curparam    = null;
+        // Count existing param tags (names only, in order).
+        $docparamnames = [];
         for ($k = $openpos; $k <= $closepos; $k++) {
-            $s = trim($lines[$k]);
-            if (preg_match('/^\*\s+@param\s+(\S[^$]*?)\s+\$(\w+)\s*(.*)$/', $s, $m)) {
-                $curparam             = $m[2];
-                $docparams[$curparam] = [$m[1], trim($m[3])];
-                $paramorder[]         = $curparam;
-            } else if (
-                $curparam !== null
-                && preg_match('/^\*\s+\S/', $s)
-                && !preg_match('/^\*\s+@/', $s)
-            ) {
-                // Continuation line of multi-line param description.
-                $docparams[$curparam][1] .= ' ' . ltrim($s, '* ');
-            } else if (preg_match('/^\*\s+@/', $s)) {
-                $curparam = null;
+            if (preg_match('/^\s+\*\s+@param\s+\S[^$]*?\s+\$(\w+)/', $lines[$k], $m)) {
+                $docparamnames[] = $m[1];
             }
         }
 
-        $signames = array_keys($sigparams);
-
-        // Check if docblock already matches: same names in same order
-        // AND each type is compatible with the signature type.
-        if ($paramorder === $signames && params_types_match($sigparams, $docparams)) {
+        // Nothing to do if counts already match.
+        if ($docparamnames === $sigparams) {
             continue;
         }
 
@@ -150,16 +133,21 @@ function fix_file(string $filepath, bool $dryrun): int {
         preg_match('/^(\s*)/', $lines[$openpos], $im);
         $indent = $im[1];
 
-        // Strip all param lines (and continuations) from docblock copy.
-        $newdoc  = [];
+        // Copy docblock lines, stripping only surplus param tags.
+        // A surplus tag is one whose name is NOT in the signature.
+        $newdoc   = [];
         $skipping = false;
         for ($k = $openpos; $k <= $closepos; $k++) {
             $s = trim($lines[$k]);
-            if (preg_match('/^\*\s+@param\s+/', $s)) {
-                $skipping = true;
-                continue;
-            }
-            if ($skipping) {
+            if (preg_match('/^\*\s+@param\s+\S[^$]*?\s+\$(\w+)/', $s, $pm)) {
+                if (!in_array($pm[1], $sigparams, true)) {
+                    // Surplus param tag — skip it and its continuation lines.
+                    $skipping = true;
+                    continue;
+                }
+                $skipping = false;
+            } else if ($skipping) {
+                // Skip continuation lines of a removed tag.
                 $iscont = preg_match('/^\*\s+\S/', $s) && !preg_match('/^\*\s+@/', $s);
                 if ($iscont) {
                     continue;
@@ -169,27 +157,35 @@ function fix_file(string $filepath, bool $dryrun): int {
             $newdoc[] = $lines[$k];
         }
 
-        // Find insertion point (before @return/@throws, otherwise before */).
-        $insertidx = count($newdoc) - 1;
-        foreach ($newdoc as $mi => $ml) {
-            if (preg_match('/\*\s+@(return|throws)/', $ml)) {
-                $insertidx = $mi;
-                break;
+        // Find names already documented after filtering.
+        $documented = [];
+        foreach ($newdoc as $dl) {
+            if (preg_match('/^\s+\*\s+@param\s+\S[^$]*?\s+\$(\w+)/', $dl, $m)) {
+                $documented[] = $m[1];
             }
         }
 
-        // Build replacement param lines using signature types.
-        $newparams = [];
-        foreach ($sigparams as $pname => $sigtype) {
-            $desc = '';
-            if (isset($docparams[$pname])) {
-                // Preserve existing description; use signature type.
-                $desc = $docparams[$pname][1];
+        // Add missing param tags before @return/@throws, or before */.
+        $missing = array_diff($sigparams, $documented);
+        if (!empty($missing)) {
+            $insertidx = count($newdoc) - 1;
+            foreach ($newdoc as $mi => $ml) {
+                if (preg_match('/\*\s+@(return|throws)/', $ml)) {
+                    $insertidx = $mi;
+                    break;
+                }
             }
-            $newparams[] = "$indent * @param $sigtype \$$pname $desc";
+            $newtags = [];
+            foreach ($missing as $pname) {
+                $newtags[] = "$indent * @param mixed \$$pname See function signature.";
+            }
+            array_splice($newdoc, $insertidx, 0, $newtags);
         }
 
-        array_splice($newdoc, $insertidx, 0, $newparams);
+        if ($newdoc === array_slice($lines, $openpos, $closepos - $openpos + 1)) {
+            continue;
+        }
+
         array_splice($lines, $openpos, $closepos - $openpos + 1, $newdoc);
         $n = count($lines);
         $total++;
@@ -202,20 +198,16 @@ function fix_file(string $filepath, bool $dryrun): int {
 }
 
 /**
- * Extract parameters with their PHPDoc-compatible types from a signature.
+ * Extract parameter names from a function signature fragment.
  *
- * Returns an array keyed by parameter name; each value is the type string
- * ready for use in a param tag (e.g. "string", "array", "MyClass|null").
- *
- * @param string $sig Full function signature source fragment.
- * @return array<string,string> Parameter name => PHPDoc type string.
+ * @param string $sig The function signature source fragment.
+ * @return string[] Parameter names without leading dollar sign.
  */
-function extract_params_typed(string $sig): array {
+function extract_params(string $sig): array {
     $start = strpos($sig, '(');
     if ($start === false) {
         return [];
     }
-    // Extract content between outer parentheses.
     $depth  = 0;
     $inside = '';
     for ($i = $start; $i < strlen($sig); $i++) {
@@ -231,65 +223,7 @@ function extract_params_typed(string $sig): array {
             $inside .= $sig[$i];
         }
     }
-
-    $result = [];
-    // Split on commas that are not inside < > (for generic types).
-    $parts = preg_split('/,(?![^<>]*>)/', $inside);
-    foreach ($parts as $part) {
-        $part = trim($part);
-        if ($part === '') {
-            continue;
-        }
-        // Remove default value (everything after "=").
-        $part = preg_replace('/\s*=\s*.+$/s', '', $part);
-        $part = trim($part);
-
-        // Match: [?][type] $name  OR just $name
-        if (preg_match('/^(\??)([a-zA-Z_\\\\][a-zA-Z0-9_\\\\|]*)\s+\$([a-zA-Z_]\w*)$/', $part, $m)) {
-            $nullable = $m[1] === '?';
-            $type     = $m[2];
-            $name     = $m[3];
-            if ($name === 'this') {
-                continue;
-            }
-            // Build PHPDoc type: nullable → append |null if not already present.
-            if ($nullable && strpos($type, '|null') === false && strpos($type, 'null|') === false) {
-                $type .= '|null';
-            }
-            $result[$name] = $type;
-        } else if (preg_match('/\$([a-zA-Z_]\w*)$/', $part, $m)) {
-            // Untyped parameter — fall back to "mixed".
-            if ($m[1] !== 'this') {
-                $result[$m[1]] = 'mixed';
-            }
-        }
-    }
-    return $result;
-}
-
-/**
- * Check whether existing docblock types are compatible with signature types.
- *
- * Returns false if any param has a type mismatch that needs correcting.
- *
- * @param array $sigparams  name => type from signature.
- * @param array $docparams  name => [type, desc] from docblock.
- * @return bool True when all types already match.
- */
-function params_types_match(array $sigparams, array $docparams): bool {
-    foreach ($sigparams as $name => $sigtype) {
-        if (!isset($docparams[$name])) {
-            return false;
-        }
-        $doctype = trim($docparams[$name][0]);
-        // Normalise both sides: sort union parts alphabetically.
-        $sigparts = explode('|', $sigtype);
-        $docparts = explode('|', $doctype);
-        sort($sigparts);
-        sort($docparts);
-        if ($sigparts !== $docparts) {
-            return false;
-        }
-    }
-    return true;
+    preg_match_all('/\$([a-zA-Z_]\w*)/', $inside, $m);
+    $params = $m[1] ?? [];
+    return array_values(array_filter($params, fn($p) => $p !== 'this'));
 }

@@ -30,7 +30,7 @@
     * hasresults (bool), resultrows, nextsteprows, blockedrows
 
     Example context (json):
-    {"courseid":2,"sesskey":"x","simdate":"2026-06-01","simtime":"09:00",
+    {"courseid":2,"sesskey":"x","selfurl":"#","simdate":"2026-06-01","simtime":"09:00",
      "hascoursegroups":false,"hascoursegroupings":false,"hascmformrows":false}
 }}
 
@@ -476,10 +476,10 @@ require(['local_coursectrl/simulation'], function(S) {
         if (!hdr) {
             return;
         }
-        var cid   = hdr.getAttribute('data-cc-toggle');
+        var cid = hdr.getAttribute('data-cc-toggle');
         var arrow = hdr.querySelector('[data-cc-arrow]');
         cstate[cid] = !cstate[cid];
-        var hide  = cstate[cid];
+        var hide = cstate[cid];
         // Section: find <tbody data-cc-body="cid">.
         var body = root.querySelector('tbody[data-cc-body="' + cid + '"]');
         if (body) {
@@ -588,7 +588,9 @@ require(['local_coursectrl/simulation'], function(S) {
                 if (shown > LIMIT) { cutIdx = i; break; }
             }
         }
-        for (var j = cutIdx; j < allLi.length; j++) { allLi[j].style.display = 'none'; }
+        for (var j = cutIdx; j < allLi.length; j++) {
+            allLi[j].style.display = 'none';
+        }
 
         var remaining = realLi.length - LIMIT;
         var lblMore = simRoot.getAttribute('data-lbl-more-cond') || 'more condition(s)';

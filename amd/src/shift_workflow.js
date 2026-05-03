@@ -280,7 +280,7 @@ define([], function() {
      * @param {object}   [labels=null]  UI label strings from modal data-attributes.
      * @return {string} HTML string.
      */
-    var renderHitsHtml = function(hits, delta, readOnly, labels) { // eslint-disable-line complexity
+    var renderHitsHtml = function(hits, delta, readOnly, labels) {
         var lbl = labels || {};
         if (!hits || hits.length === 0) {
             return '<p class="text-muted small mb-0">' + escHtml(lbl.msgNohits || '') + '</p>';
@@ -711,7 +711,7 @@ define([], function() {
                             }
                             setTitle(modal.getAttribute('data-label-preview') || '');
                             showStep('2');
-                            // eslint-disable-next-line consistent-return
+                            return null;
                         })
                         .catch(function() {
                             previewBtn.disabled = false;
@@ -834,8 +834,6 @@ define([], function() {
                             }
                             setTitle(modal.getAttribute('data-label-textreview') || '');
 
-                            // eslint-disable-next-line promise/no-nesting
-                            // eslint-disable-next-line promise/no-nesting
                             fetchTextHits(courseid)
                                 // eslint-disable-next-line promise/always-return
                                 .then(function(data) {
@@ -862,12 +860,13 @@ define([], function() {
                                                     return;
                                                 }
                                                 applyBtn3.disabled = true;
+                                                // eslint-disable-next-line promise/no-nesting
                                                 applyTextChanges(courseid, ids, applyDelta)
-                        // eslint-disable-next-line promise/always-return
                         .then(function() {
                                                         if (opts.onComplete) {
                                                             opts.onComplete(result);
                                                         }
+                                                    return null;
                                                     })
                                                     .catch(function() {
                                                         applyBtn3.disabled = false;
@@ -877,6 +876,7 @@ define([], function() {
                                         wireCtxToggles(step3);
                                         showStep('3');
                                     }
+                                return null;
                                 })
                                 .catch(function() {
                                     if (previewBody) {
@@ -888,6 +888,7 @@ define([], function() {
                                         execBtn.classList.add('d-none');
                                     }
                                 });
+                        return null;
                         })
                         .catch(function(err) {
                             if (previewBody) {

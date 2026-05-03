@@ -148,7 +148,7 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
                     return;
                 }
 
-                var daysEl  = root.querySelector('#coursectrl-delta-days');
+                var daysEl = root.querySelector('#coursectrl-delta-days');
                 var hoursEl = root.querySelector('#coursectrl-delta-hours');
 
                 openModal(shiftModal);

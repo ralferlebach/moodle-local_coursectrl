@@ -75,6 +75,8 @@ class gantt_dataset_builder {
      *
      * @param cm_item[]             $cms    Course modules keyed by cmid.
      * @param calendar_manager|null $calman Optional calendar manager for holiday bands.
+     * @param array<int,\local_coursectrl\local\entity\section_item> $sections Section items keyed by section id.
+     * @param array<int,\local_coursectrl\local\entity\cm_item> $cms Course modules keyed by cmid.
      * @return array{
      *     rows: array,
      *     mints: int,
@@ -520,7 +522,7 @@ class gantt_dataset_builder {
                             }
                         }
                         $childfrom = !empty($candidatefrom) ? max($candidatefrom) : null;
-                        $childto   = !empty($candidateto) ? min($candidateto) : null;
+                        $childto   = !empty($candidateto)   ? min($candidateto)   : null;
                         $childwindow = ($childfrom !== null || $childto !== null)
                             ? [
                                 'from_ts' => $childfrom,
@@ -649,6 +651,7 @@ class gantt_dataset_builder {
      * derive each row's usability window (earliest open → latest close).
      *
      * @param string $field Raw field name (e.g. 'timeopen', 'duedate').
+     * @param string $modname Moodle module short name (e.g. assign, quiz).
      * @return string One of 'open' | 'close' | 'event'.
      */
     private function classify_field(string $field): string {

@@ -70,6 +70,7 @@ class condition_evaluator {
      * and evaluated against the learner state's grade percentages.
      *
      * @var array<int, array{cmid: int, grademax: float}>
+     * @param array<int,array> $gradeitemmap Grade item id → cmid/grademax mapping.
      */
     private array $gradeitemmap;
 

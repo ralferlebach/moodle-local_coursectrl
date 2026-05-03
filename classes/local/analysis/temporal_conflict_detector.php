@@ -152,6 +152,9 @@ class temporal_conflict_detector {
      *
      * @param cm_item[] $cms       Course modules keyed by cmid.
      * @param array     $datesbycm Per-CM date entries from date_collector.
+     * @param array<string,int> $fieldmap Adapter-sourced field → timestamp map.
+     * @param int $warningoffset Unused offset parameter kept for API symmetry.
+     * @param int $noticeoffset Seconds before deadline at which a notice fires.
      * @return array<int, array[]> cmid → list of conflict arrays.
      */
     public function detect(array $cms, array $datesbycm): array {
@@ -216,6 +219,7 @@ class temporal_conflict_detector {
      * @param array<string, int> $fieldmap      Adapter-sourced field → timestamp map.
      * @param int                $warningoffset Unused (kept for symmetry; warning fires at 0).
      * @param int                $noticeoffset  Seconds before deadline that trigger notice.
+     * @param cm_item $cm The course module being checked.
      * @return array[] Issue arrays (empty if no issue).
      */
     private function check_r2(
@@ -278,6 +282,8 @@ class temporal_conflict_detector {
      * Build a field-name → timestamp lookup from adapter-sourced date entries.
      *
      * @param array $entries Date entries for a single CM.
+     * @param array<int,string[]> $rules Ordered rule pairs: [field_a, field_b].
+     * @param array<string,int> $fieldmap Field → timestamp map for this CM.
      * @return array<string, int>
      */
     private function build_field_map(array $entries): array {
@@ -295,6 +301,10 @@ class temporal_conflict_detector {
      *
      * @param array<int, string[]> $rules
      * @param array<string, int>   $fieldmap
+     * @param array<int,string[]> $rules Ordered rule pairs: [field_a, field_b].
+     * @param array<string,int> $fieldmap Field → timestamp map for this CM.
+     * @param int $mingapsecs Configured minimum gap in seconds between coupled fields.
+     * @param string $severity Configured severity level: 'notice' or 'warning'.
      * @return array[]
      */
     private function apply_rules(array $rules, array $fieldmap): array {

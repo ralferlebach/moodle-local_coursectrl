@@ -458,6 +458,13 @@ class checks_page implements renderable, templatable {
      *
      * @param string $field Field identifier (e.g. 'duedate').
      * @param mixed  $cm    CM item (used to find the subplugin component).
+     * @param cm_item[] $cms Course modules keyed by cmid.
+     * @param dependency_index $depindex Pre-built dependency index.
+     * @param array $datesbycm Per-CM date entries from date_collector.
+     * @param array<int,string> $cmnames Cmid → resolved activity name map.
+     * @param array<int,string> $cmurls Cmid → activity URL map.
+     * @param int $courseid Course id for context resolution.
+     * @param cm_item[] $cmobjects Full CM item objects for supplementary data.
      * @return string
      */
     private function field_label(string $field, $cm): string {
@@ -534,6 +541,12 @@ class checks_page implements renderable, templatable {
      * @param array   $cmurls
      * @param array   $cms      Full cm_item objects keyed by cmid.
      * @param int     $courseid Course id (required for fix URLs).
+     * @param string $type Risk type identifier string.
+     * @param array $item Risk item data array.
+     * @param string $cmname Resolved activity name.
+     * @param string $relatedlinked Resolved related activity name or link.
+     * @param string $dateformat Localised date format string.
+     * @param string $modname Moodle module short name.
      * @return array[]
      */
     private function group_risk_items(
@@ -1000,6 +1013,11 @@ class checks_page implements renderable, templatable {
      * Return the fix type code for a given issue type, or '' if no one-click fix exists.
      *
      * @param string $type Issue type.
+     * @param int $cmid Course module id of the target activity.
+     * @param cm_item $cm The CM item for the target activity.
+     * @param int $courseid Course id.
+     * @param string $tab Tab identifier to land on.
+     * @param array $extraparams Additional URL parameters.
      * @return string 'unhide_cm' | 'modedit_availability' | 'timeline' | 'dependencies' | ''
      */
     private function fix_type_for(string $type): string {

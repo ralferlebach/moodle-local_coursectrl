@@ -362,6 +362,8 @@ class batch_manager {
      * @param string $component Frankenstyle component name.
      * @param string $status    One of 'ok', 'noop', 'failed'.
      * @param array  $item      Raw adapter item result.
+     * @param string $class Entity type: course, section, or cm.
+     * @param array $data Snapshot state data produced by export_state().
      * @return void
      */
     private function persist_executed_item(

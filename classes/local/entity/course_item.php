@@ -96,6 +96,7 @@ final class course_item extends inventory_item {
     /**
      * Return a plain array representation suitable for serialisation.
      *
+     * @param array<string,mixed> $data Serialised entity produced by to_array().
      * @return array<string,mixed>
      */
     public function to_array(): array {

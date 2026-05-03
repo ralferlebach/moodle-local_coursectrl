@@ -331,6 +331,8 @@ class risk_assessment_runner {
      *
      * @param int     $courseid
      * @param array[] $items
+     * @param array<int,array[]> $warnings Per-cmid issue arrays from consistency_runner.
+     * @param cm_item[] $cms Course modules keyed by cmid.
      * @return void
      */
     private function persist(int $courseid, array $items): void {
@@ -366,6 +368,9 @@ class risk_assessment_runner {
      *
      * @param array<int, array[]> $warnings Per-cmid issue arrays.
      * @param cm_item[]           $cms
+     * @param array[] $findings Raw journey findings from deep_journey_simulator.
+     * @param array $sections Section items keyed by section db id.
+     * @param int $courseid Course id for context resolution.
      * @return array[]
      */
     private function convert_consistency_warnings(array $warnings, array $cms): array {

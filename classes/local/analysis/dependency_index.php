@@ -68,6 +68,8 @@ class dependency_index {
      * at least one of the given group ids, or if it has no group conditions.
      *
      * @param int[] $groupids Group ids (empty = return all forward deps).
+     * @param cm_item[] $cms Course modules keyed by cmid.
+     * @param array<int,int> $gradeitemmap Grade item id → cmid mapping.
      * @return array<int, int[]>
      */
     public function get_all_forward_for_groups(array $groupids): array {
@@ -256,6 +258,8 @@ class dependency_index {
      *
      * Only populated when a gradeitemmap was supplied at construction time.
      *
+     * @param cm_item[] $cms Course modules keyed by cmid.
+     * @param array<int,int> $gradeitemmap Grade item id → cmid mapping.
      * @return array<int, int[]>
      */
     public function get_grade_forward(): array {

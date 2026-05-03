@@ -249,6 +249,8 @@ class timeline_page implements renderable, templatable {
      * collision warnings that were stored in the PHP session by shift.php.
      *
      * @param int $courseid The course id.
+     * @param array<int,\local_coursectrl\local\entity\section_item> $sections Section items keyed by section id.
+     * @param array<int,\local_coursectrl\local\entity\cm_item> $cms Course modules keyed by cmid.
      * @return array
      */
     private function build_textreview_context(int $courseid): array {

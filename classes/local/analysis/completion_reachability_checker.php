@@ -76,6 +76,7 @@ class completion_reachability_checker {
      * @param array[]          $groupprofiles   Learner profiles from group_profile_extractor.
      * @param array<int,array> $gradeitemmap    Grade item id → ['cmid', 'grademax'].
      * @param array<int,array> $gradeinfobycmid Cmid → ['gradepass', 'grademax'].
+     * @param array $warnings Output array populated with warning items (passed by reference).
      * @return array[] Risk findings (may be empty).
      */
     public function check(

@@ -43,6 +43,9 @@ use local_coursectrl\local\entity\cm_item;
 
 /**
  * Builds a layered graph dataset from CMs and a dependency index.
+ * @param cm_item[] $cms Course modules keyed by cmid.
+ * @param dependency_index $depindex Pre-built dependency index.
+ * @param int[] $groupids Group ids to filter dependency edges.
  */
 class graph_dataset_builder {
     /**
@@ -51,6 +54,9 @@ class graph_dataset_builder {
      * @param cm_item[]        $cms      Course modules keyed by cmid.
      * @param dependency_index $depindex Prebuilt dependency index.
      * @param array            $warnings Per-CM warning lists from consistency_runner
+     * @param cm_item[] $cms Course modules keyed by cmid.
+     * @param array $forward Forward dependency map.
+     * @param int[] $groupids Group ids to filter dependency edges.
      *                                   (keyed by cmid; used to flag nodes).
      * @return array Graph dataset with keys: nodes, edges, nodecount, edgecount,
      *               layercount, hasonlynodes, hasdata.
@@ -315,6 +321,8 @@ class graph_dataset_builder {
      *
      * @param cm_item[] $cms     CMs keyed by cmid, in course order.
      * @param array     $forward Forward map: cmid → list of prerequisite cmids.
+     * @param array<int,int[]> $layers Cmids grouped by layer index.
+     * @param array<int,int[]> $reverse Reverse dependency map for positioning.
      * @return array<int, int> cmid → layer index (0-based).
      */
     public function assign_layers(array $cms, array $forward): array {

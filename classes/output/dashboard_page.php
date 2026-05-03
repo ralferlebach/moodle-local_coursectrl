@@ -405,6 +405,10 @@ class dashboard_page implements renderable, templatable {
      * @param array  $cmmodnames  Lookup: cmid → modname.
      * @param int    $count       Maximum entries to return.
      * @param string $dateformat  Moodle date format string.
+     * @param moodle_database $db Moodle database reference.
+     * @param int $courseid Course id.
+     * @param array<int,string> $sectionnames Section id → display name map.
+     * @param array<int,string> $sectionurls Section id → URL map.
      * @return array
      */
     private function build_upcoming_dates(

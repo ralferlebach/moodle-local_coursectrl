@@ -71,6 +71,8 @@ class rollback_manager {
      *   - status_label (string): localised status string key.
      *
      * @param int $courseid Target course id.
+     * @param int $batchid Id of the batch record to roll back.
+     * @param int $userid Id of the user performing the rollback.
      * @return array[] Batch records, newest first.
      */
     public function get_course_batches(int $courseid): array {

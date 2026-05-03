@@ -163,11 +163,7 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
     // ── Step management ──────────────────────────────────────────────────────
 
 
-
-
     // ── AJAX helpers ─────────────────────────────────────────────────────────
-
-
 
 
     // ── Review panel renderer ────────────────────────────────────────────────
@@ -210,7 +206,7 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
     /**
      * Initialise all timeline page JS enhancements.
      */
-    var init = function() {
+    var init = function() { // eslint-disable-line complexity
         var root = document.querySelector('[data-region="local_coursectrl-timeline"]');
         if (!root) {
             return;
@@ -288,7 +284,7 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
 
         // Wire shift workflow via shared shift_workflow module.
         var shiftModal = document.getElementById('coursectrl-shift-dialog');
-        var shiftForm  = document.getElementById('coursectrl-shift-form');
+        var shiftForm = document.getElementById('coursectrl-shift-form');
         if (shiftModal && shiftForm) {
             ShiftWorkflow.run({
                 modal: shiftModal,
@@ -324,8 +320,8 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
 
         // Textreview tab: "Textänderungen anwenden" → confirmation modal.
         var applyBtn = document.getElementById('coursectrl-textreview-apply-btn');
-        var trModal  = document.getElementById('coursectrl-textreview-confirm-modal');
-        var trForm   = document.getElementById('coursectrl-textreview-inline-form');
+        var trModal = document.getElementById('coursectrl-textreview-confirm-modal');
+        var trForm = document.getElementById('coursectrl-textreview-inline-form');
         if (applyBtn && trModal && trForm) {
             /**
              * Open the textreview confirmation modal.
@@ -550,7 +546,7 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
         initCompFilterDropdown(root);
 
         // Scroll horizontal calendar to the current month on page load.
-        var calWrapper = root.querySelector('[data-region="local_coursectrl-calwrapper"]');
+        calWrapper = root.querySelector('[data-region="local_coursectrl-calwrapper"]');
         if (calWrapper) {
             var calRow = calWrapper.querySelector('[data-region="local_coursectrl-calrow"]');
             var currentMonth = calRow ? calRow.querySelector('.month-current') : null;
@@ -568,11 +564,11 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
             var focustarget = document.getElementById('day-' + focusday)
                 || root.querySelector('[data-daykey="' + focusday + '"]');
             if (focustarget) {
-                window.setTimeout(function () {
+                window.setTimeout(function() {
                     focustarget.scrollIntoView({behavior: 'smooth', block: 'start'});
                     var card2 = focustarget.closest('.card') || focustarget;
                     card2.classList.add('border-primary');
-                    window.setTimeout(function () {
+                    window.setTimeout(function() {
                         card2.classList.remove('border-primary');
                     }, 2500);
                 }, 200);

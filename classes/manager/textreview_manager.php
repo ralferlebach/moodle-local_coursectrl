@@ -61,6 +61,9 @@ class textreview_manager {
     /** @var string[] Allowed text fields on the course_sections table. */
     private const SECTION_TEXT_FIELDS = ['summary', 'name'];
 
+* @param text_change_builder $builder Change-builder dependency.
+* @param text_datetime_rewriter $rewriter Rewriter dependency.
+* @param inventory_service $inventoryservice Inventory-service dependency.
     /** @var string[] Allowed text fields on activity module tables. */
     private const CM_TEXT_FIELDS = [
         'intro',
@@ -258,6 +261,10 @@ class textreview_manager {
      * @param int    $entityid   Entity id.
      * @param string $fieldname  Field name (must pass whitelist check).
      * @param int    $courseid   When >0, adds a course-binding WHERE clause.
+     * @param string $entitytype Entity type: course, section, or cm.
+     * @param int $entityid Moodle id of the owning entity.
+     * @param string $fieldname Name of the text field being saved.
+     * @param string $newvalue New text value to persist.
      * @return string Text content.
      * @throws \coding_exception When the entity type or field is unknown.
      */

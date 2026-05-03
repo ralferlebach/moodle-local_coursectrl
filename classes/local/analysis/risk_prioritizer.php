@@ -51,6 +51,8 @@ class risk_prioritizer {
     /** @var array<int, array> Grade item map: grade_item_id → ['cmid', 'grademax']. */
     private array $gradeitemmap;
 
+* @param array<int,array> $gradeitemmap Grade item id → cmid/grademax map.
+* @param array<int,array> $gradeinfobycmid Cmid → gradepass/grademax map.
     /** @var array<int, array> Grade info per cmid: ['gradepass', 'grademax']. */
     private array $gradeinfobycmid;
 

@@ -153,6 +153,9 @@ class inventory_service {
      * stale cache) and to pick up the completionexpected field.
      *
      * @param int $courseid Moodle course id.
+     * @param course_item $course Normalised course entity.
+     * @param array<int,section_item> $sections Section entities keyed by section id.
+     * @param array<int,cm_item> $cms Course-module entities keyed by cmid.
      * @return array<int,cm_item> keyed by cmid.
      */
     protected function build_cms(int $courseid): array {

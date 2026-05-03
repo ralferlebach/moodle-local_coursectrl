@@ -162,25 +162,37 @@ final class simulation_page_test extends \advanced_testcase {
 
         // Build a snapshot containing the XSS-named CM.
         $courseitem = new \local_coursectrl\local\entity\course_item(
-            (int) $course->id, $course->fullname, $course->shortname,
-            '', 1, (int) $course->startdate, null, true
+            (int) $course->id,
+            $course->fullname,
+            $course->shortname,
+            '',
+            1,
+            (int) $course->startdate,
+            null,
+            true
         );
         $snap = new \local_coursectrl\local\inventory\inventory_snapshot(
-            $courseitem, [], [], []
+            $courseitem,
+            [],
+            [],
+            []
         );
 
         // Build a learner state with a completion condition on the XSS-named CM.
         // The condition uses raw availability JSON so format_reason() processes
         // the cmid and resolves the CM name from $DB.
         $state = new \local_coursectrl\local\simulation\learner_state(
-            time(), [], [], [], []
+            time(),
+            [],
+            [],
+            [],
+            []
         );
 
         $page = new simulation_page($snap, $state);
-        // export_for_template will call format_reason() for completion conditions.
-        // Even without availability JSON set up, the group/completion maps are
-        // built from DB. Just verify the raw XSS payload never appears in the
-        // JSON output of the export.
+        // Export triggers format_reason() for completion conditions.
+        // Even without availability JSON, verify the raw XSS payload never
+        // appears in the JSON output.
         $data = $page->export_for_template($PAGE->get_renderer('core'));
         $json = json_encode($data);
 

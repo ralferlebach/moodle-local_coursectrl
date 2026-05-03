@@ -34,15 +34,15 @@ namespace local_coursectrl;
  * @covers ::xmldb_local_coursectrl_upgrade
  */
 final class upgrade_test extends \advanced_testcase {
-
     /**
      * Load upgrade infrastructure and the plugin upgrade function.
      *
      * @return void
      */
     public static function setUpBeforeClass(): void {
+        parent::setUpBeforeClass();
         global $CFG;
-        // Moodle's upgrade helpers (upgrade_plugin_savepoint, etc.) live in upgradelib.
+        // Moodle upgrade helpers (upgrade_plugin_savepoint etc.) live in upgradelib.
         require_once($CFG->dirroot . '/lib/upgradelib.php');
         require_once($CFG->dirroot . '/local/coursectrl/db/upgrade.php');
     }

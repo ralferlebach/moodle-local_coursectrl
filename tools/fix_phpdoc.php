@@ -19,9 +19,10 @@
  * CLI tool: reconcile function @param tags with actual signatures.
  *
  * Ensures the @param tag count in every docblock equals the number of
- * parameters in the corresponding function signature. Existing type
- * hints and descriptions are preserved; surplus tags are removed; missing
- * tags are added as "mixed $name See function signature."
+ * parameters in the corresponding function signature. Uses the actual
+ * type hint from the signature (including |null for nullable parameters).
+ * Existing descriptions are preserved; surplus tags are removed; missing
+ * tags are generated from the signature type.
  *
  * Usage (from plugin root):
  *   php tools/fix_phpdoc.php [--dry-run] [<plugin-dir>]
@@ -67,9 +68,6 @@ echo "\nDone. Files changed: $totalfiles. @param adjustments: $totalparams\n";
 /**
  * Reconcile @param tags in all function docblocks within one file.
  *
- * Arguments: string $filepath (absolute path), bool $dryrun (report only).
- * Returns int: number of docblocks adjusted.
- *
  * @param string $filepath Absolute path to the PHP file.
  * @param bool   $dryrun   When true, report but do not write.
  * @return int Number of docblocks adjusted.
@@ -99,7 +97,8 @@ function fix_file(string $filepath, bool $dryrun): int {
                 break;
             }
         }
-        $sigparams = extract_params($sig);
+        // Extract parameters with their types from the signature.
+        $sigparams = extract_params_typed($sig);
 
         // Locate the preceding docblock.
         $closepos = $i - 1;
@@ -139,7 +138,11 @@ function fix_file(string $filepath, bool $dryrun): int {
             }
         }
 
-        if ($paramorder === $sigparams) {
+        $signames = array_keys($sigparams);
+
+        // Check if docblock already matches: same names in same order
+        // AND each type is compatible with the signature type.
+        if ($paramorder === $signames && params_types_match($sigparams, $docparams)) {
             continue;
         }
 
@@ -175,15 +178,15 @@ function fix_file(string $filepath, bool $dryrun): int {
             }
         }
 
-        // Build replacement @param lines.
+        // Build replacement @param lines using signature types.
         $newparams = [];
-        foreach ($sigparams as $pname) {
+        foreach ($sigparams as $pname => $sigtype) {
+            $desc = '';
             if (isset($docparams[$pname])) {
-                [$type, $desc] = $docparams[$pname];
-                $newparams[] = "$indent * @param $type \$$pname $desc";
-            } else {
-                $newparams[] = "$indent * @param mixed \$$pname See function signature.";
+                // Preserve existing description; use signature type.
+                $desc = $docparams[$pname][1];
             }
+            $newparams[] = "$indent * @param $sigtype \$$pname $desc";
         }
 
         array_splice($newdoc, $insertidx, 0, $newparams);
@@ -199,18 +202,20 @@ function fix_file(string $filepath, bool $dryrun): int {
 }
 
 /**
- * Extract parameter names from a function signature fragment.
+ * Extract parameters with their PHPDoc-compatible types from a signature.
  *
- * Argument: string $sig (source fragment). Returns string[] of names.
+ * Returns an array keyed by parameter name; each value is the type string
+ * ready for use in a @param tag (e.g. "string", "array", "MyClass|null").
  *
- * @param string $sig The function signature source fragment.
- * @return string[] Parameter names without leading dollar sign.
+ * @param string $sig Full function signature source fragment.
+ * @return array<string,string> Parameter name => PHPDoc type string.
  */
-function extract_params(string $sig): array {
+function extract_params_typed(string $sig): array {
     $start = strpos($sig, '(');
     if ($start === false) {
         return [];
     }
+    // Extract content between outer parentheses.
     $depth  = 0;
     $inside = '';
     for ($i = $start; $i < strlen($sig); $i++) {
@@ -226,7 +231,65 @@ function extract_params(string $sig): array {
             $inside .= $sig[$i];
         }
     }
-    preg_match_all('/\$([a-zA-Z_]\w*)/', $inside, $m);
-    $params = $m[1] ?? [];
-    return array_values(array_filter($params, fn($p) => $p !== 'this'));
+
+    $result = [];
+    // Split on commas that are not inside < > (for generic types).
+    $parts = preg_split('/,(?![^<>]*>)/', $inside);
+    foreach ($parts as $part) {
+        $part = trim($part);
+        if ($part === '') {
+            continue;
+        }
+        // Remove default value (everything after "=").
+        $part = preg_replace('/\s*=\s*.+$/s', '', $part);
+        $part = trim($part);
+
+        // Match: [?][type] $name  OR just $name
+        if (preg_match('/^(\??)([a-zA-Z_\\\\][a-zA-Z0-9_\\\\|]*)\s+\$([a-zA-Z_]\w*)$/', $part, $m)) {
+            $nullable = $m[1] === '?';
+            $type     = $m[2];
+            $name     = $m[3];
+            if ($name === 'this') {
+                continue;
+            }
+            // Build PHPDoc type: nullable → append |null if not already present.
+            if ($nullable && strpos($type, '|null') === false && strpos($type, 'null|') === false) {
+                $type .= '|null';
+            }
+            $result[$name] = $type;
+        } else if (preg_match('/\$([a-zA-Z_]\w*)$/', $part, $m)) {
+            // Untyped parameter — fall back to "mixed".
+            if ($m[1] !== 'this') {
+                $result[$m[1]] = 'mixed';
+            }
+        }
+    }
+    return $result;
+}
+
+/**
+ * Check whether existing docblock types are compatible with signature types.
+ *
+ * Returns false if any param has a type mismatch that needs correcting.
+ *
+ * @param array $sigparams  name => type from signature.
+ * @param array $docparams  name => [type, desc] from docblock.
+ * @return bool True when all types already match.
+ */
+function params_types_match(array $sigparams, array $docparams): bool {
+    foreach ($sigparams as $name => $sigtype) {
+        if (!isset($docparams[$name])) {
+            return false;
+        }
+        $doctype = trim($docparams[$name][0]);
+        // Normalise both sides: sort union parts alphabetically.
+        $sigparts = explode('|', $sigtype);
+        $docparts = explode('|', $doctype);
+        sort($sigparts);
+        sort($docparts);
+        if ($sigparts !== $docparts) {
+            return false;
+        }
+    }
+    return true;
 }

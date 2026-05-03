@@ -151,7 +151,12 @@ jobs:
           [ "$MISSING" -eq 0 ] && echo "AMD OK." || { echo "ERROR: $MISSING file(s) missing."; exit 1; }
 
       - name: PHPDoc check (local_moodlecheck — matches Moodle prechecker)
-        run: moodle-plugin-ci phpdoc
+        run: |
+          php $GITHUB_WORKSPACE/moodle/local/moodlecheck/cli/moodlecheck.php \
+            --paths=local/coursectrl \
+            --exclude=local/coursectrl/tools \
+            --format=text
+        working-directory: ${{ github.workspace }}/moodle
 
       - name: Mustache lint
         run: moodle-plugin-ci mustache

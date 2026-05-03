@@ -151,6 +151,7 @@ define([], function() {
         data.set('format', 'json');
         data.set('scan_text', String(scantext));
         return fetch(form.action, {method: 'POST', body: data})
+            // eslint-disable-next-line promise/always-return
             .then(function(r) {
                 if (!r.ok) {
                     throw new Error('HTTP ' + r.status);
@@ -279,7 +280,7 @@ define([], function() {
      * @param {object}   [labels=null]  UI label strings from modal data-attributes.
      * @return {string} HTML string.
      */
-    var renderHitsHtml = function(hits, delta, readOnly, labels) { // eslint-disable-line complexity
+    var renderHitsHtml = function(hits, delta, readOnly, labels) {
         var lbl = labels || {};
         if (!hits || hits.length === 0) {
             return '<p class="text-muted small mb-0">' + escHtml(lbl.msgNohits || '') + '</p>';
@@ -296,6 +297,7 @@ define([], function() {
             return h.confidence !== 'informational';
         });
 
+        // eslint-disable-next-line complexity
         var rows = sorted.map(function(hit) {
             var ctx = {};
             try {
@@ -318,8 +320,14 @@ define([], function() {
             } else {
                 bc = 'badge-secondary';
             }
-            var bl = hit.confidence === 'safe' ? lbl.confSafe
-                : (hit.confidence === 'ambiguous' ? lbl.confAmbiguous : lbl.confInfo);
+            var bl;
+            if (hit.confidence === 'safe') {
+                bl = lbl.confSafe;
+            } else if (hit.confidence === 'ambiguous') {
+                bl = lbl.confAmbiguous;
+            } else {
+                bl = lbl.confInfo;
+            }
             var rc = hit.confidence === 'informational' ? ' table-light text-muted' : '';
 
             var locHtml;
@@ -584,24 +592,24 @@ define([], function() {
         // Extract all UI labels from modal data-attributes so no
         // hardcoded language strings remain in the JS source.
         var lbl = {
-            confSafe : modal.getAttribute('data-lbl-conf-safe')         || 'Safe',
-            confAmbiguous : modal.getAttribute('data-lbl-conf-ambiguous')    || 'Ambiguous',
-            confInfo : modal.getAttribute('data-lbl-conf-info')         || 'Informational',
-            btnPreview : modal.getAttribute('data-label-preview')         || 'Preview',
-            btnClose : modal.getAttribute('data-lbl-close')             || 'Close',
-            errNoselect : modal.getAttribute('data-err-noselect')          || 'Please select at least one activity.',
-            errNodelta : modal.getAttribute('data-err-nodelta')           || 'Please enter a number of days or hours.',
-            errGeneric : modal.getAttribute('data-err-generic')           || 'An error occurred.',
-            msgNohits : modal.getAttribute('data-msg-nohits')            || 'No date references found.',
-            msgLoading : modal.getAttribute('data-msg-loading')           || 'Shifting dates…',
-            msgShifted : modal.getAttribute('data-msg-shifted')           || 'date(s) shifted.',
-            msgErrors : modal.getAttribute('data-msg-errors')            || 'error(s).',
-            lblMark : modal.getAttribute('data-lbl-mark')              || 'Mark affected',
-            lblDeselect : modal.getAttribute('data-lbl-deselect')          || 'Deselect all',
-            lblYearAssumed : modal.getAttribute('data-lbl-yearassumed')       || 'Year {$a} assumed.',
-            lblYearLabel : modal.getAttribute('data-lbl-yearlabel')         || 'Year missing – {$a}',
+            confSafe: modal.getAttribute('data-lbl-conf-safe') || 'Safe',
+            confAmbiguous: modal.getAttribute('data-lbl-conf-ambiguous') || 'Ambiguous',
+            confInfo: modal.getAttribute('data-lbl-conf-info') || 'Informational',
+            btnPreview: modal.getAttribute('data-label-preview') || 'Preview',
+            btnClose: modal.getAttribute('data-lbl-close') || 'Close',
+            errNoselect: modal.getAttribute('data-err-noselect') || 'Please select at least one activity.',
+            errNodelta: modal.getAttribute('data-err-nodelta') || 'Please enter a number of days or hours.',
+            errGeneric: modal.getAttribute('data-err-generic') || 'An error occurred.',
+            msgNohits: modal.getAttribute('data-msg-nohits') || 'No date references found.',
+            msgLoading: modal.getAttribute('data-msg-loading') || 'Shifting dates…',
+            msgShifted: modal.getAttribute('data-msg-shifted') || 'date(s) shifted.',
+            msgErrors: modal.getAttribute('data-msg-errors') || 'error(s).',
+            lblMark: modal.getAttribute('data-lbl-mark') || 'Mark affected',
+            lblDeselect: modal.getAttribute('data-lbl-deselect') || 'Deselect all',
+            lblYearAssumed: modal.getAttribute('data-lbl-yearassumed') || 'Year {$a} assumed.',
+            lblYearLabel: modal.getAttribute('data-lbl-yearlabel') || 'Year missing – {$a}',
             lblAmbiguousNotice: modal.getAttribute('data-lbl-ambiguous-notice') || 'Some dates shown for manual review.',
-            lblErrTitle : modal.getAttribute('data-lbl-errtitle')          || 'Unknown error',
+            lblErrTitle: modal.getAttribute('data-lbl-errtitle') || 'Unknown error',
         };
 
         var step1 = modal.querySelector('[data-ccwf-step="1"]');
@@ -668,6 +676,7 @@ define([], function() {
                     previewBtn.disabled = true;
                     previewBtn.textContent = '\u2026';
                     fetchPreview(courseid, 'shift_dates', payload, cmids)
+                        // eslint-disable-next-line promise/always-return
                         .then(function(preview) {
                             previewBtn.disabled = false;
                             previewBtn.textContent = lbl.btnPreview;
@@ -702,6 +711,7 @@ define([], function() {
                             }
                             setTitle(modal.getAttribute('data-label-preview') || '');
                             showStep('2');
+                            // eslint-disable-next-line consistent-return
                         })
                         .catch(function() {
                             previewBtn.disabled = false;
@@ -724,7 +734,10 @@ define([], function() {
             if (execBtn) {
                 execBtn.addEventListener('click', function() {
                     var scantextCb = step2.querySelector('#ccwf-scantext-cb');
-                    var doScan = scantextCb ? (scantextCb.checked ? 1 : 0) : 0;
+                    var doScan = 0;
+                    if (scantextCb && scantextCb.checked) {
+                        doScan = 1;
+                    }
                     execBtn.disabled = true;
 
                     // Push cmids + delta into form hidden fields.
@@ -762,6 +775,7 @@ define([], function() {
                     }
 
                     doShift(form, doScan)
+                        // eslint-disable-next-line promise/always-return
                         .then(function(result) {
                             if (!result.success) {
                                 if (previewBody) {
@@ -797,7 +811,9 @@ define([], function() {
                                 }
                                 if (backBtn) {
                                     backBtn.textContent = lbl.btnClose;
-                                    backBtn.removeEventListener('click', function() {});
+                                    backBtn.removeEventListener('click', function() {
+                                    // No-op placeholder for removeEventListener.
+                                });
                                     backBtn.addEventListener('click', function() {
                                         if (opts.onComplete) {
                                             opts.onComplete(result);
@@ -819,7 +835,9 @@ define([], function() {
                             setTitle(modal.getAttribute('data-label-textreview') || '');
 
                             // eslint-disable-next-line promise/no-nesting
+                            // eslint-disable-next-line promise/no-nesting
                             fetchTextHits(courseid)
+                                // eslint-disable-next-line promise/always-return
                                 .then(function(data) {
                                     var deltaSec = opts.getDelta();
                                     var hitsHtml = renderHitsHtml(data.hits, deltaSec, false, lbl);
@@ -845,7 +863,7 @@ define([], function() {
                                                 }
                                                 applyBtn3.disabled = true;
                                                 applyTextChanges(courseid, ids, applyDelta)
-                                                    // eslint-disable-next-line promise/always-return
+                        // eslint-disable-next-line promise/always-return
                         .then(function() {
                                                         if (opts.onComplete) {
                                                             opts.onComplete(result);
@@ -892,7 +910,9 @@ define([], function() {
      */
     var resetWorkflow = function(modal) {
         var steps = modal.querySelectorAll('[data-ccwf-step]');
-        steps.forEach(function(s) { s.classList.add('d-none'); });
+        steps.forEach(function(s) {
+            s.classList.add('d-none');
+        });
         var step1 = modal.querySelector('[data-ccwf-step="1"]');
         if (step1) {
             step1.classList.remove('d-none');

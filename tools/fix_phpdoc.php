@@ -16,9 +16,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * CLI tool: reconcile function @param tags with actual signatures.
+ * CLI tool: reconcile function param tags with actual signatures.
  *
- * Ensures the @param tag count in every docblock equals the number of
+ * Ensures the param tag count in every docblock equals the number of
  * parameters in the corresponding function signature. Uses the actual
  * type hint from the signature (including |null for nullable parameters).
  * Existing descriptions are preserved; surplus tags are removed; missing
@@ -60,13 +60,13 @@ foreach ($it as $file) {
         $totalfiles++;
         $totalparams += $n;
         $rel = str_replace($plugindir . DIRECTORY_SEPARATOR, '', $path);
-        echo ($dryrun ? '[DRY] ' : '[FIX] ') . $rel . ": adjusted $n @param tag(s)\n";
+        echo ($dryrun ? '[DRY] ' : '[FIX] ') . $rel . ": adjusted $n param tag(s)\n";
     }
 }
-echo "\nDone. Files changed: $totalfiles. @param adjustments: $totalparams\n";
+echo "\nDone. Files changed: $totalfiles. Param adjustments: $totalparams\n";
 
 /**
- * Reconcile @param tags in all function docblocks within one file.
+ * Reconcile param tags in all function docblocks within one file.
  *
  * @param string $filepath Absolute path to the PHP file.
  * @param bool   $dryrun   When true, report but do not write.
@@ -116,7 +116,7 @@ function fix_file(string $filepath, bool $dryrun): int {
             continue;
         }
 
-        // Gather existing @param info from docblock.
+        // Gather existing param info from docblock.
         $docparams   = [];
         $paramorder  = [];
         $curparam    = null;
@@ -131,7 +131,7 @@ function fix_file(string $filepath, bool $dryrun): int {
                 && preg_match('/^\*\s+\S/', $s)
                 && !preg_match('/^\*\s+@/', $s)
             ) {
-                // Continuation line of multi-line @param description.
+                // Continuation line of multi-line param description.
                 $docparams[$curparam][1] .= ' ' . ltrim($s, '* ');
             } else if (preg_match('/^\*\s+@/', $s)) {
                 $curparam = null;
@@ -150,7 +150,7 @@ function fix_file(string $filepath, bool $dryrun): int {
         preg_match('/^(\s*)/', $lines[$openpos], $im);
         $indent = $im[1];
 
-        // Strip all @param lines (and continuations) from docblock copy.
+        // Strip all param lines (and continuations) from docblock copy.
         $newdoc  = [];
         $skipping = false;
         for ($k = $openpos; $k <= $closepos; $k++) {
@@ -178,7 +178,7 @@ function fix_file(string $filepath, bool $dryrun): int {
             }
         }
 
-        // Build replacement @param lines using signature types.
+        // Build replacement param lines using signature types.
         $newparams = [];
         foreach ($sigparams as $pname => $sigtype) {
             $desc = '';
@@ -205,7 +205,7 @@ function fix_file(string $filepath, bool $dryrun): int {
  * Extract parameters with their PHPDoc-compatible types from a signature.
  *
  * Returns an array keyed by parameter name; each value is the type string
- * ready for use in a @param tag (e.g. "string", "array", "MyClass|null").
+ * ready for use in a param tag (e.g. "string", "array", "MyClass|null").
  *
  * @param string $sig Full function signature source fragment.
  * @return array<string,string> Parameter name => PHPDoc type string.

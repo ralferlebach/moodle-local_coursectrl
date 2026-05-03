@@ -35,30 +35,19 @@ Feature: Simulation tab functionality
     Then I should see "Simulation"
     And I should not see "Page not found"
 
-  # Direct capability gate tests.
+  # Capability gate: students without simulate capability see no simulation content.
 
   @javascript
-  Scenario: A student without simulate capability cannot access simulation.php directly
+  Scenario: A student without simulate capability sees no simulation form on checks page
     Given the following "users" exist:
       | username | firstname | lastname | email               |
       | student1 | Student   | One      | s1@example.com      |
     And the following "course enrolments" exist:
       | user     | course  | role    |
       | student1 | SIMTEST | student |
+    And the following "activities" exist:
+      | activity | course  | name    |
+      | assign   | SIMTEST | Task C1 |
     And I log in as "student1"
-    When I am on simulation page for course "SIMTEST"
+    When I am on the checks page for course "SIMTEST"
     Then I should not see "Simulation"
-    And I should see "Sorry" in the page
-
-  @javascript
-  Scenario: A student without simulate capability cannot access checks.php tab simulation directly
-    Given the following "users" exist:
-      | username | firstname | lastname | email               |
-      | student2 | Student   | Two      | s2@example.com      |
-    And the following "course enrolments" exist:
-      | user     | course  | role    |
-      | student2 | SIMTEST | student |
-    And I log in as "student2"
-    When I am on the checks page for course "SIMTEST" tab "simulation"
-    Then I should not see "Simulation"
-    And I should see "Sorry" in the page

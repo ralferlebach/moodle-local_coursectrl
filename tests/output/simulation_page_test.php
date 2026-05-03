@@ -300,10 +300,11 @@ final class simulation_page_test extends \advanced_testcase {
             (int) $course->id,
             10,
             'assign',
+            (int) $assign->id,
             $payload,
             true,
             null,
-            null
+            COMPLETION_TRACKING_MANUAL
         );
         $snap = new inventory_snapshot(
             $courseitem,

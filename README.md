@@ -97,6 +97,7 @@ Navigate to **Site administration → Plugins → Local plugins → Course Contr
 | `local/coursectrl:view` | `editingteacher`, `manager` | Access all read-only analysis pages |
 | `local/coursectrl:bulkaction` | `editingteacher` | Execute bulk date shifts and text changes |
 | `local/coursectrl:rollback` | `manager` | Roll back a previously executed bulk action |
+| `local/coursectrl:simulate` | `editingteacher`, `manager` | Run the learner journey simulation |
 
 ### Key admin settings
 

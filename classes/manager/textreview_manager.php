@@ -69,9 +69,9 @@ class textreview_manager {
     /**
      * Construct the textreview_manager.
      *
-     * @param text_change_builder $builder Change-builder dependency.
-     * @param text_datetime_rewriter $rewriter Text rewriter; null defaults to new instance.
-     * @param inventory_service $inventoryservice Inventory service; null defaults to new instance.
+     * @param text_change_builder|null $builder Change-builder dependency.
+     * @param text_datetime_rewriter|null $rewriter Text rewriter; null defaults to new instance.
+     * @param inventory_service|null $inventoryservice Inventory service; null defaults to new instance.
      */
     public function __construct(
         ?text_change_builder $builder = null,

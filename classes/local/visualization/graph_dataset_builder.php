@@ -22,7 +22,7 @@
  * circular-cycle detection); the AMD layer handles pixel layout and drawing.
  *
  * Layer algorithm (Kahn-style relaxation):
- *   - Nodes with no intra-course prerequisites → layer 0.
+ *   - Nodes with no intra-course prerequisites to layer 0.
  *   - A node moves to layer max(prereq_layers)+1 once all its known
  *     prerequisites have been placed.
  *   - Nodes that remain unplaced after all iterations are in a circular
@@ -185,10 +185,10 @@ class graph_dataset_builder {
      *
      * @param array $cms Course modules keyed by cmid.
      * @param dependency_index $depindex Prebuilt dependency index (for cycle detection).
-     * @param array $forward Filtered forward map: cmid → prerequisite cmids.
+     * @param array $forward Filtered forward map: cmid to prerequisite cmids.
      * @param array $warnings Per-CM warning lists from consistency_runner.
-     * @param mixed $blockedids See function signature.
-     * @param mixed $nextstepids See function signature.
+     * @param array $blockedids See function signature.
+     * @param array $nextstepids See function signature.
      * @return array Graph dataset.
      */
     public function build_with_forward(
@@ -310,15 +310,15 @@ class graph_dataset_builder {
     /**
      * Assign topological layers to all CMs (R1–R5 layout rules).
      *
-     * R1: Dependency chains run left→right (layer 0 = sources).
+     * R1: Dependency chains run lefttoright (layer 0 = sources).
      * R2: Within a layer, course order (array key order of $cms) is the
      *     primary sort; tie-breaker for equal-layer CMs.
      * R3: Layer of B = max(layer of prereqs) + 1 (only e=1 deps used).
      * R5: Independents (no deps, not a prereq) go to layer 0.
      *
      * @param array $cms CMs keyed by cmid, in course order.
-     * @param array $forward Forward map: cmid → list of prerequisite cmids.
-     * @return array<int, int> cmid → layer index (0-based).
+     * @param array $forward Forward map: cmid to list of prerequisite cmids.
+     * @return array<int, int> cmid to layer index (0-based).
      */
     public function assign_layers(array $cms, array $forward): array {
         $knownids  = array_fill_keys(array_keys($cms), true);
@@ -379,7 +379,7 @@ class graph_dataset_builder {
      * @param array $layers  cmid to layer index.
      * @param array $forward Forward map: cmid to prerequisite cmids.
      * @param array $reverse Reverse map: cmid to dependent cmids.
-     * @return array<int, int> cmid → 0-based position within its layer.
+     * @return array<int, int> cmid to 0-based position within its layer.
      */
     private function assign_layer_positions(
         array $layers,

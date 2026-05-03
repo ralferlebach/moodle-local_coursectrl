@@ -457,14 +457,7 @@ class checks_page implements renderable, templatable {
      * the field name itself.
      *
      * @param string $field Field identifier (e.g. 'duedate').
-     * @param mixed  $cm    CM item (used to find the subplugin component).
-     * @param cm_item[] $cms Course modules keyed by cmid.
-     * @param dependency_index $depindex Pre-built dependency index.
-     * @param array $datesbycm Per-CM date entries from date_collector.
-     * @param array<int,string> $cmnames Cmid → resolved activity name map.
-     * @param array<int,string> $cmurls Cmid → activity URL map.
-     * @param int $courseid Course id for context resolution.
-     * @param cm_item[] $cmobjects Full CM item objects for supplementary data.
+     * @param mixed $cm CM item (used to find the subplugin component).
      * @return string
      */
     private function field_label(string $field, $cm): string {
@@ -489,6 +482,8 @@ class checks_page implements renderable, templatable {
      * @param array            $cmnames
      * @param array            $cmurls
      * @param int              $courseid
+     * @param array $cmobjects See function signature.
+     * @param array $sections See function signature.
      * @return array
      */
     private function build_risks_tab(
@@ -537,16 +532,10 @@ class checks_page implements renderable, templatable {
      * problem description, consequence, and concrete action.
      *
      * @param array[] $items
-     * @param array   $cmnames
-     * @param array   $cmurls
-     * @param array   $cms      Full cm_item objects keyed by cmid.
-     * @param int     $courseid Course id (required for fix URLs).
-     * @param string $type Risk type identifier string.
-     * @param array $item Risk item data array.
-     * @param string $cmname Resolved activity name.
-     * @param string $relatedlinked Resolved related activity name or link.
-     * @param string $dateformat Localised date format string.
-     * @param string $modname Moodle module short name.
+     * @param array $cmnames
+     * @param array $cmurls
+     * @param array $cms Full cm_item objects keyed by cmid.
+     * @param int $courseid Course id (required for fix URLs).
      * @return array[]
      */
     private function group_risk_items(
@@ -806,6 +795,7 @@ class checks_page implements renderable, templatable {
      * @param string  $cmname
      * @param array[] $relatedlinked
      * @param string  $dateformat
+     * @param string $modname See function signature.
      * @return array{0: string, 1: string}
      */
     private function risk_type_texts(
@@ -1013,11 +1003,6 @@ class checks_page implements renderable, templatable {
      * Return the fix type code for a given issue type, or '' if no one-click fix exists.
      *
      * @param string $type Issue type.
-     * @param int $cmid Course module id of the target activity.
-     * @param cm_item $cm The CM item for the target activity.
-     * @param int $courseid Course id.
-     * @param string $tab Tab identifier to land on.
-     * @param array $extraparams Additional URL parameters.
      * @return string 'unhide_cm' | 'modedit_availability' | 'timeline' | 'dependencies' | ''
      */
     private function fix_type_for(string $type): string {
@@ -1052,6 +1037,7 @@ class checks_page implements renderable, templatable {
      * @param mixed    $cm        CM item object or null.
      * @param int      $courseid  Course id.
      * @param string   $tab       Checks tab to return to after fix.
+     * @param array $extraparams See function signature.
      * @return string URL or empty string.
      */
     private function fix_url_for(string $type, int $cmid, $cm, int $courseid, string $tab, array $extraparams = []): string {

@@ -80,8 +80,6 @@ class inventory_service {
      * Build a complete inventory snapshot for a course.
      *
      * @param int $courseid Moodle course id.
-     * @param mixed $course See function signature.
-     * @param mixed $this See function signature.
      * @return inventory_snapshot
      * @throws \dml_missing_record_exception when the course does not exist.
      */
@@ -155,9 +153,6 @@ class inventory_service {
      * stale cache) and to pick up the completionexpected field.
      *
      * @param int $courseid Moodle course id.
-     * @param course_item $course Normalised course entity.
-     * @param array<int,section_item> $sections Section entities keyed by section id.
-     * @param array<int,cm_item> $cms Course-module entities keyed by cmid.
      * @return array<int,cm_item> keyed by cmid.
      */
     protected function build_cms(int $courseid): array {

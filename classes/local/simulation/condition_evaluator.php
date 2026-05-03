@@ -70,15 +70,13 @@ class condition_evaluator {
      * and evaluated against the learner state's grade percentages.
      *
      * @var array<int, array{cmid: int, grademax: float}>
-     * @param array<int,array> $gradeitemmap Grade item id → cmid/grademax mapping.
      */
     private array $gradeitemmap;
 
     /**
      * Constructor.
      *
-     * @param array<int, array> $gradeitemmap Optional map of grade item id →
-     *   ['cmid' => int, 'grademax' => float]. Required to evaluate grade conditions.
+     * @param mixed $gradeitemmap See function signature.
      */
     public function __construct(array $gradeitemmap = []) {
         $this->gradeitemmap = $gradeitemmap;

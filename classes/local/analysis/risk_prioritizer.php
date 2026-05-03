@@ -59,6 +59,8 @@ class risk_prioritizer {
      *
      * @param array<int, array> $gradeitemmap    Grade item id → ['cmid', 'grademax'] map.
      * @param array<int, array> $gradeinfobycmid Cmid → ['gradepass', 'grademax'] map.
+     * @param array $gradeitemmap See function signature.
+     * @param array $gradeinfobycmid See function signature.
      */
     public function __construct(array $gradeitemmap = [], array $gradeinfobycmid = []) {
         $this->gradeitemmap = $gradeitemmap;

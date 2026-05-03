@@ -399,16 +399,12 @@ class dashboard_page implements renderable, templatable {
     /**
      * Build upcoming structured dates, sorted ascending, limited to count.
      *
-     * @param array  $datesbycm   Date entries keyed by cmid.
-     * @param array  $cmnames     Lookup: cmid → name.
-     * @param array  $cmurls      Lookup: cmid → url.
-     * @param array  $cmmodnames  Lookup: cmid → modname.
-     * @param int    $count       Maximum entries to return.
-     * @param string $dateformat  Moodle date format string.
-     * @param moodle_database $db Moodle database reference.
-     * @param int $courseid Course id.
-     * @param array<int,string> $sectionnames Section id → display name map.
-     * @param array<int,string> $sectionurls Section id → URL map.
+     * @param array $datesbycm Date entries keyed by cmid.
+     * @param array $cmnames Lookup: cmid → name.
+     * @param array $cmurls Lookup: cmid → url.
+     * @param array $cmmodnames Lookup: cmid → modname.
+     * @param int $count Maximum entries to return.
+     * @param string $dateformat Moodle date format string.
      * @return array
      */
     private function build_upcoming_dates(
@@ -450,6 +446,11 @@ class dashboard_page implements renderable, templatable {
      * @param int              $count     Maximum rows to return.
      * @param array            $cmnames   Lookup: cmid → name.
      * @param array            $cmurls    Lookup: cmid → url.
+     * @param array $cmmodnames See function signature.
+     * @param array $sectionnames See function signature.
+     * @param array $sectionurls See function signature.
+     * @param string $coursename See function signature.
+     * @param string $courseurl See function signature.
      * @return array
      */
     private function build_text_hits(

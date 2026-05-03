@@ -249,8 +249,6 @@ class timeline_page implements renderable, templatable {
      * collision warnings that were stored in the PHP session by shift.php.
      *
      * @param int $courseid The course id.
-     * @param array<int,\local_coursectrl\local\entity\section_item> $sections Section items keyed by section id.
-     * @param array<int,\local_coursectrl\local\entity\cm_item> $cms Course modules keyed by cmid.
      * @return array
      */
     private function build_textreview_context(int $courseid): array {
@@ -360,7 +358,9 @@ class timeline_page implements renderable, templatable {
     /**
      * Build Gantt dataset for the 'Grafische Übersicht' tab.
      *
+     * @param array $sections See function signature.
      * @param array $cms CMs keyed by cmid.
+     * @param int $courseid See function signature.
      * @return array Gantt dataset export.
      */
     private function build_gantt_data(array $sections, array $cms, int $courseid): array {

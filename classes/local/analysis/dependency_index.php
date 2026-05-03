@@ -68,8 +68,6 @@ class dependency_index {
      * at least one of the given group ids, or if it has no group conditions.
      *
      * @param int[] $groupids Group ids (empty = return all forward deps).
-     * @param cm_item[] $cms Course modules keyed by cmid.
-     * @param array<int,int> $gradeitemmap Grade item id → cmid mapping.
      * @return array<int, int[]>
      */
     public function get_all_forward_for_groups(array $groupids): array {
@@ -98,7 +96,6 @@ class dependency_index {
      *
      * @param cm_item[] $cms          Keyed by cmid.
      * @param array<int,int> $gradeitemmap Grade item id → cmid mapping.
-     * @param mixed $this See function signature.
      *                                 Required to resolve grade-based availability
      *                                 conditions to cmid pairs for graph edges.
      *                                 Obtained from the grade_items table; pass []
@@ -143,8 +140,6 @@ class dependency_index {
      * Get the full parsed availability for a cmid.
      *
      * @param int $cmid Course module id.
-     * @param mixed $this See function signature.
-     * @param mixed $this See function signature.
      * @return array Parsed availability (from availability_parser).
      */
     public function get_parsed_availability(int $cmid): array {
@@ -155,7 +150,6 @@ class dependency_index {
      * Check whether a cmid has any restrictions at all.
      *
      * @param int $cmid Course module id.
-     * @param mixed $this See function signature.
      * @return bool
      */
     public function has_restrictions(int $cmid): bool {
@@ -166,7 +160,6 @@ class dependency_index {
      * Check whether a cmid has any dependents (other CMs depend on it).
      *
      * @param int $cmid Course module id.
-     * @param mixed $this See function signature.
      * @return bool
      */
     public function has_dependents(int $cmid): bool {
@@ -263,8 +256,6 @@ class dependency_index {
      *
      * Only populated when a gradeitemmap was supplied at construction time.
      *
-     * @param cm_item[] $cms Course modules keyed by cmid.
-     * @param array<int,int> $gradeitemmap Grade item id → cmid mapping.
      * @return array<int, int[]>
      */
     public function get_grade_forward(): array {
@@ -274,10 +265,9 @@ class dependency_index {
     /**
      * Build the index from cm_items.
      *
-     * @param cm_item[]      $cms          Course modules keyed by cmid.
-     * @param array<int,int> $gradeitemmap Grade item id → cmid. Used to resolve
-     * @param mixed $cm See function signature.
      *                                     grade-based availability conditions.
+     * @param cm_item[] $cms Course modules keyed by cmid.
+     * @param array<int,int> $gradeitemmap Grade item id → cmid. Used to resolve
      */
     private function build(array $cms, array $gradeitemmap = []): void {
         foreach ($cms as $cm) {

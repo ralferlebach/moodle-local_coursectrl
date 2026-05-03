@@ -90,7 +90,8 @@ class deep_journey_simulator {
      * @param int         $startts         Simulation start timestamp (default: now).
      * @param int         $courseid        Course id (used in deep-link URLs).
      * @param array<int,int>   $maxattemptsbycmid  cmid → max attempts (0=unlimited).
-     * @param array<int,\local_coursectrl\local\entity\section_item> $sections Section items keyed by section id, used for section-level gating.
+     * @param array<int,\local_coursectrl\local\entity\section_item> $sections
+     *     Section items keyed by section id, used for section-level gating.
      * @return array[] Findings: one entry per (scenario, unreachable-cmid) pair.
      */
     public function simulate(
@@ -198,7 +199,8 @@ class deep_journey_simulator {
      * @param string           $grademode       'pass' or 'fail'.
      * @param int              $startts         Start timestamp.
      * @param array<int,int>   $maxattemptsbycmid cmid → max attempts (0=unlimited).
-     * @param array<int,\local_coursectrl\local\entity\section_item> $sections Section items keyed by section id, used for section-level gating.
+     * @param array<int,\local_coursectrl\local\entity\section_item> $sections
+     *     Section items keyed by section id, used for section-level gating.
      * @return array{reachable: int[], unreachable: int[], steps: array[]}
      */
     public function simulate_journey(

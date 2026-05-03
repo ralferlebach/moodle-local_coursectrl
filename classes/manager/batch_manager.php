@@ -55,7 +55,6 @@ class batch_manager {
      * Constructor.
      *
      * @param registry|null $registry optional registry instance, mainly for
-     * @param mixed $this See function signature.
      *                                tests. When null, a fresh registry with
      *                                live discovery is created.
      */
@@ -282,8 +281,7 @@ class batch_manager {
      * handler cannot abort an otherwise successful batch.
      *
      * @param array $successfulbyadapter Map of component -> {adapter, cmids}.
-     * @param int   $batchid             Parent batch id (for debug output).
-     * @param mixed $entry See function signature.
+     * @param int $batchid Parent batch id (for debug output).
      * @return void
      */
     private function refresh_calendars(array $successfulbyadapter, int $batchid): void {
@@ -302,11 +300,10 @@ class batch_manager {
     /**
      * Persist the head batch row in pending status.
      *
-     * @param int    $courseid target course id.
-     * @param int    $userid   acting user id.
-     * @param string $action   canonical action identifier.
-     * @param array  $payload  action-specific parameters.
-     * @param mixed $data See function signature.
+     * @param int $courseid target course id.
+     * @param int $userid acting user id.
+     * @param string $action canonical action identifier.
+     * @param array $payload action-specific parameters.
      * @return batch
      */
     private function create_batch_row(int $courseid, int $userid, string $action, array $payload): batch {
@@ -325,7 +322,6 @@ class batch_manager {
      * @param int   $batchid Parent batch id.
      * @param int   $cmid    Course module id.
      * @param array $skip    Skip descriptor with 'reason' and optional 'component'.
-     * @param mixed $this See function signature.
      * @return void
      */
     private function persist_skipped_item(int $batchid, int $cmid, array $skip): void {
@@ -346,7 +342,6 @@ class batch_manager {
      * @param int    $cmid      Course module id.
      * @param string $component Frankenstyle component name.
      * @param array  $state     Snapshot payload.
-     * @param mixed $this See function signature.
      * @return void
      */
     private function persist_snapshot(int $batchid, int $cmid, string $component, array $state): void {
@@ -362,13 +357,11 @@ class batch_manager {
     /**
      * Persist an executed batch_item row.
      *
-     * @param int    $batchid   Parent batch id.
-     * @param int    $cmid      Course module id.
+     * @param int $batchid Parent batch id.
+     * @param int $cmid Course module id.
      * @param string $component Frankenstyle component name.
-     * @param string $status    One of 'ok', 'noop', 'failed'.
-     * @param array  $item      Raw adapter item result.
-     * @param string $class Entity type: course, section, or cm.
-     * @param array $data Snapshot state data produced by export_state().
+     * @param string $status One of 'ok', 'noop', 'failed'.
+     * @param array $item Raw adapter item result.
      * @return void
      */
     private function persist_executed_item(
@@ -397,7 +390,7 @@ class batch_manager {
      * Single helper for all persistent instantiations in this manager so the
      * (new class(0, $data))->create() pattern is written only once.
      *
-     * @param class-string<persistent> $class Persistent subclass name.
+     * @param string $class Persistent subclass name (must be a persistent subclass).
      * @param \stdClass                $data  Row data.
      * @return persistent The created instance.
      */
@@ -496,9 +489,8 @@ class batch_manager {
      * type === 'date' and a 't' (timestamp) value greater than zero. No new
      * nodes are inserted; only existing timestamp values are rewritten.
      *
-     * @param string $json  Raw availability JSON from {course_modules}.availability.
-     * @param int    $delta Seconds to add.
-     * @param mixed $data See function signature.
+     * @param string $json Raw availability JSON from {course_modules}.availability.
+     * @param int $delta Seconds to add.
      * @return string Modified JSON string, or the original on parse failure.
      */
     private function shift_availability_dates(string $json, int $delta): string {

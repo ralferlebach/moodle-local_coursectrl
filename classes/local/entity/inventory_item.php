@@ -54,7 +54,6 @@ abstract class inventory_item implements \JsonSerializable {
      * loss. It is used for JSON serialisation, event payloads and test
      * fixtures.
      *
-     * @param array<string,mixed> $data Serialised entity produced by to_array().
      * @return array<string,mixed>
      */
     abstract public function to_array(): array;
@@ -71,10 +70,6 @@ abstract class inventory_item implements \JsonSerializable {
     /**
      * JsonSerializable hook. Delegates to to_array().
      *
-     * @param array<string,mixed> $data Source array to validate.
-     * @param string $key Required key name.
-     * @param string $class Calling class name used in error context.
-     * @param mixed $this See function signature.
      * @return array<string,mixed>
      */
     public function jsonSerialize(): array {

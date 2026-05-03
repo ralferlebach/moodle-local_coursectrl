@@ -329,10 +329,8 @@ class risk_assessment_runner {
      * Each item is stored as one row in local_coursectrl_risk. All prior rows
      * for this course are deleted first so the table always reflects the latest run.
      *
-     * @param int     $courseid
+     * @param int $courseid
      * @param array[] $items
-     * @param array<int,array[]> $warnings Per-cmid issue arrays from consistency_runner.
-     * @param cm_item[] $cms Course modules keyed by cmid.
      * @return void
      */
     private function persist(int $courseid, array $items): void {
@@ -366,11 +364,8 @@ class risk_assessment_runner {
      * Assigns a probability of 1.0 and a score derived from severity.
      * Cascade analysis is not applied (consistency issues are atomic).
      *
-     * @param array<int, array[]> $warnings Per-cmid issue arrays.
-     * @param cm_item[]           $cms
-     * @param array[] $findings Raw journey findings from deep_journey_simulator.
-     * @param array $sections Section items keyed by section db id.
-     * @param int $courseid Course id for context resolution.
+     * @param array $warnings See function signature.
+     * @param cm_item[] $cms
      * @return array[]
      */
     private function convert_consistency_warnings(array $warnings, array $cms): array {
@@ -415,6 +410,7 @@ class risk_assessment_runner {
      * @param array[]          $findings Raw journey findings.
      * @param cm_item[]        $cms      Course modules keyed by cmid.
      * @param array            $sections Section items keyed by section db id.
+     * @param int $courseid See function signature.
      * @return array[] Annotated findings.
      */
     private function annotate_section_cause(

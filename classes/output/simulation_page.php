@@ -235,7 +235,12 @@ class simulation_page implements renderable, templatable {
                 $reasonrows = [];
                 foreach ($result['reasons'] as $reason) {
                     $reasonrows[] = $this->format_reason(
-                        $reason, $dateformat, $courseid, $cms, $groupnamemap, $groupingnamemap
+                        $reason,
+                        $dateformat,
+                        $courseid,
+                        $cms,
+                        $groupnamemap,
+                        $groupingnamemap
                     );
                 }
                 // Build OR/AND grouped reasons for structured display.
@@ -248,7 +253,12 @@ class simulation_page implements renderable, templatable {
                     $gconditions = [];
                     foreach ($grp as $r) {
                         $gconditions[] = $this->format_reason(
-                            $r, $dateformat, $courseid, $cms, $groupnamemap, $groupingnamemap
+                            $r,
+                            $dateformat,
+                            $courseid,
+                            $cms,
+                            $groupnamemap,
+                            $groupingnamemap
                         );
                     }
                     $reasongrouprows[] = [
@@ -448,7 +458,12 @@ class simulation_page implements renderable, templatable {
                     $secaccessible = $seceval['accessible'];
                     foreach ($seceval['reasons'] as $reason) {
                         $secreasonrows[] = $this->format_reason(
-                            $reason, $dateformat, $courseid, $cms, $groupnamemap, $groupingnamemap
+                            $reason,
+                            $dateformat,
+                            $courseid,
+                            $cms,
+                            $groupnamemap,
+                            $groupingnamemap
                         );
                     }
                     $secrawgroups = $evaluator->evaluate_groups(
@@ -460,7 +475,12 @@ class simulation_page implements renderable, templatable {
                         $sgconditions = [];
                         foreach ($sgrp as $r) {
                             $sgconditions[] = $this->format_reason(
-                                $r, $dateformat, $courseid, $cms, $groupnamemap, $groupingnamemap
+                                $r,
+                                $dateformat,
+                                $courseid,
+                                $cms,
+                                $groupnamemap,
+                                $groupingnamemap
                             );
                         }
                         $secreasongroups[] = [
@@ -781,9 +801,12 @@ class simulation_page implements renderable, templatable {
     /**
      * Format a condition_evaluator reason array for Mustache.
      *
-     * @param array  $reason     Raw reason from condition_evaluator.
+     * @param array $reason Raw reason from condition_evaluator.
      * @param string $dateformat Moodle date format string.
-     * @param string $type Reason type identifier (completion, group, date, etc.).
+     * @param int $courseid See function signature.
+     * @param array $cms See function signature.
+     * @param array $groups See function signature.
+     * @param array $groupings See function signature.
      * @return array Template-ready reason array.
      */
     private function format_reason(

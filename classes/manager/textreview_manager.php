@@ -76,10 +76,9 @@ class textreview_manager {
     /**
      * Construct the textreview_manager.
      *
-     * @param inventory_service|null     $inventoryservice Inventory service; defaults to new instance.
-     * @param text_datetime_extractor|null $extractor      Text extractor; defaults to new instance.
-     * @param text_datetime_rewriter|null  $rewriter       Text rewriter; defaults to new instance.
      * @param text_change_builder $builder Change-builder dependency.
+     * @param text_datetime_rewriter|null $rewriter Text rewriter; defaults to new instance.
+     * @param inventory_service|null $inventoryservice Inventory service; defaults to new instance.
      */
     public function __construct(
         ?text_change_builder $builder = null,
@@ -256,13 +255,9 @@ class textreview_manager {
      * Load a text field from the database, optionally scoped to a course.
      *
      * @param string $entitytype Entity type: course, section, or cm.
-     * @param int    $entityid   Entity id.
-     * @param string $fieldname  Field name (must pass whitelist check).
-     * @param int    $courseid   When >0, adds a course-binding WHERE clause.
-     * @param string $entitytype Entity type: course, section, or cm.
      * @param int $entityid Moodle id of the owning entity.
      * @param string $fieldname Name of the text field being saved.
-     * @param string $newvalue New text value to persist.
+     * @param int $courseid When >0, adds a course-binding WHERE clause.
      * @return string Text content.
      * @throws \coding_exception When the entity type or field is unknown.
      */
@@ -306,6 +301,7 @@ class textreview_manager {
      * @param int    $entityid   Entity id.
      * @param string $fieldname  Field name.
      * @param string $text       New text content.
+     * @param int $courseid  Course id (used for module lookups; 0 for course/section).
      * @throws \coding_exception When the entity type is unknown.
      */
     private function save_text(

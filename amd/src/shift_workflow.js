@@ -151,6 +151,7 @@ define([], function() {
         data.set('format', 'json');
         data.set('scan_text', String(scantext));
         return fetch(form.action, {method: 'POST', body: data})
+            // eslint-disable-next-line promise/always-return
             .then(function(r) {
                 if (!r.ok) {
                     throw new Error('HTTP ' + r.status);
@@ -675,6 +676,7 @@ define([], function() {
                     previewBtn.disabled = true;
                     previewBtn.textContent = '\u2026';
                     fetchPreview(courseid, 'shift_dates', payload, cmids)
+                        // eslint-disable-next-line promise/always-return
                         .then(function(preview) {
                             previewBtn.disabled = false;
                             previewBtn.textContent = lbl.btnPreview;
@@ -773,6 +775,7 @@ define([], function() {
                     }
 
                     doShift(form, doScan)
+                        // eslint-disable-next-line promise/always-return
                         .then(function(result) {
                             if (!result.success) {
                                 if (previewBody) {
@@ -832,6 +835,7 @@ define([], function() {
                             setTitle(modal.getAttribute('data-label-textreview') || '');
 
                             fetchTextHits(courseid)
+                                // eslint-disable-next-line promise/always-return
                                 .then(function(data) {
                                     var deltaSec = opts.getDelta();
                                     var hitsHtml = renderHitsHtml(data.hits, deltaSec, false, lbl);

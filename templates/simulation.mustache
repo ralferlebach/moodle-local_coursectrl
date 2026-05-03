@@ -579,7 +579,7 @@ require(['local_coursectrl/simulation'], function(S) {
         return;
     }
     simRoot.querySelectorAll('ul.mb-0.small.fw-normal.ps-3').forEach(function(ul) {
-        var allLi  = Array.from(ul.querySelectorAll('li'));
+        var allLi = Array.from(ul.querySelectorAll('li'));
         var realLi = allLi.filter(function(li) {
             return !li.classList.contains('list-unstyled');
         });

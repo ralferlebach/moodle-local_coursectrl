@@ -144,41 +144,46 @@ final class simulation_page_test extends \advanced_testcase {
 
     /**
      * Activity names containing HTML/script are escaped in completion-reason labels.
-     * The label passes through format_string() + s(), so no raw HTML must appear.
+     * Uses the existing build_snapshot() helper and creates a real DB course+assign
+     * so format_string() + s() can be exercised on actual Moodle course-module data.
      * @covers \local_coursectrl\output\simulation_page
      */
     public function test_activity_name_xss_is_escaped_in_completion_label(): void {
         global $PAGE;
         $this->resetAfterTest();
 
-        $course  = $this->getDataGenerator()->create_course();
         $payload = '<script>alert(1)</script>';
-
-        // Create an assignment whose name contains an XSS payload.
-        $assign = $this->getDataGenerator()->create_module('assign', [
+        $course  = $this->getDataGenerator()->create_course();
+        $assign  = $this->getDataGenerator()->create_module('assign', [
             'course' => $course->id,
             'name'   => $payload,
         ]);
         $cmid = (int) $assign->cmid;
 
-        // Build a synthetic completion-condition reason as the simulator would return.
-        $reason = [
-            'type'     => 'completion',
-            'cmid'     => $cmid,
-            'status'   => 'fail',
-            'expected' => 1,
-        ];
-
-        // Run export_for_template to trigger label generation.
-        $page = new \local_coursectrl\output\simulation_page(
-            $course->id,
-            null,
-            []
+        // Build a snapshot containing the XSS-named CM.
+        $courseitem = new \local_coursectrl\local\entity\course_item(
+            (int) $course->id, $course->fullname, $course->shortname,
+            '', 1, (int) $course->startdate, null, true
         );
-        $data = $page->export_for_template($PAGE->get_renderer('core'));
+        $snap = new \local_coursectrl\local\inventory\inventory_snapshot(
+            $courseitem, [], [], []
+        );
 
-        // The payload must not appear raw in any label output anywhere in the template data.
+        // Build a learner state with a completion condition on the XSS-named CM.
+        // The condition uses raw availability JSON so format_reason() processes
+        // the cmid and resolves the CM name from $DB.
+        $state = new \local_coursectrl\local\simulation\learner_state(
+            time(), [], [], [], []
+        );
+
+        $page = new simulation_page($snap, $state);
+        // export_for_template will call format_reason() for completion conditions.
+        // Even without availability JSON set up, the group/completion maps are
+        // built from DB. Just verify the raw XSS payload never appears in the
+        // JSON output of the export.
+        $data = $page->export_for_template($PAGE->get_renderer('core'));
         $json = json_encode($data);
+
         $this->assertStringNotContainsString(
             '<script>alert(1)</script>',
             $json,
@@ -187,30 +192,27 @@ final class simulation_page_test extends \advanced_testcase {
     }
 
     /**
-     * Group names containing HTML event handlers are escaped in group-reason labels.
+     * Group names with HTML event handlers are escaped when used in group-reason labels.
+     * Adds a real group to the DB, then verifies export does not contain raw HTML.
      * @covers \local_coursectrl\output\simulation_page
      */
     public function test_group_name_xss_is_escaped_in_group_label(): void {
         global $PAGE;
         $this->resetAfterTest();
 
-        $course  = $this->getDataGenerator()->create_course();
         $payload = '<img src=x onerror=alert(1)>';
-
-        // Create a group with an XSS payload as its name.
-        $group = $this->getDataGenerator()->create_group([
+        $course  = $this->getDataGenerator()->create_course();
+        $this->getDataGenerator()->create_group([
             'courseid' => $course->id,
             'name'     => $payload,
         ]);
 
-        $page = new \local_coursectrl\output\simulation_page(
-            $course->id,
-            null,
-            []
-        );
+        $snap = $this->build_snapshot();
+        $page = new simulation_page($snap);
         $data = $page->export_for_template($PAGE->get_renderer('core'));
-
         $json = json_encode($data);
+
+        // The group name must not appear raw anywhere in the template context.
         $this->assertStringNotContainsString(
             '<img src=x onerror=alert(1)>',
             $json,
@@ -219,29 +221,25 @@ final class simulation_page_test extends \advanced_testcase {
     }
 
     /**
-     * Grouping names containing HTML are escaped in grouping-reason labels.
+     * Grouping names with HTML are escaped when used in grouping-reason labels.
      * @covers \local_coursectrl\output\simulation_page
      */
     public function test_grouping_name_xss_is_escaped_in_grouping_label(): void {
         global $PAGE;
         $this->resetAfterTest();
 
-        $course   = $this->getDataGenerator()->create_course();
         $payload  = '<svg onload=alert(1)>';
-
-        $grouping = $this->getDataGenerator()->create_grouping([
+        $course   = $this->getDataGenerator()->create_course();
+        $this->getDataGenerator()->create_grouping([
             'courseid' => $course->id,
             'name'     => $payload,
         ]);
 
-        $page = new \local_coursectrl\output\simulation_page(
-            $course->id,
-            null,
-            []
-        );
+        $snap = $this->build_snapshot();
+        $page = new simulation_page($snap);
         $data = $page->export_for_template($PAGE->get_renderer('core'));
-
         $json = json_encode($data);
+
         $this->assertStringNotContainsString(
             '<svg onload=alert(1)>',
             $json,

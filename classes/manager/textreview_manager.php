@@ -55,6 +55,31 @@ class textreview_manager {
      * @param text_datetime_rewriter|null $rewriter         Optional custom rewriter.
      * @param inventory_service|null      $inventoryservice Optional custom inventory service.
      */
+    /** @var string[] Allowed text fields on the course table. */
+    private const COURSE_TEXT_FIELDS = ['summary', 'fullname', 'shortname'];
+
+    /** @var string[] Allowed text fields on the course_sections table. */
+    private const SECTION_TEXT_FIELDS = ['summary', 'name'];
+
+    /** @var string[] Allowed text fields on activity module tables. */
+    private const CM_TEXT_FIELDS = [
+        'intro',
+        'content',
+        'name',
+        'activity', // Assign: activity description.
+        'page_after_submit', // Feedback: completion page text.
+        'instructauthors', // Workshop: author instructions.
+        'instructreviewers', // Workshop: reviewer instructions.
+        'conclusion', // Workshop: conclusion text.
+    ];
+
+    /**
+     * Construct the textreview_manager.
+     *
+     * @param inventory_service|null     $inventoryservice Inventory service; defaults to new instance.
+     * @param text_datetime_extractor|null $extractor      Text extractor; defaults to new instance.
+     * @param text_datetime_rewriter|null  $rewriter       Text rewriter; defaults to new instance.
+     */
     public function __construct(
         ?text_change_builder $builder = null,
         ?text_datetime_rewriter $rewriter = null,
@@ -111,7 +136,7 @@ class textreview_manager {
         foreach ($hitids as $id) {
             $hit = new text_hit((int) $id);
             if ((int) $hit->get('courseid') !== $courseid) {
-                continue;
+                throw new \moodle_exception('accessdenied', 'error');
             }
             $key = $hit->get('entitytype') . ':' . $hit->get('entityid') . ':' . $hit->get('fieldname');
             $hits[$key][] = $hit;
@@ -127,10 +152,16 @@ class textreview_manager {
             $entityid = (int) $first->get('entityid');
             $fieldname = $first->get('fieldname');
 
+            // Validate fieldname against whitelist before any DB access.
+            // coding_exception propagates intentionally — a non-whitelisted
+            // field indicates a programming error, not a recoverable runtime
+            // condition, and must not be silently swallowed.
+            $this->require_allowed_field($entitytype, $fieldname);
+
             // Load original text.
             try {
-                $text = $this->load_text($entitytype, $entityid, $fieldname);
-            } catch (\Throwable $e) {
+                $text = $this->load_text($entitytype, $entityid, $fieldname, $courseid);
+            } catch (\moodle_exception $e) {
                 $errors[] = [
                     'key' => $key,
                     'code' => 'load_failed',
@@ -153,9 +184,9 @@ class textreview_manager {
 
             if (!empty($result['applied'])) {
                 try {
-                    $this->save_text($entitytype, $entityid, $fieldname, $result['text']);
+                    $this->save_text($entitytype, $entityid, $fieldname, $result['text'], $courseid);
                     $totalapplied += count($result['applied']);
-                } catch (\Throwable $e) {
+                } catch (\moodle_exception $e) {
                     $errors[] = [
                         'key' => $key,
                         'code' => 'save_failed',
@@ -198,20 +229,66 @@ class textreview_manager {
      * @return string Text content.
      * @throws \coding_exception When the entity type or field is unknown.
      */
-    private function load_text(string $entitytype, int $entityid, string $fieldname): string {
+    /**
+     * Throw a coding_exception if $fieldname is not on the whitelist for $entitytype.
+     *
+     * Prevents $fieldname — which originates from persisted data — from being used
+     * as a raw column name in DB operations without validation.
+     *
+     * @param string $entitytype Entity type: course, section, or cm.
+     * @param string $fieldname  Field name to validate.
+     * @throws \coding_exception When the field is not in the whitelist.
+     */
+    private function require_allowed_field(string $entitytype, string $fieldname): void {
+        $allowed = match ($entitytype) {
+            'course'  => self::COURSE_TEXT_FIELDS,
+            'section' => self::SECTION_TEXT_FIELDS,
+            'cm'      => self::CM_TEXT_FIELDS,
+            default   => throw new \coding_exception('Unknown entity type: ' . $entitytype),
+        };
+        if (!in_array($fieldname, $allowed, true)) {
+            throw new \coding_exception('Invalid text field for ' . $entitytype . ': ' . $fieldname);
+        }
+    }
+
+    /**
+     * Load a text field from the database, optionally scoped to a course.
+     *
+     * @param string $entitytype Entity type: course, section, or cm.
+     * @param int    $entityid   Entity id.
+     * @param string $fieldname  Field name (must pass whitelist check).
+     * @param int    $courseid   When >0, adds a course-binding WHERE clause.
+     * @return string Text content.
+     * @throws \coding_exception When the entity type or field is unknown.
+     */
+    private function load_text(
+        string $entitytype,
+        int $entityid,
+        string $fieldname,
+        int $courseid = 0
+    ): string {
         global $DB;
+        $this->require_allowed_field($entitytype, $fieldname);
         switch ($entitytype) {
             case 'course':
                 $record = $DB->get_record('course', ['id' => $entityid], $fieldname, MUST_EXIST);
-                return $record->$fieldname;
+                return (string) ($record->$fieldname ?? '');
             case 'section':
-                $record = $DB->get_record('course_sections', ['id' => $entityid], $fieldname, MUST_EXIST);
-                return $record->$fieldname;
+                $where = ['id' => $entityid];
+                if ($courseid > 0) {
+                    $where['course'] = $courseid;
+                }
+                $record = $DB->get_record('course_sections', $where, $fieldname, MUST_EXIST);
+                return (string) ($record->$fieldname ?? '');
             case 'cm':
-                $cm = $DB->get_record('course_modules', ['id' => $entityid], 'module, instance', MUST_EXIST);
+                $cmwhere = ['id' => $entityid];
+                if ($courseid > 0) {
+                    $cmwhere['course'] = $courseid;
+                }
+                $cm = $DB->get_record('course_modules', $cmwhere, 'module, instance', MUST_EXIST);
                 $modulename = $DB->get_field('modules', 'name', ['id' => $cm->module]);
                 $record = $DB->get_record($modulename, ['id' => $cm->instance], $fieldname, MUST_EXIST);
-                return $record->$fieldname;
+                return (string) ($record->$fieldname ?? '');
             default:
                 throw new \coding_exception('Unknown entity type: ' . $entitytype);
         }
@@ -226,17 +303,32 @@ class textreview_manager {
      * @param string $text       New text content.
      * @throws \coding_exception When the entity type is unknown.
      */
-    private function save_text(string $entitytype, int $entityid, string $fieldname, string $text): void {
+    private function save_text(
+        string $entitytype,
+        int $entityid,
+        string $fieldname,
+        string $text,
+        int $courseid = 0
+    ): void {
         global $DB;
+        $this->require_allowed_field($entitytype, $fieldname);
         switch ($entitytype) {
             case 'course':
                 $DB->set_field('course', $fieldname, $text, ['id' => $entityid]);
                 break;
             case 'section':
-                $DB->set_field('course_sections', $fieldname, $text, ['id' => $entityid]);
+                $where = ['id' => $entityid];
+                if ($courseid > 0) {
+                    $where['course'] = $courseid;
+                }
+                $DB->set_field('course_sections', $fieldname, $text, $where);
                 break;
             case 'cm':
-                $cm = $DB->get_record('course_modules', ['id' => $entityid], 'module, instance', MUST_EXIST);
+                $cmwhere = ['id' => $entityid];
+                if ($courseid > 0) {
+                    $cmwhere['course'] = $courseid;
+                }
+                $cm = $DB->get_record('course_modules', $cmwhere, 'module, instance', MUST_EXIST);
                 $modulename = $DB->get_field('modules', 'name', ['id' => $cm->module]);
                 $DB->set_field($modulename, $fieldname, $text, ['id' => $cm->instance]);
                 break;

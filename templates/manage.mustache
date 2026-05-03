@@ -30,6 +30,15 @@
     * sections - array of section objects with cms
     * hassections - bool
     * withdatescount - int
+
+
+    Example context (json):
+    {
+        "courseid": 2,
+        "coursefullname": "Example Course",
+        "sesskey": "abc123",
+        "sections": []
+    }
 }}
 <div class="local-coursectrl-manage" data-region="local_coursectrl-manage" data-courseid="{{courseid}}">
 
@@ -67,7 +76,6 @@
                                          name="sectionids[]" value="{{id}}"
                                          id="coursectrl-section-{{id}}"
                                          data-sectionid="{{id}}"
-                                         style="margin:0;float:none"
                                          {{#nodates}}disabled{{/nodates}}
                                          {{#hasdates}}checked{{/hasdates}}>
                                   <label class="form-check-label fw-semibold mb-0"
@@ -91,30 +99,50 @@
                             </div>
                             {{#hascms}}
                                 {{#cms}}
-                                    <div class="form-check ml-3 mb-1">
-                                        <input type="checkbox" class="form-check-input"
+                                    {{^is_subsection_header}}
+                                    <div class="form-check ms-3 mb-1">
+                                        <input type="checkbox" class="ms-1"
                                                name="cmids[]" value="{{cmid}}"
                                                id="coursectrl-cm-{{cmid}}"
                                                data-sectionid="{{sectionid}}"
-                                               style="margin:0;float:none"
                                                {{#nodates}}disabled{{/nodates}}
                                                {{#hasdates}}checked{{/hasdates}}>
                                         <label class="form-check-label {{#nodates}}text-muted{{/nodates}}"
                                                for="coursectrl-cm-{{cmid}}">
                                             {{#pix}}monologo, mod_{{modname}}, {{modname}}{{/pix}}
                                             {{name}}
-                                            {{#nodates}}
-                                                <span class="badge bg-light text-dark border ms-1 small">
-                                                    {{#str}}manage_nodates, local_coursectrl{{/str}}
-                                                </span>
-                                            {{/nodates}}
-                                            {{^visible}}
-                                                <span class="badge badge-secondary ml-1">
-                                                    {{#str}}dashboard_hidden, local_coursectrl{{/str}}
-                                                </span>
-                                            {{/visible}}
+                                            {{#nodates}}<span class="badge bg-light text-dark border ms-1 small">{{#str}}manage_nodates, local_coursectrl{{/str}}</span>{{/nodates}}
+                                            {{^visible}}<span class="badge badge-secondary ms-1">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>{{/visible}}
                                         </label>
                                     </div>
+                                    {{/is_subsection_header}}
+                                    {{#is_subsection_header}}
+                                    <div class="ms-3 mb-1">
+                                        <span class="fw-semibold small">
+                                          {{#pix}}monologo, mod_subsection, {{name}}{{/pix}}
+                                          {{name}}
+                                        </span>
+                                        {{#has_subsection_cms}}
+                                        {{#subsection_cms}}
+                                        <div class="form-check ms-4 mb-1">
+                                          <input type="checkbox" class="ms-1"
+                                                 name="cmids[]" value="{{cmid}}"
+                                                 id="coursectrl-cm-{{cmid}}"
+                                                 data-sectionid="{{sectionid}}"
+                                                 {{#nodates}}disabled{{/nodates}}
+                                                 {{#hasdates}}checked{{/hasdates}}>
+                                          <label class="form-check-label {{#nodates}}text-muted{{/nodates}}"
+                                                 for="coursectrl-cm-{{cmid}}">
+                                            {{#pix}}monologo, mod_{{modname}}, {{modname}}{{/pix}}
+                                            {{name}}
+                                            {{#nodates}}<span class="badge bg-light text-dark border ms-1 small">{{#str}}manage_nodates, local_coursectrl{{/str}}</span>{{/nodates}}
+                                            {{^visible}}<span class="badge badge-secondary ms-1">{{#str}}dashboard_hidden, local_coursectrl{{/str}}</span>{{/visible}}
+                                          </label>
+                                        </div>
+                                        {{/subsection_cms}}
+                                        {{/has_subsection_cms}}
+                                    </div>
+                                    {{/is_subsection_header}}
                                 {{/cms}}
                             {{/hascms}}
                             {{^hascms}}
@@ -137,7 +165,7 @@
           <div class="card-header py-2">
             <strong>{{#str}} manage_shift_title, local_coursectrl {{/str}}</strong>
           </div>
-          <div class="card-body py-2">
+          <div class="card-body py-2 collapse show" id="mgsec-{{id}}">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
               <div class="d-flex gap-3" style="width:25rem">
                 <div class="input-group input-group-sm" style="white-space:nowrap">

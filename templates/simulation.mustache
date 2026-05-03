@@ -17,7 +17,7 @@
 {{!
     @template local_coursectrl/simulation
 
-    Plausibilitäts- und Kollisionsprüfung (learner simulation).
+    Learner journey simulation: accessibility, blocked activities, next-step form.
 
     Context variables required for this template:
     * courseid (int), sesskey (string), selfurl (string)
@@ -34,9 +34,11 @@
      "hascoursegroups":false,"hascoursegroupings":false,"hascmformrows":false}
 }}
 
-<div class="local_coursectrl_simulation" data-region="local_coursectrl-simulation">
+<div class="local_coursectrl_simulation" data-region="local_coursectrl-simulation"
+     data-lbl-more-cond="{{#str}} cond_show_more, local_coursectrl {{/str}}"
+     data-lbl-less-cond="{{#str}} cond_show_less, local_coursectrl {{/str}}">
 
-  <form method="get" action="{{selfurl}}" class="mb-4">
+  <form method="get" action="{{selfurl}}" class="mb-4" id="local-coursectrl-simform">
     <input type="hidden" name="courseid" value="{{courseid}}">
     <input type="hidden" name="sesskey" value="{{sesskey}}">
     <input type="hidden" name="tab" value="simulation">
@@ -48,7 +50,7 @@
         <label class="form-label mb-1 small fw-semibold text-nowrap">
           {{#str}} sim_datetime, local_coursectrl {{/str}}
         </label>
-        <div class="d-flex gap-1">
+        <div class="d-flex gap-1 flex-nowrap">
           <input type="date" name="simdate" class="form-control form-control-sm"
                  value="{{simdate}}" style="width:auto">
           <input type="time" name="simtime" class="form-control form-control-sm"
@@ -58,9 +60,6 @@
 
       {{#hascoursegroups}}
       <div class="col-auto">
-        <label class="form-label mb-1 small fw-semibold text-nowrap">
-          {{#str}} sim_groups, local_coursectrl {{/str}}
-        </label>
         <div class="position-relative d-inline-block" data-region="local_coursectrl-simdropdown">
           <button type="button"
                   class="btn btn-sm btn-outline-secondary"
@@ -85,9 +84,6 @@
 
       {{#hascoursegroupings}}
       <div class="col-auto">
-        <label class="form-label mb-1 small fw-semibold text-nowrap">
-          {{#str}} sim_groupings, local_coursectrl {{/str}}
-        </label>
         <div class="position-relative d-inline-block" data-region="local_coursectrl-simdropdown">
           <button type="button"
                   class="btn btn-sm btn-outline-secondary"
@@ -112,29 +108,92 @@
 
       {{#hascmformrows}}
       <div class="col-auto">
-        <label class="form-label mb-1 small fw-semibold text-nowrap">
-          {{#str}} sim_completions, local_coursectrl {{/str}}
-        </label>
         <div class="position-relative d-inline-block" data-region="local_coursectrl-simdropdown">
           <button type="button"
                   class="btn btn-sm btn-outline-secondary"
                   data-action="toggle-simdropdown">
-            {{#str}} sim_set_completions, local_coursectrl {{/str}}
+            {{#str}} sim_activity_states, local_coursectrl {{/str}}
           </button>
-          <ul class="position-absolute bg-white border rounded shadow-sm p-2 mt-1 d-none"
-              data-region="local_coursectrl-simdropdown-menu"
-              style="z-index:1050;min-width:260px;max-height:300px;overflow-y:auto;list-style:none;margin:0;padding-left:0">
-            {{#cmformrows}}
-            <li class="coursectrl-simdrop-item">
-              <input class="form-check-input" type="checkbox"
-                     name="completions[{{cmid}}]" value="1"
-                     id="simcm-{{cmid}}"{{#iscomplete}} checked{{/iscomplete}}>
-              <label class="form-check-label" for="simcm-{{cmid}}">
-                {{cmname}}
-              </label>
-            </li>
-            {{/cmformrows}}
-          </ul>
+          <div class="position-absolute bg-white border rounded shadow-sm mt-1 d-none"
+               data-region="local_coursectrl-simdropdown-menu"
+               style="z-index:1050;min-width:360px;max-height:380px;overflow-y:auto;padding:.5rem">
+            <table class="table table-sm table-borderless mb-0 w-100"
+                   style="table-layout:fixed">
+              <colgroup>
+                <col>
+                <col style="width:2.25rem">
+                <col style="width:2.25rem">
+                <col style="width:5rem">
+              </colgroup>
+              <thead>
+                <tr class="border-bottom">
+                  <th class="py-1 ps-0 small text-muted fw-normal"></th>
+                  <th class="py-1 text-center small text-muted fw-semibold"
+                      title="{{sim_lbl_completed}}">✓</th>
+                  <th class="py-1 text-center small text-muted fw-semibold"
+                      title="{{sim_lbl_passed}}">★</th>
+                  <th class="py-1 text-center small text-muted fw-semibold"
+                      title="{{sim_lbl_grade}}">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{#cmformrows}}
+                <tr>
+                  <td class="py-1 ps-0 small" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                    {{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}
+                    {{cmname}}
+                  </td>
+                  <td class="py-1 text-center align-middle">
+                    {{#completion_enabled}}
+                    <input type="checkbox" class="ms-1"
+                           name="sim_complete[{{cmid}}]" value="1"
+                           title="{{lbl_completed}}"
+                           {{#assumed_complete}} checked{{/assumed_complete}}>
+                    {{/completion_enabled}}
+                    {{#completion_disabled}}
+                    <input type="checkbox" class="ms-1"
+                           name="sim_complete[{{cmid}}]" value="1"
+                           title="{{lbl_no_complete}}"
+                           disabled style="opacity:.35;cursor:not-allowed">
+                    {{/completion_disabled}}
+                  </td>
+                  <td class="py-1 text-center align-middle">
+                    {{#passgrade_enabled}}
+                    <input type="checkbox" class="ms-1"
+                           name="sim_passed[{{cmid}}]" value="1"
+                           title="{{lbl_passed}}"
+                           {{#assumed_passed}} checked{{/assumed_passed}}>
+                    {{/passgrade_enabled}}
+                    {{#passgrade_disabled}}
+                    <input type="checkbox" class="ms-1"
+                           name="sim_passed[{{cmid}}]" value="1"
+                           title="{{lbl_no_passed}}"
+                           disabled style="opacity:.35;cursor:not-allowed">
+                    {{/passgrade_disabled}}
+                  </td>
+                  <td class="py-1 align-middle">
+                    {{#grade_enabled}}
+                    <input type="number" class="form-control form-control-sm"
+                           name="sim_grade[{{cmid}}]"
+                           min="0" max="100" step="0.1"
+                           value="{{assumed_grade}}"
+                           title="{{lbl_grade}}"
+                           style="width:4.5rem">
+                    {{/grade_enabled}}
+                    {{#grade_disabled}}
+                    <input type="number" class="form-control form-control-sm"
+                           name="sim_grade[{{cmid}}]"
+                           min="0" max="100" step="0.1"
+                           value=""
+                           title="{{lbl_no_grade}}"
+                           disabled style="width:4.5rem;opacity:.35">
+                    {{/grade_disabled}}
+                  </td>
+                </tr>
+                {{/cmformrows}}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
       {{/hascmformrows}}
@@ -150,9 +209,12 @@
   </form>
 
   {{#hasresults}}
+  {{! Stats cards }}
   <div class="row g-3 mb-3">
     <div class="col-md-4">
-      <div class="card text-center border-success">
+      <div class="card text-center border-success"
+           data-action="scroll-to-nextsteps" style="cursor:pointer"
+           title="{{#str}} sim_nextsteps, local_coursectrl {{/str}}">
         <div class="card-body py-2">
           <div class="h4 mb-0 text-success">{{accessiblecount}}</div>
           <div class="small text-muted">{{#str}} sim_accessible, local_coursectrl {{/str}}</div>
@@ -160,7 +222,9 @@
       </div>
     </div>
     <div class="col-md-4">
-      <div class="card text-center border-danger">
+      <div class="card text-center border-danger"
+           data-action="scroll-to-blocked" style="cursor:pointer"
+           title="{{#str}} sim_blocked_list, local_coursectrl {{/str}}">
         <div class="card-body py-2">
           <div class="h4 mb-0 text-danger">{{blockedcount}}</div>
           <div class="small text-muted">{{#str}} sim_blocked, local_coursectrl {{/str}}</div>
@@ -176,50 +240,9 @@
       </div>
     </div>
   </div>
-  {{#hasnextsteps}}
-  <h6>{{#str}} sim_nextsteps, local_coursectrl {{/str}} ({{nextstepcount}})</h6>
-  <ul class="list-group mb-3">
-    {{#nextsteprows}}
-    <li class="list-group-item list-group-item-success py-1 px-2">
-      <i class="fa fa-check fa-fw text-success"></i>
-      <a href="{{cmurl}}" target="_blank" rel="noopener noreferrer">{{cmname}}</a>
-    </li>
-    {{/nextsteprows}}
-  </ul>
-  {{/hasnextsteps}}
-  {{#hasblockedrows}}
-  <h6>{{#str}} sim_blocked_list, local_coursectrl {{/str}}</h6>
-  <ul class="list-group mb-3">
-    {{#blockedrows}}
-    <li class="list-group-item list-group-item-danger py-1 px-2">
-      <i class="fa fa-lock fa-fw text-danger"></i>
-      <a href="{{cmurl}}" target="_blank" rel="noopener noreferrer">{{cmname}}</a>
-    </li>
-    {{/blockedrows}}
-  </ul>
-  {{/hasblockedrows}}
 
-  {{! Link to dependency graph with simulation overlay }}
-  {{#hasgraphurl_sim}}
-  <div class="d-flex align-items-center gap-3 mb-3 mt-1">
-    <a href="{{graphurl_sim}}" class="btn btn-sm btn-outline-primary">
-      <i class="fa fa-project-diagram fa-fw"></i>
-      {{#str}} sim_show_in_graph, local_coursectrl {{/str}}
-    </a>
-    <span class="d-flex align-items-center gap-3 small text-muted">
-      <span class="d-inline-flex align-items-center gap-1">
-        <span style="display:inline-block;width:1rem;height:1rem;background:#fef2f2;border:2px solid #dc3545;border-radius:3px"></span>
-        {{#str}} sim_legend_blocked, local_coursectrl {{/str}}
-      </span>
-      <span class="d-inline-flex align-items-center gap-1">
-        <span style="display:inline-block;width:1rem;height:1rem;background:#f0fdf4;border:2px solid #198754;border-radius:3px"></span>
-        {{#str}} sim_legend_nextstep, local_coursectrl {{/str}}
-      </span>
-    </span>
-  </div>
-  {{/hasgraphurl_sim}}
 
-  {{#hasresultrows}}
+  {{#hassectionresultgroups}}
   <div class="card mb-3">
     <div class="card-header py-2">
       <strong>{{#str}} sim_result_all, local_coursectrl {{/str}}</strong>
@@ -235,73 +258,203 @@
             <th>{{#str}} sim_col_reasons, local_coursectrl {{/str}}</th>
           </tr>
         </thead>
-        <tbody>
-          {{#resultrows}}
-          <tr>
-            <td class="{{#iscomplete}}cc-sim-completed{{/iscomplete}}">
-              {{#pix}}monologo, mod_{{modname}}, {{modname}}{{/pix}}
-              <a href="{{url}}" target="_blank" rel="noopener noreferrer">{{name}}</a>
+          {{#sectionresultgroups}}
+          <tbody>
+          <tr class="table-secondary" style="cursor:pointer" data-cc-toggle="{{collapse_id}}">
+            <td colspan="3" class="py-1 fw-semibold">
+              <span data-cc-arrow="{{collapse_id}}">&#9660;</span>&nbsp;<a href="{{sectionurl}}" target="_blank" rel="noopener">{{name}}</a>
             </td>
-            <td>
-              {{#teacher_visible}}
-                <span class="badge cc-badge-success">
-                  {{#str}} sim_tracking_active, local_coursectrl {{/str}}
-                </span>
-              {{/teacher_visible}}
-              {{^teacher_visible}}
-                <span class="badge cc-badge-secondary">
-                  {{#str}} sim_tracking_off, local_coursectrl {{/str}}
-                </span>
-              {{/teacher_visible}}
+            <td class="py-1 fw-semibold">
+              {{#sec_accessible}}<span class="badge cc-badge-success">{{#str}} yes, core {{/str}}</span>{{/sec_accessible}}
+              {{#sec_blocked}}<span class="badge cc-badge-danger">{{#str}} no, core {{/str}}</span>{{/sec_blocked}}
             </td>
-            <td>
-              {{#status_pass}}
-                <span class="badge cc-badge-success">
-                  {{#str}} sim_status_pass, local_coursectrl {{/str}}
-                </span>
-              {{/status_pass}}
-              {{#status_fail}}
-                <span class="badge cc-badge-danger">
-                  {{#str}} sim_status_fail, local_coursectrl {{/str}}
-                </span>
-              {{/status_fail}}
-              {{#status_unknown}}
-                <span class="badge cc-badge-secondary">
-                  {{#str}} sim_status_unknown, local_coursectrl {{/str}}
-                </span>
-              {{/status_unknown}}
-            </td>
-            <td>
-              {{#accessible}}
-                <span class="badge cc-badge-success">
-                  {{#str}} yes, core {{/str}}
-                </span>
-              {{/accessible}}
-              {{^accessible}}
-                <span class="badge cc-badge-danger">
-                  {{#str}} no, core {{/str}}
-                </span>
-              {{/accessible}}
-              {{#isnextstep}}<span class="badge cc-badge-info ms-1">{{#str}} sim_badge_next, local_coursectrl {{/str}}</span>{{/isnextstep}}
-              {{#isblocked}}<span class="badge cc-badge-warning ms-1">{{#str}} sim_badge_blocked, local_coursectrl {{/str}}</span>{{/isblocked}}
-            </td>
-            <td>
-              {{#hasreasons}}
-                <ul class="mb-0 small ps-3">
-                  {{#reasons}}
-                  <li>{{{label}}}</li>
-                  {{/reasons}}
-                </ul>
-              {{/hasreasons}}
-              {{^hasreasons}}<span class="text-muted small">–</span>{{/hasreasons}}
+            <td class="py-1 fw-semibold">
+              {{! label is produced by simulation_page.php via get_string(); user-contributed
+    values (activity names, group names) are wrapped with s()/s(format_string())
+    before interpolation. Triple-mustache is required for sim_reason_completion
+    which intentionally contains an <a href> link. }}
+              {{#sec_has_reasons}}<ul class="mb-0 small fw-normal ps-3">{{#sec_reason_groups}}{{#has_or_before}}<li class="list-unstyled ps-0 text-muted fst-italic">&#8212; {{#str}} sim_or_separator, local_coursectrl {{/str}} &#8212;</li>{{/has_or_before}}{{#conditions}}<li>{{{label}}}</li>{{/conditions}}{{/sec_reason_groups}}</ul>{{/sec_has_reasons}}
+              {{^sec_has_reasons}}<span class="text-muted small">&#8211;</span>{{/sec_has_reasons}}
             </td>
           </tr>
-          {{/resultrows}}
+          </tbody>
+          <tbody data-cc-body="{{collapse_id}}">
+{{#rows}}
+          {{#is_subsection_header}}
+          <tr class="table-secondary" style="cursor:pointer" data-cc-toggle="ccsub{{cmid}}">
+            <td colspan="3" class="py-1 ps-1 fw-semibold">
+              <span data-cc-arrow="ccsub{{cmid}}">&#9660;</span>&nbsp;
+              <a href="{{url}}" target="_blank" rel="noopener">{{name}}</a>
+            </td>
+            <td class="py-1 fw-semibold">
+              {{#accessible}}<span class="badge cc-badge-success">{{#str}} yes, core {{/str}}</span>{{/accessible}}
+              {{^accessible}}<span class="badge cc-badge-danger">{{#str}} no, core {{/str}}</span>{{/accessible}}
+            </td>
+            <td class="py-1 fw-semibold">
+              {{#hasreasons}}<ul class="mb-0 small fw-normal ps-3">{{#reason_groups}}{{#has_or_before}}<li class="list-unstyled ps-0 text-muted fst-italic">&#8212; {{#str}} sim_or_separator, local_coursectrl {{/str}} &#8212;</li>{{/has_or_before}}{{#conditions}}<li>{{{label}}}</li>{{/conditions}}{{/reason_groups}}</ul>{{/hasreasons}}
+              {{^hasreasons}}<span class="text-muted small">&#8211;</span>{{/hasreasons}}
+            </td>
+          </tr>
+          {{#has_subsection_rows}}
+          {{#subsection_rows}}
+          <tr class="{{#iscomplete}}cc-sim-completed{{/iscomplete}} cc-subrow" data-cc-subbody="ccsub{{subcmid}}">
+            <td class="ps-5 small">
+              {{#pix}}monologo, mod_{{modname}}, {{name}}{{/pix}}
+              <a href="{{url}}" target="_blank" rel="noopener">{{name}}</a>
+            </td>
+            <td>{{#tracking_active}}<span class="badge cc-badge-success">{{#str}} sim_tracking_active, local_coursectrl {{/str}}</span>{{/tracking_active}}{{#tracking_hidden}}<span class="badge cc-badge-secondary">{{#str}} sim_tracking_hidden, local_coursectrl {{/str}}</span>{{/tracking_hidden}}{{#tracking_off}}<span class="badge cc-badge-secondary">{{#str}} sim_tracking_off, local_coursectrl {{/str}}</span>{{/tracking_off}}</td>
+            <td>{{#has_completion_tracking}}{{#status_pass}}<span class="badge cc-badge-success">{{#str}} sim_status_pass, local_coursectrl {{/str}}</span>{{/status_pass}}{{#status_fail}}<span class="badge cc-badge-danger">{{#str}} sim_status_fail, local_coursectrl {{/str}}</span>{{/status_fail}}{{#status_unknown}}<span class="badge cc-badge-secondary">{{#str}} sim_status_unknown, local_coursectrl {{/str}}</span>{{/status_unknown}}{{/has_completion_tracking}}{{^has_completion_tracking}}<span class="text-muted small">–</span>{{/has_completion_tracking}}</td>
+            <td>{{#accessible}}<span class="badge cc-badge-success">{{#str}} yes, core {{/str}}</span>{{/accessible}}{{^accessible}}<span class="badge cc-badge-danger">{{#str}} no, core {{/str}}</span>{{/accessible}}{{#isnextstep}}<span class="badge cc-badge-info ms-1">{{#str}} sim_badge_next, local_coursectrl {{/str}}</span>{{/isnextstep}}{{#isblocked}}<span class="badge cc-badge-warning ms-1">{{#str}} sim_badge_blocked, local_coursectrl {{/str}}</span>{{/isblocked}}</td>
+            <td>{{#hasreasons}}<ul class="mb-0 small ps-3">{{#reason_groups}}{{#has_or_before}}<li class="list-unstyled ps-0 text-muted fst-italic">&#8212; {{#str}} sim_or_separator, local_coursectrl {{/str}} &#8212;</li>{{/has_or_before}}{{#conditions}}<li>{{{label}}}</li>{{/conditions}}{{/reason_groups}}</ul>{{/hasreasons}}{{^hasreasons}}<span class="text-muted small">–</span>{{/hasreasons}}</td>
+          </tr>
+          {{/subsection_rows}}
+          {{/has_subsection_rows}}
+          {{/is_subsection_header}}
+          {{^is_subsection_header}}
+          <tr class="{{#iscomplete}}cc-sim-completed{{/iscomplete}}">
+            <td class="ps-1">
+              {{#pix}}monologo, mod_{{modname}}, {{name}}{{/pix}}
+              <a href="{{url}}" target="_blank" rel="noopener">{{name}}</a>
+            </td>
+            <td>{{#tracking_active}}<span class="badge cc-badge-success">{{#str}} sim_tracking_active, local_coursectrl {{/str}}</span>{{/tracking_active}}{{#tracking_hidden}}<span class="badge cc-badge-secondary">{{#str}} sim_tracking_hidden, local_coursectrl {{/str}}</span>{{/tracking_hidden}}{{#tracking_off}}<span class="badge cc-badge-secondary">{{#str}} sim_tracking_off, local_coursectrl {{/str}}</span>{{/tracking_off}}</td>
+            <td>{{#has_completion_tracking}}{{#status_pass}}<span class="badge cc-badge-success">{{#str}} sim_status_pass, local_coursectrl {{/str}}</span>{{/status_pass}}{{#status_fail}}<span class="badge cc-badge-danger">{{#str}} sim_status_fail, local_coursectrl {{/str}}</span>{{/status_fail}}{{#status_unknown}}<span class="badge cc-badge-secondary">{{#str}} sim_status_unknown, local_coursectrl {{/str}}</span>{{/status_unknown}}{{/has_completion_tracking}}{{^has_completion_tracking}}<span class="text-muted small">–</span>{{/has_completion_tracking}}</td>
+            <td>{{#accessible}}<span class="badge cc-badge-success">{{#str}} yes, core {{/str}}</span>{{/accessible}}{{^accessible}}<span class="badge cc-badge-danger">{{#str}} no, core {{/str}}</span>{{/accessible}}{{#isnextstep}}<span class="badge cc-badge-info ms-1">{{#str}} sim_badge_next, local_coursectrl {{/str}}</span>{{/isnextstep}}{{#isblocked}}<span class="badge cc-badge-warning ms-1">{{#str}} sim_badge_blocked, local_coursectrl {{/str}}</span>{{/isblocked}}</td>
+            <td>{{#hasreasons}}<ul class="mb-0 small ps-3">{{#reason_groups}}{{#has_or_before}}<li class="list-unstyled ps-0 text-muted fst-italic">&#8212; {{#str}} sim_or_separator, local_coursectrl {{/str}} &#8212;</li>{{/has_or_before}}{{#conditions}}<li>{{{label}}}</li>{{/conditions}}{{/reason_groups}}</ul>{{/hasreasons}}{{^hasreasons}}<span class="text-muted small">–</span>{{/hasreasons}}</td>
+          </tr>
+          {{/is_subsection_header}}
+          {{/rows}}
+          </tbody>
+          {{/sectionresultgroups}}
+      </table>
+    </div>
+  </div>
+  {{/hassectionresultgroups}}
+
+  {{! Next steps and blocked — moved to bottom }}
+  {{#hasnextsteps}}
+  <div class="card mb-3 cc-card-success" id="sim-card-nextsteps">
+    <div class="card-header py-2 cc-card-success-header">
+      <strong>{{#str}} sim_nextsteps, local_coursectrl {{/str}} ({{nextstepcount}})</strong>
+    </div>
+    <div class="table-responsive cc-card-success-body">
+      <table class="table table-sm mb-0" style="table-layout:fixed">
+        <colgroup>
+          <col>
+          <col style="width:2.25rem">
+          <col style="width:2.25rem">
+          <col style="width:5rem">
+        </colgroup>
+        <thead>
+          <tr class="border-bottom">
+            <th class="py-1 ps-1 small cc-card-col-label fw-normal"></th>
+            <th class="py-1 text-center small cc-card-col-label fw-semibold" title="{{sim_lbl_completed}}">&#10003;</th>
+            <th class="py-1 text-center small cc-card-col-label fw-semibold" title="{{sim_lbl_passed}}">&#9733;</th>
+            <th class="py-1 text-center small cc-card-col-label fw-semibold" title="{{sim_lbl_grade}}">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#nextstepformrows}}
+          <tr class="sim-nextstep-row" data-gradepass="{{gradepass_pct}}">
+            <td class="py-1 ps-1 small" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+              <i class="fa fa-check fa-fw text-success"></i>
+              {{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}
+              <a href="{{cmurl}}" target="_blank" rel="noopener noreferrer">{{cmname}}</a>
+            </td>
+            <td class="py-1 text-center align-middle">
+              {{#completion_enabled}}
+              <input type="checkbox" class="ms-1"
+                     form="local-coursectrl-simform"
+                     name="sim_complete[{{cmid}}]" value="1"
+                     title="{{lbl_completed}}"
+                     {{#assumed_complete}}checked{{/assumed_complete}}>
+              {{/completion_enabled}}
+              {{#completion_disabled}}
+              <input type="checkbox" class="ms-1"
+                     title="{{lbl_no_complete}}"
+                     disabled style="opacity:.35;cursor:not-allowed">
+              {{/completion_disabled}}
+            </td>
+            <td class="py-1 text-center align-middle">
+              {{#passgrade_visible}}
+              {{#passgrade_enabled}}
+              <input type="checkbox" class="ms-1 sim-passed-cb"
+                     form="local-coursectrl-simform"
+                     name="sim_passed[{{cmid}}]" value="1"
+                     title="{{lbl_passed}}"
+                     {{#assumed_passed}}checked{{/assumed_passed}}>
+              {{/passgrade_enabled}}
+              {{#passgrade_disabled}}
+              <input type="checkbox" class="ms-1"
+                     title="{{lbl_no_passed}}"
+                     disabled style="opacity:.35;cursor:not-allowed">
+              {{/passgrade_disabled}}
+              {{/passgrade_visible}}
+            </td>
+            <td class="py-1 align-middle">
+              {{#grade_visible}}
+              <input type="number" class="form-control form-control-sm sim-grade-input"
+                     form="local-coursectrl-simform"
+                     name="sim_grade[{{cmid}}]"
+                     min="0" max="100" step="0.1"
+                     value="{{assumed_grade}}"
+                     title="{{lbl_grade}}"
+                     style="width:4.5rem">
+              {{/grade_visible}}
+            </td>
+          </tr>
+          {{/nextstepformrows}}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer py-2 cc-card-success-footer text-end">
+      <button type="submit" form="local-coursectrl-simform"
+              class="btn btn-sm btn-outline-primary">
+        {{#str}} sim_rerun, local_coursectrl {{/str}}
+      </button>
+    </div>
+  </div>
+  {{/hasnextsteps}}
+  {{#hasblockedrows}}
+  <div class="card mb-3 cc-card-danger" id="sim-card-blocked">
+    <div class="card-header py-2 cc-card-danger-header">
+      <strong>{{#str}} sim_blocked_list, local_coursectrl {{/str}} ({{blockedcount}})</strong>
+    </div>
+    <div class="table-responsive cc-card-danger-body">
+      <table class="table table-sm mb-0">
+        <tbody>
+          {{#blockedrows}}
+          <tr>
+            <td class="py-1 ps-1 small" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+              <i class="fa fa-lock fa-fw text-danger"></i>
+              {{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}
+              <a href="{{cmurl}}" target="_blank" rel="noopener noreferrer">{{cmname}}</a>
+            </td>
+          </tr>
+          {{/blockedrows}}
         </tbody>
       </table>
     </div>
   </div>
-  {{/hasresultrows}}
+  {{/hasblockedrows}}
+
+  {{! Dependency graph link + legend — moved to bottom }}
+  {{#hasgraphurl_sim}}
+  <div class="d-flex align-items-center gap-3 mb-3 mt-2">
+    <a href="{{graphurl_sim}}" class="btn btn-sm btn-outline-primary">
+      {{#str}} sim_show_in_graph, local_coursectrl {{/str}}
+    </a>
+    <span class="d-flex align-items-center gap-3 small text-muted">
+      <span class="d-inline-flex align-items-center gap-2">
+        <span style="display:inline-block;width:1rem;height:1rem;background:#fef2f2;border:2px solid #dc3545;border-radius:3px;flex-shrink:0;margin-left:1.25rem"></span>
+        {{#str}} sim_legend_blocked, local_coursectrl {{/str}}
+      </span>
+      <span class="d-inline-flex align-items-center gap-2">
+        <span style="display:inline-block;width:1rem;height:1rem;background:#f0fdf4;border:2px solid #198754;border-radius:3px;flex-shrink:0;margin-left:1.25rem"></span>
+        {{#str}} sim_legend_nextstep, local_coursectrl {{/str}}
+      </span>
+    </span>
+  </div>
+  {{/hasgraphurl_sim}}
   {{/hasresults}}
 
 </div>
@@ -310,4 +463,135 @@
 require(['local_coursectrl/simulation'], function(S) {
     S.init(document.querySelector('[data-region="local_coursectrl-simulation"]'));
 });
+// Pure-JS section/subsection toggle — event delegation on the table,
+// so timing of script execution relative to DOM does not matter.
+(function() {
+    var root = document.querySelector('[data-region="local_coursectrl-simulation"]');
+    if (!root) { return; }
+    var cstate = {};
+    root.addEventListener('click', function(e) {
+        var hdr = e.target.closest('[data-cc-toggle]');
+        if (!hdr) { return; }
+        var cid   = hdr.getAttribute('data-cc-toggle');
+        var arrow = hdr.querySelector('[data-cc-arrow]');
+        cstate[cid] = !cstate[cid];
+        var hide  = cstate[cid];
+        // Section: find <tbody data-cc-body="cid">.
+        var body = root.querySelector('tbody[data-cc-body="' + cid + '"]');
+        if (body) {
+            var rows = body.querySelectorAll('tr');
+            for (var i = 0; i < rows.length; i++) {
+                rows[i].style.display = hide ? 'none' : '';
+            }
+        } else {
+            // Subsection: toggle rows with matching data-cc-subbody.
+            var srows = root.querySelectorAll('tr[data-cc-subbody="' + cid + '"]');
+            for (var j = 0; j < srows.length; j++) {
+                srows[j].style.display = hide ? 'none' : '';
+            }
+        }
+        if (arrow) { arrow.innerHTML = hide ? '&#9654;' : '&#9660;'; }
+    });
+})();
+
+// Stat-card scroll navigation with fixed-navbar offset.
+(function() {
+    var root = document.querySelector('[data-region="local_coursectrl-simulation"]');
+    if (!root) { return; }
+    // Account for Moodle's fixed-top navbar so the card is not hidden behind it.
+    var navbar = document.querySelector('.navbar.fixed-top, nav.fixed-top');
+    var navH = navbar ? (navbar.offsetHeight + 8) : 68;
+    ['scroll-to-nextsteps', 'scroll-to-blocked'].forEach(function(action) {
+        var targetId = action === 'scroll-to-nextsteps' ? 'sim-card-nextsteps' : 'sim-card-blocked';
+        root.querySelectorAll('[data-action="' + action + '"]').forEach(function(el) {
+            el.addEventListener('click', function() {
+                var target = document.getElementById(targetId);
+                if (!target) { return; }
+                var top = target.getBoundingClientRect().top + window.pageYOffset - navH;
+                window.scrollTo({top: top, behavior: 'smooth'});
+            });
+        });
+    });
+})();
+
+// Grade input / passed-checkbox bidirectional synchronisation.
+(function() {
+    function syncRow(row) {
+        var gp = parseFloat(row.getAttribute('data-gradepass') || '0');
+        if (!(gp > 0)) { return; }
+        var gi = row.querySelector('.sim-grade-input');
+        var pc = row.querySelector('.sim-passed-cb');
+        if (!gi || !pc) { return; }
+        // Checking Bestehen → fill grade with threshold.
+        pc.addEventListener('change', function() {
+            if (pc.checked && gi.value === '') { gi.value = gp; }
+        });
+        // Grade >= threshold → auto-check Bestehen.
+        gi.addEventListener('input', function() {
+            var v = parseFloat(gi.value);
+            if (!isNaN(v)) { pc.checked = v >= gp; }
+        });
+    }
+    document.querySelectorAll('.sim-nextstep-row').forEach(syncRow);
+
+    // On submit: if Bestehen checked but grade empty → fill with threshold.
+    var simForm = document.getElementById('local-coursectrl-simform');
+    if (simForm) {
+        simForm.addEventListener('submit', function() {
+            document.querySelectorAll('.sim-nextstep-row').forEach(function(row) {
+                var gp = parseFloat(row.getAttribute('data-gradepass') || '0');
+                if (!(gp > 0)) { return; }
+                var gi = row.querySelector('.sim-grade-input');
+                var pc = row.querySelector('.sim-passed-cb');
+                if (gi && pc && pc.checked && gi.value === '') { gi.value = gp; }
+            });
+        });
+    }
+})();
+
+// Condition-list collapse: hide items beyond the first two real conditions.
+(function() {
+    var LIMIT = 2;
+    var simRoot = document.querySelector('[data-region="local_coursectrl-simulation"]');
+    if (!simRoot) { return; }
+    simRoot.querySelectorAll('ul.mb-0.small.fw-normal.ps-3').forEach(function(ul) {
+        var allLi  = Array.from(ul.querySelectorAll('li'));
+        var realLi = allLi.filter(function(li) {
+            return !li.classList.contains('list-unstyled');
+        });
+        if (realLi.length <= LIMIT) { return; }
+
+        // Find index at which to start hiding (after LIMIT real conditions).
+        var shown = 0;
+        var cutIdx = allLi.length;
+        for (var i = 0; i < allLi.length; i++) {
+            if (!allLi[i].classList.contains('list-unstyled')) {
+                shown++;
+                if (shown > LIMIT) { cutIdx = i; break; }
+            }
+        }
+        for (var j = cutIdx; j < allLi.length; j++) { allLi[j].style.display = 'none'; }
+
+        var remaining = realLi.length - LIMIT;
+        var lblMore = simRoot.getAttribute('data-lbl-more-cond') || 'more condition(s)';
+        var lblShow = '+ ' + remaining + ' ' + lblMore;
+        var lblHide = simRoot.getAttribute('data-lbl-less-cond') || '\u2212 show less';
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-link btn-sm p-0 mt-1 small cc-cond-toggle';
+        btn.style.cssText = 'font-size:.8rem;display:block';
+        btn.textContent = lblShow;
+        (function(liSlice, b, ls, lh) {
+            b.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var open = b.textContent !== ls;
+                liSlice.forEach(function(li) { li.style.display = open ? 'none' : ''; });
+                b.textContent = open ? ls : lh;
+            });
+        }(allLi.slice(cutIdx), btn, lblShow, lblHide));
+
+        ul.parentNode.insertBefore(btn, ul.nextSibling);
+    });
+})();
 {{/js}}

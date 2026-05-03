@@ -39,6 +39,7 @@
 
 namespace local_coursectrl\manager;
 
+use local_coursectrl\event\batch_rolled_back;
 use local_coursectrl\local\persistent\batch;
 use local_coursectrl\local\persistent\batch_item;
 use local_coursectrl\local\persistent\snapshot;
@@ -146,11 +147,14 @@ class rollback_manager {
      *     items: array
      * }
      */
-    public function rollback_batch(int $batchid, int $userid): array {
+    public function rollback_batch(int $courseid, int $batchid, int $userid): array {
         global $DB;
 
         // Load and validate the batch.
-        $batchrecord = $DB->get_record('local_coursectrl_batch', ['id' => $batchid]);
+        $batchrecord = $DB->get_record(
+            'local_coursectrl_batch',
+            ['id' => $batchid, 'courseid' => $courseid]
+        );
         if (!$batchrecord) {
             return $this->error_result('batch_not_found');
         }
@@ -185,6 +189,51 @@ class rollback_manager {
                         'message' => 'invalid_snapshot_json',
                     ];
                     $failed++;
+                    continue;
+                }
+
+                // Core CM-level fields (completionexpected, availability) are
+                // snapshotted with component = core_coursemodule and must be
+                // restored directly without going through an adapter.
+                if ($component === 'core_coursemodule') {
+                    $allowedfields = ['completionexpected', 'availability'];
+                    $update = new \stdClass();
+                    $update->id = $entityid;
+                    $hasfield = false;
+                    foreach ($allowedfields as $field) {
+                        if (array_key_exists($field, $state)) {
+                            $update->$field = $state[$field];
+                            $hasfield = true;
+                        }
+                    }
+                    if (!$hasfield) {
+                        $items[] = [
+                            'entityid' => $entityid,
+                            'component' => $component,
+                            'status' => 'noop',
+                            'message' => 'no_recognised_fields',
+                        ];
+                        continue;
+                    }
+                    try {
+                        $DB->update_record('course_modules', $update);
+                        rebuild_course_cache($courseid);
+                        $items[] = [
+                            'entityid' => $entityid,
+                            'component' => $component,
+                            'status' => 'restored',
+                            'message' => 'core_coursemodule',
+                        ];
+                        $restored++;
+                    } catch (\Throwable $e) {
+                        $items[] = [
+                            'entityid' => $entityid,
+                            'component' => $component,
+                            'status' => 'error',
+                            'message' => $e->getMessage(),
+                        ];
+                        $failed++;
+                    }
                     continue;
                 }
 
@@ -234,6 +283,17 @@ class rollback_manager {
         } catch (\Throwable $e) {
             $transaction->rollback($e);
             return $this->error_result($e->getMessage());
+        }
+
+        if ($failed === 0) {
+            $rolledbackevent = batch_rolled_back::create([
+                'context'  => \context_course::instance((int) $batchrecord->courseid),
+                'objectid' => $batchid,
+                'userid'   => $userid,
+                'courseid' => (int) $batchrecord->courseid,
+                'other'    => ['restored' => $restored, 'failed' => $failed],
+            ]);
+            $rolledbackevent->trigger();
         }
 
         return [

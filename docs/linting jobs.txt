@@ -1,0 +1,2 @@
+phpcs --standard=moodle .
+npx grunt amd

@@ -60,6 +60,16 @@ define([], function() {
     var COL_GANTT_BAR = '#5b7fde';
     var COL_GANTT_MARK = '#cc3333';
     var COL_GANTT_LBL = '#333';
+    // Visibility / usability background bands (under the bar markers).
+    // Visibility: narrow, light gray — present when activity is published.
+    // Usability:  wider, slightly darker gray — span between earliest open
+    // marker and latest close marker. Tooltip shows the localized window.
+    var COL_GANTT_VISIBLE = '#eef0f3';
+    var COL_GANTT_USABLE = '#d8dde4';
+    // Subtle danger: bar falls outside parent section accessible window.
+    var COL_GANTT_DANGER = '#e07070';
+    var GANTT_VISIBLE_H = 4;
+    var GANTT_USABLE_H = 10;
     // Simulation overlay colors.
     var COL_BLOCKED_FILL = '#fef2f2';
     var COL_BLOCKED_STROKE = '#dc3545';
@@ -150,8 +160,8 @@ define([], function() {
             var colour = edge.circular ? COL_EDGE_CIRC : COL_EDGE;
             var marker = edge.circular ? 'url(#ccg-arrow-circ)' : 'url(#ccg-arrow)';
             svg.appendChild(svgEl('line', {
-                x1: fc.cx + NODE_W / 2, y1: fc.cy,
-                x2: tc.cx - NODE_W / 2, y2: tc.cy,
+                x1: fc.cx - NODE_W / 2, y1: fc.cy,
+                x2: tc.cx + NODE_W / 2, y2: tc.cy,
                 stroke: colour, 'stroke-width': '1.5', 'marker-end': marker,
             }));
         });
@@ -222,7 +232,12 @@ define([], function() {
         canvas.appendChild(svg);
     };
 
+    // Collapsed section state: sectionid (string) -> bool.
+    var ganttCollapsed = {};
+
     var renderGantt = function(canvas) {
+        var lblOutsection = canvas.getAttribute('data-lbl-outsection')
+            || '\u26a0 Outside section availability window';
         var raw = canvas.getAttribute('data-gantt');
         if (!raw) {
             return;
@@ -237,20 +252,55 @@ define([], function() {
             return;
         }
 
-        var rows = data.rows;
+        // Filter rows according to collapsed sections.
+        var allRows = data.rows;
+        // Build map: subsection child-sectionid → parent depth-0 sectionid.
+        var subsecParent = {};
+        var lastDepth0Id = null;
+        allRows.forEach(function(row) {
+            if (row.issection && row.depth === 0) {
+                lastDepth0Id = String(row.sectionid);
+            } else if (row.issection && row.depth === 1) {
+                subsecParent[String(row.sectionid)] = lastDepth0Id;
+            }
+        });
+        var rows = allRows.filter(function(row) {
+            if (row.issection) {
+                if (row.depth === 1) {
+                    var p = subsecParent[String(row.sectionid)];
+                    if (p && ganttCollapsed[p]) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            if (ganttCollapsed[String(row.sectionid)]) {
+                return false;
+            }
+            var gp = subsecParent[String(row.sectionid)];
+            return !(gp && ganttCollapsed[gp]);
+        });
+
         var mints = data.mints;
         var maxts = data.maxts;
         var span = (maxts - mints) || 1;
-        var barAreaW = Math.max((canvas.offsetWidth || 400) - GANTT_LABEL_W - GANTT_PAD * 2, 200);
+        var barAreaW = Math.max((canvas.offsetWidth || 600) - GANTT_LABEL_W - GANTT_PAD * 2, 200);
         var svgW = GANTT_LABEL_W + barAreaW + GANTT_PAD * 2;
-        // Extra height for x-axis labels below the chart.
         var AXIS_LABEL_H = 20;
-        var svgH = GANTT_PAD + rows.length * GANTT_ROW_H + GANTT_PAD + AXIS_LABEL_H;
+        var SECTION_ROW_H = 22;
+        var svgH = GANTT_PAD;
+        rows.forEach(function(row) {
+            svgH += row.issection ? SECTION_ROW_H : GANTT_ROW_H;
+        });
+        svgH += GANTT_PAD + AXIS_LABEL_H;
 
         var svg = svgEl('svg', {width: svgW, height: svgH,
-            viewBox: '0 0 ' + svgW + ' ' + svgH});
+            viewBox: '0 0 ' + svgW + ' ' + svgH,
+            style: 'font-family:sans-serif'});
 
         var axisY = svgH - GANTT_PAD - AXIS_LABEL_H;
+
+        // Axis lines.
         svg.appendChild(svgEl('line', {
             x1: GANTT_LABEL_W, y1: GANTT_PAD,
             x2: GANTT_LABEL_W, y2: axisY,
@@ -260,8 +310,7 @@ define([], function() {
             x2: GANTT_LABEL_W + barAreaW, y2: axisY,
             stroke: COL_AXIS, 'stroke-width': '1'}));
 
-        // X-axis tick marks and date labels.
-        // Aim for ~5-8 readable ticks across the available width.
+        // X-axis ticks.
         var spanDays = Math.round(span / 86400);
         var tickIntervalDays = 1;
         var intervals = [1, 2, 3, 7, 14, 30, 60, 90, 182, 365];
@@ -272,97 +321,322 @@ define([], function() {
             }
         }
         var tickIntervalSec = tickIntervalDays * 86400;
-        // Align first tick to a round date boundary.
         var firstTick = Math.ceil(mints / tickIntervalSec) * tickIntervalSec;
         var tickTs = firstTick;
         while (tickTs <= maxts) {
             var pct = (tickTs - mints) / span;
             var tx = GANTT_LABEL_W + Math.round(pct * barAreaW);
-            // Tick mark.
             svg.appendChild(svgEl('line', {
-                x1: tx, y1: axisY,
-                x2: tx, y2: axisY + 4,
+                x1: tx, y1: axisY, x2: tx, y2: axisY + 4,
                 stroke: COL_AXIS, 'stroke-width': '1'}));
-            // Date label — format as DD.MM. or DD.MM.YYYY depending on span.
             var d = new Date(tickTs * 1000);
-            var labelStr = '';
             var dd = String(d.getDate()).padStart(2, '0');
             var mm = String(d.getMonth() + 1).padStart(2, '0');
-            if (tickIntervalDays >= 30) {
-                labelStr = mm + '/' + d.getFullYear();
-            } else {
-                labelStr = dd + '.' + mm + '.';
-            }
+            var labelStr = tickIntervalDays >= 30
+                ? mm + '/' + d.getFullYear()
+                : dd + '.' + mm + '.';
             var ltext = svgEl('text', {
                 x: tx, y: axisY + 14,
                 'text-anchor': 'middle',
-                fill: COL_SUB, 'font-size': '9', 'font-family': 'sans-serif'});
+                fill: COL_SUB, 'font-size': '9'});
             ltext.textContent = labelStr;
             svg.appendChild(ltext);
-            // Faint vertical grid line through rows.
             svg.appendChild(svgEl('line', {
-                x1: tx, y1: GANTT_PAD,
-                x2: tx, y2: axisY,
+                x1: tx, y1: GANTT_PAD, x2: tx, y2: axisY,
                 stroke: '#e8e8e8', 'stroke-width': '1'}));
             tickTs += tickIntervalSec;
         }
 
-        rows.forEach(function(row, ri) {
-            var rowY = GANTT_PAD + ri * GANTT_ROW_H;
-            var midY = rowY + GANTT_ROW_H / 2;
+        // Build icon URL template from Moodle's global config.
+        var iconBase = (typeof M !== 'undefined' && M.cfg)
+            ? M.cfg.wwwroot + '/theme/image.php/' + M.cfg.theme + '/mod___MOD__/-1/monologo'
+            : '';
 
-            if (ri % 2 === 0) {
-                svg.appendChild(svgEl('rect', {x: 0, y: rowY,
-                    width: svgW, height: GANTT_ROW_H,
+        var rowY = GANTT_PAD;
+        rows.forEach(function(row) {
+            var rh = row.issection ? SECTION_ROW_H : GANTT_ROW_H;
+            var midY = rowY + rh / 2;
+
+            if (row.issection) {
+                // Section header: light background stripe.
+                svg.appendChild(svgEl('rect', {
+                    x: 0, y: rowY, width: svgW, height: rh,
+                    fill: '#e9ecef', 'fill-opacity': '0.9'}));
+
+                // Collapse/expand triangle.
+                var isCollapsed = !!ganttCollapsed[String(row.sectionid)];
+                var secArrowX = (row.depth || 0) * 14 + 6;
+                var arrow = svgEl('text', {
+                    x: secArrowX, y: midY + 4,
+                    fill: '#555', 'font-size': '10',
+                    cursor: 'pointer'});
+                arrow.textContent = isCollapsed ? '▶' : '▼';
+                svg.appendChild(arrow);
+
+                // Section label (bold, linked) — indented by depth.
+                var secDepthIndent = (row.depth || 0) * 14;
+                var arrowLblX = secDepthIndent + 20;
+                var maxLbl = Math.floor((GANTT_LABEL_W - arrowLblX - 4) / 7);
+                var seclbl;
+                if (row.cmurl) {
+                    var sa = svgEl('a', {href: row.cmurl, target: '_blank'});
+                    var st = svgEl('text', {
+                        x: arrowLblX, y: midY + 4,
+                        fill: '#333', 'font-size': '11', 'font-weight': 'bold'});
+                    st.textContent = truncate(row.name, maxLbl);
+                    sa.appendChild(st);
+                    seclbl = sa;
+                } else {
+                    seclbl = svgEl('text', {
+                        x: arrowLblX, y: midY + 4,
+                        fill: '#333', 'font-size': '11', 'font-weight': 'bold'});
+                    seclbl.textContent = truncate(row.name, maxLbl);
+                }
+                svg.appendChild(seclbl);
+
+                // Section usability window band.
+                if (row.window) {
+                    var swFrom = row.window.from_ts !== null
+                        ? row.window.from_ts : mints;
+                    var swTo = row.window.to_ts !== null
+                        ? row.window.to_ts : maxts;
+                    if (swTo > swFrom) {
+                        var swPctFrom = (swFrom - mints) / span;
+                        var swPctTo   = (swTo   - mints) / span;
+                        var swx  = GANTT_LABEL_W + Math.round(swPctFrom * barAreaW);
+                        var swxe = GANTT_LABEL_W + Math.round(swPctTo   * barAreaW);
+                        var sww  = Math.max(2, swxe - swx);
+                        var sug  = svgEl('g', {cursor: 'default'});
+                        var sutip = svgEl('title', {});
+                        sutip.textContent = (row.window.from_formatted || '\u2026')
+                            + ' \u2013 ' + (row.window.to_formatted || '\u2026');
+                        sug.appendChild(sutip);
+                        sug.appendChild(svgEl('rect', {
+                            x: swx, y: midY - GANTT_USABLE_H / 2,
+                            width: sww, height: GANTT_USABLE_H,
+                            fill: COL_GANTT_USABLE, rx: '2'}));
+                        svg.appendChild(sug);
+                    }
+                }
+
+                // Section availability date bars.
+                if (row.bars && row.bars.length) {
+                    row.bars.forEach(function(bar) {
+                        var pct = (bar.timestamp - mints) / span;
+                        var bx  = GANTT_LABEL_W + Math.max(2, Math.round(pct * barAreaW));
+                        var bg  = svgEl('g', {cursor: 'default'});
+                        var btip = svgEl('title', {});
+                        var blbl = bar.humanlabel || bar.fieldlabel || bar.field;
+                        btip.textContent = bar.formatted
+                            ? (blbl + ': ' + bar.formatted) : blbl;
+                        bg.appendChild(btip);
+                        bg.appendChild(svgEl('circle', {
+                            cx: bx, cy: midY, r: GANTT_MARKER_R,
+                            fill: COL_GANTT_MARK, 'fill-opacity': '0.7'}));
+                        svg.appendChild(bg);
+                    });
+                }
+
+                // Click target for toggle (full label area).
+                var clickRect = svgEl('rect', {
+                    x: 0, y: rowY, width: GANTT_LABEL_W, height: rh,
+                    fill: 'transparent', cursor: 'pointer'});
+                clickRect.addEventListener('click', (function(sid) {
+                    return function() {
+                        ganttCollapsed[sid] = !ganttCollapsed[sid];
+                        renderGantt(canvas);
+                    };
+                })(String(row.sectionid)));
+                svg.appendChild(clickRect);
+
+                rowY += rh;
+                return;
+            }
+
+            // CM row: alternating background.
+            var rowIdx = rows.indexOf(row);
+            var cmCount = rows.slice(0, rowIdx).filter(function(r) {
+                return !r.issection && r.sectionid === row.sectionid;
+            }).length;
+            var evenRow = (cmCount % 2 === 0);
+            if (evenRow) {
+                svg.appendChild(svgEl('rect', {
+                    x: 0, y: rowY, width: svgW, height: rh,
                     fill: '#f8f9fa', 'fill-opacity': '0.6'}));
             }
 
-            var maxLabelChars = Math.floor((GANTT_LABEL_W - 8) / 7);
-            var lbl = svgEl('text', {x: GANTT_LABEL_W - 6, y: midY,
-                'text-anchor': 'end', 'dominant-baseline': 'middle',
-                fill: COL_GANTT_LBL, 'font-size': '10', 'font-family': 'sans-serif'});
-            lbl.textContent = truncate(row.name, maxLabelChars);
-            svg.appendChild(lbl);
+            // Indent offset for depth 1.
+            var indent = row.depth * 14;
+            var iconX = indent + 2;
+            var textX = iconX + (row.modname ? 16 : 2);
+            var maxLabelChars = Math.floor((GANTT_LABEL_W - textX - 4) / 6.5);
 
+            // Module icon (12×12 image).
+            if (row.modname && iconBase) {
+                var iconUrl = iconBase.replace('__MOD__', row.modname);
+                svg.appendChild(svgEl('image', {
+                    href: iconUrl,
+                    x: iconX, y: midY - 6,
+                    width: '12', height: '12',
+                    'image-rendering': 'auto'}));
+            }
+
+            // Activity name label (linked if cmurl present).
+            var nameText = svgEl('text', {
+                x: textX, y: midY,
+                'dominant-baseline': 'middle',
+                fill: row.visible ? COL_GANTT_LBL : '#aaa',
+                'font-size': '10'});
+            nameText.textContent = truncate(row.name, maxLabelChars);
+            if (row.cmurl) {
+                var ca = svgEl('a', {href: row.cmurl, target: '_blank'});
+                ca.appendChild(nameText);
+                svg.appendChild(ca);
+            } else {
+                svg.appendChild(nameText);
+            }
+
+            // Tree guide line: vertical connector from section to CM.
+            if (row.depth > 0) {
+                var treeX = indent - 4;
+                svg.appendChild(svgEl('line', {
+                    x1: treeX, y1: rowY,
+                    x2: treeX, y2: midY,
+                    stroke: '#ccc', 'stroke-width': '1'}));
+                svg.appendChild(svgEl('line', {
+                    x1: treeX, y1: midY,
+                    x2: iconX, y2: midY,
+                    stroke: '#ccc', 'stroke-width': '1'}));
+            }
+
+            // Separator line.
             svg.appendChild(svgEl('line', {
                 x1: GANTT_LABEL_W, y1: midY,
                 x2: GANTT_LABEL_W + barAreaW, y2: midY,
                 stroke: '#ddd', 'stroke-width': '1'}));
 
+            // Visibility strip (narrow, always full-width when visible).
+            if (row.visible) {
+                svg.appendChild(svgEl('rect', {
+                    x: GANTT_LABEL_W,
+                    y: midY - GANTT_VISIBLE_H / 2,
+                    width: barAreaW,
+                    height: GANTT_VISIBLE_H,
+                    fill: COL_GANTT_VISIBLE,
+                    rx: '1'}));
+            }
+
+            // Usability window — wider bar.
+            // If unlimited (no date-based restrictions), show full-width bar.
+            if (row.unlimited) {
+                svg.appendChild(svgEl('rect', {
+                    x: GANTT_LABEL_W,
+                    y: midY - GANTT_USABLE_H / 2,
+                    width: barAreaW,
+                    height: GANTT_USABLE_H,
+                    fill: COL_GANTT_USABLE,
+                    rx: '2'}));
+            } else if (row.window) {
+                var wFrom = row.window.from_ts !== null ? row.window.from_ts : mints;
+                var wTo   = row.window.to_ts   !== null ? row.window.to_ts   : maxts;
+                if (wTo > wFrom) {
+                    var wPctFrom = (wFrom - mints) / span;
+                    var wPctTo   = (wTo   - mints) / span;
+                    var wx  = GANTT_LABEL_W + Math.round(wPctFrom * barAreaW);
+                    var wxe = GANTT_LABEL_W + Math.round(wPctTo   * barAreaW);
+                    var ww  = Math.max(2, wxe - wx);
+                    var ug  = svgEl('g', {cursor: 'default'});
+                    var utip = svgEl('title', {});
+                    utip.textContent = (row.window.from_formatted || '…') +
+                        ' – ' + (row.window.to_formatted || '…');
+                    ug.appendChild(utip);
+                    ug.appendChild(svgEl('rect', {
+                        x: wx,
+                        y: midY - GANTT_USABLE_H / 2,
+                        width: ww,
+                        height: GANTT_USABLE_H,
+                        fill: COL_GANTT_USABLE,
+                        rx: '2'}));
+                    svg.appendChild(ug);
+                }
+            }
+
+            // Parent section window shading: dim areas outside accessible period.
+            // Only rendered for CMs that have their own bars (empty-bar CMs
+            // already inherit the section window as their own window band).
+            if (row.parentwindow && row.bars && row.bars.length > 0) {
+                var pwFrom = row.parentwindow.from_ts;
+                var pwTo   = row.parentwindow.to_ts;
+                // Shade the period before the section opens.
+                if (pwFrom !== null && pwFrom > mints) {
+                    var shadeW = Math.round(((pwFrom - mints) / span) * barAreaW);
+                    if (shadeW > 0) {
+                        svg.appendChild(svgEl('rect', {
+                            x: GANTT_LABEL_W, y: rowY,
+                            width: shadeW, height: rh,
+                            fill: '#e8e8e8', 'fill-opacity': '0.55'}));
+                        // Dashed boundary line at section open.
+                        var bndX = GANTT_LABEL_W + shadeW;
+                        svg.appendChild(svgEl('line', {
+                            x1: bndX, y1: rowY, x2: bndX, y2: rowY + rh,
+                            stroke: '#999', 'stroke-width': '1',
+                            'stroke-dasharray': '3,2'}));
+                    }
+                }
+                // Shade the period after the section closes.
+                if (pwTo !== null && pwTo < maxts) {
+                    var shadeStart = GANTT_LABEL_W + Math.round(((pwTo - mints) / span) * barAreaW);
+                    var shadeEnd   = GANTT_LABEL_W + barAreaW;
+                    if (shadeEnd > shadeStart) {
+                        svg.appendChild(svgEl('rect', {
+                            x: shadeStart, y: rowY,
+                            width: shadeEnd - shadeStart, height: rh,
+                            fill: '#e8e8e8', 'fill-opacity': '0.55'}));
+                        // Dashed boundary line at section close.
+                        svg.appendChild(svgEl('line', {
+                            x1: shadeStart, y1: rowY, x2: shadeStart, y2: rowY + rh,
+                            stroke: '#999', 'stroke-width': '1',
+                            'stroke-dasharray': '3,2'}));
+                    }
+                }
+            }
+
+            // Date marker bars.
             row.bars.forEach(function(bar) {
                 var pct = (bar.timestamp - mints) / span;
-                var bx = GANTT_LABEL_W + Math.round(pct * barAreaW);
-
-                var g = svgEl('g', {cursor: 'default'});
+                var bx  = GANTT_LABEL_W + Math.max(2, Math.round(pct * barAreaW));
+                var g   = svgEl('g', {cursor: 'default'});
                 var tip = svgEl('title', {});
-                tip.textContent = bar.fieldlabel + ': ' + (bar.formatted || bar.timestamp);
+                var label = bar.humanlabel || bar.fieldlabel || bar.field;
+                tip.textContent = bar.formatted ? (label + ': ' + bar.formatted) : label;
+                // Append warning to tooltip for bars outside section window.
+                if (bar.outsection) {
+                    tip.textContent += ' ' + lblOutsection;
+                }
                 g.appendChild(tip);
-
+                var barColor = bar.outsection ? COL_GANTT_DANGER
+                    : (bar.source === 'adapter' ? COL_GANTT_BAR : COL_GANTT_MARK);
                 if (bar.source === 'adapter') {
                     g.appendChild(svgEl('rect', {
                         x: bx - 2, y: midY - GANTT_BAR_H / 2,
                         width: 4, height: GANTT_BAR_H,
-                        fill: COL_GANTT_BAR, rx: '2'}));
+                        fill: barColor, rx: '2'}));
                 } else {
                     g.appendChild(svgEl('circle', {
                         cx: bx, cy: midY, r: GANTT_MARKER_R,
-                        fill: COL_GANTT_MARK, 'fill-opacity': '0.7'}));
+                        fill: barColor,
+                        'fill-opacity': bar.outsection ? '0.9' : '0.7'}));
                 }
                 svg.appendChild(g);
             });
+
+            rowY += rh;
         });
 
         canvas.innerHTML = '';
         canvas.appendChild(svg);
     };
 
-
-    /**
-     * Toggle visibility of independent nodes on the dependency graph.
-     *
-     * @param {HTMLElement} canvas The graph canvas element.
-     * @param {boolean}     hide   Whether to hide independent nodes.
-     */
     var applyIndependentFilter = function(canvas, hide) {
         if (!canvas) {
             return;
@@ -403,11 +677,26 @@ define([], function() {
         var toggleBtn = root.querySelector('[data-action="toggle-independents"]');
         var canvas = root.querySelector('[data-region="coursectrl-graph-canvas"]');
         if (toggleBtn) {
-            if (toggleBtn.checked) {
+            // R6: read initial hide state from data attribute (set by PHP).
+            // CSS already hides them via [data-css-hide-indep]; JS removes
+            // the attribute when showing so CSS rule no longer applies.
+            var hideAttr = canvas ? canvas.getAttribute('data-hide-independents') : '0';
+            var startHidden = hideAttr === '1';
+            if (startHidden) {
                 applyIndependentFilter(canvas, true);
             }
+            // Checkbox checked = user wants to show independents.
             toggleBtn.addEventListener('change', function() {
-                applyIndependentFilter(canvas, toggleBtn.checked);
+                var hide = !toggleBtn.checked;
+                if (canvas) {
+                    // Sync CSS class so the rule matches current state.
+                    if (hide) {
+                        canvas.setAttribute('data-css-hide-indep', '1');
+                    } else {
+                        canvas.removeAttribute('data-css-hide-indep');
+                    }
+                }
+                applyIndependentFilter(canvas, hide);
             });
         }
         var hiddenBtn = root.querySelector('[data-action="toggle-hidden"]');

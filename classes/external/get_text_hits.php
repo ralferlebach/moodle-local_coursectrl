@@ -63,12 +63,12 @@ class get_text_hits extends external_api {
      * @return array
      */
     public static function execute(int $courseid, bool $rescan = true): array {
-        global $PAGE;
         $params = self::validate_parameters(self::execute_parameters(), [
             'courseid' => $courseid,
             'rescan' => $rescan,
         ]);
 
+        global $DB, $PAGE;
         $context = \context_course::instance($params['courseid']);
         self::validate_context($context);
         require_capability('local/coursectrl:view', $context);
@@ -88,6 +88,54 @@ class get_text_hits extends external_api {
         }
 
         $rawhits = $manager->get_hits($params['courseid']);
+
+        // Bulk-load CM info for all cm-type hits in a single JOIN query
+        // to avoid N+1 get_coursemodule_from_id() calls.
+        $cmhitids = [];
+        foreach ($rawhits as $hit) {
+            if ($hit->get('entitytype') === 'cm') {
+                $cmhitids[(int) $hit->get('entityid')] = true;
+            }
+        }
+        $cminfobycmid = [];
+        if (!empty($cmhitids)) {
+            [$insql, $inparams] = $DB->get_in_or_equal(
+                array_keys($cmhitids),
+                SQL_PARAMS_NAMED
+            );
+            $inparams['courseid'] = $params['courseid'];
+            $sql = "SELECT cm.id, m.name AS modname, cm.instance
+                      FROM {course_modules} cm
+                      JOIN {modules} m ON m.id = cm.module
+                     WHERE cm.course = :courseid
+                       AND cm.id {$insql}";
+
+            // Group rows by module type so we can bulk-load instance names
+            // with one query per module table instead of one per CM row.
+            $bymodname = [];
+            $cmrowbyid = [];
+            foreach ($DB->get_records_sql($sql, $inparams) as $row) {
+                $bymodname[(string) $row->modname][(int) $row->id] = (int) $row->instance;
+                $cmrowbyid[(int) $row->id] = (string) $row->modname;
+            }
+            foreach ($bymodname as $modname => $cmidtoinstance) {
+                $instanceids = array_values($cmidtoinstance);
+                $namebyinstance = $DB->get_records_list(
+                    $modname,
+                    'id',
+                    $instanceids,
+                    '',
+                    'id, name'
+                );
+                foreach ($cmidtoinstance as $cmid => $instanceid) {
+                    $cminfobycmid[$cmid] = [
+                        'name'    => $namebyinstance[$instanceid]->name ?? '',
+                        'modname' => $modname,
+                    ];
+                }
+            }
+        }
+
         $hits = [];
         foreach ($rawhits as $hit) {
             $entitytype = $hit->get('entitytype');
@@ -97,11 +145,11 @@ class get_text_hits extends external_api {
             $modname = '';
             $iconurl = '';
             if ($entitytype === 'cm') {
-                $cmobj = get_coursemodule_from_id('', $entityid, 0, false, IGNORE_MISSING);
-                if ($cmobj) {
-                    $cmname  = $cmobj->name;
-                    $modname = $cmobj->modname;
-                    $cmurl   = (new \moodle_url(
+                $cminfo  = $cminfobycmid[$entityid] ?? [];
+                $cmname  = $cminfo['name'] ?? '';
+                $modname = $cminfo['modname'] ?? '';
+                if ($cmname !== '' && $modname !== '') {
+                    $cmurl = (new \moodle_url(
                         '/mod/' . $modname . '/view.php',
                         ['id' => $entityid]
                     ))->out(false);

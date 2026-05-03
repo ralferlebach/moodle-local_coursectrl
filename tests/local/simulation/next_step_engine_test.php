@@ -26,6 +26,7 @@ namespace local_coursectrl\local\simulation;
 
 use local_coursectrl\local\entity\cm_item;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\simulation\next_step_engine::class)]
 /**
  * Unit tests for next_step_engine.
  *
@@ -58,6 +59,7 @@ final class next_step_engine_test extends \advanced_testcase {
 
     /**
      * Accessible + incomplete + tracking enabled → next step.
+     * @covers \local_coursectrl\local\simulation\next_step_engine
      */
     public function test_accessible_incomplete_tracked_is_next_step(): void {
         $this->resetAfterTest();
@@ -70,6 +72,7 @@ final class next_step_engine_test extends \advanced_testcase {
 
     /**
      * Already complete CM is not a next step.
+     * @covers \local_coursectrl\local\simulation\next_step_engine
      */
     public function test_complete_cm_not_next_step(): void {
         $this->resetAfterTest();
@@ -82,6 +85,7 @@ final class next_step_engine_test extends \advanced_testcase {
 
     /**
      * Inaccessible CM is not a next step.
+     * @covers \local_coursectrl\local\simulation\next_step_engine
      */
     public function test_inaccessible_cm_not_next_step(): void {
         $this->resetAfterTest();
@@ -94,6 +98,7 @@ final class next_step_engine_test extends \advanced_testcase {
 
     /**
      * CM without completion tracking is not a next step.
+     * @covers \local_coursectrl\local\simulation\next_step_engine
      */
     public function test_no_tracking_not_next_step(): void {
         $this->resetAfterTest();
@@ -106,6 +111,7 @@ final class next_step_engine_test extends \advanced_testcase {
 
     /**
      * find_blocked returns teacher-visible but inaccessible CMs only.
+     * @covers \local_coursectrl\local\simulation\next_step_engine
      */
     public function test_find_blocked_returns_blocked_cms(): void {
         $this->resetAfterTest();

@@ -86,6 +86,46 @@ if ($hassiteconfig) {
         1
     ));
 
+
+    // Dashboard display settings.
+    $settings->add(new admin_setting_heading(
+        'local_coursectrl/dashboard_heading',
+        get_string('settings_dashboard_heading', 'local_coursectrl'),
+        ''
+    ));
+    $settings->add(new admin_setting_configselect(
+        'local_coursectrl/dashboard_inventory',
+        get_string('settings_dashboard_inventory', 'local_coursectrl'),
+        get_string('settings_dashboard_inventory_desc', 'local_coursectrl'),
+        'admin_only',
+        [
+            'hide'       => get_string('settings_dashboard_inventory_hide', 'local_coursectrl'),
+            'admin_only' => get_string('settings_dashboard_inventory_adminonly', 'local_coursectrl'),
+            'show'       => get_string('settings_dashboard_inventory_show', 'local_coursectrl'),
+        ]
+    ));
+    $settings->add(new admin_setting_configtext(
+        'local_coursectrl/dashboard_upcoming_count',
+        get_string('settings_dashboard_upcoming_count', 'local_coursectrl'),
+        get_string('settings_dashboard_upcoming_count_desc', 'local_coursectrl'),
+        '7',
+        PARAM_INT
+    ));
+    $settings->add(new admin_setting_configtext(
+        'local_coursectrl/dashboard_warning_cap',
+        get_string('settings_dashboard_warning_cap', 'local_coursectrl'),
+        get_string('settings_dashboard_warning_cap_desc', 'local_coursectrl'),
+        '0',
+        PARAM_INT
+    ));
+    $settings->add(new admin_setting_configtext(
+        'local_coursectrl/dashboard_textfind_count',
+        get_string('settings_dashboard_textfind_count', 'local_coursectrl'),
+        get_string('settings_dashboard_textfind_count_desc', 'local_coursectrl'),
+        '0',
+        PARAM_INT
+    ));
+
     // History / Audit settings.
     $settings->add(new admin_setting_heading(
         'local_coursectrl/history_heading',
@@ -132,26 +172,44 @@ if ($hassiteconfig) {
         $adapterhtml
     ));
 
+    // Timeline and calendar view settings.
+    $settings->add(new admin_setting_heading(
+        'local_coursectrl/calendar_view_heading',
+        get_string('settings_calendar_view_heading', 'local_coursectrl'),
+        ''
+    ));
+    $settings->add(new admin_setting_configtext(
+        'local_coursectrl/calendar_lookahead_months',
+        get_string('settings_calendar_lookahead_months', 'local_coursectrl'),
+        get_string('settings_calendar_lookahead_months_desc', 'local_coursectrl'),
+        '3',
+        PARAM_INT
+    ));
+
     // Nager.Date calendar provider.
     $settings->add(new admin_setting_heading(
         'local_coursectrl/calnager_heading',
         get_string('settings_calnager_heading', 'local_coursectrl'),
         get_string('settings_calnager_desc', 'local_coursectrl')
     ));
-    $settings->add(new admin_setting_configcheckbox(
+    $setting = new admin_setting_configcheckbox(
         'local_coursectrl/calnager_enabled',
         get_string('settings_calnager_enabled', 'local_coursectrl'),
         '',
         0
-    ));
-    $settings->add(new admin_setting_configtext(
+    );
+    $setting->set_updatedcallback('local_coursectrl_calendar_settings_changed');
+    $settings->add($setting);
+    $setting = new admin_setting_configtext(
         'local_coursectrl/calnager_countrycode',
         get_string('settings_calnager_countrycode', 'local_coursectrl'),
         get_string('settings_calnager_countrycode_desc', 'local_coursectrl'),
         'DE',
         PARAM_ALPHANUMEXT,
         5
-    ));
+    );
+    $setting->set_updatedcallback('local_coursectrl_calendar_settings_changed');
+    $settings->add($setting);
 
     // OpenHolidays API provider.
     $settings->add(new admin_setting_heading(
@@ -159,43 +217,53 @@ if ($hassiteconfig) {
         get_string('settings_calopenholidays_heading', 'local_coursectrl'),
         get_string('settings_calopenholidays_desc', 'local_coursectrl')
     ));
-    $settings->add(new admin_setting_configcheckbox(
+    $setting = new admin_setting_configcheckbox(
         'local_coursectrl/calopenholidays_enabled',
         get_string('settings_calopenholidays_enabled', 'local_coursectrl'),
         '',
         0
-    ));
-    $settings->add(new admin_setting_configtext(
+    );
+    $setting->set_updatedcallback('local_coursectrl_calendar_settings_changed');
+    $settings->add($setting);
+    $setting = new admin_setting_configtext(
         'local_coursectrl/calopenholidays_countryisocode',
         get_string('settings_calopenholidays_countryisocode', 'local_coursectrl'),
         get_string('settings_calopenholidays_countryisocode_desc', 'local_coursectrl'),
         'DE',
         PARAM_ALPHANUMEXT,
         5
-    ));
-    $settings->add(new admin_setting_configtext(
+    );
+    $setting->set_updatedcallback('local_coursectrl_calendar_settings_changed');
+    $settings->add($setting);
+    $setting = new admin_setting_configtext(
         'local_coursectrl/calopenholidays_languageisocode',
         get_string('settings_calopenholidays_languageisocode', 'local_coursectrl'),
         get_string('settings_calopenholidays_languageisocode_desc', 'local_coursectrl'),
         'DE',
         PARAM_ALPHANUMEXT,
         5
-    ));
-    $settings->add(new admin_setting_configtext(
+    );
+    $setting->set_updatedcallback('local_coursectrl_calendar_settings_changed');
+    $settings->add($setting);
+    $setting = new admin_setting_configtext(
         'local_coursectrl/calopenholidays_regioncode',
         get_string('settings_calopenholidays_regioncode', 'local_coursectrl'),
         get_string('settings_calopenholidays_regioncode_desc', 'local_coursectrl'),
         '',
         PARAM_TEXT,
         10
-    ));
-    $settings->add(new admin_setting_configtext(
+    );
+    $setting->set_updatedcallback('local_coursectrl_calendar_settings_changed');
+    $settings->add($setting);
+    $setting = new admin_setting_configtext(
         'local_coursectrl/calopenholidays_categories',
         get_string('settings_calopenholidays_categories', 'local_coursectrl'),
         get_string('settings_calopenholidays_categories_desc', 'local_coursectrl'),
         'public_holiday,school_holiday',
         PARAM_TEXT
-    ));
+    );
+    $setting->set_updatedcallback('local_coursectrl_calendar_settings_changed');
+    $settings->add($setting);
 
     // Manual free days provider.
     $settings->add(new admin_setting_heading(
@@ -203,18 +271,22 @@ if ($hassiteconfig) {
         get_string('settings_calmanual_heading', 'local_coursectrl'),
         get_string('settings_calmanual_desc', 'local_coursectrl')
     ));
-    $settings->add(new admin_setting_configcheckbox(
+    $setting = new admin_setting_configcheckbox(
         'local_coursectrl/calmanual_enabled',
         get_string('settings_calmanual_enabled', 'local_coursectrl'),
         '',
         0
-    ));
-    $settings->add(new admin_setting_configtextarea(
+    );
+    $setting->set_updatedcallback('local_coursectrl_calendar_settings_changed');
+    $settings->add($setting);
+    $setting = new admin_setting_configtextarea(
         'local_coursectrl/calmanual_entries',
         get_string('settings_calmanual_entries', 'local_coursectrl'),
         get_string('settings_calmanual_entries_desc', 'local_coursectrl'),
         ''
-    ));
+    );
+    $setting->set_updatedcallback('local_coursectrl_calendar_settings_changed');
+    $settings->add($setting);
 
     // Moodle calendar reader provider.
     $settings->add(new admin_setting_heading(
@@ -222,13 +294,15 @@ if ($hassiteconfig) {
         get_string('settings_calmoodlecal_heading', 'local_coursectrl'),
         get_string('settings_calmoodlecal_desc', 'local_coursectrl')
     ));
-    $settings->add(new admin_setting_configcheckbox(
+    $setting = new admin_setting_configcheckbox(
         'local_coursectrl/calmoodlecal_enabled',
         get_string('settings_calmoodlecal_enabled', 'local_coursectrl'),
         '',
         0
-    ));
-    $settings->add(new admin_setting_configmulticheckbox(
+    );
+    $setting->set_updatedcallback('local_coursectrl_calendar_settings_changed');
+    $settings->add($setting);
+    $setting = new admin_setting_configmulticheckbox(
         'local_coursectrl/calmoodlecal_eventtype',
         get_string('settings_calmoodlecal_eventtype', 'local_coursectrl'),
         get_string('settings_calmoodlecal_eventtype_desc', 'local_coursectrl'),
@@ -238,21 +312,27 @@ if ($hassiteconfig) {
             'category' => get_string('settings_calmoodlecal_eventtype_category', 'local_coursectrl'),
             'user'     => get_string('settings_calmoodlecal_eventtype_user', 'local_coursectrl'),
         ]
-    ));
-    $settings->add(new admin_setting_configtext(
+    );
+    $setting->set_updatedcallback('local_coursectrl_calendar_settings_changed');
+    $settings->add($setting);
+    $setting = new admin_setting_configtext(
         'local_coursectrl/calmoodlecal_namepattern',
         get_string('settings_calmoodlecal_namepattern', 'local_coursectrl'),
         get_string('settings_calmoodlecal_namepattern_desc', 'local_coursectrl'),
         '',
         PARAM_TEXT
-    ));
-    $settings->add(new admin_setting_configtext(
+    );
+    $setting->set_updatedcallback('local_coursectrl_calendar_settings_changed');
+    $settings->add($setting);
+    $setting = new admin_setting_configtext(
         'local_coursectrl/calmoodlecal_category',
         get_string('settings_calmoodlecal_category', 'local_coursectrl'),
         get_string('settings_calmoodlecal_category_desc', 'local_coursectrl'),
         'custom',
         PARAM_ALPHANUMEXT
-    ));
+    );
+    $setting->set_updatedcallback('local_coursectrl_calendar_settings_changed');
+    $settings->add($setting);
 
     // Risk assessment.
     $settings->add(new admin_setting_heading(
@@ -337,6 +417,26 @@ if ($hassiteconfig) {
         get_string('settings_r4_min_gap_days', 'local_coursectrl'),
         get_string('settings_r4_min_gap_days_desc', 'local_coursectrl'),
         '3',
+        PARAM_INT
+    ));
+
+    $settings->add(new admin_setting_heading(
+        'local_coursectrl/deepjourney_heading',
+        get_string('settings_deepjourney_heading', 'local_coursectrl'),
+        get_string('settings_deepjourney_heading_desc', 'local_coursectrl')
+    ));
+    $settings->add(new admin_setting_configtext(
+        'local_coursectrl/risk_min_activity_minutes',
+        get_string('settings_deepjourney_min_minutes', 'local_coursectrl'),
+        get_string('settings_deepjourney_min_minutes_desc', 'local_coursectrl'),
+        30,
+        PARAM_INT
+    ));
+    $settings->add(new admin_setting_configtext(
+        'local_coursectrl/risk_max_group_combinations',
+        get_string('settings_deepjourney_max_groups', 'local_coursectrl'),
+        get_string('settings_deepjourney_max_groups_desc', 'local_coursectrl'),
+        32,
         PARAM_INT
     ));
 

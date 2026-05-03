@@ -26,6 +26,7 @@ namespace local_coursectrl\local\analysis;
 
 use local_coursectrl\local\entity\cm_item;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\analysis\dependency_index::class)]
 /**
  * Unit tests for dependency_index.
  *
@@ -58,6 +59,7 @@ final class dependency_index_test extends \basic_testcase {
 
     /**
      * Forward deps must list the prerequisite cmids.
+     * @covers \local_coursectrl\local\analysis\dependency_index
      */
     public function test_forward_deps(): void {
         $cms = [
@@ -72,6 +74,7 @@ final class dependency_index_test extends \basic_testcase {
 
     /**
      * Reverse deps must list the dependent cmids.
+     * @covers \local_coursectrl\local\analysis\dependency_index
      */
     public function test_reverse_deps(): void {
         $cms = [
@@ -89,6 +92,7 @@ final class dependency_index_test extends \basic_testcase {
 
     /**
      * has_dependents must return true for activities with dependents.
+     * @covers \local_coursectrl\local\analysis\dependency_index
      */
     public function test_has_dependents(): void {
         $cms = [
@@ -103,6 +107,7 @@ final class dependency_index_test extends \basic_testcase {
 
     /**
      * Date restrictions must be extracted from availability JSON.
+     * @covers \local_coursectrl\local\analysis\dependency_index
      */
     public function test_date_restrictions(): void {
         $json = json_encode([
@@ -121,6 +126,7 @@ final class dependency_index_test extends \basic_testcase {
 
     /**
      * has_restrictions must be true for CMs with any restriction.
+     * @covers \local_coursectrl\local\analysis\dependency_index
      */
     public function test_has_restrictions(): void {
         $cms = [
@@ -135,6 +141,7 @@ final class dependency_index_test extends \basic_testcase {
 
     /**
      * Circular dependencies must be detected.
+     * @covers \local_coursectrl\local\analysis\dependency_index
      */
     public function test_find_circular_deps(): void {
         $cms = [
@@ -151,6 +158,7 @@ final class dependency_index_test extends \basic_testcase {
 
     /**
      * No circular deps must return empty array.
+     * @covers \local_coursectrl\local\analysis\dependency_index
      */
     public function test_no_circular(): void {
         $cms = [
@@ -165,6 +173,7 @@ final class dependency_index_test extends \basic_testcase {
 
     /**
      * Empty CMs must produce an empty index.
+     * @covers \local_coursectrl\local\analysis\dependency_index
      */
     public function test_empty_cms(): void {
         $index = new dependency_index([]);
@@ -176,6 +185,7 @@ final class dependency_index_test extends \basic_testcase {
 
     /**
      * Chain A→B→C must have correct forward and reverse maps.
+     * @covers \local_coursectrl\local\analysis\dependency_index
      */
     public function test_chain(): void {
         $cms = [
@@ -192,5 +202,80 @@ final class dependency_index_test extends \basic_testcase {
         // Reverse.
         $this->assertSame([20], $index->get_dependents(10));
         $this->assertSame([30], $index->get_dependents(20));
+    }
+
+    // Grade-forward dependency tests.
+
+    /**
+     * Helper: availability JSON with a grade condition on a given grade item.
+     *
+     * @param int        $gradeid Grade item id.
+     * @param float|null $min     Minimum grade percentage (or null).
+     * @param float|null $max     Maximum grade percentage (or null).
+     * @return string
+     */
+    private function gradedep(int $gradeid, ?float $min = 50.0, ?float $max = null): string {
+        $cond = ['type' => 'grade', 'id' => $gradeid];
+        if ($min !== null) {
+            $cond['min'] = $min;
+        }
+        if ($max !== null) {
+            $cond['max'] = $max;
+        }
+        return json_encode(['op' => '&', 'c' => [$cond]]);
+    }
+
+    /**
+     * No gradeitemmap → get_grade_forward() returns empty.
+     * @covers \local_coursectrl\local\analysis\dependency_index
+     */
+    public function test_grade_forward_empty_without_map(): void {
+        $cms = [
+            10 => $this->cm(10),
+            20 => $this->cm(20, $this->gradedep(99)),
+        ];
+        $index = new dependency_index($cms);
+        $this->assertEmpty($index->get_grade_forward());
+    }
+
+    /**
+     * With gradeitemmap, grade condition resolves to cmid edge.
+     * @covers \local_coursectrl\local\analysis\dependency_index
+     */
+    public function test_grade_forward_resolved_via_map(): void {
+        $cms = [
+            10 => $this->cm(10),
+            20 => $this->cm(20, $this->gradedep(99)),
+        ];
+        // Grade item 99 belongs to cmid 10.
+        $index = new dependency_index($cms, [99 => 10]);
+        $gradeforward = $index->get_grade_forward();
+
+        $this->assertArrayHasKey(20, $gradeforward);
+        $this->assertContains(10, $gradeforward[20]);
+    }
+
+    /**
+     * Unknown grade item id (not in map) produces no grade edge.
+     * @covers \local_coursectrl\local\analysis\dependency_index
+     */
+    public function test_grade_forward_unknown_item_produces_no_edge(): void {
+        $cms = [
+            10 => $this->cm(10),
+            20 => $this->cm(20, $this->gradedep(999)),
+        ];
+        $index = new dependency_index($cms, [1 => 10]); // Map has item 1, not 999.
+        $this->assertEmpty($index->get_grade_forward());
+    }
+
+    /**
+     * Grade dep on self is excluded (no self-loops in graph).
+     * @covers \local_coursectrl\local\analysis\dependency_index
+     */
+    public function test_grade_forward_excludes_self_loop(): void {
+        $cms = [20 => $this->cm(20, $this->gradedep(99))];
+        // Grade item 99 resolves to cmid 20 (the same activity).
+        $index = new dependency_index($cms, [99 => 20]);
+        $this->assertEmpty($index->get_grade_forward());
     }
 }

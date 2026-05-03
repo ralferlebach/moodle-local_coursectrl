@@ -24,6 +24,7 @@
 
 namespace local_coursectrl\local\persistent;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\persistent\batch::class)]
 /**
  * Tests creation, retrieval and status transitions of batch records.
  *
@@ -32,6 +33,7 @@ namespace local_coursectrl\local\persistent;
 final class batch_test extends \advanced_testcase {
     /**
      * A persisted batch can be reloaded by id and round-trips its fields.
+     * @covers \local_coursectrl\local\persistent\batch
      */
     public function test_create_and_reload(): void {
         $this->resetAfterTest();
@@ -53,6 +55,7 @@ final class batch_test extends \advanced_testcase {
 
     /**
      * The default status of a freshly created batch is 'pending'.
+     * @covers \local_coursectrl\local\persistent\batch
      */
     public function test_default_status_is_pending(): void {
         $this->resetAfterTest();
@@ -68,6 +71,7 @@ final class batch_test extends \advanced_testcase {
 
     /**
      * Status transitions through all five legal values.
+     * @covers \local_coursectrl\local\persistent\batch
      */
     public function test_status_transitions(): void {
         $this->resetAfterTest();
@@ -95,6 +99,7 @@ final class batch_test extends \advanced_testcase {
     /**
      * Setting an unknown status value must be rejected by the persistent's
      * choices validator.
+     * @covers \local_coursectrl\local\persistent\batch
      */
     public function test_unknown_status_is_rejected(): void {
         $this->resetAfterTest();

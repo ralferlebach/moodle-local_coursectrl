@@ -121,9 +121,15 @@ class inventory_service {
      */
     protected function build_sections(int $courseid): array {
         global $DB;
-        $rows   = $DB->get_records('course_sections', ['course' => $courseid], 'section ASC');
+        $rows   = $DB->get_records(
+            'course_sections',
+            ['course' => $courseid],
+            'section ASC',
+            'id,section,name,summary,summaryformat,visible,availability,itemid'
+        );
         $result = [];
         foreach ($rows as $row) {
+            $avail = (!empty($row->availability)) ? (string) $row->availability : null;
             $result[(int) $row->id] = new section_item(
                 id: (int) $row->id,
                 courseid: $courseid,
@@ -132,6 +138,8 @@ class inventory_service {
                 summary: (string) ($row->summary ?? ''),
                 summaryformat: (int) ($row->summaryformat ?? 1),
                 visible: !empty($row->visible),
+                availability: $avail,
+                itemid: (int) ($row->itemid ?? 0),
             );
         }
         return $result;
@@ -250,17 +258,18 @@ class inventory_service {
         }
 
         foreach ($cmidsbymodname as $modname => $instanceids) {
-            $fields = self::TEXT_FIELDS_BY_MODULE[$modname];
-            $selectfields = 'id,' . implode(',', $fields);
-            try {
-                $records = $DB->get_records_list($modname, 'id', $instanceids, '', $selectfields);
-            } catch (\dml_exception $e) {
-                debugging(
-                    'local_coursectrl: collect_texts could not read ' . $modname . ': ' . $e->getMessage(),
-                    DEBUG_DEVELOPER
-                );
+            // Pre-filter fields against the actual table schema so we never
+            // request a column that does not exist in this Moodle installation.
+            $tablecolumns = array_keys($DB->get_columns($modname));
+            $fields = array_values(array_filter(
+                self::TEXT_FIELDS_BY_MODULE[$modname],
+                static fn (string $field): bool => in_array($field, $tablecolumns, true)
+            ));
+            if (empty($fields)) {
                 continue;
             }
+            $selectfields = 'id,' . implode(',', $fields);
+            $records = $DB->get_records_list($modname, 'id', $instanceids, '', $selectfields);
             foreach ($records as $record) {
                 $cmid = $instancetocmid[$modname][(int) $record->id] ?? null;
                 if ($cmid === null) {

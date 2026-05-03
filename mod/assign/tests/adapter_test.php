@@ -27,6 +27,7 @@ namespace coursectrlmod_assign;
 use local_coursectrl\local\contract\abstract_activity_adapter;
 use local_coursectrl\local\contract\activity_adapter;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\coursectrlmod_assign\adapter::class)]
 /**
  * Verifies the patch-018 / patch-020 surface of the adapter: contract
  * integration, supported actions and fields, instance enumeration,
@@ -75,6 +76,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * Adapter must extend the production base and implement the contract.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_extends_abstract_base_and_implements_contract(): void {
         $this->assertTrue(
@@ -90,6 +92,7 @@ final class adapter_test extends \advanced_testcase {
     /**
      * Static metadata: component name, availability, supported actions and
      * the four date fields exposed via field_map.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_static_metadata(): void {
         $adapter = new adapter();
@@ -110,6 +113,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * get_instances_for_course must return the cmid keyed entry.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_get_instances_for_course(): void {
         $this->resetAfterTest();
@@ -125,6 +129,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * describe_instance must return the four date fields exactly.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_describe_instance_returns_dates(): void {
         $this->resetAfterTest();
@@ -139,6 +144,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * export_state must capture all four date fields plus identifying ids.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_export_state_captures_snapshot(): void {
         $this->resetAfterTest();
@@ -153,6 +159,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * validate_action must accept a numeric delta and reject everything else.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_validate_action(): void {
         $adapter = new adapter();
@@ -177,6 +184,7 @@ final class adapter_test extends \advanced_testcase {
     /**
      * preview_action must compute old/new for every set field and report
      * shifted=true when the value actually changed.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_preview_shift_dates_for_set_fields(): void {
         $this->resetAfterTest();
@@ -202,6 +210,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * preview_action must NOT shift fields whose stored value is 0.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_preview_skips_unset_zero_dates(): void {
         $this->resetAfterTest();
@@ -236,6 +245,7 @@ final class adapter_test extends \advanced_testcase {
     /**
      * preview_action must return an empty result for any non-supported
      * action identifier.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_preview_returns_empty_for_unsupported_action(): void {
         $adapter = new adapter();
@@ -244,6 +254,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * execute_action must shift the four date fields in the database.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_execute_shifts_dates_in_db(): void {
         global $DB;
@@ -284,6 +295,7 @@ final class adapter_test extends \advanced_testcase {
     /**
      * The snapshot returned in each execute_action item must contain the
      * pre-mutation values, captured before the DB write.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_execute_returns_snapshot_with_old_values(): void {
         $this->resetAfterTest();
@@ -305,6 +317,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * execute_action must skip unset (zero) date fields just like preview.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_execute_skips_unset_zero_dates(): void {
         global $DB;
@@ -339,6 +352,7 @@ final class adapter_test extends \advanced_testcase {
     /**
      * execute_action with delta=0 must not write to the DB and must return
      * status 'noop' for the affected cmid.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_execute_noop_when_delta_is_zero(): void {
         global $DB;
@@ -363,6 +377,7 @@ final class adapter_test extends \advanced_testcase {
     /**
      * execute_action must reject invalid payloads via validate_action and
      * return the validation errors without touching the database.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_execute_validates_payload_first(): void {
         global $DB;
@@ -385,6 +400,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * execute_action must return an empty result for unsupported actions.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_execute_returns_empty_for_unsupported_action(): void {
         $adapter = new adapter();
@@ -396,6 +412,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * Round-trip: execute then restore must restore the original DB state.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_restore_state_round_trip(): void {
         global $DB;
@@ -429,6 +446,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * restore_state must reject snapshots whose component does not match.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_restore_state_rejects_invalid_component(): void {
         $adapter = new adapter();
@@ -443,6 +461,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * restore_state must reject snapshots without a fields array.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_restore_state_rejects_missing_fields(): void {
         $adapter = new adapter();
@@ -457,6 +476,7 @@ final class adapter_test extends \advanced_testcase {
     /**
      * restore_state must directly write a hand-built snapshot to the DB
      * without requiring a prior execute_action call.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_restore_state_writes_directly_to_db(): void {
         global $DB;
@@ -485,6 +505,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * unset_dates must validate that the 'fields' payload is present.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_validate_unset_dates_requires_fields(): void {
         $this->resetAfterTest();
@@ -503,6 +524,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * unset_dates must reject unknown field names.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_validate_unset_dates_rejects_unknown_field(): void {
         $this->resetAfterTest();
@@ -515,6 +537,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * unset_dates preview must mark the targeted fields as shifted-to-zero.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_preview_unset_dates(): void {
         $this->resetAfterTest();
@@ -540,6 +563,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * unset_dates execute must zero out the targeted field in the database.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_execute_unset_dates_writes_zero(): void {
         global $DB;
@@ -574,6 +598,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * unset_dates on an already-zero field must produce a noop status.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_execute_unset_dates_noop_on_zero(): void {
         $this->resetAfterTest();
@@ -602,6 +627,7 @@ final class adapter_test extends \advanced_testcase {
 
     /**
      * unset_dates execute must capture a snapshot of the pre-change state.
+     * @covers \coursectrlmod_assign\adapter
      */
     public function test_execute_unset_dates_captures_snapshot(): void {
         $this->resetAfterTest();

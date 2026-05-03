@@ -17,7 +17,7 @@
 {{!
     @template local_coursectrl/timeline
 
-    Timeline page with three tabs: Terminübersicht, Textprüfung, Grafische Übersicht.
+    Timeline page with three tabs: schedule, text review, and Gantt chart.
 
     Context variables required for this template:
     * courseid (int)
@@ -30,7 +30,7 @@
     * showcalendar, showpast, onlywithdeps (bool)
     * componentoptions (array), hascomponentoptions (bool)
     * groupoptions (array), hasgroupoptions (bool)
-    * shifturl, timelineurl, textreviewurl (string)
+    * shifturl, timelineurl (string)
     * gantt_json (string)
 
     Example context (json):
@@ -39,6 +39,7 @@
 }}
 
 <div class="local_coursectrl_timeline" data-region="local_coursectrl-timeline"
+  {{#hasfocusdaykey}}data-focusdaykey="{{focusdaykey}}"{{/hasfocusdaykey}}
      data-courseid="{{courseid}}" data-shifturl="{{shifturl}}">
 
   {{! ── Tab navigation ──────────────────────────────────────────────────── }}
@@ -82,7 +83,7 @@
           <div class="coursectrl-cal-week">
             {{#days}}
             <div class="{{cellclass}}"
-                 {{#hasentries}}data-action="jump-to-day" data-daykey="{{daykey}}"{{/hasentries}}
+                 {{#hasentries}}data-action="jump-to-day" data-daykey="{{daykey}}" data-ispast="{{#ispast}}1{{/ispast}}{{^ispast}}0{{/ispast}}"{{/hasentries}}
                  {{#hasholidays}}title="{{#holidaynames}}{{name}} {{/holidaynames}}"{{/hasholidays}}>
               {{#inmonth}}{{day}}{{/inmonth}}{{^inmonth}}&nbsp;{{/inmonth}}
             </div>
@@ -96,7 +97,7 @@
   </div>
 
   {{! Filter toolbar }}
-  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-3 local_coursectrl_toolbar">
     <button type="button" class="btn btn-sm btn-outline-secondary"
             data-action="toggle-calendar"
             data-label-show="{{#str}}cal_show, local_coursectrl{{/str}}"
@@ -109,23 +110,31 @@
       </span>
     </button>
 
-    <form method="get" action="{{timelineurl}}" class="mb-0 d-inline">
+    <form method="get" action="{{timelineurl}}" class="mb-0">
       <input type="hidden" name="courseid" value="{{courseid}}">
       <input type="hidden" name="tab" value="timeline">
       <input type="hidden" name="groupid" value="{{activegroupid}}">
       <input type="hidden" name="showpast" value="0">
-      <label class="mb-0">
-        <input type="checkbox" name="showpast" value="1"
-               class="me-1"{{#showpast}} checked{{/showpast}} onchange="this.form.submit()">
-        {{#str}} toggle_past, local_coursectrl {{/str}}
-      </label>
+      <div class="form-check mb-0">
+        <input class="form-check-input" type="checkbox"
+               name="showpast" value="1"
+               id="coursectrl-showpast"
+               {{#showpast}}checked{{/showpast}}
+               onchange="this.form.submit()">
+        <label class="form-check-label" for="coursectrl-showpast">
+          {{#str}} toggle_past, local_coursectrl {{/str}}
+        </label>
+      </div>
     </form>
 
-    <label class="mb-0">
-      <input type="checkbox" id="coursectrl-immediateapply" class="me-1"
+    <div class="form-check mb-0">
+      <input class="form-check-input" type="checkbox"
+             id="coursectrl-immediateapply"
              {{#immediateapply}}checked{{/immediateapply}}>
-      {{#str}} shift_immediate_apply, local_coursectrl {{/str}}
-    </label>
+      <label class="form-check-label" for="coursectrl-immediateapply">
+        {{#str}} shift_immediate_apply, local_coursectrl {{/str}}
+      </label>
+    </div>
 
     {{#hasgroupoptions}}
     <form method="get" action="{{timelineurl}}" class="d-flex align-items-center gap-1 mb-0">
@@ -183,10 +192,10 @@
   <div data-region="local_coursectrl-days">
     {{#days}}
     <div class="card mb-2{{#ispast}} opacity-75{{/ispast}}"
-         id="day-{{daykey}}" data-daykey="{{daykey}}">
-      <div class="card-header py-1 d-flex align-items-center gap-2">
-        <strong class="{{#ispast}}text-muted{{/ispast}}">{{dayformatted}}</strong>
-        <span class="badge bg-light text-dark border small">{{slotcount}}</span>
+         data-daykey="{{daykey}}">
+      <div class="card-header py-1 d-flex align-items-center gap-2"
+           id="day-{{daykey}}">
+        <span class="{{#ispast}}text-muted{{/ispast}}">{{dayformatted}}</span>
       </div>
       {{#slots}}
       <div class="card-body py-1 px-2">
@@ -212,7 +221,7 @@
             <span class="text-truncate me-2">
               {{#pix}}monologo, mod_{{modname}}, {{modname}}{{/pix}}
               <a href="{{activityurl}}" target="_blank" rel="noopener noreferrer">{{name}}</a>
-              <span class="badge bg-light text-dark border ms-1 small">{{field}}</span>
+              <span class="badge bg-light border text-muted ms-1">{{field}}</span>
             </span>
             <span class="d-flex gap-1 flex-shrink-0" style="min-width:4.5rem">
               {{! Shift this single entry }}
@@ -250,7 +259,24 @@
        data-label-config="{{#str}} timeline_shift_heading, local_coursectrl {{/str}}"
        data-label-preview="{{#str}} preview_title, local_coursectrl {{/str}}"
        data-label-textreview="{{#str}} tab_textreview, local_coursectrl {{/str}}"
-       data-label-scantext="{{#str}} shift_scan_text, local_coursectrl {{/str}}">
+       data-label-scantext="{{#str}} shift_scan_text, local_coursectrl {{/str}}"
+       data-lbl-close="{{#str}} shift_lbl_close, local_coursectrl {{/str}}"
+       data-lbl-conf-safe="{{#str}} shift_lbl_conf_safe, local_coursectrl {{/str}}"
+       data-lbl-conf-ambiguous="{{#str}} shift_lbl_conf_ambiguous, local_coursectrl {{/str}}"
+       data-lbl-conf-info="{{#str}} shift_lbl_conf_informational, local_coursectrl {{/str}}"
+       data-err-noselect="{{#str}} shift_err_noselect, local_coursectrl {{/str}}"
+       data-err-nodelta="{{#str}} shift_err_nodelta, local_coursectrl {{/str}}"
+       data-err-generic="{{#str}} shift_err_generic, local_coursectrl {{/str}}"
+       data-msg-nohits="{{#str}} shift_msg_nohits, local_coursectrl {{/str}}"
+       data-msg-loading="{{#str}} shift_msg_loading, local_coursectrl {{/str}}"
+       data-msg-shifted="{{#str}} shift_msg_shifted, local_coursectrl {{/str}}"
+       data-msg-errors="{{#str}} shift_msg_errors, local_coursectrl {{/str}}"
+       data-lbl-mark="{{#str}} shift_lbl_mark, local_coursectrl {{/str}}"
+       data-lbl-deselect="{{#str}} shift_lbl_deselect, local_coursectrl {{/str}}"
+       data-lbl-yearassumed="{{#str}} shift_lbl_yearassumed, local_coursectrl {{/str}}"
+       data-lbl-yearlabel="{{#str}} shift_lbl_yearlabel, local_coursectrl {{/str}}"
+       data-lbl-ambiguous-notice="{{#str}} shift_lbl_ambiguous_notice, local_coursectrl {{/str}}"
+       data-lbl-errtitle="{{#str}} shift_lbl_errtitle, local_coursectrl {{/str}}">
     <div class="modal-dialog modal-lg" role="document">
       <div class="modal-content">
         <div class="modal-header py-2">
@@ -305,13 +331,11 @@
                   </div>
                 </div>
               </div>
-              <div class="d-flex align-items-start gap-2 mt-1">
-                <input type="checkbox" id="coursectrl-shift-followdeps-cb"
-                       class="form-check-input flex-shrink-0"
-                       style="margin:0;float:none;margin-top:0.15rem">
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox"
+                       id="coursectrl-shift-followdeps-cb">
                 <label class="form-check-label small"
-                       for="coursectrl-shift-followdeps-cb"
-                       style="margin-left:1.25rem">
+                       for="coursectrl-shift-followdeps-cb">
                   {{#str}} shift_dependants, local_coursectrl {{/str}}
                 </label>
               </div>
@@ -406,7 +430,8 @@
   {{! ── TAB: Textprüfung ───────────────────────────────────────────────── }}
   {{#tab_textreview}}
   <div id="tab-textreview" data-region="local_coursectrl-textreview-panel"
-       data-courseid="{{courseid}}" data-textreviewurl="{{textreviewurl}}">
+       data-courseid="{{courseid}}"
+       data-hasrows="{{#textreview_hasrows}}1{{/textreview_hasrows}}{{^textreview_hasrows}}0{{/textreview_hasrows}}">
 
     {{! Workflow-Hinweis: Textprüfung ist Teil des Terminverschiebe-Workflows }}
     {{#textreview_from_shift}}
@@ -418,18 +443,10 @@
       </div>
     </div>
     {{/textreview_from_shift}}
-    {{^textreview_from_shift}}
-    <div class="alert alert-info d-flex align-items-start gap-2 mb-3">
-      <i class="fa fa-info-circle mt-1 flex-shrink-0"></i>
-      <div>
-        <strong>{{#str}} textreview_workflow_hint_title, local_coursectrl {{/str}}</strong>
-        <p class="mb-0 small">{{#str}} textreview_workflow_hint, local_coursectrl {{/str}}</p>
-      </div>
-    </div>
-    {{/textreview_from_shift}}
+
 
     {{#textreview_hasrows}}
-    <form method="post" action="{{textreviewurl}}"
+    <form method="post" action="{{timelineurl}}&amp;tab=textreview"
           id="coursectrl-textreview-inline-form">
       <input type="hidden" name="sesskey" value="{{sesskey}}">
       <input type="hidden" name="courseid" value="{{courseid}}">
@@ -495,11 +512,11 @@
                   {{^hascm}}
                     <code class="small">{{entitytype}}:{{entityid}}</code>
                   {{/hascm}}
-                  <span class="badge bg-light text-dark border ms-1 small">{{fieldname}}</span>
+                  <span class="badge bg-light border text-muted ms-1">{{fieldname}}</span>
                 </td>
-                <td><code>{{matchedtext}}</code></td>
+                <td class="small"><span class="text-muted"><strong>{{matchedtext}}</strong></span></td>
                 <td>
-                  {{#hasnormalized}}<code>{{normalizedvalue}}</code>{{/hasnormalized}}
+                  {{#hasnormalized}}<span class="text-muted small">{{normalizedvalue}}</span>{{/hasnormalized}}
                   {{^hasnormalized}}<span class="text-muted">–</span>{{/hasnormalized}}
                   {{#issafe}}<span class="badge badge-success ms-1">{{#str}} textreview_safe, local_coursectrl {{/str}}</span>{{/issafe}}
                   {{#isambiguous}}<span class="badge badge-warning ms-1">{{#str}} textreview_ambiguous, local_coursectrl {{/str}}</span>{{/isambiguous}}
@@ -745,11 +762,6 @@
     <div class="alert alert-info">
       {{#str}} textreview_no_hits, local_coursectrl {{/str}}
     </div>
-    <p>
-      <a href="{{timelineurl}}&amp;tab=timeline" class="btn btn-sm btn-secondary">
-        &larr; {{#str}} tab_timeline, local_coursectrl {{/str}}
-      </a>
-    </p>
     {{/textreview_hasrows}}
   </div>
   {{/tab_textreview}}
@@ -761,6 +773,7 @@
     <div class="overflow-auto border rounded p-2"
          data-region="local_coursectrl-gantt"
          data-gantt="{{gantt_json}}"
+         data-lbl-outsection="{{#str}} gantt_outsection_warning, local_coursectrl {{/str}}"
          style="-webkit-overflow-scrolling:touch;min-height:120px">
     </div>
     {{/gantt_hasdata}}

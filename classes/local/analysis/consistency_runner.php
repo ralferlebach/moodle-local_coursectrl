@@ -91,7 +91,20 @@ class consistency_runner {
     }
 
     /**
+     * Completion criteria type constant for activity-based criteria.
+     * Matches core completion_criteria::COMPLETION_CRITERIA_TYPE_ACTIVITY.
+     *
+     * @var int
+     */
+    private const CRITERIA_TYPE_ACTIVITY = 4;
+
+    /**
      * Run all checks and return a per-CM issue map.
+     *
+     * When $course is provided, this method also:
+     *   - loads activity-based course completion criteria from the DB, and
+     *   - escalates the severity of any issue affecting a completion-critical
+     *     activity by one level (notice → warning, warning → error).
      *
      * @param cm_item[]           $cms       Course modules keyed by cmid.
      * @param dependency_index    $depindex  Prebuilt dependency index.
@@ -99,6 +112,8 @@ class consistency_runner {
      *                                        date_collector::collect_grouped_by_cm().
      * @param group_resolver|null $groups    Optional resolver for group existence checks.
      *                                        Pass null to skip group validation.
+     * @param object|null         $course    Course record; used for R0 checks and
+     *                                        completion-criteria severity escalation.
      * @return array<int, array[]> cmid → list of issue arrays.
      */
     public function get_warnings(
@@ -108,24 +123,35 @@ class consistency_runner {
         ?group_resolver $groups = null,
         ?object $course = null
     ): array {
+        global $DB;
         $warnings = [];
+
+        // Load activity-based course completion criteria when a course is provided.
+        $critcmids = [];
+        if ($course !== null) {
+            $rows = $DB->get_fieldset_select(
+                'course_completion_criteria',
+                'moduleinstance',
+                'course = :course AND criteriatype = :type',
+                ['course' => (int) $course->id, 'type' => self::CRITERIA_TYPE_ACTIVITY]
+            );
+            $critcmids = array_map('intval', $rows);
+        }
 
         // R0: course-frame plausibility (before any other checks).
         if ($course !== null) {
-            foreach ($this->framechecker->check($cms, $datesbycm, $course) as $cmid => $r0issues) {
+            foreach ($this->framechecker->check($cms, $datesbycm, $course, $critcmids) as $cmid => $r0issues) {
                 foreach ($r0issues as $issue) {
-                    // Pass the full issue array so format_consistency_item()
-                    // has access to 'field', 'ts_field', 'ts_boundary'.
                     $warnings[$cmid][] = $issue;
                 }
             }
         }
 
         // Reachability (structural dependency checks) must run before R1 so that
-        // dangling_dep / impossible_dep issues appear first. R1 is suppressed for
+        // Dangling_dep / impossible_dep issues appear first. R1 is suppressed for
         // CMs that already carry a structural dependency issue, since those make
-        // the R1 result misleading (the CM may be inaccessible solely because the
-        // prerequisite no longer exists, not because of a policy decision).
+        // ... the R1 result misleading (the CM may be inaccessible solely because
+        // ... the prerequisite no longer exists, not because of a policy decision).
         $structuralcmids = [];
         foreach ($this->reachabilityanalyzer->analyze($cms, $depindex, $groups) as $cmid => $issues) {
             foreach ($issues as $issue) {
@@ -148,16 +174,39 @@ class consistency_runner {
         foreach ($this->conflictdetector->detect($cms, $datesbycm) as $cmid => $conflicts) {
             foreach ($conflicts as $conflict) {
                 $issueclass = $conflict['issue_class'] ?? 'temporal_conflict';
-                $warnings[$cmid][] = [
-                    'type'        => $issueclass,
-                    'severity'    => $conflict['severity'] ?? 'error',
-                    'field_early' => $conflict['field_early'],
-                    'field_late'  => $conflict['field_late'],
-                    'ts_early'    => $conflict['ts_early'],
-                    'ts_late'     => $conflict['ts_late'],
-                    'min_gap_days' => $conflict['min_gap_days'] ?? 0,
-                ];
+                // Merge full conflict data so specialised handlers (e.g.
+                // completionexpected_window) can access all fields such as
+                // ts_completionexpected, ts_deadline, field_deadline, etc.
+                $warnings[$cmid][] = array_merge(
+                    $conflict,
+                    ['type' => $issueclass, 'severity' => $conflict['severity'] ?? 'error']
+                );
             }
+        }
+
+        // Escalate severity for issues affecting completion-critical activities
+        // R0 already escalated via framechecker — this covers R1, R2, R3, R4, R7.
+        if (!empty($critcmids)) {
+            $critset = array_flip($critcmids);
+            foreach ($warnings as $cmid => &$cmwarnings) {
+                if (!isset($critset[$cmid])) {
+                    continue;
+                }
+                foreach ($cmwarnings as &$warning) {
+                    if (isset($warning['completion_escalated'])) {
+                        continue; // Already escalated by frame_checker.
+                    }
+                    if (($warning['severity'] ?? '') === 'warning') {
+                        $warning['severity'] = 'error';
+                        $warning['completion_escalated'] = true;
+                    } else if (($warning['severity'] ?? '') === 'notice') {
+                        $warning['severity'] = 'warning';
+                        $warning['completion_escalated'] = true;
+                    }
+                }
+                unset($warning);
+            }
+            unset($cmwarnings);
         }
 
         return $warnings;

@@ -29,6 +29,7 @@ use local_coursectrl\local\entity\course_item;
 use local_coursectrl\local\entity\section_item;
 use local_coursectrl\local\inventory\inventory_snapshot;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\output\graph_page::class)]
 /**
  * Unit tests for graph_page::export_for_template().
  *
@@ -49,6 +50,7 @@ final class graph_page_test extends \advanced_testcase {
 
     /**
      * export_for_template returns required scalar keys.
+     * @covers \local_coursectrl\output\graph_page
      */
     public function test_export_includes_required_scalars(): void {
         $this->resetAfterTest();
@@ -67,6 +69,7 @@ final class graph_page_test extends \advanced_testcase {
 
     /**
      * graphjson is valid JSON with the expected structure.
+     * @covers \local_coursectrl\output\graph_page
      */
     public function test_graphjson_is_valid_json(): void {
         $this->resetAfterTest();
@@ -86,6 +89,7 @@ final class graph_page_test extends \advanced_testcase {
 
     /**
      * ganttjson is valid JSON.
+     * @covers \local_coursectrl\output\graph_page
      */
     public function test_ganttjson_is_valid_json(): void {
         $this->resetAfterTest();
@@ -100,6 +104,7 @@ final class graph_page_test extends \advanced_testcase {
 
     /**
      * hasgraph=false when course has no CMs.
+     * @covers \local_coursectrl\output\graph_page
      */
     public function test_empty_course_hasgraph_false(): void {
         $this->resetAfterTest();
@@ -111,6 +116,7 @@ final class graph_page_test extends \advanced_testcase {
 
     /**
      * dashboardurl links to index.php with correct courseid.
+     * @covers \local_coursectrl\output\graph_page
      */
     public function test_dashboardurl_correct(): void {
         $this->resetAfterTest();

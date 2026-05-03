@@ -28,7 +28,7 @@
  */
 
 namespace local_coursectrl\output;
-
+use local_coursectrl\local\field_label_resolver;
 use local_coursectrl\local\analysis\calendar_grid_builder;
 use local_coursectrl\local\analysis\date_collector;
 use local_coursectrl\local\visualization\gantt_dataset_builder;
@@ -218,19 +218,21 @@ class timeline_page implements renderable, templatable {
                 '/local/coursectrl/manage.php',
                 ['courseid' => $course->id]
             ))->out(false),
-            'gantt_json' => json_encode($ganttdata = $this->build_gantt_data($this->snapshot->cms)),
+            'gantt_json' => json_encode($ganttdata = $this->build_gantt_data(
+                $this->snapshot->sections,
+                $this->snapshot->cms,
+                (int) $this->snapshot->course->id
+            )),
             'gantt' => $ganttdata,
             'gantt_hasdata' => !empty($ganttdata['hasdata']),
             'activetab' => $this->filters['tab'] ?? 'timeline',
             'tab_timeline'   => ($this->filters['tab'] ?? 'timeline') === 'timeline',
             'tab_textreview' => ($this->filters['tab'] ?? 'timeline') === 'textreview',
             'tab_gantt'      => ($this->filters['tab'] ?? 'timeline') === 'gantt',
+            'focusdaykey'    => $this->filters['focusdaykey'] ?? '',
+            'hasfocusdaykey' => !empty($this->filters['focusdaykey']),
             'timelineurl' => (new \moodle_url(
                 '/local/coursectrl/timeline.php',
-                ['courseid' => $course->id]
-            ))->out(false),
-            'textreviewurl' => (new \moodle_url(
-                '/local/coursectrl/textreview.php',
                 ['courseid' => $course->id]
             ))->out(false),
             'shifturl' => (new \moodle_url(
@@ -240,7 +242,7 @@ class timeline_page implements renderable, templatable {
         ] + $this->build_textreview_context($course->id);
     }
     /**
-     * Build textreview context variables for the Textprüfung tab.
+     * Build textreview context variables for the text-review tab.
      *
      * Loads persisted text_hit records for the course, pre-populates the
      * delta inputs from the shift that triggered this tab, and surfaces any
@@ -256,12 +258,13 @@ class timeline_page implements renderable, templatable {
         $fromshift  = !empty($this->filters['from_shift']);
         $batchid    = (int) ($this->filters['shift_batchid'] ?? 0);
 
-        // Read and clear collision notices stored by shift.php.
+        // Read and clear collision notices stored by shift.php via Moodle's $SESSION.
         $collisions = [];
         $sessionkey = 'coursectrl_collisions_' . $batchid;
-        if ($batchid && !empty($_SESSION[$sessionkey])) {
-            $raw = $_SESSION[$sessionkey];
-            unset($_SESSION[$sessionkey]);
+        global $SESSION;
+        if ($batchid && !empty($SESSION->$sessionkey)) {
+            $raw = $SESSION->$sessionkey;
+            unset($SESSION->$sessionkey);
             $decoded = json_decode($raw, true);
             if (is_array($decoded)) {
                 foreach ($decoded as $msg) {
@@ -312,7 +315,11 @@ class timeline_page implements renderable, templatable {
                 'cmurl'   => $hitcmurl,
                 'modname' => $hitmodname,
                 'hascm'   => !empty($hitcmname),
-                'fieldname' => $hit->get('fieldname'),
+                'fieldname' => field_label_resolver::resolve(
+                    (string) $hit->get('fieldname'),
+                    $hitmodname,
+                    $hitentitytype
+                ),
                 'matchedtext' => $hit->get('matchedtext'),
                 'normalizedvalue' => $hit->get('normalizedvalue'),
                 'hasnormalized' => !empty($hit->get('normalizedvalue')),
@@ -354,9 +361,62 @@ class timeline_page implements renderable, templatable {
      * @param array $cms CMs keyed by cmid.
      * @return array Gantt dataset export.
      */
-    private function build_gantt_data(array $cms): array {
-        $calman = new calendar_manager();
+    private function build_gantt_data(array $sections, array $cms, int $courseid): array {
+        $calman  = new calendar_manager();
         $builder = new gantt_dataset_builder();
-        return $builder->build($cms, $calman);
+
+        // Resolve format-aware section display names.
+        // get_section_info() requires the sections to exist in the DB;
+        // fall back to section_item->name when the course is not in DB
+        // (unit-test scenarios with fake course ids).
+        $sectionnames = [];
+        try {
+            $course  = get_course($courseid);
+            $modinfo = get_fast_modinfo($course);
+            foreach ($sections as $section) {
+                $info = $modinfo->get_section_info($section->sectionnum);
+                if ($info !== null) {
+                    $sectionnames[$section->id] = get_section_name($course, $info);
+                }
+            }
+        } catch (\Throwable $e) {
+            // Course not found or section info unavailable (e.g. in unit tests).
+            // $sectionnames stays empty; build_with_structure falls back to
+            // section_item->name or the generic numbered fallback.
+            $modinfo = null;
+        }
+
+        // Build subsection map: cmid => child section id.
+        // Moodle flags subsection-owned sections with component='mod_subsection'
+        // and itemid = the subsection module instance id.
+        // Keyed by section id: marks sections owned by a subsection CM.
+        $subsectionsectionids = [];
+        // Keyed by cmid: maps subsection CM to its child section id.
+        $subsectionmap = [];
+        foreach (($modinfo ? $modinfo->get_section_info_all() : []) as $sinfo) {
+            if ((string) ($sinfo->component ?? '') !== 'mod_subsection') {
+                continue;
+            }
+            $instanceid = (int) $sinfo->itemid;
+            $childsectionid = (int) $sinfo->id;
+            // Find the CM that owns this subsection section.
+            foreach (($modinfo ? $modinfo->get_cms() : []) as $cm) {
+                if ($cm->modname === 'subsection' && (int) $cm->instance === $instanceid) {
+                    $subsectionmap[(int) $cm->id] = $childsectionid;
+                    $subsectionsectionids[$childsectionid] = true;
+                    break;
+                }
+            }
+        }
+
+        return $builder->build_with_structure(
+            $sections,
+            $cms,
+            $courseid,
+            $calman,
+            $sectionnames,
+            $subsectionmap,
+            $subsectionsectionids
+        );
     }
 }

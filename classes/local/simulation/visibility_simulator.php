@@ -42,6 +42,7 @@
 namespace local_coursectrl\local\simulation;
 
 use local_coursectrl\local\entity\cm_item;
+use local_coursectrl\local\entity\section_item;
 
 /**
  * Evaluates CM accessibility for a simulated learner.
@@ -50,38 +51,84 @@ class visibility_simulator {
     /** @var condition_evaluator */
     private condition_evaluator $evaluator;
 
+    /** @var array<int, section_item> Section items keyed by section_item.id. */
+    private array $sections;
+
     /**
      * Constructor.
      *
      * @param condition_evaluator|null $evaluator Optional override for DI.
+     * @param array<int,section_item>  $sections  Section items keyed by id (for availability gating).
      */
-    public function __construct(?condition_evaluator $evaluator = null) {
+    public function __construct(?condition_evaluator $evaluator = null, array $sections = []) {
         $this->evaluator = $evaluator ?? new condition_evaluator();
+        $this->sections = $sections;
     }
 
     /**
      * Simulate accessibility for all CMs in the given collection.
+     *
+     * Section-level availability is evaluated first: if a CM's parent section
+     * is inaccessible, the CM is reported as inaccessible regardless of its
+     * own availability conditions. This mirrors Moodle's actual behaviour where
+     * section visibility gates all CMs within it.
      *
      * @param cm_item[]     $cms   Course modules keyed by cmid.
      * @param learner_state $state Hypothetical learner state.
      * @return array<int, array> cmid → result array (see class doc).
      */
     public function simulate(array $cms, learner_state $state): array {
+        // Pre-compute section accessibility so we evaluate each section once.
+        $sectionaccess = $this->evaluate_sections($state);
         $results = [];
         foreach ($cms as $cm) {
-            $results[$cm->id] = $this->evaluate_cm($cm, $state);
+            $results[$cm->id] = $this->evaluate_cm($cm, $state, $sectionaccess);
         }
         return $results;
     }
 
     /**
+     * Pre-evaluate all sections and return an access map.
+     *
+     * @param learner_state $state Learner state.
+     * @return array<int, array> sectionid → {accessible, reasons}.
+     */
+    private function evaluate_sections(learner_state $state): array {
+        $map = [];
+        foreach ($this->sections as $section) {
+            if (!$section->visible) {
+                $map[$section->id] = [
+                    'accessible' => false,
+                    'reasons' => [[
+                        'type'   => 'section_hidden',
+                        'status' => condition_evaluator::STATUS_FAIL,
+                        'detail' => 'section_not_visible',
+                    ]],
+                ];
+                continue;
+            }
+            if ($section->availability === null || $section->availability === '') {
+                $map[$section->id] = ['accessible' => true, 'reasons' => []];
+                continue;
+            }
+            $evalresult = $this->evaluator->evaluate($section->availability, $state);
+            $map[$section->id] = [
+                'accessible' => $evalresult['accessible'],
+                'reasons'    => $evalresult['reasons'],
+            ];
+        }
+        return $map;
+    }
+
+    /**
      * Evaluate a single CM.
      *
-     * @param cm_item       $cm    The CM to evaluate.
-     * @param learner_state $state Learner state.
+     * @param cm_item       $cm            The CM to evaluate.
+     * @param learner_state $state         Learner state.
+     * @param array         $sectionaccess Pre-evaluated section access map.
      * @return array Result array.
      */
-    private function evaluate_cm(cm_item $cm, learner_state $state): array {
+    private function evaluate_cm(cm_item $cm, learner_state $state, array $sectionaccess = []): array {
         if (!$cm->visible) {
             return [
                 'cmid' => $cm->id,
@@ -98,6 +145,30 @@ class visibility_simulator {
                         'detail' => 'cm_not_visible',
                     ],
                 ],
+            ];
+        }
+
+        // Check parent section accessibility before evaluating CM conditions.
+        // A CM is always inaccessible when its section is inaccessible.
+        $sectionid = $cm->sectionid;
+        if ($sectionid > 0 && isset($sectionaccess[$sectionid]) && !$sectionaccess[$sectionid]['accessible']) {
+            $sectionreasons = $sectionaccess[$sectionid]['reasons'];
+            return [
+                'cmid'             => $cm->id,
+                'name'             => $cm->name,
+                'modname'          => $cm->modname,
+                'teacher_visible'  => true,
+                'accessible'       => false,
+                'status'           => condition_evaluator::STATUS_FAIL,
+                'has_restrictions' => true,
+                'reasons'          => array_merge(
+                    [[
+                        'type'   => 'section_blocked',
+                        'status' => condition_evaluator::STATUS_FAIL,
+                        'detail' => 'section_not_accessible',
+                    ]],
+                    $sectionreasons
+                ),
             ];
         }
 

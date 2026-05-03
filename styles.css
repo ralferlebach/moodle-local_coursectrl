@@ -217,3 +217,67 @@
     display: inline-flex;
     align-items: center;
 }
+/* ── Simulation page — next-steps card (success) ──────────────────────── */
+.local_coursectrl_simulation .cc-card-success {
+    border-color: #198754;
+}
+.local_coursectrl_simulation .cc-card-success-header {
+    background-color: var(--bs-success-bg-subtle, #d1e7dd);
+    border-bottom-color: var(--bs-success-border-subtle, #a3cfbb);
+    color: var(--bs-success-text-emphasis, #0a3622);
+}
+.local_coursectrl_simulation .cc-card-success-body {
+    background-color: var(--bs-success-bg-subtle, #d1e7dd);
+}
+.local_coursectrl_simulation .cc-card-success-footer {
+    background-color: var(--bs-success-bg-subtle, #d1e7dd);
+    border-top-color: var(--bs-success-border-subtle, #a3cfbb);
+}
+.local_coursectrl_simulation .cc-card-col-label {
+    color: var(--bs-success-text-emphasis, #0a3622);
+}
+
+/* ── Simulation page — blocked card (danger) ─────────────────────────── */
+.local_coursectrl_simulation .cc-card-danger {
+    border-color: #dc3545;
+}
+.local_coursectrl_simulation .cc-card-danger-header {
+    background-color: var(--bs-danger-bg-subtle, #f8d7da);
+    border-bottom-color: var(--bs-danger-border-subtle, #f1aeb5);
+    color: var(--bs-danger-text-emphasis, #58151c);
+}
+.local_coursectrl_simulation .cc-card-danger-body {
+    background-color: var(--bs-danger-bg-subtle, #f8d7da);
+}
+/**
+ * Timeline toolbar: neutralise Bootstrap float/absolute form-check layout.
+ * Each form-check becomes a flex row (checkbox + label), direct children of
+ * the toolbar get horizontal padding so items have visible breathing room.
+ */
+.local_coursectrl_toolbar .form-check {
+    display: flex;
+    align-items: center;
+    gap: .375rem;
+    padding: .25rem .625rem;
+    margin-bottom: 0;
+    min-height: 0;
+    white-space: nowrap;
+}
+
+.local_coursectrl_toolbar .form-check-input {
+    float: none;
+    position: static;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.local_coursectrl_toolbar .form-check-label {
+    margin: 0;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.local_coursectrl_toolbar > form {
+    padding: 0;
+    margin: 0;
+}

@@ -28,6 +28,7 @@ use local_coursectrl\local\persistent\batch;
 use local_coursectrl\local\persistent\batch_item;
 use local_coursectrl\local\persistent\snapshot;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\manager\batch_manager::class)]
 /**
  * Verifies the patch-026 batch_manager pipeline against real adapters
  * and real DB writes: persistents, snapshots, status transitions and
@@ -80,6 +81,7 @@ final class batch_manager_test extends \advanced_testcase {
 
     /**
      * The constructor still accepts an injected registry.
+     * @covers \local_coursectrl\manager\batch_manager
      */
     public function test_constructor_accepts_injected_registry(): void {
         $registry = new registry([]);
@@ -90,6 +92,7 @@ final class batch_manager_test extends \advanced_testcase {
     /**
      * A successful single-adapter execute persists a batch row in
      * 'executed' status and returns its id.
+     * @covers \local_coursectrl\manager\batch_manager
      */
     public function test_execute_single_adapter_persists_batch(): void {
         $this->resetAfterTest();
@@ -112,6 +115,7 @@ final class batch_manager_test extends \advanced_testcase {
     /**
      * The execute call writes the shifted dates back to the underlying
      * mod_* tables for every routed cmid.
+     * @covers \local_coursectrl\manager\batch_manager
      */
     public function test_execute_writes_dates_to_db(): void {
         global $DB;
@@ -139,6 +143,7 @@ final class batch_manager_test extends \advanced_testcase {
 
     /**
      * One snapshot row is persisted per successfully processed cmid.
+     * @covers \local_coursectrl\manager\batch_manager
      */
     public function test_execute_persists_snapshots_per_cmid(): void {
         $this->resetAfterTest();
@@ -166,6 +171,7 @@ final class batch_manager_test extends \advanced_testcase {
     /**
      * The persisted snapshot statejson contains the pre-mutation date
      * values, not the post-mutation ones.
+     * @covers \local_coursectrl\manager\batch_manager
      */
     public function test_snapshot_carries_pre_mutation_state(): void {
         $this->resetAfterTest();
@@ -188,6 +194,7 @@ final class batch_manager_test extends \advanced_testcase {
     /**
      * One batch_item row is persisted per cmid with the correct status
      * and the result JSON.
+     * @covers \local_coursectrl\manager\batch_manager
      */
     public function test_execute_persists_batch_items(): void {
         $this->resetAfterTest();
@@ -219,6 +226,7 @@ final class batch_manager_test extends \advanced_testcase {
      *
      * The old behaviour logged a skipped item; the new behaviour silently
      * skips CMs where there is genuinely nothing to do at any level.
+     * @covers \local_coursectrl\manager\batch_manager
      */
     public function test_execute_no_adapter_no_cm_dates_produces_no_item(): void {
         $this->resetAfterTest();
@@ -243,6 +251,7 @@ final class batch_manager_test extends \advanced_testcase {
     /**
      * cmids without a registered adapter but WITH completionexpected set produce
      * a successful batch_item via the CM-level shift path.
+     * @covers \local_coursectrl\manager\batch_manager
      */
     public function test_execute_no_adapter_with_completionexpected_shifts_it(): void {
         global $DB;
@@ -275,6 +284,7 @@ final class batch_manager_test extends \advanced_testcase {
 
     /**
      * Empty cmids list defaults to "all CMs of all supported components".
+     * @covers \local_coursectrl\manager\batch_manager
      */
     public function test_execute_empty_cmids_processes_whole_course(): void {
         $this->resetAfterTest();
@@ -298,6 +308,7 @@ final class batch_manager_test extends \advanced_testcase {
     /**
      * delta=0 results in noop items that still produce a SUCCESS status
      * (no error), do NOT touch the DB and DO produce snapshots.
+     * @covers \local_coursectrl\manager\batch_manager
      */
     public function test_execute_noop_delta_zero(): void {
         global $DB;
@@ -327,6 +338,7 @@ final class batch_manager_test extends \advanced_testcase {
      * Cross-component routing in one batch: assign + quiz + feedback are
      * each routed to their respective adapter and produce three correct
      * batch_item rows with their per-component identifiers.
+     * @covers \local_coursectrl\manager\batch_manager
      */
     public function test_execute_cross_component_routing(): void {
         $this->resetAfterTest();
@@ -354,6 +366,7 @@ final class batch_manager_test extends \advanced_testcase {
     /**
      * The batch_executed event is fired after a successful execute call
      * and carries the batch id, course id, action and summary in 'other'.
+     * @covers \local_coursectrl\manager\batch_manager
      */
     public function test_execute_triggers_batch_executed_event(): void {
         $this->resetAfterTest();
@@ -383,6 +396,7 @@ final class batch_manager_test extends \advanced_testcase {
     /**
      * A round-trip: execute then read back the batch, items and snapshots
      * via the persistents and verify they reference each other consistently.
+     * @covers \local_coursectrl\manager\batch_manager
      */
     public function test_round_trip_through_persistents(): void {
         $this->resetAfterTest();
@@ -410,5 +424,112 @@ final class batch_manager_test extends \advanced_testcase {
         foreach ($snapshots as $snap) {
             $this->assertSame($batchid, (int)$snap->get('batchid'));
         }
+    }
+
+    /**
+     * shift_dates on a CM with no registered adapter (simulated via a page
+     * module) still updates the availability JSON in course_modules.
+     *
+     * This is the regression test for the cache-invalidation bug: even though
+     * the course_modules.availability is updated in the DB, the timeline used
+     * to show the old date because rebuild_course_cache() was not called.
+     * This test verifies the DB-level change; the cache-rebuild is tested
+     * implicitly through shift.php (Behat).
+     *
+     * @covers \local_coursectrl\manager\batch_manager
+     */
+    public function test_shift_updates_availability_json_for_unadapted_cm(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course();
+
+        // Use label module (no coursectrlmod_label adapter) so the CM
+        // falls into the system-level shift_cm_level_dates() path.
+        $label = $this->getDataGenerator()->create_module('label', [
+            'course' => $course->id,
+            'intro'  => 'Avail test label.',
+        ]);
+        $cmid = (int) $label->cmid;
+
+        // Manually inject an availability date condition into course_modules.
+        $avail = json_encode([
+            'op' => '&',
+            'c'  => [
+                ['type' => 'date', 'd' => '>=', 't' => self::BASE_TIME],
+            ],
+            'showc' => [true],
+        ]);
+        $DB->set_field('course_modules', 'availability', $avail, ['id' => $cmid]);
+
+        // Execute the shift — the CM may be routed through an adapter OR
+        // fall into the skipped/system-level path; either way, if availability
+        // JSON was not null before, it must shift by ONE_DAY.
+        $manager  = new batch_manager();
+        $manager->execute(
+            (int) $course->id,
+            'shift_dates',
+            ['delta' => self::ONE_DAY],
+            [$cmid],
+            0
+        );
+
+        $newavail = $DB->get_field('course_modules', 'availability', ['id' => $cmid]);
+        $decoded  = json_decode($newavail, true);
+
+        $this->assertIsArray($decoded);
+        $this->assertArrayHasKey('c', $decoded);
+        $first = $decoded['c'][0] ?? null;
+        $this->assertNotNull($first);
+        $this->assertEquals('date', $first['type']);
+        // Timestamp must have been incremented by at least ONE_DAY.
+        $this->assertGreaterThanOrEqual(
+            self::BASE_TIME + self::ONE_DAY,
+            (int) $first['t'],
+            'Availability date timestamp must be shifted forward by one day.'
+        );
+    }
+
+    /**
+     * shift_dates with a negative delta decrements availability timestamps.
+     *
+     * @covers \local_coursectrl\manager\batch_manager
+     */
+    public function test_shift_backward_decrements_availability_timestamp(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course();
+        $label = $this->getDataGenerator()->create_module('label', [
+            'course' => $course->id,
+            'intro'  => 'Backward shift label.',
+        ]);
+        $cmid = (int) $label->cmid;
+
+        $avail = json_encode([
+            'op' => '&',
+            'c'  => [['type' => 'date', 'd' => '>=', 't' => self::BASE_TIME]],
+            'showc' => [true],
+        ]);
+        $DB->set_field('course_modules', 'availability', $avail, ['id' => $cmid]);
+
+        $manager = new batch_manager();
+        $manager->execute(
+            (int) $course->id,
+            'shift_dates',
+            ['delta' => -self::ONE_DAY],
+            [$cmid],
+            0
+        );
+
+        $decoded = json_decode(
+            $DB->get_field('course_modules', 'availability', ['id' => $cmid]),
+            true
+        );
+        $this->assertEquals(
+            self::BASE_TIME - self::ONE_DAY,
+            (int) ($decoded['c'][0]['t'] ?? 0),
+            'Availability timestamp must be decremented by one day on negative delta.'
+        );
     }
 }

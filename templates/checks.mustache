@@ -38,6 +38,16 @@
     Example:
     {"courseid":42,"tab_consistency":true,"checksurl":"...",
      "consistency":{"items":[],"hasitems":false} }
+
+
+    Example context (json):
+    {
+            "courseid": 2,
+            "tab_consistency": true, "tab_risks": false, "tab_simulation": false,
+            "checksurl": "/local/coursectrl/checks.php",
+            "runurl": "/local/coursectrl/checks.php?run=1",
+            "hasfindings": false
+        }
 }}
 
 <div data-region="local_coursectrl-checks" class="local_coursectrl_checks">
@@ -71,10 +81,15 @@
   {{#consistency}}
   <div data-region="panel-consistency">
     {{#hasitems}}
-    <div class="d-flex gap-2 mb-3 flex-wrap">
-      {{#errorcount}}<span class="badge cc-badge-danger py-2 px-3">❗ {{errorcount}} {{#str}} checks_badge_error, local_coursectrl {{/str}}</span>{{/errorcount}}
-      {{#warningcount}}<span class="badge cc-badge-warning py-2 px-3">⚠️ {{warningcount}} {{#str}} checks_badge_warning, local_coursectrl {{/str}}</span>{{/warningcount}}
-      {{#noticecount}}<span class="badge cc-badge-info py-2 px-3">ℹ️ {{noticecount}} {{#str}} checks_badge_notice, local_coursectrl {{/str}}</span>{{/noticecount}}
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+      <div class="d-flex gap-2 flex-wrap">
+        {{#errorcount}}<span class="badge cc-badge-danger py-2 px-3">❗ {{errorcount}} {{#str}} checks_badge_error, local_coursectrl {{/str}}</span>{{/errorcount}}
+        {{#warningcount}}<span class="badge cc-badge-warning py-2 px-3">⚠️ {{warningcount}} {{#str}} checks_badge_warning, local_coursectrl {{/str}}</span>{{/warningcount}}
+        {{#noticecount}}<span class="badge cc-badge-info py-2 px-3">ℹ️ {{noticecount}} {{#str}} checks_badge_notice, local_coursectrl {{/str}}</span>{{/noticecount}}
+      </div>
+      <a href="{{deepanalysisurl}}" class="btn btn-primary btn-sm">
+        {{#str}} checks_run_deepanalysis, local_coursectrl {{/str}}
+      </a>
     </div>
     {{/hasitems}}
     {{^hasitems}}
@@ -89,10 +104,6 @@
           {{#modname}}{{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}{{/modname}}
           <a href="{{cmurl}}" class="fw-semibold text-decoration-none" target="_blank" rel="noopener">{{cmname}}</a>
           <span class="ms-1">— {{headline}}</span>
-          <a href="{{simurl}}" class="btn btn-outline-secondary btn-sm ms-auto flex-shrink-0"
-             title="{{#str}} consistency_sim_hint, local_coursectrl {{/str}}">
-            <i class="fa fa-play fa-fw"></i>
-          </a>
         </div>
         {{#hasdetail}}
         <div class="card-body py-2">
@@ -124,7 +135,7 @@
         {{#haslastrun}}{{#str}} checks_last_run, local_coursectrl {{/str}}: {{lastrundate}}{{/haslastrun}}
       </div>
       <a href="{{runurl}}" class="btn btn-primary btn-sm">
-        <i class="fa fa-refresh fa-fw me-1"></i>{{#str}} checks_run_now, local_coursectrl {{/str}}
+        {{#str}} checks_run_deepanalysis, local_coursectrl {{/str}}
       </a>
     </div>
     {{#hasresults}}
@@ -151,11 +162,8 @@
           {{#modname}}{{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}{{/modname}}
           <a href="{{cmurl}}" class="fw-semibold text-decoration-none" target="_blank" rel="noopener">{{cmname}}</a>
           <span class="text-muted small ms-1">— {{typelabel}}</span>
+          {{#hasgrademode}}<span class="badge bg-secondary ms-1 small">{{grademode_label}}</span>{{/hasgrademode}}
           <span class="badge bg-light border text-muted ms-auto small">{{#str}} checks_score, local_coursectrl {{/str}} {{score}}</span>
-          <a href="{{simurl}}" class="btn btn-outline-secondary btn-sm flex-shrink-0"
-             title="{{#str}} consistency_sim_hint, local_coursectrl {{/str}}">
-            <i class="fa fa-play fa-fw"></i>
-          </a>
         </div>
         <div class="card-body py-2">
           {{#hasproblem}}<p class="mb-1">{{problem}}</p>{{/hasproblem}}
@@ -166,19 +174,88 @@
           </p>
           {{/hasrelated}}
           {{#hasaction}}<p class="mb-0 text-success small"><i class="fa fa-wrench fa-fw me-1"></i>{{action}}</p>{{/hasaction}}
-          {{#has_fix}}
-          <div class="mt-2">
-            <a href="{{fix_url}}" class="btn btn-sm cc-badge-success border">
+          <div class="mt-2 d-flex flex-wrap gap-2">
+            {{#has_section_edit}}
+            <a href="{{section_edit_url}}" class="btn btn-sm btn-outline-warning cc-fix-btn">
+              <i class="fa fa-pencil fa-fw me-1"></i>{{#str}} section_edit_availability, local_coursectrl {{/str}}
+            </a>
+            {{/has_section_edit}}
+            {{#has_fix}}
+            <a href="{{fix_url}}" class="btn btn-sm btn-outline-success cc-fix-btn">
               <i class="fa fa-check fa-fw me-1"></i>{{fix_label}}
             </a>
+            {{/has_fix}}
+            <a href="{{simurl}}" class="btn btn-sm btn-outline-secondary cc-sim-btn">
+              <i class="fa fa-play-circle fa-fw me-1"></i>{{#str}} checks_simulate_link, local_coursectrl {{/str}}
+            </a>
           </div>
-          {{/has_fix}}
+          {{#has_subsection_children}}
+          <div class="alert alert-warning py-1 px-2 mt-2 small mb-1">
+            <i class="fa fa-sitemap fa-fw me-1"></i>{{#str}} risk_subsection_children_note, local_coursectrl {{/str}}
+            <ul class="mb-0 mt-1 ps-3">
+              {{#subsection_children}}
+              <li>
+                {{#modname}}{{#pix}}monologo, mod_{{modname}}, {{name}}{{/pix}}{{/modname}}
+                <a href="{{url}}" target="_blank" rel="noopener">{{name}}</a>
+                <span class="text-muted">({{#str}} in {{/str}} {{parent_name}})</span>
+              </li>
+              {{/subsection_children}}
+            </ul>
+          </div>
+          {{/has_subsection_children}}
+          {{#has_grouped_cms}}
+          <details class="mt-2">
+            <summary class="small text-muted" style="cursor:pointer">
+              <i class="fa fa-list-ul fa-fw me-1"></i>{{#str}} risk_grouped_cms_summary, local_coursectrl {{/str}} ({{grouped_cms_count}})
+            </summary>
+            <ul class="mt-1 mb-0 ps-3 small">
+              {{#grouped_cms}}
+              <li class="py-1{{#is_derived}} text-muted{{/is_derived}}">
+                {{#modname}}{{#pix}}monologo, mod_{{modname}}, {{name}}{{/pix}}{{/modname}}
+                <a href="{{url}}" target="_blank" rel="noopener">{{name}}</a>{{#is_derived}}<span class="badge bg-light border text-muted ms-1 small">{{#str}} risk_cascade_derived, local_coursectrl {{/str}}</span>{{/is_derived}}
+              </li>
+              {{/grouped_cms}}
+            </ul>
+          </details>
+          {{/has_grouped_cms}}
+          {{#has_subsection_children}}
+          <details class="mt-2">
+            <summary class="small text-warning fw-semibold" style="cursor:pointer">
+              <i class="fa fa-sitemap fa-fw me-1"></i>{{#str}} risk_subsection_children_summary, local_coursectrl {{/str}} ({{subsection_child_count}})
+            </summary>
+            <ul class="mt-1 mb-0 ps-3 small">
+              {{#subsection_children}}
+              <li class="py-1">
+                <img class="icon" alt="{{name}}" title="{{name}}"
+                  src="{{wwwroot}}/theme/image.php/{{theme}}/mod_{{modname}}/{{rev}}/monologo">
+                <a href="{{url}}" target="_blank" rel="noopener">{{name}}</a>
+              </li>
+              {{/subsection_children}}
+            </ul>
+          </details>
+          {{/has_subsection_children}}
           {{#hascascade}}
           <p class="mb-0 text-info small mt-1">
             <i class="fa fa-chain fa-fw me-1"></i>{{cascade_count}} {{#str}} checks_cascade_suffix, local_coursectrl {{/str}}:
             {{#cascade}}<a href="{{url}}" target="_blank" rel="noopener" class="me-1">{{name}}</a>{{/cascade}}
           </p>
           {{/hascascade}}
+          {{#hasjourneysteps}}
+          <details class="mt-2">
+            <summary class="small text-muted" style="cursor:pointer">
+              <i class="fa fa-list-ol fa-fw me-1"></i>{{#str}} risk_journey_show_steps, local_coursectrl {{/str}}
+            </summary>
+            <ol class="mt-1 mb-0 ps-3 small">
+              {{#journey_steps}}
+              <li class="py-1">
+                <span class="text-muted">{{steptime}}</span>
+                — <a href="{{cmurl}}" target="_blank" rel="noopener">{{cmname}}</a>
+                — <span class="{{#is_pass}}text-success{{/is_pass}}{{#is_fail}}text-danger{{/is_fail}}">{{outcome_label}}</span>
+              </li>
+              {{/journey_steps}}
+            </ol>
+          </details>
+          {{/hasjourneysteps}}
         </div>
       </div>
       {{/rows}}

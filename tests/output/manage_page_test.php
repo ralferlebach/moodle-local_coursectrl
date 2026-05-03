@@ -29,6 +29,7 @@ use local_coursectrl\local\entity\course_item;
 use local_coursectrl\local\entity\section_item;
 use local_coursectrl\local\inventory\inventory_snapshot;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\output\manage_page::class)]
 /**
  * Unit tests for manage_page::export_for_template().
  *
@@ -66,6 +67,7 @@ final class manage_page_test extends \advanced_testcase {
 
     /**
      * The context must carry courseid, sesskey and dashboardurl.
+     * @covers \local_coursectrl\output\manage_page
      */
     public function test_export_includes_scalars_and_urls(): void {
         $this->resetAfterTest();
@@ -82,6 +84,7 @@ final class manage_page_test extends \advanced_testcase {
 
     /**
      * The sections array must contain all non-empty sections.
+     * @covers \local_coursectrl\output\manage_page
      */
     public function test_export_returns_sections(): void {
         $this->resetAfterTest();
@@ -96,6 +99,7 @@ final class manage_page_test extends \advanced_testcase {
 
     /**
      * CMs that carry date fields must be counted in withdatescount.
+     * @covers \local_coursectrl\output\manage_page
      */
     public function test_export_counts_cms_with_dates(): void {
         $this->resetAfterTest();
@@ -112,12 +116,23 @@ final class manage_page_test extends \advanced_testcase {
 
     /**
      * An empty snapshot must report hassections=false and withdatescount=0.
+     * @covers \local_coursectrl\output\manage_page
      */
     public function test_export_handles_empty_snapshot(): void {
         $this->resetAfterTest();
         global $PAGE;
 
-        $course = new course_item(2, 'Empty', 'EMPTY', '', 1, 0, null, true);
+        $moodlecourse = $this->getDataGenerator()->create_course();
+        $course = new course_item(
+            (int) $moodlecourse->id,
+            'Empty',
+            'EMPTY',
+            '',
+            1,
+            0,
+            null,
+            true
+        );
         $snapshot = new inventory_snapshot($course, [], [], []);
 
         $page = new manage_page($snapshot);

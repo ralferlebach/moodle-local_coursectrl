@@ -44,6 +44,9 @@ final class learner_state {
     /** @var array<int, int> Assumed completion state per cmid (0/1/2/3). */
     public readonly array $completions;
 
+    /** @var array<int, float> Assumed grade percentage (0–100) per cmid. */
+    public readonly array $grades;
+
     /** @var int[] Group ids the simulated learner belongs to. */
     public readonly array $groupids;
 
@@ -58,15 +61,18 @@ final class learner_state {
      *                                    2=complete with pass, 3=complete with fail).
      * @param int[]          $groupids    Group ids the learner is assumed to be in.
      * @param int[]          $groupingids Grouping ids the learner is assumed to be in.
+     * @param array<int,float> $grades    cmid → grade percentage (0.0–100.0).
      */
     public function __construct(
         int $timestamp = 0,
         array $completions = [],
         array $groupids = [],
-        array $groupingids = []
+        array $groupingids = [],
+        array $grades = []
     ) {
         $this->timestamp = $timestamp > 0 ? $timestamp : time();
         $this->completions = $completions;
+        $this->grades = array_map('floatval', $grades);
         $this->groupids = array_values($groupids);
         $this->groupingids = array_values($groupingids);
     }
@@ -79,6 +85,16 @@ final class learner_state {
      */
     public function get_completion(int $cmid): int {
         return $this->completions[$cmid] ?? 0;
+    }
+
+    /**
+     * Return the assumed grade percentage for the given cmid, or null if not set.
+     *
+     * @param int $cmid Course module id.
+     * @return float|null Grade percentage (0.0–100.0), or null when not specified.
+     */
+    public function get_grade(int $cmid): ?float {
+        return isset($this->grades[$cmid]) ? (float) $this->grades[$cmid] : null;
     }
 
     /**
@@ -112,6 +128,7 @@ final class learner_state {
             'completions' => $this->completions,
             'groupids' => $this->groupids,
             'groupingids' => $this->groupingids,
+            'grades' => $this->grades,
         ];
     }
 
@@ -126,7 +143,8 @@ final class learner_state {
             (int) ($data['timestamp'] ?? 0),
             array_map('intval', (array) ($data['completions'] ?? [])),
             array_map('intval', (array) ($data['groupids'] ?? [])),
-            array_map('intval', (array) ($data['groupingids'] ?? []))
+            array_map('intval', (array) ($data['groupingids'] ?? [])),
+            array_map('floatval', (array) ($data['grades'] ?? []))
         );
     }
 }

@@ -30,6 +30,7 @@ namespace local_coursectrl;
 
 use local_coursectrl\manager\registry;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\contract\check_helper::class)]
 /**
  * Tests for run_checks() across assign, quiz, forum, and workshop adapters.
  *
@@ -94,6 +95,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
 
     /**
      * R3: assign allowsubmissionsfromdate after duedate → error assign_from_after_due.
+     * @covers \local_coursectrl\local\contract\check_helper
      */
     public function test_assign_r3_open_after_due(): void {
         $this->resetAfterTest();
@@ -112,6 +114,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
 
     /**
      * R7: assign cutoffdate set, duedate not set → severity from config (default notice/warning).
+     * @covers \local_coursectrl\local\contract\check_helper
      */
     public function test_assign_r7_cutoff_without_duedate(): void {
         $this->resetAfterTest();
@@ -129,6 +132,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
 
     /**
      * R7: assign gradingduedate set, duedate and cutoff not set.
+     * @covers \local_coursectrl\local\contract\check_helper
      */
     public function test_assign_r7_gradingdue_without_duedate(): void {
         $this->resetAfterTest();
@@ -147,6 +151,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
 
     /**
      * R7: assign allowsubmissionsfromdate set, duedate not set.
+     * @covers \local_coursectrl\local\contract\check_helper
      */
     public function test_assign_r7_fromdate_without_duedate(): void {
         $this->resetAfterTest();
@@ -164,6 +169,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
 
     /**
      * R3+R7 clean: assign with all dates correctly ordered → no issues.
+     * @covers \local_coursectrl\local\contract\check_helper
      */
     public function test_assign_clean_no_issues(): void {
         $this->resetAfterTest();
@@ -186,6 +192,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
 
     /**
      * R3: quiz timeopen after timeclose → error.
+     * @covers \local_coursectrl\local\contract\check_helper
      */
     public function test_quiz_r3_open_after_close(): void {
         $this->resetAfterTest();
@@ -207,6 +214,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
 
     /**
      * R7: quiz timeopen set, timeclose not set.
+     * @covers \local_coursectrl\local\contract\check_helper
      */
     public function test_quiz_r7_timeopen_without_timeclose(): void {
         $this->resetAfterTest();
@@ -224,6 +232,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
 
     /**
      * run_checks result items all have required keys.
+     * @covers \local_coursectrl\local\contract\check_helper
      */
     public function test_quiz_result_shape(): void {
         $this->resetAfterTest();
@@ -248,6 +257,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
 
     /**
      * R7: forum duedate set, cutoffdate not set.
+     * @covers \local_coursectrl\local\contract\check_helper
      */
     public function test_forum_r7_duedate_without_cutoff(): void {
         $this->resetAfterTest();
@@ -267,6 +277,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
 
     /**
      * R7: forum cutoffdate set, duedate not set.
+     * @covers \local_coursectrl\local\contract\check_helper
      */
     public function test_forum_r7_cutoff_without_duedate(): void {
         $this->resetAfterTest();
@@ -285,6 +296,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
 
     /**
      * Forum clean: both duedate and cutoffdate set in correct order → no R7.
+     * @covers \local_coursectrl\local\contract\check_helper
      */
     public function test_forum_clean_no_r7(): void {
         $this->resetAfterTest();
@@ -306,6 +318,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
 
     /**
      * R7: workshop assessmentstart set, assessmentend not set.
+     * @covers \local_coursectrl\local\contract\check_helper
      */
     public function test_workshop_r7_assessmentstart_without_end(): void {
         $this->resetAfterTest();
@@ -327,6 +340,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
 
     /**
      * R3: workshop submissionstart after submissionend → error.
+     * @covers \local_coursectrl\local\contract\check_helper
      */
     public function test_workshop_r3_submission_inverted(): void {
         $this->resetAfterTest();
@@ -348,6 +362,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
 
     /**
      * Workshop clean: all phases correctly ordered → no R3/R7 issues.
+     * @covers \local_coursectrl\local\contract\check_helper
      */
     public function test_workshop_clean_no_issues(): void {
         $this->resetAfterTest();
@@ -372,6 +387,7 @@ final class adapter_run_checks_test extends \advanced_testcase {
 
     /**
      * run_checks with empty cmids array returns empty.
+     * @covers \local_coursectrl\local\contract\check_helper
      */
     public function test_empty_cmids_returns_empty(): void {
         $this->resetAfterTest();

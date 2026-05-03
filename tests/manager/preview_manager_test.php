@@ -26,6 +26,7 @@ namespace local_coursectrl\manager;
 
 use local_coursectrl\local\dto\preview_change;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\manager\preview_manager::class)]
 /**
  * Verifies course-wide preview aggregation across the three productive
  * adapters (assign, quiz, feedback) introduced in patches 018-022. Uses
@@ -77,6 +78,7 @@ final class preview_manager_test extends \advanced_testcase {
     /**
      * Single-adapter call: build with one assign cmid produces a single
      * preview_change with the four assign date fields.
+     * @covers \local_coursectrl\manager\preview_manager
      */
     public function test_single_adapter_assign(): void {
         $this->resetAfterTest();
@@ -101,6 +103,7 @@ final class preview_manager_test extends \advanced_testcase {
     /**
      * Multi-adapter routing: build with one assign + one quiz + one
      * feedback cmid produces three correctly typed preview_changes.
+     * @covers \local_coursectrl\manager\preview_manager
      */
     public function test_multi_adapter_routing(): void {
         $this->resetAfterTest();
@@ -131,6 +134,7 @@ final class preview_manager_test extends \advanced_testcase {
     /**
      * Empty cmids defaults to "all CMs of all supported components" in
      * the course.
+     * @covers \local_coursectrl\manager\preview_manager
      */
     public function test_empty_cmids_means_whole_course(): void {
         $this->resetAfterTest();
@@ -150,6 +154,7 @@ final class preview_manager_test extends \advanced_testcase {
     /**
      * cmids that have no registered adapter are reported as skipped with
      * reason 'no_adapter', not as errors.
+     * @covers \local_coursectrl\manager\preview_manager
      */
     public function test_cmid_without_adapter_is_skipped(): void {
         $this->resetAfterTest();
@@ -175,6 +180,7 @@ final class preview_manager_test extends \advanced_testcase {
     /**
      * cmids whose adapter does not advertise the requested action are
      * reported as skipped with reason 'unsupported_action'.
+     * @covers \local_coursectrl\manager\preview_manager
      */
     public function test_cmid_with_unsupported_action_is_skipped(): void {
         $this->resetAfterTest();
@@ -196,6 +202,7 @@ final class preview_manager_test extends \advanced_testcase {
     /**
      * Validation errors from the adapter end up in 'errors', not in
      * 'changes', and the changes list is empty.
+     * @covers \local_coursectrl\manager\preview_manager
      */
     public function test_validation_errors_are_reported(): void {
         $this->resetAfterTest();
@@ -217,6 +224,7 @@ final class preview_manager_test extends \advanced_testcase {
     /**
      * The summary block reflects the correct counts for changes, skipped
      * and errors after a mixed run.
+     * @covers \local_coursectrl\manager\preview_manager
      */
     public function test_summary_counts(): void {
         $this->resetAfterTest();
@@ -246,6 +254,7 @@ final class preview_manager_test extends \advanced_testcase {
      * Cross-component routing: cmids from different adapters in the same
      * call are dispatched to the correct adapter and produce per-component
      * preview_changes whose fields match each adapter's field map.
+     * @covers \local_coursectrl\manager\preview_manager
      */
     public function test_cross_component_routing_uses_correct_field_maps(): void {
         $this->resetAfterTest();
@@ -269,6 +278,7 @@ final class preview_manager_test extends \advanced_testcase {
      * The preview result echoes back action and payload for downstream
      * consumers (UI, batch_manager) that need to bind a preview to its
      * intended execute call.
+     * @covers \local_coursectrl\manager\preview_manager
      */
     public function test_result_carries_action_and_payload(): void {
         $this->resetAfterTest();

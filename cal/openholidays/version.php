@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component    = 'coursectrlcal_openholidays';
-$plugin->version      = 2026041805;
+$plugin->version      = 2026050300;
 $plugin->requires     = 2024042200;
 $plugin->dependencies = [
     'local_coursectrl' => 2026041805,
 ];
-$plugin->maturity = MATURITY_ALPHA;
-$plugin->release  = '0.1.37';
+$plugin->maturity = MATURITY_STABLE;
+$plugin->release  = '1.0.0';

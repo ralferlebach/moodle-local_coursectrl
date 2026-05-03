@@ -30,7 +30,7 @@
  */
 
 namespace local_coursectrl\local\analysis;
-
+use local_coursectrl\local\field_label_resolver;
 use local_coursectrl\local\entity\cm_item;
 use local_coursectrl\manager\registry;
 
@@ -83,7 +83,7 @@ class date_collector {
                     'modname' => $cm->modname,
                     'component' => $cm->get_component(),
                     'field' => 'completionexpected',
-                    'fieldlabel' => 'completionexpected',
+                    'fieldlabel' => field_label_resolver::resolve('completionexpected', $cm->modname, 'cm'),
                     'timestamp' => $cm->completionexpected,
                     'source' => 'cm',
                 ];
@@ -100,36 +100,62 @@ class date_collector {
                         'modname' => $cm->modname,
                         'component' => $cm->get_component(),
                         'field' => 'availability_' . $direction . '_' . $i,
-                        'fieldlabel' => 'availability_' . $direction,
+                        'fieldlabel' => field_label_resolver::resolve(
+                            'availability_' . $direction,
+                            '',
+                            'cm'
+                        ) . ($i > 0 ? ' (#' . $i . ')' : ''),
                         'timestamp' => $cond['timestamp'],
                         'source' => 'availability',
                     ];
                 }
             }
+        }
 
-            // Adapter-level dates.
-            $adapter = $this->registry->get_for_component($cm->get_component());
-            if ($adapter !== null) {
-                try {
-                    $description = $adapter->describe_instance($cm->id);
-                    $dates = $description['dates'] ?? [];
-                    foreach ($dates as $fieldname => $value) {
-                        if ((int) $value > 0) {
-                            $entries[] = [
-                                'cmid' => $cm->id,
-                                'name' => $cm->name,
-                                'modname' => $cm->modname,
-                                'component' => $cm->get_component(),
-                                'field' => $fieldname,
-                                'fieldlabel' => $fieldname,
-                                'timestamp' => (int) $value,
-                                'source' => 'adapter',
-                            ];
-                        }
-                    }
-                } catch (\Throwable $e) {
-                    // Adapter failed for this CM, skip gracefully.
+        // Adapter-level dates — one describe_instances() call per adapter/component
+        // instead of one describe_instance() per CM (avoids N+1 query pattern).
+        $bycmid = [];
+        foreach ($cms as $cm) {
+            $bycmid[(int) $cm->id] = $cm;
+        }
+        $bycomponent = [];
+        foreach ($cms as $cm) {
+            $component = $cm->get_component();
+            if ($this->registry->get_for_component($component) !== null) {
+                $bycomponent[$component][] = (int) $cm->id;
+            }
+        }
+        foreach ($bycomponent as $component => $cmids) {
+            $adapter = $this->registry->get_for_component($component);
+            if ($adapter === null) {
+                continue;
+            }
+            try {
+                $descriptions = $adapter->describe_instances($cmids);
+            } catch (\Throwable $e) {
+                // Adapter bulk call failed; skip this component gracefully.
+                continue;
+            }
+            foreach ($cmids as $cmid) {
+                $description = $descriptions[$cmid] ?? null;
+                if ($description === null) {
                     continue;
+                }
+                $cm = $bycmid[$cmid];
+                $modname = (string) ($cm->modname ?? '');
+                foreach (($description['dates'] ?? []) as $fieldname => $value) {
+                    if ((int) $value > 0) {
+                        $entries[] = [
+                            'cmid'       => $cmid,
+                            'name'       => $cm->name,
+                            'modname'    => $modname,
+                            'component'  => $component,
+                            'field'      => $fieldname,
+                            'fieldlabel' => field_label_resolver::resolve($fieldname, $modname, 'cm'),
+                            'timestamp'  => (int) $value,
+                            'source'     => 'adapter',
+                        ];
+                    }
                 }
             }
         }

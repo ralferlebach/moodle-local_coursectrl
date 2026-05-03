@@ -89,63 +89,6 @@
     </TABLE>
 
     <!-- ============================================================
-         local_coursectrl_preset
-         Saved action templates for recurring bulk operations.
-         ============================================================ -->
-    <TABLE NAME="local_coursectrl_preset" COMMENT="Saved action presets">
-      <FIELDS>
-        <FIELD NAME="id"           TYPE="int"  LENGTH="10"  NOTNULL="true"  SEQUENCE="true"/>
-        <FIELD NAME="userid"       TYPE="int"  LENGTH="10"  NOTNULL="true"/>
-        <FIELD NAME="courseid"     TYPE="int"  LENGTH="10"  NOTNULL="false"
-               COMMENT="NULL = site-wide preset"/>
-        <FIELD NAME="name"         TYPE="char" LENGTH="255" NOTNULL="true"/>
-        <FIELD NAME="description"  TYPE="text"              NOTNULL="false"
-               COMMENT="Optional human-readable description"/>
-        <FIELD NAME="action"       TYPE="char" LENGTH="64"  NOTNULL="true"/>
-        <FIELD NAME="configjson"   TYPE="text"              NOTNULL="true"/>
-        <FIELD NAME="scope"        TYPE="char" LENGTH="16"  NOTNULL="true"  DEFAULT="private"
-               COMMENT="private | course | site"/>
-        <FIELD NAME="timecreated"  TYPE="int"  LENGTH="10"  NOTNULL="true"/>
-        <FIELD NAME="timemodified" TYPE="int"  LENGTH="10"  NOTNULL="true"/>
-      </FIELDS>
-      <KEYS>
-        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-      </KEYS>
-      <INDEXES>
-        <INDEX NAME="idx_preset_user"   UNIQUE="false" FIELDS="userid"/>
-        <INDEX NAME="idx_preset_course" UNIQUE="false" FIELDS="courseid"/>
-        <INDEX NAME="idx_preset_scope"  UNIQUE="false" FIELDS="scope"/>
-      </INDEXES>
-    </TABLE>
-
-    <!-- ============================================================
-         local_coursectrl_report
-         Stored analysis and consistency-check reports.
-         ============================================================ -->
-    <TABLE NAME="local_coursectrl_report" COMMENT="Stored analysis and check reports">
-      <FIELDS>
-        <FIELD NAME="id"          TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="true"/>
-        <FIELD NAME="courseid"    TYPE="int"  LENGTH="10" NOTNULL="true"/>
-        <FIELD NAME="userid"      TYPE="int"  LENGTH="10" NOTNULL="true"/>
-        <FIELD NAME="reporttype"  TYPE="char" LENGTH="64" NOTNULL="true"
-               COMMENT="timeline | graph | risk | simulation | consistency"/>
-        <FIELD NAME="configjson"  TYPE="text"             NOTNULL="false"
-               COMMENT="Optional report configuration"/>
-        <FIELD NAME="resultjson"  TYPE="text"             NOTNULL="true"/>
-        <FIELD NAME="timecreated" TYPE="int"  LENGTH="10" NOTNULL="true"/>
-      </FIELDS>
-      <KEYS>
-        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-      </KEYS>
-      <INDEXES>
-        <INDEX NAME="idx_report_course"  UNIQUE="false" FIELDS="courseid"/>
-        <INDEX NAME="idx_report_user"    UNIQUE="false" FIELDS="userid"/>
-        <INDEX NAME="idx_report_type"    UNIQUE="false" FIELDS="reporttype"/>
-        <INDEX NAME="idx_report_created" UNIQUE="false" FIELDS="timecreated"/>
-      </INDEXES>
-    </TABLE>
-
-    <!-- ============================================================
          local_coursectrl_text_hit
          Detected date/time references inside free-text fields.
          ============================================================ -->

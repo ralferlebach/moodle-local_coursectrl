@@ -26,12 +26,11 @@ require_once(__DIR__ . '/../../config.php');
 
 use local_coursectrl\local\navigation\navigation_builder;
 
-
-require_login();
-
 $courseid = optional_param('courseid', 0, PARAM_INT);
 
 if (!$courseid) {
+    // No course supplied — show a warning to the logged-in user.
+    require_login();
     $context = context_system::instance();
     $PAGE->set_context($context);
     $PAGE->set_url(new moodle_url('/local/coursectrl/index.php'));
@@ -49,6 +48,7 @@ if (!$courseid) {
 
 $course = get_course($courseid);
 $context = context_course::instance($courseid);
+require_login($course);   // Enforces enrolment check for course-scoped pages.
 require_capability('local/coursectrl:view', $context);
 
 $PAGE->set_course($course);

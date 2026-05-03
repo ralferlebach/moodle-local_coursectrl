@@ -91,7 +91,37 @@ class calendar_manager {
             $current = strtotime('+1 month', $current);
         }
 
+        // Self-heal after cache-purge: if at least one provider is enabled
+        // but the cache returns nothing for a non-trivial range, queue the
+        // adhoc warmer so the next cron tick repopulates the cache.
+        // Idempotent — reschedule_or_queue dedupes across requests, the
+        // static guard dedupes within a request.
+        if (empty($result) && $from < $to) {
+            $this->maybe_queue_warmer();
+        }
+
         return $result;
+    }
+
+    /**
+     * Queue a one-shot warmer task at most once per PHP request.
+     *
+     * @return void
+     */
+    private function maybe_queue_warmer(): void {
+        static $queued = false;
+        if ($queued) {
+            return;
+        }
+        $queued = true;
+        try {
+            \local_coursectrl\task\warm_calendar_cache_adhoc::queue();
+        } catch (\Throwable $e) {
+            debugging(
+                'local_coursectrl maybe_queue_warmer failed: ' . $e->getMessage(),
+                DEBUG_DEVELOPER
+            );
+        }
     }
 
     /**

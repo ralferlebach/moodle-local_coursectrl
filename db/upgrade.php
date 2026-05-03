@@ -64,5 +64,49 @@ function xmldb_local_coursectrl_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026041904, 'local', 'coursectrl');
     }
 
+    if ($oldversion < 2026042830) {
+        // 1.1.0: holiday cache is now warmed via a scheduled task and an
+        // adhoc twin. Run a synchronous warm now so existing installations
+        // see holidays immediately after the upgrade rather than waiting
+        // up to 24 hours for the next nightly cron tick. The adhoc fallback
+        // is also queued in case the synchronous run fails (network down,
+        // misconfigured provider, etc.).
+        // Queue adhoc task only; synchronous warming removed from upgrade
+        // to keep upgrade deterministic and free of external IO.
+        \local_coursectrl\task\warm_calendar_cache_adhoc::queue();
+
+        upgrade_plugin_savepoint(true, 2026042830, 'local', 'coursectrl');
+    }
+
+    if ($oldversion < 2026042908) {
+        // Re-queue calendar cache warm after cache purge from version bumps.
+        // Moodle purges all caches after any plugin upgrade, so the MUC caldata
+        // cache becomes empty. Queue the adhoc task so the next cron tick
+        // repopulates holiday data without requiring an admin intervention.
+        // Queue adhoc task only; synchronous warming removed from upgrade
+        // to keep upgrade deterministic and free of external IO.
+        \local_coursectrl\task\warm_calendar_cache_adhoc::queue();
+
+        upgrade_plugin_savepoint(true, 2026042908, 'local', 'coursectrl');
+    }
+
+    if ($oldversion < 2026042952) {
+        // Remove unused local_coursectrl_preset and local_coursectrl_report tables.
+        // These tables were defined in install.xml but never implemented. Removing
+        // them keeps the schema honest and prevents confusion during future upgrades.
+        foreach (['local_coursectrl_preset', 'local_coursectrl_report'] as $tablename) {
+            $table = new xmldb_table($tablename);
+            if ($dbman->table_exists($table)) {
+                $dbman->drop_table($table);
+            }
+        }
+        upgrade_plugin_savepoint(true, 2026042952, 'local', 'coursectrl');
+    }
+
+    if ($oldversion < 2026050300) {
+        // Version 1.0.0: no schema changes; savepoint marks stable release.
+        upgrade_plugin_savepoint(true, 2026050300, 'local', 'coursectrl');
+    }
+
     return true;
 }

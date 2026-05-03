@@ -26,6 +26,7 @@ namespace local_coursectrl\local\analysis;
 
 use local_coursectrl\local\entity\cm_item;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\analysis\risk_prioritizer::class)]
 /**
  * Unit tests for risk_prioritizer::score_and_sort().
  *
@@ -93,6 +94,7 @@ final class risk_prioritizer_test extends \advanced_testcase {
 
     /**
      * Empty input → empty output.
+     * @covers \local_coursectrl\local\analysis\risk_prioritizer
      */
     public function test_empty_returns_empty(): void {
         $this->resetAfterTest();
@@ -103,6 +105,7 @@ final class risk_prioritizer_test extends \advanced_testcase {
 
     /**
      * A single risk item gets a score key added.
+     * @covers \local_coursectrl\local\analysis\risk_prioritizer
      */
     public function test_single_item_gets_score(): void {
         $this->resetAfterTest();
@@ -118,6 +121,7 @@ final class risk_prioritizer_test extends \advanced_testcase {
 
     /**
      * Error with probability=1, affected=1, no downstream → score = 40+20+2+0 = 62.
+     * @covers \local_coursectrl\local\analysis\risk_prioritizer
      */
     public function test_score_error_single_no_downstream(): void {
         $this->resetAfterTest();
@@ -129,6 +133,7 @@ final class risk_prioritizer_test extends \advanced_testcase {
 
     /**
      * Warning with probability=1, affected=1, no downstream → score = 20+20+2+0 = 42.
+     * @covers \local_coursectrl\local\analysis\risk_prioritizer
      */
     public function test_score_warning_single_no_downstream(): void {
         $this->resetAfterTest();
@@ -140,6 +145,7 @@ final class risk_prioritizer_test extends \advanced_testcase {
 
     /**
      * Notice with probability=1, affected=1, no downstream → score = 5+20+2+0 = 27.
+     * @covers \local_coursectrl\local\analysis\risk_prioritizer
      */
     public function test_score_notice_single_no_downstream(): void {
         $this->resetAfterTest();
@@ -151,6 +157,7 @@ final class risk_prioritizer_test extends \advanced_testcase {
 
     /**
      * affected_count cap at 10 (2×10=20): error + 10 affected → 40+20+20+0 = 80.
+     * @covers \local_coursectrl\local\analysis\risk_prioritizer
      */
     public function test_score_affected_count_capped(): void {
         $this->resetAfterTest();
@@ -162,6 +169,7 @@ final class risk_prioritizer_test extends \advanced_testcase {
 
     /**
      * Score is capped at 100.
+     * @covers \local_coursectrl\local\analysis\risk_prioritizer
      */
     public function test_score_capped_at_100(): void {
         $this->resetAfterTest();
@@ -176,6 +184,7 @@ final class risk_prioritizer_test extends \advanced_testcase {
 
     /**
      * Downstream CMs add to the score (max +20).
+     * @covers \local_coursectrl\local\analysis\risk_prioritizer
      */
     public function test_downstream_increases_score(): void {
         $this->resetAfterTest();
@@ -198,6 +207,7 @@ final class risk_prioritizer_test extends \advanced_testcase {
 
     /**
      * Probability=0.5 adds only 10 (not 20) to the score.
+     * @covers \local_coursectrl\local\analysis\risk_prioritizer
      */
     public function test_probability_half_adds_ten(): void {
         $this->resetAfterTest();
@@ -212,6 +222,7 @@ final class risk_prioritizer_test extends \advanced_testcase {
 
     /**
      * Higher score items appear first.
+     * @covers \local_coursectrl\local\analysis\risk_prioritizer
      */
     public function test_sorted_by_score_descending(): void {
         $this->resetAfterTest();
@@ -228,6 +239,7 @@ final class risk_prioritizer_test extends \advanced_testcase {
 
     /**
      * Equal scores: errors precede warnings precede notices.
+     * @covers \local_coursectrl\local\analysis\risk_prioritizer
      */
     public function test_equal_score_sorted_by_severity(): void {
         $this->resetAfterTest();
@@ -249,6 +261,7 @@ final class risk_prioritizer_test extends \advanced_testcase {
 
     /**
      * Output items carry both score and downstream_count.
+     * @covers \local_coursectrl\local\analysis\risk_prioritizer
      */
     public function test_output_has_score_and_downstream_count(): void {
         $this->resetAfterTest();
@@ -261,6 +274,7 @@ final class risk_prioritizer_test extends \advanced_testcase {
 
     /**
      * Original risk fields are preserved in output.
+     * @covers \local_coursectrl\local\analysis\risk_prioritizer
      */
     public function test_original_fields_preserved(): void {
         $this->resetAfterTest();
@@ -274,6 +288,7 @@ final class risk_prioritizer_test extends \advanced_testcase {
 
     /**
      * Unknown severity falls back gracefully (uses notice base=5).
+     * @covers \local_coursectrl\local\analysis\risk_prioritizer
      */
     public function test_unknown_severity_handled(): void {
         $this->resetAfterTest();

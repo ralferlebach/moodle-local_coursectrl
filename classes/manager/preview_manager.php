@@ -101,6 +101,12 @@ class preview_manager {
     public function build(int $courseid, string $action, array $payload, array $cmids = []): array {
         if (empty($cmids)) {
             $cmids = $this->collect_supported_cmids_for_course($courseid);
+        } else {
+            $requested = array_values(array_unique(array_map('intval', $cmids)));
+            $cmids = $this->filter_cmids_to_course($courseid, $requested);
+            if (count($cmids) !== count($requested)) {
+                throw new \moodle_exception('invalidcmid', 'local_coursectrl');
+            }
         }
         $byadapter = $this->group_cmids_by_adapter($cmids, $action);
         $changes = [];
@@ -224,6 +230,38 @@ class preview_manager {
      * an empty cmids list.
      *
      * @param int $courseid target course id.
+     * @return int[]
+     */
+    /**
+     * Return only course module ids that belong to the given course.
+     *
+     * @param int   $courseid Course id to filter against.
+     * @param int[] $cmids    Caller-supplied course module ids.
+     * @return int[] Subset of $cmids that belong to $courseid.
+     */
+    private function filter_cmids_to_course(int $courseid, array $cmids): array {
+        global $DB;
+        $cmids = array_values(array_unique(array_map('intval', $cmids)));
+        if (empty($cmids)) {
+            return [];
+        }
+        [$insql, $params] = $DB->get_in_or_equal($cmids, SQL_PARAMS_NAMED);
+        $params['courseid'] = $courseid;
+        $validids = $DB->get_fieldset_select(
+            'course_modules',
+            'id',
+            "course = :courseid AND deletioninprogress = 0 AND id {$insql}",
+            $params
+        );
+        return array_values(array_map('intval', $validids));
+    }
+
+    /**
+     * Collect every cmid in the course whose component has a registered adapter.
+     *
+     * Used as the default target set when build() is called with an empty cmids list.
+     *
+     * @param int $courseid Target course id.
      * @return int[]
      */
     private function collect_supported_cmids_for_course(int $courseid): array {

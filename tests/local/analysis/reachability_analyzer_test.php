@@ -26,6 +26,7 @@ namespace local_coursectrl\local\analysis;
 
 use local_coursectrl\local\entity\cm_item;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\analysis\reachability_analyzer::class)]
 /**
  * Unit tests for reachability_analyzer::analyze().
  *
@@ -70,6 +71,7 @@ final class reachability_analyzer_test extends \advanced_testcase {
 
     /**
      * No issues when no CM has availability restrictions.
+     * @covers \local_coursectrl\local\analysis\reachability_analyzer
      */
     public function test_no_restrictions_returns_empty(): void {
         $this->resetAfterTest();
@@ -85,6 +87,7 @@ final class reachability_analyzer_test extends \advanced_testcase {
 
     /**
      * No issues when the prerequisite CM exists and has tracking enabled.
+     * @covers \local_coursectrl\local\analysis\reachability_analyzer
      */
     public function test_valid_dep_no_issue(): void {
         $this->resetAfterTest();
@@ -100,6 +103,7 @@ final class reachability_analyzer_test extends \advanced_testcase {
 
     /**
      * dangling_dep when the prerequisite cmid is not in the inventory.
+     * @covers \local_coursectrl\local\analysis\reachability_analyzer
      */
     public function test_missing_dep_cmid_is_dangling(): void {
         $this->resetAfterTest();
@@ -118,6 +122,7 @@ final class reachability_analyzer_test extends \advanced_testcase {
 
     /**
      * impossible_dep when the prerequisite CM has completion === 0.
+     * @covers \local_coursectrl\local\analysis\reachability_analyzer
      */
     public function test_dep_with_no_tracking_is_impossible(): void {
         $this->resetAfterTest();
@@ -136,6 +141,7 @@ final class reachability_analyzer_test extends \advanced_testcase {
 
     /**
      * Multiple prerequisites with mixed states produce multiple issues.
+     * @covers \local_coursectrl\local\analysis\reachability_analyzer
      */
     public function test_multiple_prereqs_produce_multiple_issues(): void {
         $this->resetAfterTest();
@@ -163,6 +169,7 @@ final class reachability_analyzer_test extends \advanced_testcase {
 
     /**
      * CM with completion tracking enabled (1 = manual) is not flagged as impossible.
+     * @covers \local_coursectrl\local\analysis\reachability_analyzer
      */
     public function test_manual_completion_not_impossible(): void {
         $this->resetAfterTest();
@@ -178,6 +185,7 @@ final class reachability_analyzer_test extends \advanced_testcase {
 
     /**
      * The CM providing the prerequisite is not itself flagged.
+     * @covers \local_coursectrl\local\analysis\reachability_analyzer
      */
     public function test_provider_cm_not_flagged(): void {
         $this->resetAfterTest();

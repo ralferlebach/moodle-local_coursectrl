@@ -35,7 +35,10 @@ $context = context_course::instance($courseid);
 require_login($course);
 require_capability('local/coursectrl:view', $context);
 
-$PAGE->set_url(new moodle_url('/local/coursectrl/history.php', ['courseid' => $courseid]));
+$PAGE->set_url(new moodle_url('/local/coursectrl/history.php', [
+    'courseid' => $courseid,
+    'page'     => $page,
+]));
 $PAGE->set_context($context);
 $PAGE->set_title(get_string('nav_history', 'local_coursectrl'));
 $PAGE->set_heading(format_string($course->fullname));
@@ -49,7 +52,7 @@ $PAGE->navbar->add(get_string('nav_history', 'local_coursectrl'));
 
 $navbar = navigation_builder::make($courseid, navigation_builder::KEY_HISTORY);
 
-$renderable = new history_page($courseid);
+$renderable = new history_page($courseid, null, 20, $page);
 
 /** @var \local_coursectrl\output\renderer $renderer */
 $renderer = $PAGE->get_renderer('local_coursectrl');

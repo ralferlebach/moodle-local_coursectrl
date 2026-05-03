@@ -38,8 +38,8 @@ $followdeps = optional_param('followdeps', 0, PARAM_INT);
 $deltadays  = optional_param('delta_days', 0, PARAM_INT);
 $deltahours   = optional_param('delta_hours', 0, PARAM_INT);
 $deltaminutes = optional_param('delta_minutes', 0, PARAM_INT);
-$fieldsraw  = optional_param('fields', '', PARAM_RAW);
-$shiftfieldsraw = optional_param('shift_fields', '', PARAM_RAW);
+$fieldsraw      = optional_param('fields', '', PARAM_TEXT);
+$shiftfieldsraw = optional_param('shift_fields', '', PARAM_TEXT);
 $scantext   = optional_param('scan_text', 0, PARAM_INT);
 $formatjson = optional_param('format', '', PARAM_ALPHA) === 'json';
 
@@ -139,6 +139,11 @@ if ($nothingtodo) {
 $manager = new \local_coursectrl\manager\batch_manager();
 $batchid = $manager->execute($courseid, $actiontype, $payload, $cmids, (int) $USER->id);
 
+// Rebuild Moodle's coursemodinfo cache so availability-date changes are
+// immediately visible — system-level shifts update course_modules directly
+// and do not go through module APIs that normally trigger cache invalidation.
+rebuild_course_cache($courseid);
+
 // Purge cached text hits so the next text review sees fresh data.
 (new \local_coursectrl\manager\textreview_manager())->purge_hits($courseid);
 
@@ -224,9 +229,13 @@ if (
             $collisionnotices[] = $result['message'] ?? get_string('shift_collision_generic', 'local_coursectrl');
         }
     }
-    // Store collision notices in session so timeline_page can read them.
+    // Store collision notices in Moodle's session object so timeline_page can read them.
+    // Using $SESSION (Moodle's global session stdClass) rather than $_SESSION directly,
+    // because Moodle may use non-PHP-native session backends (Redis, memcached, etc.).
     if (!empty($collisionnotices)) {
-        $_SESSION['coursectrl_collisions_' . $batchid] = json_encode($collisionnotices);
+        global $SESSION;
+        $sessionprop = 'coursectrl_collisions_' . $batchid;
+        $SESSION->$sessionprop = json_encode($collisionnotices);
     }
 
     redirect(new \moodle_url('/local/coursectrl/timeline.php', [

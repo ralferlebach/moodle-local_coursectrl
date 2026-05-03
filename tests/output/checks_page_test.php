@@ -24,6 +24,7 @@
 
 namespace local_coursectrl\output;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\output\checks_page::class)]
 /**
  * Unit tests for checks_page::export_for_template().
  *
@@ -71,6 +72,7 @@ final class checks_page_test extends \advanced_testcase {
 
     /**
      * All mandatory top-level keys are present in the exported context.
+     * @covers \local_coursectrl\output\checks_page
      */
     public function test_export_has_required_top_level_keys(): void {
         $this->resetAfterTest();
@@ -96,6 +98,7 @@ final class checks_page_test extends \advanced_testcase {
 
     /**
      * courseid matches the supplied course.
+     * @covers \local_coursectrl\output\checks_page
      */
     public function test_courseid_matches_course(): void {
         $this->resetAfterTest();
@@ -106,6 +109,7 @@ final class checks_page_test extends \advanced_testcase {
 
     /**
      * coursefullname matches the course fullname.
+     * @covers \local_coursectrl\output\checks_page
      */
     public function test_coursefullname_matches(): void {
         $this->resetAfterTest();
@@ -116,6 +120,7 @@ final class checks_page_test extends \advanced_testcase {
 
     /**
      * checksurl and runurl are non-empty strings.
+     * @covers \local_coursectrl\output\checks_page
      */
     public function test_urls_are_non_empty_strings(): void {
         $this->resetAfterTest();
@@ -131,6 +136,7 @@ final class checks_page_test extends \advanced_testcase {
 
     /**
      * Default tab is 'consistency': tab_consistency=true, others=false.
+     * @covers \local_coursectrl\output\checks_page
      */
     public function test_default_tab_is_consistency(): void {
         $this->resetAfterTest();
@@ -143,6 +149,7 @@ final class checks_page_test extends \advanced_testcase {
 
     /**
      * activetab='risks' sets tab_risks=true, others=false.
+     * @covers \local_coursectrl\output\checks_page
      */
     public function test_risks_tab_routing(): void {
         $this->resetAfterTest();
@@ -155,6 +162,7 @@ final class checks_page_test extends \advanced_testcase {
 
     /**
      * activetab='simulation' sets tab_simulation=true, others=false.
+     * @covers \local_coursectrl\output\checks_page
      */
     public function test_simulation_tab_routing(): void {
         $this->resetAfterTest();
@@ -167,6 +175,7 @@ final class checks_page_test extends \advanced_testcase {
 
     /**
      * An invalid activetab value falls back to 'consistency'.
+     * @covers \local_coursectrl\output\checks_page
      */
     public function test_invalid_tab_falls_back_to_consistency(): void {
         $this->resetAfterTest();
@@ -180,6 +189,7 @@ final class checks_page_test extends \advanced_testcase {
 
     /**
      * The 'consistency' array has the required structural keys.
+     * @covers \local_coursectrl\output\checks_page
      */
     public function test_consistency_array_has_required_keys(): void {
         $this->resetAfterTest();
@@ -196,6 +206,7 @@ final class checks_page_test extends \advanced_testcase {
 
     /**
      * An empty course (no activities) yields hasitems=false, all counts=0.
+     * @covers \local_coursectrl\output\checks_page
      */
     public function test_empty_course_consistency_is_clean(): void {
         $this->resetAfterTest();
@@ -212,6 +223,7 @@ final class checks_page_test extends \advanced_testcase {
 
     /**
      * errorcount + warningcount + noticecount equals totalcount when all are consistent.
+     * @covers \local_coursectrl\output\checks_page
      */
     public function test_consistency_counts_sum_correctly(): void {
         $this->resetAfterTest();
@@ -228,6 +240,7 @@ final class checks_page_test extends \advanced_testcase {
 
     /**
      * The 'risks' array has the required structural keys.
+     * @covers \local_coursectrl\output\checks_page
      */
     public function test_risks_array_has_required_keys(): void {
         $this->resetAfterTest();
@@ -247,6 +260,7 @@ final class checks_page_test extends \advanced_testcase {
 
     /**
      * Without a prior run, haslastrun=false and lastrundate is empty.
+     * @covers \local_coursectrl\output\checks_page
      */
     public function test_risks_no_prior_run(): void {
         $this->resetAfterTest();
@@ -264,6 +278,7 @@ final class checks_page_test extends \advanced_testcase {
      *
      * An assign with a past duedate ensures at least one risk row is persisted,
      * so last_run_time() returns a positive value on the subsequent load.
+     * @covers \local_coursectrl\output\checks_page
      */
     public function test_freshrun_persists_results(): void {
         $this->resetAfterTest();
@@ -289,6 +304,7 @@ final class checks_page_test extends \advanced_testcase {
 
     /**
      * Each risk row (when present) contains the required display fields.
+     * @covers \local_coursectrl\output\checks_page
      */
     public function test_risk_row_shape_when_present(): void {
         $this->resetAfterTest();
@@ -325,6 +341,7 @@ final class checks_page_test extends \advanced_testcase {
 
     /**
      * The 'simulation' array contains at least the simulationhtml key.
+     * @covers \local_coursectrl\output\checks_page
      */
     public function test_simulation_array_has_simulationhtml(): void {
         $this->resetAfterTest();
@@ -337,6 +354,7 @@ final class checks_page_test extends \advanced_testcase {
 
     /**
      * An assign with allowsubmissionsfromdate > duedate raises a consistency error.
+     * @covers \local_coursectrl\output\checks_page
      */
     public function test_consistency_catches_temporal_conflict(): void {
         $this->resetAfterTest();
@@ -362,6 +380,7 @@ final class checks_page_test extends \advanced_testcase {
 
     /**
      * totalcount in consistency is never negative.
+     * @covers \local_coursectrl\output\checks_page
      */
     public function test_consistency_totalcount_non_negative(): void {
         $this->resetAfterTest();

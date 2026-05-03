@@ -27,6 +27,7 @@ namespace local_coursectrl\manager;
 use local_coursectrl\local\persistent\batch;
 use local_coursectrl\local\persistent\snapshot;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\manager\rollback_manager::class)]
 /**
  * Unit tests for rollback_manager.
  *
@@ -83,6 +84,7 @@ final class rollback_manager_test extends \advanced_testcase {
 
     /**
      * get_course_batches returns empty array when no batches exist.
+     * @covers \local_coursectrl\manager\rollback_manager
      */
     public function test_get_course_batches_empty(): void {
         $this->resetAfterTest();
@@ -92,6 +94,7 @@ final class rollback_manager_test extends \advanced_testcase {
 
     /**
      * get_course_batches returns batches for the course newest-first.
+     * @covers \local_coursectrl\manager\rollback_manager
      */
     public function test_get_course_batches_returns_newest_first(): void {
         $this->resetAfterTest();
@@ -111,6 +114,7 @@ final class rollback_manager_test extends \advanced_testcase {
 
     /**
      * can_rollback is true only for executed batches that have snapshots.
+     * @covers \local_coursectrl\manager\rollback_manager
      */
     public function test_can_rollback_flag(): void {
         $this->resetAfterTest();
@@ -127,6 +131,7 @@ final class rollback_manager_test extends \advanced_testcase {
 
     /**
      * can_rollback is false for a batch without snapshots.
+     * @covers \local_coursectrl\manager\rollback_manager
      */
     public function test_no_snapshots_cannot_rollback(): void {
         $this->resetAfterTest();
@@ -142,41 +147,45 @@ final class rollback_manager_test extends \advanced_testcase {
 
     /**
      * rollback_batch returns error result for non-existent batch.
+     * @covers \local_coursectrl\manager\rollback_manager
      */
     public function test_rollback_nonexistent_batch_returns_error(): void {
         $this->resetAfterTest();
         $manager = new rollback_manager();
-        $result = $manager->rollback_batch(999999, 2);
+        $result = $manager->rollback_batch(0, 999999, 2);
         $this->assertFalse($result['success']);
         $this->assertSame('batch_not_found', $result['error']);
     }
 
     /**
      * rollback_batch rejects batches not in 'executed' status.
+     * @covers \local_coursectrl\manager\rollback_manager
      */
     public function test_rollback_non_executed_batch_rejected(): void {
         $this->resetAfterTest();
         $batchid = $this->create_batch(1, batch::STATUS_ROLLED_BACK);
         $manager = new rollback_manager();
-        $result = $manager->rollback_batch($batchid, 2);
+        $result = $manager->rollback_batch(1, $batchid, 2);
         $this->assertFalse($result['success']);
         $this->assertSame('batch_not_rollbackable', $result['error']);
     }
 
     /**
      * rollback_batch returns error when no snapshots exist for the batch.
+     * @covers \local_coursectrl\manager\rollback_manager
      */
     public function test_rollback_with_no_snapshots_returns_error(): void {
         $this->resetAfterTest();
         $batchid = $this->create_batch(1, batch::STATUS_EXECUTED);
         $manager = new rollback_manager();
-        $result = $manager->rollback_batch($batchid, 2);
+        $result = $manager->rollback_batch(1, $batchid, 2);
         $this->assertFalse($result['success']);
         $this->assertSame('no_snapshots', $result['error']);
     }
 
     /**
      * rollback_batch returns error-item when no adapter is registered for a component.
+     * @covers \local_coursectrl\manager\rollback_manager
      */
     public function test_rollback_missing_adapter_recorded_as_error(): void {
         $this->resetAfterTest();
@@ -184,7 +193,7 @@ final class rollback_manager_test extends \advanced_testcase {
         $this->create_snapshot($batchid, 10, 'mod_nonexistent', ['foo' => 1]);
 
         $manager = new rollback_manager();
-        $result = $manager->rollback_batch($batchid, 2);
+        $result = $manager->rollback_batch(1, $batchid, 2);
 
         // Failed because no adapter exists.
         $this->assertFalse($result['success']);
@@ -192,5 +201,50 @@ final class rollback_manager_test extends \advanced_testcase {
         $this->assertSame(1, $result['failed']);
         $this->assertSame('error', $result['items'][0]['status']);
         $this->assertSame('no_adapter', $result['items'][0]['message']);
+    }
+
+    /**
+     * rollback_batch restores core_coursemodule snapshot without an adapter.
+     * Verifies P0 fix: completionexpected and availability are written back
+     * directly to course_modules; no adapter is required.
+     * @covers \local_coursectrl\manager\rollback_manager
+     */
+    public function test_rollback_core_coursemodule_restores_fields(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $course  = $this->getDataGenerator()->create_course();
+        $assign  = $this->getDataGenerator()->create_module('assign', ['course' => $course->id]);
+        $cmid    = (int) $assign->cmid;
+        $oldval  = mktime(9, 0, 0, 6, 1, 2026);
+        $newval  = $oldval + 86400;
+
+        // Simulate a CM-level shift: set completionexpected to the shifted value.
+        $DB->set_field('course_modules', 'completionexpected', $newval, ['id' => $cmid]);
+
+        // Create a batch and a core_coursemodule snapshot with the old value.
+        $batchid = $this->create_batch($course->id, batch::STATUS_EXECUTED);
+        $this->create_snapshot(
+            $batchid,
+            $cmid,
+            'core_coursemodule',
+            ['completionexpected' => $oldval, 'availability' => '']
+        );
+
+        $manager = new rollback_manager();
+        $result  = $manager->rollback_batch($course->id, $batchid, 2);
+
+        $this->assertTrue($result['success'], 'Rollback must succeed');
+        $this->assertSame(1, $result['restored']);
+        $this->assertSame(0, $result['failed']);
+
+        // Verify the DB row was actually restored.
+        $restored = $DB->get_field('course_modules', 'completionexpected', ['id' => $cmid]);
+        $this->assertSame($oldval, (int) $restored, 'completionexpected must be rolled back');
+
+        // No no_adapter errors.
+        foreach ($result['items'] as $item) {
+            $this->assertNotSame('no_adapter', $item['message']);
+        }
     }
 }

@@ -64,14 +64,26 @@ class course_frame_checker {
     ];
 
     /**
+     * Completion criteria type constant for activity-based criteria.
+     * Matches core completion_criteria::COMPLETION_CRITERIA_TYPE_ACTIVITY.
+     *
+     * @var int
+     */
+    private const CRITERIA_TYPE_ACTIVITY = 4;
+
+    /**
      * Check all CMs against the course time frame.
      *
-     * @param cm_item[] $cms      Course modules keyed by cmid.
-     * @param array     $datesbycm Per-CM date entries from date_collector.
-     * @param object    $course   Course record (needs startdate, enddate).
+     * @param cm_item[] $cms        Course modules keyed by cmid.
+     * @param array     $datesbycm  Per-CM date entries from date_collector.
+     * @param object    $course     Course record (needs startdate, enddate).
+     * @param int[]     $critcmids  Cmids required for course completion.
+     *                              When an issue affects one of these, its
+     *                              severity is escalated one level:
+     *                              notice → warning, warning → error.
      * @return array<int, array[]> cmid → list of R0 issues.
      */
-    public function check(array $cms, array $datesbycm, object $course): array {
+    public function check(array $cms, array $datesbycm, object $course, array $critcmids = []): array {
         $coursestart = (int)($course->startdate ?? 0);
         $courseend = (int)($course->enddate ?? 0);
         $now = time();
@@ -140,6 +152,27 @@ class course_frame_checker {
                     }
                 }
             }
+        }
+
+        // Escalate severity for activities required for course completion.
+        if (!empty($critcmids)) {
+            $critset = array_flip($critcmids);
+            foreach ($issues as $cmid => &$cmissues) {
+                if (!isset($critset[$cmid])) {
+                    continue;
+                }
+                foreach ($cmissues as &$issue) {
+                    if (($issue['severity'] ?? '') === 'warning') {
+                        $issue['severity'] = 'error';
+                        $issue['completion_escalated'] = true;
+                    } else if (($issue['severity'] ?? '') === 'notice') {
+                        $issue['severity'] = 'warning';
+                        $issue['completion_escalated'] = true;
+                    }
+                }
+                unset($issue);
+            }
+            unset($cmissues);
         }
 
         return $issues;

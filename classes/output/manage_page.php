@@ -58,6 +58,7 @@ class manage_page implements renderable, templatable {
      * @return array
      */
     public function export_for_template(renderer_base $output): array {
+        global $DB;
         $course = $this->snapshot->course;
 
         // Collect which CMs actually have date fields.
@@ -101,27 +102,127 @@ class manage_page implements renderable, templatable {
             ];
         }
 
-        $sections = [];
-        foreach ($this->snapshot->sections as $section) {
-            $sectioncms = $cmsbysection[$section->id] ?? [];
-            $sectionhasdates = false;
-            foreach ($sectioncms as $cmdata) {
-                if ($cmdata['hasdates']) {
-                    $sectionhasdates = true;
-                    break;
+        // Resolve locale-aware section names and build subsection nesting.
+        $sectionnamesbyid = [];
+        try {
+            // Get_section_name() requires a full DB stdClass with ->format.
+            // Course_item entity does not carry that property.
+            $dbcourse = get_course($course->id);
+            $modinfo = get_fast_modinfo($course->id);
+            foreach ($modinfo->get_section_info_all() as $sinfo) {
+                $sectionnamesbyid[(int) $sinfo->id] = get_section_name($dbcourse, $sinfo);
+            }
+        } catch (\Throwable $e) {
+            // Non-fatal: section names fall back to raw name or section number.
+            debugging('local_coursectrl: get_section_name failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+        // Build child-section map: Strategy 1 (DB), 2 (delegatesection), 3 (name).
+        $childsectionbysubcmid = [];
+        $subsectionsectionids = [];
+        $allsnapshotsections = $this->snapshot->sections;
+        $subsecrows = $DB->get_records_select(
+            'course_sections',
+            "course = ? AND component = 'mod_subsection' AND itemid > 0",
+            [$course->id],
+            '',
+            'id,itemid'
+        );
+        foreach ($subsecrows as $row) {
+            $sec = $allsnapshotsections[(int) $row->id] ?? null;
+            if ($sec !== null) {
+                $childsectionbysubcmid[(int) $row->itemid] = $sec;
+                $subsectionsectionids[(int) $row->id] = true;
+            }
+        }
+        // Strategy 2: cm_info->delegatesection + Strategy 3: name-matching.
+        try {
+            $minfo = get_fast_modinfo($course->id);
+            foreach ($minfo->get_cms() as $cminfo) {
+                if ($cminfo->modname !== 'subsection') {
+                    continue;
+                }
+                $cmid = (int) $cminfo->id;
+                if (isset($childsectionbysubcmid[$cmid])) {
+                    continue;
+                }
+                if (isset($cminfo->delegatesection) && $cminfo->delegatesection !== null) {
+                    $dsid = (int) $cminfo->delegatesection->id;
+                    $sec = $allsnapshotsections[$dsid] ?? null;
+                    if ($sec !== null) {
+                        $childsectionbysubcmid[$cmid] = $sec;
+                        $subsectionsectionids[$dsid] = true;
+                    }
+                    continue;
+                }
+                // Strategy 3: name-match.
+                $cmname = $cminfo->name;
+                foreach ($allsnapshotsections as $sec) {
+                    if ((string) $sec->name === (string) $cmname) {
+                        $childsectionbysubcmid[$cmid] = $sec;
+                        $subsectionsectionids[$sec->id] = true;
+                        break;
+                    }
                 }
             }
+        } catch (\Throwable $e) {
+            debugging('local_coursectrl: subsection map failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+        // Sort sections by sectionnum.
+        $allsections = array_values($this->snapshot->sections);
+        usort($allsections, fn ($a, $b) => $a->sectionnum <=> $b->sectionnum);
+        $sections = [];
+        foreach ($allsections as $section) {
+            if (isset($subsectionsectionids[$section->id])) {
+                continue; // Rendered inline under subsection CM.
+            }
+            $rawcms = $cmsbysection[$section->id] ?? [];
+            $sectioncms = [];
+            $sectionhasdates = false;
+            foreach ($rawcms as $cmdata) {
+                if ($cmdata['hasdates']) {
+                    $sectionhasdates = true;
+                }
+                // If this CM is a subsection, embed its child CMs.
+                if ($cmdata['modname'] === 'subsection') {
+                    $childsec = $childsectionbysubcmid[(int) $cmdata['cmid']] ?? null;
+                    $childcms = [];
+                    if ($childsec !== null) {
+                        foreach ($cmsbysection[$childsec->id] ?? [] as $childcm) {
+                            $childcm['depth'] = 2;
+                            $childcm['isindented'] = true;
+                            $childcms[] = $childcm;
+                            if ($childcm['hasdates']) {
+                                $sectionhasdates = true;
+                            }
+                        }
+                    }
+                    $cmdata['is_subsection_header'] = true;
+                    $cmdata['subsection_cms'] = $childcms;
+                    $cmdata['has_subsection_cms'] = !empty($childcms);
+                    $cmdata['depth'] = 1;
+                    $cmdata['subsection_name'] = $sectionnamesbyid[$childsec->id ?? 0]
+                        ?? ($cmdata['name'] ?? '');
+                } else {
+                    $cmdata['is_subsection_header'] = false;
+                    $cmdata['subsection_cms'] = [];
+                    $cmdata['has_subsection_cms'] = false;
+                    $cmdata['depth'] = 1;
+                }
+                $sectioncms[] = $cmdata;
+            }
+            $sectionname = $sectionnamesbyid[$section->id]
+                ?? ($section->name ?? get_string('section') . ' ' . $section->sectionnum);
             $sections[] = [
-                'id' => $section->id,
+                'id'         => $section->id,
                 'sectionnum' => $section->sectionnum,
-                'name' => $section->name ?? '',
-                'hasname' => $section->name !== null && $section->name !== '',
-                'visible' => $section->visible,
-                'cms' => $sectioncms,
-                'cmcount' => count($sectioncms),
-                'hascms' => count($sectioncms) > 0,
-                'hasdates' => $sectionhasdates,
-                'nodates' => !$sectionhasdates,
+                'name'       => $sectionname,
+                'hasname'    => true,
+                'visible'    => $section->visible,
+                'cms'        => $sectioncms,
+                'cmcount'    => count($sectioncms),
+                'hascms'     => count($sectioncms) > 0,
+                'hasdates'   => $sectionhasdates,
+                'nodates'    => !$sectionhasdates,
             ];
         }
 

@@ -27,6 +27,7 @@ namespace local_coursectrl\external;
 use core_external\external_api;
 use local_coursectrl\local\persistent\batch;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\external\execute_bulk_action::class)]
 /**
  * Integration tests for execute_bulk_action including capability
  * enforcement, DB mutation verification and result structure validation.
@@ -42,6 +43,7 @@ final class execute_bulk_action_test extends \advanced_testcase {
 
     /**
      * An editing teacher must be able to execute and get a valid result.
+     * @covers \local_coursectrl\external\execute_bulk_action
      */
     public function test_execute_returns_batch_for_teacher(): void {
         $this->resetAfterTest();
@@ -72,6 +74,7 @@ final class execute_bulk_action_test extends \advanced_testcase {
 
     /**
      * The DB must reflect the shifted dates after a successful execute call.
+     * @covers \local_coursectrl\external\execute_bulk_action
      */
     public function test_execute_mutates_db_state(): void {
         global $DB;
@@ -98,6 +101,7 @@ final class execute_bulk_action_test extends \advanced_testcase {
 
     /**
      * An enrolled student without the bulkaction cap must be rejected.
+     * @covers \local_coursectrl\external\execute_bulk_action
      */
     public function test_execute_rejects_student(): void {
         $this->resetAfterTest();
@@ -117,6 +121,7 @@ final class execute_bulk_action_test extends \advanced_testcase {
 
     /**
      * A non-enrolled user must be rejected by validate_context.
+     * @covers \local_coursectrl\external\execute_bulk_action
      */
     public function test_execute_rejects_unenrolled_user(): void {
         $this->resetAfterTest();
@@ -135,6 +140,7 @@ final class execute_bulk_action_test extends \advanced_testcase {
 
     /**
      * The batch row persisted by execute must be reloadable by id.
+     * @covers \local_coursectrl\external\execute_bulk_action
      */
     public function test_batch_row_is_persisted(): void {
         $this->resetAfterTest();
@@ -160,5 +166,32 @@ final class execute_bulk_action_test extends \advanced_testcase {
         $this->assertSame((int)$course->id, $batchrow->get('courseid'));
         $this->assertSame('shift_dates', $batchrow->get('action'));
         $this->assertSame((int)$teacher->id, $batchrow->get('userid'));
+    }
+
+    /**
+     * execute_bulk_action must reject a CMID that belongs to a different course.
+     * @covers \local_coursectrl\external\execute_bulk_action
+     */
+    public function test_execute_rejects_cmid_from_foreign_course(): void {
+        $this->resetAfterTest();
+
+        $course1  = $this->getDataGenerator()->create_course();
+        $course2  = $this->getDataGenerator()->create_course();
+        $teacher  = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($teacher->id, $course1->id, 'editingteacher');
+        $this->getDataGenerator()->enrol_user($teacher->id, $course2->id, 'editingteacher');
+
+        $assign2 = $this->getDataGenerator()
+            ->get_plugin_generator('mod_assign')
+            ->create_instance(['course' => $course2->id, 'duedate' => self::BASE_TIME]);
+
+        $this->setUser($teacher);
+        $this->expectException(\moodle_exception::class);
+        execute_bulk_action::execute(
+            (int) $course1->id,
+            'shift_dates',
+            json_encode(['delta' => self::ONE_DAY]),
+            [(int) $assign2->cmid]
+        );
     }
 }

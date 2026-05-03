@@ -35,7 +35,7 @@
  */
 
 namespace local_coursectrl\output;
-
+use local_coursectrl\local\field_label_resolver;
 use renderable;
 use renderer_base;
 use templatable;
@@ -95,6 +95,10 @@ class checks_page implements renderable, templatable {
             '/local/coursectrl/checks.php',
             ['courseid' => $courseid]
         ))->out(false);
+        $deepanalysisurl = (new \moodle_url(
+            '/local/coursectrl/checks.php',
+            ['courseid' => $courseid, 'tab' => 'risks', 'run' => '1']
+        ))->out(false);
 
         $svc = new inventory_service();
         $snapshot = $svc->build_for_course($courseid);
@@ -117,6 +121,7 @@ class checks_page implements renderable, templatable {
             'courseid'          => $courseid,
             'coursefullname'    => $this->course->fullname,
             'checksurl'         => $checksurl,
+            'deepanalysisurl'   => $deepanalysisurl,
             'tab_consistency'   => $this->activetab === 'consistency',
             'tab_risks'         => $this->activetab === 'risks',
             'tab_simulation'    => $this->activetab === 'simulation',
@@ -128,7 +133,8 @@ class checks_page implements renderable, templatable {
                 $cmnames,
                 $cmurls,
                 $courseid,
-                $snapshot->cms
+                $snapshot->cms,
+                array_values($snapshot->sections ?? [])
             ),
             'simulation'        => $this->build_simulation_tab($snapshot),
             'runurl'            => (new \moodle_url(
@@ -271,7 +277,7 @@ class checks_page implements renderable, templatable {
         $consequence = '';
         $action = '';
 
-        $dateformat = get_string('strftimedatetimeshort', 'langconfig');
+        $dateformat = get_string('strftimerecent', 'langconfig');
 
         if ($type === 'temporal_conflict') {
             $fearly = $issue['field_early'] ?? '';
@@ -369,8 +375,52 @@ class checks_page implements renderable, templatable {
             $detail = get_string('consistency_detail_dangling_group', 'local_coursectrl');
             $consequence = get_string('consistency_consequence_dangling_group', 'local_coursectrl');
             $action = get_string('consistency_action_dangling_group', 'local_coursectrl');
+        } else if ($type === 'r1_hidden') {
+            $headline     = get_string('consistency_headline_r1_hidden', 'local_coursectrl');
+            $detail       = get_string('consistency_detail_r1_hidden', 'local_coursectrl');
+            $consequence  = get_string('consistency_consequence_r1_hidden', 'local_coursectrl');
+            $action       = get_string('consistency_action_r1_hidden', 'local_coursectrl');
+        } else if ($type === 'r1_not_accessible') {
+            $headline     = get_string('consistency_headline_r1_not_accessible', 'local_coursectrl');
+            $detail       = get_string('consistency_detail_r1_not_accessible', 'local_coursectrl');
+            $consequence  = get_string('consistency_consequence_r1_not_accessible', 'local_coursectrl');
+            $action       = get_string('consistency_action_r1_not_accessible', 'local_coursectrl');
+        } else if (
+            $type === 'completionexpected_window'
+            || $type === 'completionexpected_after_deadline'
+            || $type === 'completionexpected_gap_exceeds_threshold'
+        ) {
+            $tsexp      = (int)($issue['ts_completionexpected'] ?? 0);
+            $tsdeadline = (int)($issue['ts_deadline'] ?? 0);
+            $fielddeadline = $issue['field_deadline'] ?? '';
+            $dlabel = $fielddeadline !== '' ? $this->field_label($fielddeadline, $cm) : '—';
+            // Strftimerecent uses %d (zero-padded day) in all Moodle locales.
+            $fmtrecent = get_string('strftimerecent', 'langconfig');
+            $headline = get_string('consistency_headline_completionexpected_window', 'local_coursectrl');
+            $detail   = get_string(
+                'consistency_detail_completionexpected_window',
+                'local_coursectrl',
+                (object)[
+                    'date_expected' => $tsexp > 0 ? userdate($tsexp, $fmtrecent) : '—',
+                    'field_deadline' => $dlabel,
+                    'date_deadline'  => $tsdeadline > 0 ? userdate($tsdeadline, $fmtrecent) : '—',
+                ]
+            );
+            $consequence = get_string(
+                'consistency_consequence_completionexpected_window',
+                'local_coursectrl'
+            );
+            $action = get_string(
+                'consistency_action_completionexpected_window',
+                'local_coursectrl'
+            );
+        } else if ($type === 'circular' || $type === 'warning_circular_dep') {
+            $headline    = get_string('consistency_headline_circular_dep', 'local_coursectrl');
+            $detail      = get_string('consistency_detail_circular_dep', 'local_coursectrl');
+            $consequence = get_string('consistency_consequence_circular_dep', 'local_coursectrl');
+            $action      = get_string('consistency_action_circular_dep', 'local_coursectrl');
         } else {
-            // Adapter R3/R7 checks or unknown type — use the message directly.
+            // Adapter-specific or unknown type — use the message if provided.
             $headline = $issue['message'] ?? $type;
             $detail = '';
             $consequence = '';
@@ -411,20 +461,14 @@ class checks_page implements renderable, templatable {
      * @return string
      */
     private function field_label(string $field, $cm): string {
-        if ($cm !== null) {
-            $component = $cm->get_component();
-            // Subplugin component: 'mod_assign' → 'coursectrlmod_assign'.
-            $subplugin = str_replace('mod_', 'coursectrlmod_', $component);
-            $label = get_string('field_' . $field, $subplugin, null, true);
-            if ($label !== false && $label !== '') {
-                return $label;
-            }
+        // Extract the Moodle module name (e.g. 'assign') for resolution.
+        $modname = '';
+        if ($cm !== null && method_exists($cm, 'get_component')) {
+            $modname = str_replace('mod_', '', $cm->get_component());
+        } else if ($cm !== null && isset($cm->modname)) {
+            $modname = (string) $cm->modname;
         }
-        $label = get_string('field_' . $field, 'local_coursectrl', null, true);
-        if ($label !== false && $label !== '') {
-            return $label;
-        }
-        return $field;
+        return field_label_resolver::resolve($field, $modname, 'cm');
     }
 
     /**
@@ -447,11 +491,12 @@ class checks_page implements renderable, templatable {
         array $cmnames,
         array $cmurls,
         int $courseid,
-        array $cmobjects = []
+        array $cmobjects = [],
+        array $sections = []
     ): array {
         if ($this->freshrun) {
             $runner = new risk_assessment_runner();
-            $items = $runner->run($cms, $depindex, $datesbycm, $courseid);
+            $items = $runner->run($cms, $depindex, $datesbycm, $courseid, $sections);
             $lastrun = time();
         } else {
             $items = risk_assessment_runner::load_last($courseid);
@@ -499,7 +544,7 @@ class checks_page implements renderable, templatable {
         int $courseid = 0
     ): array {
         $severityicon = ['error' => '❗', 'warning' => '⚠️', 'notice' => 'ℹ️'];
-        $dateformat = get_string('strftimedatetimeshort', 'langconfig');
+        $dateformat = get_string('strftimerecent', 'langconfig');
 
         $rows = [];
         foreach ($items as $item) {
@@ -535,44 +580,176 @@ class checks_page implements renderable, templatable {
                 ];
             }
 
+            // All grouped CMs for journey_unreachable_group — listed in accordion.
+            $groupedcmslinked = [];
+            $subsectionchildlinked = [];
+            $subsectionchildcount = 0;
+            $allcmids = $item['cmids'] ?? [];
+            if ($type === 'journey_unreachable_group' && !empty($allcmids)) {
+                // Build a reverse map: section_id → [cmids] for quick child lookup.
+                $cmsbysection = [];
+                foreach ($cms as $lookcmid => $lookcm) {
+                    $cmsbysection[(int) $lookcm->sectionid][] = (int) $lookcmid;
+                }
+                // Build sectionmap from snapshot sections for subsection resolution.
+                $snapshotsections = $item['_sections'] ?? [];
+                foreach ($allcmids as $gcmid) {
+                    $gcmid = (int) $gcmid;
+                    $gcm = $cms[$gcmid] ?? null;
+                    $groupedcmslinked[] = [
+                        'cmid'          => $gcmid,
+                        'name'          => $cmnames[$gcmid] ?? 'ID ' . $gcmid,
+                        'url'           => $cmurls[$gcmid] ?? '#',
+                        'modname'       => $gcm !== null ? $gcm->modname : '',
+                        'is_subsection' => $gcm !== null && $gcm->modname === 'subsection',
+                        'is_derived'    => false,
+                    ];
+                    // When this CM is a subsection, list its child activities.
+                    if ($gcm !== null && $gcm->modname === 'subsection') {
+                        // Find the section whose component = mod_subsection and
+                        // itemid = this CM's instance id (= cmid for subsections).
+                        // Simpler heuristic: the section that only contains CMs
+                        // accessible through this subsection CM.
+                        // We use cm_item::sectionid of CMs not in $allcmids
+                        // to find the child section.
+                        foreach ($item['subsection_children'] ?? [] as $childcmid) {
+                            $childcmid = (int) $childcmid;
+                            $childcm = $cms[$childcmid] ?? null;
+                            $subsectionchildlinked[] = [
+                                'cmid'    => $childcmid,
+                                'name'    => $cmnames[$childcmid] ?? 'ID ' . $childcmid,
+                                'url'     => $cmurls[$childcmid] ?? '#',
+                                'modname' => $childcm !== null ? $childcm->modname : '',
+                                'parent_name' => $cmnames[$gcmid] ?? '',
+                            ];
+                        }
+                        $subsectionchildcount += count($item['subsection_children'] ?? []);
+                    }
+                }
+                // Fold cascade (derived) CMs into the grouped list with a derived flag.
+                // This removes the confusing separate cascade line on group cards.
+                foreach ($item['cascade_cmids'] ?? [] as $dercmid) {
+                    $dercmid = (int) $dercmid;
+                    $dercm = $cms[$dercmid] ?? null;
+                    $groupedcmslinked[] = [
+                        'cmid'          => $dercmid,
+                        'name'          => $cmnames[$dercmid] ?? 'ID ' . $dercmid,
+                        'url'           => $cmurls[$dercmid] ?? '#',
+                        'modname'       => $dercm !== null ? $dercm->modname : '',
+                        'is_subsection' => false,
+                        'is_derived'    => true,
+                    ];
+                }
+            }
+
             // Type label.
             $typelabelkey = 'risk_type_' . $type;
             $typelabel = get_string($typelabelkey, 'local_coursectrl', null, true) ?: $type;
 
             // Build problem description and action for this specific type.
-            [$problem, $action] = $this->risk_type_texts($type, $item, $cmname, $relatedlinked, $dateformat);
+            [$problem, $action] = $this->risk_type_texts($type, $item, $cmname, $relatedlinked, $dateformat, $modname);
 
-            // Simulation link pre-filled with the relevant timestamp when available.
-            $simts = (int)($item['ts_field'] ?? $item['ts_early'] ?? 0);
-            $simparams = ['courseid' => (int)$this->course->id, 'tab' => 'simulation'];
-            if ($simts > 0) {
-                $simparams['simdate'] = date('Y-m-d', $simts);
-                $simparams['simtime'] = date('H:i', $simts);
+            // Simulation link: use pre-built deep-link for journey findings,
+            // ... otherwise generate a generic link with the relevant timestamp.
+            $prebuiltlink = $item['simlink'] ?? '';
+            if ($prebuiltlink !== '' && in_array($type, ['journey_unreachable', 'journey_unreachable_group'], true)) {
+                $simurl = $prebuiltlink;
+            } else {
+                $simts = (int)($item['ts_field'] ?? $item['ts_early'] ?? 0);
+                $simparams = ['courseid' => (int)$this->course->id, 'tab' => 'simulation'];
+                if ($simts > 0) {
+                    $simparams['simdate'] = date('Y-m-d', $simts);
+                    $simparams['simtime'] = date('H:i', $simts);
+                }
+                $simurl = (new \moodle_url('/local/coursectrl/checks.php', $simparams))->out(false);
             }
-            $simurl = (new \moodle_url('/local/coursectrl/checks.php', $simparams))->out(false);
 
+            // Format journey steps for template display.
+            $journeyrows = [];
+            foreach ($item['journey_steps'] ?? [] as $step) {
+                $outcome = (int)($step['outcome'] ?? 1);
+                $exhausted = !empty($step['attempts_exhausted']);
+                $hastrack = !empty($step['completion_tracking']);
+                if (!$hastrack) {
+                    // CM has no completion tracking — show as visited, not completed.
+                    $outcomekey = 'visited';
+                } else if ($exhausted) {
+                    $outcomekey = 'fail_exhausted';
+                } else {
+                    $outcomekey = match ($outcome) {
+                        2 => 'pass',
+                        3 => 'fail',
+                        default => 'complete',
+                    };
+                }
+                $journeyrows[] = [
+                    'cmname'       => $step['cmname'] ?? '',
+                    'cmurl'        => $cmurls[$step['cmid'] ?? 0] ?? '#',
+                    'steptime'     => $step['ts'] > 0
+                        ? userdate($step['ts'], $dateformat) : '',
+                    'outcome_key'  => $outcomekey,
+                    'outcome_label' => get_string(
+                        'risk_journey_outcome_' . $outcomekey,
+                        'local_coursectrl'
+                    ),
+                    'is_pass'      => $outcomekey === 'pass',
+                    'is_fail'      => str_starts_with($outcomekey, 'fail'),
+                    'is_visited'   => $outcomekey === 'visited',
+                ];
+            }
+
+            // Grade scenario badge for journey findings.
+            $grademode = $item['grademode'] ?? '';
+            $grademodelabel = $grademode !== ''
+                ? get_string('risk_journey_scenario_' . $grademode, 'local_coursectrl', null, true)
+                : '';
+
+            // For dep_on_hidden all related hidden prereqs must be unhidden.
+            // Pass them as cmids[] so fix_action.php can process all in one request.
+            $fixtargetcmid = $primarycmid;
+            $fixextraparams = [];
+            if ($type === 'dep_on_hidden' && !empty($item['related_cmids'])) {
+                $fixtargetcmid = (int) reset($item['related_cmids']);
+                $fixextraparams = ['cmids' => $item['related_cmids']];
+            }
             $rows[] = [
-                'type'          => $type,
-                'typelabel'     => $typelabel,
-                'severity'      => $severity,
-                'icon'          => $severityicon[$severity] ?? '⚠️',
-                'score'         => $item['score'] ?? 0,
-                'cmid'          => $primarycmid,
-                'cmname'        => $cmname,
-                'cmurl'         => $cmurl,
-                'modname'       => $modname,
-                'problem'       => $problem,
-                'hasproblem'    => $problem !== '',
+                'type'             => $type,
+                'typelabel'        => $typelabel,
+                'severity'         => $severity,
+                'icon'             => $severityicon[$severity] ?? '⚠️',
+                // Boost score when group includes subsection CMs with child activities.
+                'score'            => ($item['score'] ?? 0) + ($subsectionchildcount > 0 ? 15 : 0),
+                'cmid'             => $primarycmid,
+                'cmname'           => $cmname,
+                'cmurl'            => $cmurl,
+                'modname'          => $modname,
+                'problem'          => $problem,
+                'hasproblem'       => $problem !== '',
                 'action'        => $action,
                 'hasaction'     => $action !== '',
                 'related'       => $relatedlinked,
                 'hasrelated'    => !empty($relatedlinked),
-                'cascade'       => $cascadelinked,
-                'hascascade'    => !empty($cascadelinked),
-                'cascade_count' => count($cascadelinked),
+                // Cascade is folded into grouped_cms for group cards.
+                'cascade'               => $type === 'journey_unreachable_group' ? [] : $cascadelinked,
+                'hascascade'            => $type !== 'journey_unreachable_group' && !empty($cascadelinked),
+                'cascade_count'         => $type === 'journey_unreachable_group' ? 0 : count($cascadelinked),
+                'grouped_cms'           => $groupedcmslinked,
+                'has_grouped_cms'       => !empty($groupedcmslinked),
+                // Count direct (non-derived) CMs only for the accordion header.
+                'grouped_cms_count'     => count(array_filter($groupedcmslinked, fn ($g) => !$g['is_derived'])),
+                'subsection_children'   => $subsectionchildlinked,
+                'has_subsection_children' => !empty($subsectionchildlinked),
+                'subsection_child_count' => $subsectionchildcount,
                 'simurl'        => $simurl,
                 'fix_type'      => $this->fix_type_for($type),
-                'fix_url'       => $this->fix_url_for($type, $primarycmid, $cm, $courseid, 'risks'),
+                'fix_url'       => $this->fix_url_for(
+                    $type,
+                    $fixtargetcmid,
+                    $cms[$fixtargetcmid] ?? $cm,
+                    $courseid,
+                    'risks',
+                    $fixextraparams
+                ),
                 'fix_label'     => $this->fix_label_for($type),
                 'has_fix'       => $this->fix_type_for($type) !== '',
                 'escape_message' => get_string(
@@ -581,7 +758,28 @@ class checks_page implements renderable, templatable {
                     null,
                     true
                 ) ?: '',
-                'has_escape'    => !empty($item['has_escape']),
+                'has_escape'       => !empty($item['has_escape']),
+                'journey_steps'    => $journeyrows,
+                'hasjourneysteps'  => !empty($journeyrows),
+                'grademode_label'  => $grademodelabel,
+                'hasgrademode'     => $grademodelabel !== '',
+                'completion_block' => !empty($item['completion_block']),
+                'affected_scenarios' => (int) ($item['affected_scenarios'] ?? 1),
+                'affected_profiles'  => (int) ($item['affected_profiles'] ?? 1),
+                'affected_count'     => (int) ($item['affected_count'] ?? 1),
+                'hasaffected'        => (($item['affected_count'] ?? 1) > 1 ||
+                    ($item['affected_scenarios'] ?? 1) > 1),
+                'section_cause'      => !empty($item['section_cause']),
+                'section_id'         => (int) ($item['section_id'] ?? 0),
+                'section_name'       => $item['section_name'] ?? '',
+                'section_num'        => (int) ($item['section_num'] ?? 0),
+                'section_edit_url'   => (int) ($item['section_id'] ?? 0) > 0
+                    ? (new \moodle_url(
+                        '/course/editsection.php',
+                        ['id' => (int) ($item['section_id'] ?? 0)]
+                    ))->out(false)
+                    : '',
+                'has_section_edit'   => (int) ($item['section_id'] ?? 0) > 0,
             ];
         }
         return $rows;
@@ -602,7 +800,8 @@ class checks_page implements renderable, templatable {
         array $item,
         string $cmname,
         array $relatedlinked,
-        string $dateformat
+        string $dateformat,
+        string $modname = ''
     ): array {
         $relatednames = implode(', ', array_column($relatedlinked, 'name'));
         $a = (object)[
@@ -655,10 +854,141 @@ class checks_page implements renderable, templatable {
                 get_string('risk_action_deadline_before_dep_window', 'local_coursectrl'),
             ];
         }
+        if ($type === 'completion_unreachable') {
+            $a = new \stdClass();
+            $a->failing = $item['message_params']['failing'] ?? 0;
+            $a->total   = $item['message_params']['total'] ?? 1;
+            return [
+                get_string('risk_completion_unreachable', 'local_coursectrl', $a),
+                get_string('consistency_action_r1_not_accessible', 'local_coursectrl'),
+            ];
+        }
+
+        if ($type === 'completion_reachable') {
+            $a = new \stdClass();
+            $a->profiles = $item['message_params']['profiles'] ?? 1;
+            return [
+                get_string('risk_completion_reachable', 'local_coursectrl', $a),
+                '',
+            ];
+        }
+
+        if ($type === 'remedial_path_available') {
+            return [
+                get_string('risk_remedial_path_available', 'local_coursectrl'),
+                '',
+            ];
+        }
+
+        if ($type === 'journey_unreachable_group') {
+            $a = new \stdClass();
+            $a->count = count($item['cmids'] ?? []);
+            return [
+                get_string('risk_problem_journey_unreachable_group', 'local_coursectrl', $a),
+                get_string('risk_action_journey_unreachable_group', 'local_coursectrl', $a),
+            ];
+        }
+
+        if ($type === 'journey_unreachable') {
+            $grademode = $item['grademode'] ?? 'pass';
+            $a->grademode = get_string(
+                'risk_journey_scenario_' . $grademode,
+                'local_coursectrl',
+                null,
+                true
+            ) ?: $grademode;
+            if (!empty($item['section_cause']) && (int)($item['section_id'] ?? 0) > 0) {
+                $sectionname = $item['section_name'] ?? '';
+                $snum = (int)($item['section_num'] ?? 0);
+                $a->section = $sectionname !== '' ? $sectionname
+                    : get_string('section') . ' ' . $snum;
+                $a->count = 1; // Single CM; count used in shared string.
+                return [
+                    get_string('risk_problem_journey_section_blocked', 'local_coursectrl', $a),
+                    get_string('risk_action_journey_section_blocked', 'local_coursectrl', $a),
+                ];
+            }
+            return [
+                get_string('risk_problem_journey_unreachable', 'local_coursectrl', $a),
+                get_string('risk_action_journey_unreachable', 'local_coursectrl', $a),
+            ];
+        }
         if ($type === 'long_dep_chain') {
             return [
                 get_string('risk_problem_long_dep_chain', 'local_coursectrl', $a),
                 get_string('risk_action_long_dep_chain', 'local_coursectrl'),
+            ];
+        }
+        if ($type === 'r0_after_course_end' || $type === 'r0_before_course_start') {
+            $rawfield = (string)($item['field'] ?? '');
+            $a->field = $rawfield !== ''
+                ? field_label_resolver::resolve($rawfield, $modname, 'cm') : '–';
+            $a->date = isset($item['ts_field']) && $item['ts_field'] > 0
+                ? userdate((int)$item['ts_field'], $dateformat) : '–';
+            $a->boundary = isset($item['ts_boundary']) && $item['ts_boundary'] > 0
+                ? userdate((int)$item['ts_boundary'], $dateformat) : '–';
+            $key = $type === 'r0_after_course_end'
+                ? 'risk_problem_r0_after_course_end'
+                : 'risk_problem_r0_before_course_start';
+            return [
+                get_string($key, 'local_coursectrl', $a),
+                get_string('risk_action_r0_date', 'local_coursectrl'),
+            ];
+        }
+        if ($type === 'r0_deadline_in_past') {
+            $rawfield = (string)($item['field'] ?? '');
+            $a->field = $rawfield !== ''
+                ? field_label_resolver::resolve($rawfield, $modname, 'cm') : '–';
+            $a->date = isset($item['ts_field']) && $item['ts_field'] > 0
+                ? userdate((int)$item['ts_field'], $dateformat) : '–';
+            return [
+                get_string('risk_problem_r0_deadline_in_past', 'local_coursectrl', $a),
+                get_string('risk_action_r0_date', 'local_coursectrl'),
+            ];
+        }
+        if ($type === 'r1_hidden') {
+            return [
+                get_string('risk_problem_r1_hidden', 'local_coursectrl', $a),
+                get_string('risk_action_r1_hidden', 'local_coursectrl'),
+            ];
+        }
+        if ($type === 'r1_not_accessible') {
+            return [
+                get_string('risk_problem_r1_not_accessible', 'local_coursectrl', $a),
+                get_string('risk_action_r1_not_accessible', 'local_coursectrl'),
+            ];
+        }
+        if ($type === 'completionexpected_window') {
+            $tsexpected = (int)($item['ts_completionexpected'] ?? 0);
+            $tsdeadline = (int)($item['ts_deadline'] ?? 0);
+            $rawdeadlinefield = (string)($item['field_deadline'] ?? '');
+            $a->date_expected = $tsexpected > 0 ? userdate($tsexpected, $dateformat) : '–';
+            $a->date_start = $tsdeadline > 0 ? userdate($tsdeadline, $dateformat) : '–';
+            $a->date_end = $rawdeadlinefield !== ''
+                ? field_label_resolver::resolve($rawdeadlinefield, $modname, 'cm') : '–';
+            return [
+                get_string('risk_problem_completionexpected_window', 'local_coursectrl', $a),
+                get_string('risk_action_completionexpected_window', 'local_coursectrl'),
+            ];
+        }
+        if ($type === 'dangling_dep' || $type === 'dangling_group' || $type === 'dangling_grouping') {
+            return [
+                get_string('risk_problem_dangling_dep', 'local_coursectrl', $a),
+                get_string('risk_action_dangling_dep', 'local_coursectrl'),
+            ];
+        }
+        if ($type === 'impossible_dep') {
+            return [
+                get_string('risk_problem_impossible_dep', 'local_coursectrl', $a),
+                get_string('risk_action_impossible_dep', 'local_coursectrl'),
+            ];
+        }
+        if ($type === 'date_coupling') {
+            $a->field_early = $item['field_early'] ?? '–';
+            $a->field_late = $item['field_late'] ?? '–';
+            return [
+                get_string('risk_problem_date_coupling', 'local_coursectrl', $a),
+                get_string('risk_action_date_coupling', 'local_coursectrl'),
             ];
         }
         // Fallback: use stored message if available.
@@ -674,20 +1004,24 @@ class checks_page implements renderable, templatable {
      */
     private function fix_type_for(string $type): string {
         $map = [
-            'dep_on_hidden'           => 'unhide_cm',
-            'hidden_with_dependents'  => 'unhide_cm',
-            'r1_hidden'               => 'unhide_cm',
-            'dangling_dep'            => 'modedit_availability',
-            'impossible_dep'          => 'modedit_availability',
-            'dangling_group'          => 'modedit_availability',
-            'dangling_grouping'       => 'modedit_availability',
-            'temporal_conflict'       => 'timeline',
-            'date_coupling'           => 'timeline',
-            'r0_after_course_end'     => 'timeline',
-            'r0_before_course_start'  => 'timeline',
-            'r0_deadline_in_past'     => 'timeline',
-            'circular_dep'            => 'modedit_availability',
-            'circular_dep_transitive' => 'modedit_availability',
+            'dep_on_hidden'                   => 'unhide_cm',
+            'hidden_with_dependents'          => 'unhide_cm',
+            'r1_hidden'                       => 'unhide_cm',
+            'dangling_dep'                    => 'modedit_availability',
+            'impossible_dep'                  => 'modedit_availability',
+            'dangling_group'                  => 'modedit_availability',
+            'dangling_grouping'               => 'modedit_availability',
+            'completion_required_no_tracking' => 'modedit_completion',
+            'completion_no_tracking'          => 'modedit_completion',
+            'temporal_conflict'               => 'timeline',
+            'date_coupling'                   => 'timeline',
+            'r0_after_course_end'             => 'timeline',
+            'r0_before_course_start'          => 'timeline',
+            'r0_deadline_in_past'             => 'timeline',
+            'deadline_before_dep_window'      => 'timeline',
+            'circular_dep'                    => 'dependencies',
+            'circular_dep_transitive'         => 'dependencies',
+            'long_dep_chain'                  => 'dependencies',
         ];
         return $map[$type] ?? '';
     }
@@ -702,22 +1036,29 @@ class checks_page implements renderable, templatable {
      * @param string   $tab       Checks tab to return to after fix.
      * @return string URL or empty string.
      */
-    private function fix_url_for(string $type, int $cmid, $cm, int $courseid, string $tab): string {
+    private function fix_url_for(string $type, int $cmid, $cm, int $courseid, string $tab, array $extraparams = []): string {
         $fixtype = $this->fix_type_for($type);
         if ($fixtype === '') {
             return '';
         }
         if ($fixtype === 'unhide_cm') {
-            return (new \moodle_url(
-                '/local/coursectrl/fix_action.php',
-                [
-                    'courseid' => $courseid,
-                    'action'   => 'unhide_cm',
-                    'cmid'     => $cmid,
-                    'tab'      => $tab,
-                    'sesskey'  => sesskey(),
-                ]
-            ))->out(false);
+            $urlparams = [
+                'courseid' => $courseid,
+                'action'   => 'unhide_cm',
+                'tab'      => $tab,
+                'sesskey'  => sesskey(),
+            ];
+            // When multiple prereq cmids exist (dep_on_hidden), encode them all.
+            // Moodle_url does not support array-style params, so append manually.
+            if (!empty($extraparams['cmids'])) {
+                $basestr = (new \moodle_url('/local/coursectrl/fix_action.php', $urlparams))->out(false);
+                foreach ($extraparams['cmids'] as $ecmid) {
+                    $basestr .= '&cmids%5B%5D=' . (int)$ecmid;
+                }
+                return $basestr;
+            }
+            $urlparams['cmid'] = $cmid;
+            return (new \moodle_url('/local/coursectrl/fix_action.php', $urlparams))->out(false);
         }
         if ($fixtype === 'modedit_availability') {
             return (new \moodle_url(
@@ -729,6 +1070,18 @@ class checks_page implements renderable, templatable {
             return (new \moodle_url(
                 '/local/coursectrl/timeline.php',
                 ['courseid' => $courseid, 'focus' => $cmid]
+            ))->out(false);
+        }
+        if ($fixtype === 'modedit_completion') {
+            return (new \moodle_url(
+                '/course/modedit.php',
+                ['update' => $cmid, 'return' => 1]
+            ))->out(false) . '#id_completion';
+        }
+        if ($fixtype === 'dependencies') {
+            return (new \moodle_url(
+                '/local/coursectrl/dependencies.php',
+                ['courseid' => $courseid]
             ))->out(false);
         }
         return '';
@@ -761,8 +1114,7 @@ class checks_page implements renderable, templatable {
         global $OUTPUT, $PAGE;
         $simpage = new simulation_page($snapshot, $this->simstate);
         $renderer = $PAGE->get_renderer('local_coursectrl');
-        // Render the simulation template and pass as pre-rendered HTML so
-        // checks.mustache can include it without a nested template call.
+        // Render simulation template as pre-rendered HTML for checks.mustache.
         $html = $renderer->render_simulation_page($simpage);
         return ['simulationhtml' => $html];
     }

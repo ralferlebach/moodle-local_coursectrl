@@ -37,6 +37,7 @@
 namespace local_coursectrl\manager;
 
 use core\persistent;
+use local_coursectrl\event\batch_created;
 use local_coursectrl\event\batch_executed;
 use local_coursectrl\local\contract\activity_adapter;
 use local_coursectrl\local\persistent\batch;
@@ -94,12 +95,27 @@ class batch_manager {
 
         if (empty($cmids)) {
             $cmids = $this->collect_supported_cmids_for_course($courseid);
+        } else {
+            $requested = array_values(array_unique(array_map('intval', $cmids)));
+            $cmids = $this->filter_cmids_to_course($courseid, $requested);
+            if (count($cmids) !== count($requested)) {
+                throw new \moodle_exception('invalidcmid', 'local_coursectrl');
+            }
         }
 
         $batch = $this->create_batch_row($courseid, $userid, $action, $payload);
         $batchid = (int) $batch->get('id');
 
-        $grouping = $this->registry->group_cmids_by_component($cmids, $action);
+        $createdevent = batch_created::create([
+            'context'  => \context_course::instance($courseid),
+            'objectid' => $batchid,
+            'userid'   => $userid,
+            'courseid' => $courseid,
+            'other'    => ['action' => $action],
+        ]);
+        $createdevent->trigger();
+
+        $grouping = $this->registry->group_cmids_by_component($courseid, $cmids, $action);
         $hasanyfailure = false;
         $successfulbyadapter = [];
         $summary = [
@@ -135,6 +151,18 @@ class batch_manager {
                     $summary,
                     $hasanyfailure
                 );
+                // Persist core_coursemodule snapshots for completionexpected
+                // captured by the executor before shifting. This enables
+                // the rollback_manager to restore these CM-level fields
+                // alongside the adapter's own field snapshots.
+                foreach ($result['cm_snapshots'] ?? [] as $cmid => $state) {
+                    $this->persist_snapshot(
+                        $batchid,
+                        (int) $cmid,
+                        'core_coursemodule',
+                        $state
+                    );
+                }
                 if (!empty($successfulcmids)) {
                     $successfulbyadapter[$component] = [
                         'adapter' => $adapter,
@@ -501,6 +529,42 @@ class batch_manager {
      * Collect every cmid in the course whose component has a registered adapter.
      *
      * @param int $courseid target course id.
+     * @return int[]
+     */
+    /**
+     * Return only course module ids that belong to the given course.
+     *
+     * Prevents cross-course injection by rejecting cmids that are not
+     * owned by the requested course. deletioninprogress rows are also
+     * excluded so callers never act on modules being removed.
+     *
+     * @param int   $courseid Course id to filter against.
+     * @param int[] $cmids    Caller-supplied course module ids.
+     * @return int[] Subset of $cmids that belong to $courseid.
+     */
+    private function filter_cmids_to_course(int $courseid, array $cmids): array {
+        global $DB;
+        $cmids = array_values(array_unique(array_map('intval', $cmids)));
+        if (empty($cmids)) {
+            return [];
+        }
+        [$insql, $params] = $DB->get_in_or_equal($cmids, SQL_PARAMS_NAMED);
+        $params['courseid'] = $courseid;
+        $validids = $DB->get_fieldset_select(
+            'course_modules',
+            'id',
+            "course = :courseid AND deletioninprogress = 0 AND id {$insql}",
+            $params
+        );
+        return array_values(array_map('intval', $validids));
+    }
+
+    /**
+     * Collect every cmid in the course whose component has a registered adapter.
+     *
+     * Used as the default target set when execute() is called with an empty cmids list.
+     *
+     * @param int $courseid Target course id.
      * @return int[]
      */
     private function collect_supported_cmids_for_course(int $courseid): array {

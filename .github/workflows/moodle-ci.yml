@@ -2,7 +2,7 @@
 # GitHub Actions CI – local_coursectrl (Course Control Hub)
 #
 # Matrix:
-#   Moodle:  4.5, 5.0, 5.1
+#   Moodle:  4.5, 5.0, 5.1, 5.2
 #   PHP:     8.2, 8.3, 8.4  (8.4 excluded for Moodle < 5.1)
 #   DB:      MariaDB 10.11  |  PostgreSQL 16
 #
@@ -162,6 +162,7 @@ jobs:
           - MOODLE_405_STABLE
           - MOODLE_500_STABLE
           - MOODLE_501_STABLE
+          - MOODLE_502_STABLE
         php: ['8.2', '8.3', '8.4']
         db:
           - { engine: mariadb, type: mariadb, port: 3306, user: root,   pass: root   }
@@ -169,6 +170,7 @@ jobs:
         exclude:
           - { moodle: MOODLE_405_STABLE, php: '8.4' }
           - { moodle: MOODLE_500_STABLE, php: '8.4' }
+          - { moodle: MOODLE_502_STABLE, php: '8.2' }
 
     services:
       mariadb:
@@ -265,7 +267,8 @@ jobs:
               "$MOODLE_DIR/mod/studentquiz"
           fi
           # capquiz master requires Moodle 5.0.8 — only safe for 5.1+.
-          if [ "${{ matrix.moodle }}" = "MOODLE_501_STABLE" ]; then
+          if [ "${{ matrix.moodle }}" = "MOODLE_501_STABLE" ] || \
+             [ "${{ matrix.moodle }}" = "MOODLE_502_STABLE" ]; then
             clone_p https://github.com/KQMATH/moodle-mod_capquiz master \
               "$MOODLE_DIR/mod/capquiz"
           fi
@@ -370,7 +373,8 @@ jobs:
               "$MOODLE_DIR/mod/studentquiz"
           fi
           # capquiz master requires Moodle 5.0.8 — only safe for 5.1+.
-          if [ "${{ matrix.moodle }}" = "MOODLE_501_STABLE" ]; then
+          if [ "${{ matrix.moodle }}" = "MOODLE_501_STABLE" ] || \
+             [ "${{ matrix.moodle }}" = "MOODLE_502_STABLE" ]; then
             clone_p https://github.com/KQMATH/moodle-mod_capquiz master \
               "$MOODLE_DIR/mod/capquiz"
           fi

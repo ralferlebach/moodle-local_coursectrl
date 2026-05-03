@@ -57,7 +57,7 @@ class graph_page implements renderable, templatable {
     public function __construct(inventory_snapshot $snapshot, array $filters = []) {
         $this->snapshot = $snapshot;
         $this->filters = array_merge([
-            'hideindependents' => false,
+            'hideindependents' => true,
             'groupids'         => [],
             'filterbygroup'    => false,
             'blockedids'       => [],
@@ -72,6 +72,7 @@ class graph_page implements renderable, templatable {
      * @return array<string, mixed>
      */
     public function export_for_template(renderer_base $output): array {
+        global $DB;
         $course = $this->snapshot->course;
         $cms = $this->snapshot->cms;
         $groupids = array_filter(array_map('intval', $this->filters['groupids'] ?? []));
@@ -80,18 +81,46 @@ class graph_page implements renderable, templatable {
         $nextstepids = array_filter(array_map('intval', $this->filters['nextstepids'] ?? []));
 
         // Build shared analysis structures.
-        $depindex = new dependency_index($cms);
+        // Grade-item map: grade_items.id → cmid, used to resolve grade-based
+        // ... availability conditions to actual cmid pairs in the dependency graph.
+        $gradeitemmap = [];
+        $graderows = $DB->get_records_sql(
+            "SELECT gi.id, cm.id AS cmid
+               FROM {grade_items} gi
+               JOIN {modules} m ON m.name = gi.itemmodule
+               JOIN {course_modules} cm ON cm.module = m.id
+                                       AND cm.instance = gi.iteminstance
+                                       AND cm.course = gi.courseid
+              WHERE gi.courseid = :courseid AND gi.itemtype = 'mod'",
+            ['courseid' => (int) $course->id]
+        );
+        foreach ($graderows as $row) {
+            $gradeitemmap[(int) $row->id] = (int) $row->cmid;
+        }
+
+        // R7: Subsections cannot have a completion state and therefore
+        // can never generate a dependency. Remove them from the graph CMs
+        // so they are neither shown as nodes nor considered in dep analysis.
+        $graphcms = array_filter(
+            $cms,
+            static fn (\local_coursectrl\local\entity\cm_item $cm): bool =>
+                $cm->modname !== 'subsection'
+        );
+
+        $depindex = new dependency_index($graphcms, $gradeitemmap);
         $datecollector = new date_collector();
-        $datesbycm = $datecollector->collect_grouped_by_cm($cms);
+        $datesbycm = $datecollector->collect_grouped_by_cm($graphcms);
         $runner = new consistency_runner();
-        $warnings = $runner->get_warnings($cms, $depindex, $datesbycm);
+        $warnings = $runner->get_warnings($graphcms, $depindex, $datesbycm);
 
         // Graph dataset — use group-filtered forward deps if a group is active.
         $graphbuilder = new graph_dataset_builder();
         if ($filterbygroup && !empty($groupids)) {
-            $forwardmap = $depindex->get_all_forward_for_groups($groupids);
+            // Use unlock-only forward deps (e=1) to avoid false-positive
+            // circular dependency arrows from gate-closing (e=0) conditions.
+            $forwardmap = $depindex->get_unlock_forward_for_groups($groupids);
             $graphdata = $graphbuilder->build_with_forward(
-                $cms,
+                $graphcms,
                 $depindex,
                 $forwardmap,
                 $warnings,
@@ -100,7 +129,7 @@ class graph_page implements renderable, templatable {
             );
         } else {
             $graphdata = $graphbuilder->build(
-                $cms,
+                $graphcms,
                 $depindex,
                 $warnings,
                 $blockedids,
@@ -150,7 +179,11 @@ class graph_page implements renderable, templatable {
                 '/local/coursectrl/dependencies.php',
                 ['courseid' => $courseid]
             ))->out(false),
-            'hideindependents' => !empty($this->filters['hideindependents']),
+            'hideindependents'         => !empty($this->filters['hideindependents']),
+            'str_hide_independents'    => get_string(
+                'graph_hide_independents',
+                'local_coursectrl'
+            ),
             'filterbygroup' => $filterbygroup,
             'hassimoverlay' => !empty($blockedids) || !empty($nextstepids),
             'groupoptions' => $groupoptions,

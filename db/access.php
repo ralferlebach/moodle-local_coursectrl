@@ -18,7 +18,7 @@
  * Capability definitions for local_coursectrl.
  *
  * @package    local_coursectrl
- * @copyright  2026 Course Control Hub Contributors
+ * @copyright  2026 Ralf Erlebach
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -38,6 +38,7 @@ $capabilities = [
 
     // Perform bulk actions (shift dates, set visibility, etc.).
     'local/coursectrl:bulkaction' => [
+        'riskbitmask'  => RISK_DATALOSS,
         'captype'      => 'write',
         'contextlevel' => CONTEXT_COURSE,
         'archetypes'   => [
@@ -58,6 +59,7 @@ $capabilities = [
 
     // Roll back executed batch actions.
     'local/coursectrl:rollback' => [
+        'riskbitmask'  => RISK_DATALOSS,
         'captype'      => 'write',
         'contextlevel' => CONTEXT_COURSE,
         'archetypes'   => [

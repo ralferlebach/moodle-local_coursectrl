@@ -46,9 +46,9 @@
       <input class="form-check-input" type="checkbox"
              id="hide-independents"
              data-action="toggle-independents"
-             {{#hideindependents}}checked{{/hideindependents}}>
+             {{^hideindependents}}checked{{/hideindependents}}>
       <label class="form-check-label small" for="hide-independents">
-        {{#str}} graph_hide_independents, local_coursectrl {{/str}}
+        {{str_hide_independents}}
       </label>
     </div>
 
@@ -81,7 +81,7 @@
       </div>
       {{! Step 2: group checkboxes — disabled when switch is off }}
       <div id="coursectrl-depgroup-panel"
-           class="position-relative d-inline-block">
+           class="position-relative d-inline-block ms-1">
         <button type="button" class="btn btn-sm btn-outline-secondary"
                 id="coursectrl-depgroup-btn"
                 data-action="toggle-depgroupfilter"
@@ -138,6 +138,7 @@
     <div data-region="coursectrl-graph-canvas"
          data-graph="{{graphjson}}"
          data-hide-independents="{{hideindependents}}"
+         {{#hideindependents}}data-css-hide-indep="1"{{/hideindependents}}
          style="display:inline-block;min-width:100%;min-height:400px;overflow:hidden">
     </div>
   </div>

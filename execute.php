@@ -73,6 +73,11 @@ $cmids = array_values(array_map('intval', $cmids));
 $manager = new \local_coursectrl\manager\batch_manager();
 $batchid = $manager->execute($courseid, $action, $payload, $cmids, (int) $USER->id);
 
+// Invalidate coursemodinfo cache and stale text-hit data so subsequent
+// page loads reflect the changes made by this bulk action.
+rebuild_course_cache($courseid);
+(new \local_coursectrl\manager\textreview_manager())->purge_hits($courseid);
+
 $batch = new \local_coursectrl\local\persistent\batch($batchid);
 $items = \local_coursectrl\local\persistent\batch_item::get_records(['batchid' => $batchid]);
 

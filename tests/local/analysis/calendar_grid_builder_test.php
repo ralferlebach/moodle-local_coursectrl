@@ -24,6 +24,7 @@
 
 namespace local_coursectrl\local\analysis;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\analysis\calendar_grid_builder::class)]
 /**
  * Unit tests for calendar_grid_builder::build().
  *
@@ -53,6 +54,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
 
     /**
      * A course over 3 months must produce 3 month blocks.
+     * @covers \local_coursectrl\local\analysis\calendar_grid_builder
      */
     public function test_month_count(): void {
         $this->resetAfterTest();
@@ -69,20 +71,51 @@ final class calendar_grid_builder_test extends \advanced_testcase {
     }
 
     /**
-     * Null end date must default to 6 months after start.
+     * No end date with no entries — calendar covers at least now + 3 months.
+     * @covers \local_coursectrl\local\analysis\calendar_grid_builder
      */
-    public function test_default_end_date(): void {
+    public function test_default_end_date_no_entries(): void {
         $this->resetAfterTest();
         $builder = new calendar_grid_builder();
-        $start = strtotime('2026-04-01');
+        $now   = strtotime('2026-04-01');
 
-        $months = $builder->build($start, null, [], $start);
+        // No entries: must show at least April + 3 months ahead.
+        $months = $builder->build($now, null, [], $now);
 
-        $this->assertCount(7, $months);
+        $this->assertGreaterThanOrEqual(4, count($months));
+    }
+
+    /**
+     * No end date with a late entry — calendar reaches end of month+2 of that entry.
+     * @covers \local_coursectrl\local\analysis\calendar_grid_builder
+     */
+    public function test_default_end_date_with_late_entry(): void {
+        $this->resetAfterTest();
+        $builder = new calendar_grid_builder();
+        $now   = strtotime('2026-01-01');
+
+        // Entry in April 2026 — calendar must reach at least end of June 2026.
+        $entry = [
+            'timestamp'  => strtotime('2026-04-15'),
+            'cmid'       => 1,
+            'name'       => 'Test',
+            'modname'    => 'assign',
+            'fieldlabel' => 'Due date',
+        ];
+        $months = $builder->build($now, null, [$entry], $now);
+
+        $last    = end($months);
+        $lastkey = $last['monthkey'];
+        $this->assertGreaterThanOrEqual(
+            '2026-06',
+            $lastkey,
+            'Calendar must reach at least June 2026 when last entry is April 2026.'
+        );
     }
 
     /**
      * Days with entries must be marked with count and entry list.
+     * @covers \local_coursectrl\local\analysis\calendar_grid_builder
      */
     public function test_day_with_entries(): void {
         $this->resetAfterTest();
@@ -115,6 +148,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
 
     /**
      * Each week row must contain exactly 7 cells.
+     * @covers \local_coursectrl\local\analysis\calendar_grid_builder
      */
     public function test_week_has_seven_cells(): void {
         $this->resetAfterTest();
@@ -131,6 +165,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
 
     /**
      * Padding cells before/after the month must be inmonth=false.
+     * @covers \local_coursectrl\local\analysis\calendar_grid_builder
      */
     public function test_padding_cells(): void {
         $this->resetAfterTest();
@@ -150,6 +185,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
 
     /**
      * Past days must be marked ispast=true.
+     * @covers \local_coursectrl\local\analysis\calendar_grid_builder
      */
     public function test_past_flag(): void {
         $this->resetAfterTest();
@@ -176,6 +212,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
 
     /**
      * Today flag must be set correctly.
+     * @covers \local_coursectrl\local\analysis\calendar_grid_builder
      */
     public function test_today_flag(): void {
         $this->resetAfterTest();
@@ -197,6 +234,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
 
     /**
      * Zero startdate must fall back to "now" for the first month.
+     * @covers \local_coursectrl\local\analysis\calendar_grid_builder
      */
     public function test_zero_startdate_fallback(): void {
         $this->resetAfterTest();

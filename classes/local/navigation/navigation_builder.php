@@ -45,7 +45,7 @@ class navigation_builder {
     public const KEY_GRAPH = 'coursectrl_graph';
     /** @var string Navigation key for the manage / bulk-edit page. */
     public const KEY_MANAGE = 'coursectrl_manage';
-    /** @var string Navigation key for the "Prüfen" group container. */
+    /** @var string Navigation key for the "Checks" group container. */
     public const KEY_GROUP_CHECK = 'coursectrl_group_check';
     /** @var string Navigation key for the simulation page. */
     public const KEY_SIMULATION = 'coursectrl_simulation';

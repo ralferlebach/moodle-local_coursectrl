@@ -24,6 +24,7 @@
 
 namespace local_coursectrl\local\analysis;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\analysis\group_resolver::class)]
 /**
  * Unit tests for group_resolver using the Moodle test DB.
  *
@@ -32,6 +33,7 @@ namespace local_coursectrl\local\analysis;
 final class group_resolver_test extends \advanced_testcase {
     /**
      * Returns false for a group that does not exist in the course.
+     * @covers \local_coursectrl\local\analysis\group_resolver
      */
     public function test_group_exists_returns_false_for_unknown_group(): void {
         $this->resetAfterTest();
@@ -42,6 +44,7 @@ final class group_resolver_test extends \advanced_testcase {
 
     /**
      * Returns true for a group that was created in the course.
+     * @covers \local_coursectrl\local\analysis\group_resolver
      */
     public function test_group_exists_returns_true_for_known_group(): void {
         $this->resetAfterTest();
@@ -53,6 +56,7 @@ final class group_resolver_test extends \advanced_testcase {
 
     /**
      * Returns false for a grouping that does not exist in the course.
+     * @covers \local_coursectrl\local\analysis\group_resolver
      */
     public function test_grouping_exists_returns_false_for_unknown(): void {
         $this->resetAfterTest();
@@ -63,6 +67,7 @@ final class group_resolver_test extends \advanced_testcase {
 
     /**
      * Returns true for a grouping that was created in the course.
+     * @covers \local_coursectrl\local\analysis\group_resolver
      */
     public function test_grouping_exists_returns_true_for_known(): void {
         $this->resetAfterTest();
@@ -74,6 +79,7 @@ final class group_resolver_test extends \advanced_testcase {
 
     /**
      * get_groups_for_template returns all course groups as id/name pairs.
+     * @covers \local_coursectrl\local\analysis\group_resolver
      */
     public function test_get_groups_for_template_returns_all_groups(): void {
         $this->resetAfterTest();
@@ -90,6 +96,7 @@ final class group_resolver_test extends \advanced_testcase {
 
     /**
      * get_group_name returns null for an unknown group id.
+     * @covers \local_coursectrl\local\analysis\group_resolver
      */
     public function test_get_group_name_returns_null_for_unknown(): void {
         $this->resetAfterTest();
@@ -100,6 +107,7 @@ final class group_resolver_test extends \advanced_testcase {
 
     /**
      * get_group_name returns the group name for a known group.
+     * @covers \local_coursectrl\local\analysis\group_resolver
      */
     public function test_get_group_name_returns_name(): void {
         $this->resetAfterTest();
@@ -114,6 +122,7 @@ final class group_resolver_test extends \advanced_testcase {
 
     /**
      * Data from a different course is not returned.
+     * @covers \local_coursectrl\local\analysis\group_resolver
      */
     public function test_groups_are_scoped_to_course(): void {
         $this->resetAfterTest();

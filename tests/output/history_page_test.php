@@ -24,6 +24,7 @@
 
 namespace local_coursectrl\output;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\output\history_page::class)]
 /**
  * Unit tests for history_page::export_for_template().
  *
@@ -32,6 +33,7 @@ namespace local_coursectrl\output;
 final class history_page_test extends \advanced_testcase {
     /**
      * Required scalar keys are always present with no batches.
+     * @covers \local_coursectrl\output\history_page
      */
     public function test_export_has_required_keys_when_empty(): void {
         $this->resetAfterTest();
@@ -58,6 +60,7 @@ final class history_page_test extends \advanced_testcase {
 
     /**
      * Without a rollback result hasrollbackresult is false.
+     * @covers \local_coursectrl\output\history_page
      */
     public function test_no_rollback_result_by_default(): void {
         $this->resetAfterTest();
@@ -69,6 +72,7 @@ final class history_page_test extends \advanced_testcase {
 
     /**
      * A successful rollback result is surfaced correctly.
+     * @covers \local_coursectrl\output\history_page
      */
     public function test_successful_rollback_result_exported(): void {
         $this->resetAfterTest();
@@ -97,6 +101,7 @@ final class history_page_test extends \advanced_testcase {
 
     /**
      * A failed rollback result is surfaced with error info.
+     * @covers \local_coursectrl\output\history_page
      */
     public function test_failed_rollback_result_exported(): void {
         $this->resetAfterTest();
@@ -122,6 +127,7 @@ final class history_page_test extends \advanced_testcase {
 
     /**
      * Batch list is populated from the database.
+     * @covers \local_coursectrl\output\history_page
      */
     public function test_batches_loaded_from_db(): void {
         $this->resetAfterTest();

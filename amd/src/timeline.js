@@ -217,6 +217,32 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
         }
         var courseid = parseInt(root.getAttribute('data-courseid') || '0', 10);
 
+        // Auto-scan on textreview tab when DB has no hits yet.
+        // This ensures the first visit to the tab always shows current results.
+        var trPanel = root.querySelector('[data-region="local_coursectrl-textreview-panel"]');
+        if (trPanel && trPanel.getAttribute('data-hasrows') !== '1') {
+            var scanBtn = trPanel.querySelector('[data-action="rescan-text"]');
+            if (scanBtn) {
+                scanBtn.setAttribute('data-autoscan', '1');
+                scanBtn.dispatchEvent(new Event('click'));
+            } else {
+                // No explicit button — trigger AJAX scan and refresh the panel.
+                require(['core/ajax'], function(Ajax) {
+                    Ajax.call([{
+                        methodname: 'local_coursectrl_get_text_hits',
+                        args: {courseid: courseid, rescan: true},
+                        done: function(result) {
+                            if (result.hits && result.hits.length > 0) {
+                                // Hits found — reload the page to show them.
+                                window.location.reload();
+                            }
+                        },
+                        fail: function() { /* Silent fail — user can manually rescan. */ }
+                    }]);
+                });
+            }
+        }
+
         // Open shift dialog from slot-level button.
         root.querySelectorAll('[data-action="shift-slot"]').forEach(function(btn) {
             btn.addEventListener('click', function() {
@@ -391,9 +417,20 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
                                     closeTrModal();
                                     location.reload();
                                 },
-                                fail: function() {
+                                fail: function(err) {
                                     modalApplyBtn.disabled = false;
                                     modalApplyBtn.addEventListener('click', applyOnce);
+                                    var em = err && err.message
+                                        ? err.message
+                                        : 'Fehler beim Anwenden.';
+                                    var mb = document.getElementById(
+                                        'coursectrl-textreview-modal-body'
+                                    );
+                                    if (mb) {
+                                        mb.innerHTML +=
+                                            '<div class="alert alert-danger' +
+                                            ' mt-2 small">' + em + '</div>';
+                                    }
                                 },
                             }]);
                         });
@@ -464,16 +501,38 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
         }
 
         // Jump to day from mini-calendar.
+        // If the target day row is absent from the DOM (showpast is off and
+        // the day is in the past), activate the showpast checkbox, append a
+        // focus_day hidden field to its form, and submit — the page reloads
+        // with past entries visible and data-focusdaykey triggers the scroll.
+        var showpastCb = root.querySelector('#coursectrl-showpast');
         root.querySelectorAll('[data-action="jump-to-day"]').forEach(function(cell) {
             cell.addEventListener('click', function() {
                 var daykey = cell.getAttribute('data-daykey');
-                var target = document.getElementById('day-' + daykey)
-                    || root.querySelector('[data-daykey="' + daykey + '"]');
+                // Check whether the day row exists in the timeline list.
+                var target = document.getElementById('day-' + daykey);
+                if (!target && showpastCb && !showpastCb.checked) {
+                    // Day row is missing and showpast is off — the entry is
+                    // filtered out. Enable showpast and reload to the target day.
+                    var form = showpastCb.closest('form');
+                    if (form) {
+                        showpastCb.checked = true;
+                        var hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = 'focus_day';
+                        hidden.value = daykey;
+                        form.appendChild(hidden);
+                        form.submit();
+                    }
+                    return;
+                }
+                // Day row exists — scroll to the header, highlight the card.
                 if (target) {
                     target.scrollIntoView({behavior: 'smooth', block: 'start'});
-                    target.classList.add('border-primary');
+                    var card1 = target.closest('.card') || target;
+                    card1.classList.add('border-primary');
                     window.setTimeout(function() {
-                        target.classList.remove('border-primary');
+                        card1.classList.remove('border-primary');
                     }, 2000);
                 }
             });
@@ -499,6 +558,24 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
                 calRow.scrollLeft = currentMonth.offsetLeft
                     - (calRow.clientWidth / 2)
                     + (currentMonth.clientWidth / 2);
+            }
+        }
+
+        // Scroll to a focused day when arriving from the calendar or checks page.
+        // The server sets data-focusdaykey when a specific CM was requested.
+        var focusday = root.getAttribute('data-focusdaykey');
+        if (focusday) {
+            var focustarget = document.getElementById('day-' + focusday)
+                || root.querySelector('[data-daykey="' + focusday + '"]');
+            if (focustarget) {
+                window.setTimeout(function () {
+                    focustarget.scrollIntoView({behavior: 'smooth', block: 'start'});
+                    var card2 = focustarget.closest('.card') || focustarget;
+                    card2.classList.add('border-primary');
+                    window.setTimeout(function () {
+                        card2.classList.remove('border-primary');
+                    }, 2500);
+                }, 200);
             }
         }
     };

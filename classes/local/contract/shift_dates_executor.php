@@ -408,9 +408,34 @@ trait shift_dates_executor {
                 $successcmids[] = (int) $item['cmid'];
             }
         }
+        $cmsnapshots = [];
         if (!empty($successcmids) && $delta !== 0) {
+            // Capture completionexpected values BEFORE shifting so
+            // batch_manager can persist a core_coursemodule snapshot
+            // that the rollback_manager can later restore.
+            global $DB;
+            [$insql, $inparams] = $DB->get_in_or_equal(
+                array_map('intval', $successcmids),
+                SQL_PARAMS_NAMED
+            );
+            $cmrows = $DB->get_records_sql(
+                "SELECT id, completionexpected, availability
+                   FROM {course_modules}
+                  WHERE id $insql
+                    AND completionexpected > 0",
+                $inparams
+            );
+            foreach ($cmrows as $cmrow) {
+                $cmsnapshots[(int) $cmrow->id] = [
+                    'completionexpected' => (int) $cmrow->completionexpected,
+                    'availability'       => (string) ($cmrow->availability ?? ''),
+                ];
+            }
             $this->shift_completionexpected($successcmids, $delta);
         }
+        // Pass CM-level snapshots through so batch_manager can persist
+        // core_coursemodule rollback entries alongside adapter entries.
+        $result['cm_snapshots'] = $cmsnapshots;
         return $result;
     }
 
@@ -612,20 +637,13 @@ trait shift_dates_executor {
      * @return array Preview entry.
      */
     private function preview_unchanged_field(string $field, int $old, string $action): array {
-        if ($action === 'shift_dates') {
-            return [
-                'field'     => $field,
-                'old_value' => $old,
-                'new_value' => $old,
-                'shifted'   => false,
-                'reason'    => 'unset',
-            ];
-        }
+        // Unified: always use 'old'/'new' so the JS renderPreviewHtml can read fd.old/fd.new.
         return [
+            'field'   => $field,
             'old'     => $old,
             'new'     => $old,
             'shifted' => false,
-            'reason'  => 'already_unset',
+            'reason'  => 'unset',
         ];
     }
 
@@ -639,18 +657,12 @@ trait shift_dates_executor {
      * @return array Preview entry.
      */
     private function preview_changed_field(string $field, int $old, int $new, string $action): array {
-        if ($action === 'shift_dates') {
-            return [
-                'field'     => $field,
-                'old_value' => $old,
-                'new_value' => $new,
-                'shifted'   => $new !== $old,
-            ];
-        }
+        // Unified: always use 'old'/'new' so the JS renderPreviewHtml can read fd.old/fd.new.
         return [
+            'field'   => $field,
             'old'     => $old,
             'new'     => $new,
-            'shifted' => true,
+            'shifted' => $new !== $old,
         ];
     }
 

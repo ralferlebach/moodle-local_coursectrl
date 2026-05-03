@@ -27,6 +27,7 @@ namespace local_coursectrl\local\visualization;
 use local_coursectrl\local\analysis\date_collector;
 use local_coursectrl\local\entity\cm_item;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\local\visualization\gantt_dataset_builder::class)]
 /**
  * Unit tests for gantt_dataset_builder.
  *
@@ -90,6 +91,7 @@ final class gantt_dataset_builder_test extends \advanced_testcase {
 
     /**
      * Empty CMs produce hasdata=false.
+     * @covers \local_coursectrl\local\visualization\gantt_dataset_builder
      */
     public function test_empty_cms_returns_no_data(): void {
         $this->resetAfterTest();
@@ -101,6 +103,7 @@ final class gantt_dataset_builder_test extends \advanced_testcase {
 
     /**
      * CMs with no date entries are excluded from rows.
+     * @covers \local_coursectrl\local\visualization\gantt_dataset_builder
      */
     public function test_cms_without_dates_excluded(): void {
         $this->resetAfterTest();
@@ -116,6 +119,7 @@ final class gantt_dataset_builder_test extends \advanced_testcase {
 
     /**
      * mints and maxts reflect the global date range across all rows.
+     * @covers \local_coursectrl\local\visualization\gantt_dataset_builder
      */
     public function test_mints_maxts_span_all_dates(): void {
         $this->resetAfterTest();
@@ -132,6 +136,7 @@ final class gantt_dataset_builder_test extends \advanced_testcase {
 
     /**
      * Bars within a row are sorted chronologically.
+     * @covers \local_coursectrl\local\visualization\gantt_dataset_builder
      */
     public function test_bars_sorted_chronologically(): void {
         $this->resetAfterTest();
@@ -151,6 +156,7 @@ final class gantt_dataset_builder_test extends \advanced_testcase {
 
     /**
      * Rows are sorted by earliest bar timestamp.
+     * @covers \local_coursectrl\local\visualization\gantt_dataset_builder
      */
     public function test_rows_sorted_by_earliest_date(): void {
         $this->resetAfterTest();
@@ -168,6 +174,7 @@ final class gantt_dataset_builder_test extends \advanced_testcase {
 
     /**
      * Each bar carries source and fieldlabel keys for the renderer.
+     * @covers \local_coursectrl\local\visualization\gantt_dataset_builder
      */
     public function test_bar_contains_required_keys(): void {
         $this->resetAfterTest();
@@ -185,6 +192,7 @@ final class gantt_dataset_builder_test extends \advanced_testcase {
 
     /**
      * All-dates-absent course returns empty result (not an error).
+     * @covers \local_coursectrl\local\visualization\gantt_dataset_builder
      */
     public function test_course_with_cms_but_no_dates_returns_empty(): void {
         $this->resetAfterTest();

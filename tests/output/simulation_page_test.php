@@ -141,4 +141,111 @@ final class simulation_page_test extends \advanced_testcase {
         $this->assertFalse($row['accessible']);
         $this->assertFalse($row['teacher_visible']);
     }
+
+    /**
+     * Activity names containing HTML/script are escaped in completion-reason labels.
+     * The label passes through format_string() + s(), so no raw HTML must appear.
+     * @covers \local_coursectrl\output\simulation_page
+     */
+    public function test_activity_name_xss_is_escaped_in_completion_label(): void {
+        global $PAGE;
+        $this->resetAfterTest();
+
+        $course  = $this->getDataGenerator()->create_course();
+        $payload = '<script>alert(1)</script>';
+
+        // Create an assignment whose name contains an XSS payload.
+        $assign = $this->getDataGenerator()->create_module('assign', [
+            'course' => $course->id,
+            'name'   => $payload,
+        ]);
+        $cmid = (int) $assign->cmid;
+
+        // Build a synthetic completion-condition reason as the simulator would return.
+        $reason = [
+            'type'     => 'completion',
+            'cmid'     => $cmid,
+            'status'   => 'fail',
+            'expected' => 1,
+        ];
+
+        // Run export_for_template to trigger label generation.
+        $page = new \local_coursectrl\output\simulation_page(
+            $course->id,
+            null,
+            []
+        );
+        $data = $page->export_for_template($PAGE->get_renderer('core'));
+
+        // The payload must not appear raw in any label output anywhere in the template data.
+        $json = json_encode($data);
+        $this->assertStringNotContainsString(
+            '<script>alert(1)</script>',
+            $json,
+            'Raw XSS payload must not appear unescaped in simulation template data'
+        );
+    }
+
+    /**
+     * Group names containing HTML event handlers are escaped in group-reason labels.
+     * @covers \local_coursectrl\output\simulation_page
+     */
+    public function test_group_name_xss_is_escaped_in_group_label(): void {
+        global $PAGE;
+        $this->resetAfterTest();
+
+        $course  = $this->getDataGenerator()->create_course();
+        $payload = '<img src=x onerror=alert(1)>';
+
+        // Create a group with an XSS payload as its name.
+        $group = $this->getDataGenerator()->create_group([
+            'courseid' => $course->id,
+            'name'     => $payload,
+        ]);
+
+        $page = new \local_coursectrl\output\simulation_page(
+            $course->id,
+            null,
+            []
+        );
+        $data = $page->export_for_template($PAGE->get_renderer('core'));
+
+        $json = json_encode($data);
+        $this->assertStringNotContainsString(
+            '<img src=x onerror=alert(1)>',
+            $json,
+            'Raw XSS payload in group name must not appear unescaped in simulation template data'
+        );
+    }
+
+    /**
+     * Grouping names containing HTML are escaped in grouping-reason labels.
+     * @covers \local_coursectrl\output\simulation_page
+     */
+    public function test_grouping_name_xss_is_escaped_in_grouping_label(): void {
+        global $PAGE;
+        $this->resetAfterTest();
+
+        $course   = $this->getDataGenerator()->create_course();
+        $payload  = '<svg onload=alert(1)>';
+
+        $grouping = $this->getDataGenerator()->create_grouping([
+            'courseid' => $course->id,
+            'name'     => $payload,
+        ]);
+
+        $page = new \local_coursectrl\output\simulation_page(
+            $course->id,
+            null,
+            []
+        );
+        $data = $page->export_for_template($PAGE->get_renderer('core'));
+
+        $json = json_encode($data);
+        $this->assertStringNotContainsString(
+            '<svg onload=alert(1)>',
+            $json,
+            'Raw XSS payload in grouping name must not appear unescaped in simulation template data'
+        );
+    }
 }

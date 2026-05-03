@@ -234,7 +234,14 @@ class simulation_page implements renderable, templatable {
 
                 $reasonrows = [];
                 foreach ($result['reasons'] as $reason) {
-                    $reasonrows[] = $this->format_reason($reason, $dateformat, $cms, $groupnamemap, $groupingnamemap);
+                    $reasonrows[] = $this->format_reason(
+                        $reason,
+                        $dateformat,
+                        $courseid,
+                        $cms,
+                        $groupnamemap,
+                        $groupingnamemap
+                    );
                 }
                 // Build OR/AND grouped reasons for structured display.
                 $rawgroups = $evaluator->evaluate_groups(
@@ -245,7 +252,14 @@ class simulation_page implements renderable, templatable {
                 foreach ($rawgroups as $gidx => $grp) {
                     $gconditions = [];
                     foreach ($grp as $r) {
-                        $gconditions[] = $this->format_reason($r, $dateformat, $cms, $groupnamemap, $groupingnamemap);
+                        $gconditions[] = $this->format_reason(
+                            $r,
+                            $dateformat,
+                            $courseid,
+                            $cms,
+                            $groupnamemap,
+                            $groupingnamemap
+                        );
                     }
                     $reasongrouprows[] = [
                         'conditions'    => $gconditions,
@@ -443,7 +457,14 @@ class simulation_page implements renderable, templatable {
                     $seceval = $evaluator->evaluate($section->availability, $this->state);
                     $secaccessible = $seceval['accessible'];
                     foreach ($seceval['reasons'] as $reason) {
-                        $secreasonrows[] = $this->format_reason($reason, $dateformat, $cms, $groupnamemap, $groupingnamemap);
+                        $secreasonrows[] = $this->format_reason(
+                            $reason,
+                            $dateformat,
+                            $courseid,
+                            $cms,
+                            $groupnamemap,
+                            $groupingnamemap
+                        );
                     }
                     $secrawgroups = $evaluator->evaluate_groups(
                         $section->availability ?? null,
@@ -453,7 +474,14 @@ class simulation_page implements renderable, templatable {
                     foreach ($secrawgroups as $sgidx => $sgrp) {
                         $sgconditions = [];
                         foreach ($sgrp as $r) {
-                            $sgconditions[] = $this->format_reason($r, $dateformat, $cms, $groupnamemap, $groupingnamemap);
+                            $sgconditions[] = $this->format_reason(
+                                $r,
+                                $dateformat,
+                                $courseid,
+                                $cms,
+                                $groupnamemap,
+                                $groupingnamemap
+                            );
                         }
                         $secreasongroups[] = [
                             'conditions'    => $sgconditions,
@@ -780,6 +808,7 @@ class simulation_page implements renderable, templatable {
     private function format_reason(
         array $reason,
         string $dateformat,
+        int $courseid,
         array $cms = [],
         array $groups = [],
         array $groupings = []

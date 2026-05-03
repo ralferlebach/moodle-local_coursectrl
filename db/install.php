@@ -25,10 +25,9 @@
 /**
  * Run once after the plugin is installed.
  *
- * Tries to warm the holiday cache synchronously so the dashboard shows
- * holidays immediately. If the synchronous fetch fails for any reason
- * (network down, providers misconfigured, timeout), an adhoc task is queued
- * as fallback so the next cron tick will retry.
+ * Queues the holiday-cache warm-up adhoc task. The actual warming is done
+ * asynchronously on the next cron tick to keep the installer fast and free
+ * of external network calls.
  *
  * @return bool Always true.
  */

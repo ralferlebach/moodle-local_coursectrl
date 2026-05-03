@@ -236,6 +236,8 @@ define([], function() {
     var ganttCollapsed = {};
 
     var renderGantt = function(canvas) {
+        var lblOutsection = canvas.getAttribute('data-lbl-outsection')
+            || '\u26a0 Outside section availability window';
         var raw = canvas.getAttribute('data-gantt');
         if (!raw) {
             return;
@@ -609,7 +611,7 @@ define([], function() {
                 tip.textContent = bar.formatted ? (label + ': ' + bar.formatted) : label;
                 // Append warning to tooltip for bars outside section window.
                 if (bar.outsection) {
-                    tip.textContent += ' \u26a0 outside section availability window';
+                    tip.textContent += ' ' + lblOutsection;
                 }
                 g.appendChild(tip);
                 var barColor = bar.outsection ? COL_GANTT_DANGER

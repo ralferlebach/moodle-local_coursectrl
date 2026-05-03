@@ -249,10 +249,10 @@ class gantt_dataset_builder {
             $hasavail = false;
             // Section boundary timestamps for out-of-window detection.
             $secfrom = $parentwindow['from_ts'] ?? null;
-            $secto   = $parentwindow['to_ts'] ?? null;
+            $secto = $parentwindow['to_ts'] ?? null;
             foreach ($entries as $entry) {
                 $kind = $this->classify_field((string) $entry['field']);
-                $ts   = (int) $entry['timestamp'];
+                $ts = (int) $entry['timestamp'];
                 // Flag bars that fall outside the parent section's accessible window.
                 $outsection = ($secfrom !== null && $ts < $secfrom)
                     || ($secto !== null && $ts > $secto);
@@ -499,38 +499,38 @@ class gantt_dataset_builder {
                     ];
                     // Render child CMs of this subsection at depth 2.
                     foreach ($cmsbysection[$childsectionid] ?? [] as $childcm) {
-                        // Child CMs inherit from subsection + grandparent section.
-                        // Merge both windows: use the tighter of the two boundaries.
-                        $mergedfrom = array_filter(
-                            array_map(
-                                fn($w) => $w['from_ts'] ?? null,
-                                array_filter([$sectionwindow,
-                                    (!empty($subopents) || !empty($subclosets)) ? [
-                                        'from_ts' => !empty($subopents) ? min($subopents) : null,
-                                        'to_ts'   => !empty($subclosets) ? max($subclosets) : null,
-                                    ] : null,
-                                ])
-                            )
-                        );
-                        $mergedto = array_filter(
-                            array_map(
-                                fn($w) => $w['to_ts'] ?? null,
-                                array_filter([$sectionwindow,
-                                    (!empty($subopents) || !empty($subclosets)) ? [
-                                        'from_ts' => !empty($subopents) ? min($subopents) : null,
-                                        'to_ts'   => !empty($subclosets) ? max($subclosets) : null,
-                                    ] : null,
-                                ])
-                            )
-                        );
-                        $childwindow = (!empty($mergedfrom) || !empty($mergedto)) ? [
-                            'from_ts'        => !empty($mergedfrom) ? max($mergedfrom) : null,
-                            'to_ts'          => !empty($mergedto) ? min($mergedto) : null,
-                            'from_formatted' => !empty($mergedfrom)
-                                ? userdate(max($mergedfrom), $dateonlyfmt) : '',
-                            'to_formatted'   => !empty($mergedto)
-                                ? userdate(min($mergedto), $dateonlyfmt) : '',
-                        ] : null;
+                        // Merge section + subsection windows; tightest boundary wins.
+                        $subsecwindowdata = (!empty($subopents) || !empty($subclosets))
+                            ? [
+                                'from_ts' => !empty($subopents) ? min($subopents) : null,
+                                'to_ts' => !empty($subclosets) ? max($subclosets) : null,
+                            ]
+                            : null;
+                        $candidatefrom = [];
+                        $candidateto   = [];
+                        foreach ([$sectionwindow, $subsecwindowdata] as $cw) {
+                            if ($cw === null) {
+                                continue;
+                            }
+                            if ($cw['from_ts'] !== null) {
+                                $candidatefrom[] = $cw['from_ts'];
+                            }
+                            if ($cw['to_ts'] !== null) {
+                                $candidateto[] = $cw['to_ts'];
+                            }
+                        }
+                        $childfrom = !empty($candidatefrom) ? max($candidatefrom) : null;
+                        $childto   = !empty($candidateto) ? min($candidateto) : null;
+                        $childwindow = ($childfrom !== null || $childto !== null)
+                            ? [
+                                'from_ts' => $childfrom,
+                                'to_ts' => $childto,
+                                'from_formatted' => $childfrom !== null
+                                    ? userdate($childfrom, $dateonlyfmt) : '',
+                                'to_formatted' => $childto !== null
+                                    ? userdate($childto, $dateonlyfmt) : '',
+                            ]
+                            : null;
                         $rows[] = $buildcmrow(
                             $childcm,
                             $childsectionid,

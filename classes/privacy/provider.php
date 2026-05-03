@@ -83,6 +83,9 @@ class provider implements
                 'fieldname'       => 'privacy:metadata:local_coursectrl_text_hit:fieldname',
                 'matchedtext'     => 'privacy:metadata:local_coursectrl_text_hit:matchedtext',
                 'normalizedvalue' => 'privacy:metadata:local_coursectrl_text_hit:normalizedvalue',
+                'confidence'      => 'privacy:metadata:local_coursectrl_text_hit:confidence',
+                'contextjson'     => 'privacy:metadata:local_coursectrl_text_hit:contextjson',
+                'timecreated'     => 'privacy:metadata:local_coursectrl_text_hit:timecreated',
             ],
             'privacy:metadata:local_coursectrl_text_hit'
         );
@@ -96,6 +99,7 @@ class provider implements
                 'entitytype'  => 'privacy:metadata:local_coursectrl_risk:entitytype',
                 'entityid'    => 'privacy:metadata:local_coursectrl_risk:entityid',
                 'detailsjson' => 'privacy:metadata:local_coursectrl_risk:detailsjson',
+                'timecreated' => 'privacy:metadata:local_coursectrl_risk:timecreated',
             ],
             'privacy:metadata:local_coursectrl_risk'
         );

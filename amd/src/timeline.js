@@ -353,7 +353,9 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
             applyBtn.addEventListener('click', function() {
                 var hitids = Array.from(
                     trForm.querySelectorAll('input[name="hitids[]"]:checked')
-                ).map(function(cb) { return parseInt(cb.value, 10); });
+                ).map(function(cb) {
+                    return parseInt(cb.value, 10);
+                });
                 if (hitids.length === 0) {
                     return;
                 }
@@ -435,7 +437,9 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
                 }
             });
             trModal.querySelectorAll('[data-action="close-textreview-modal"]').forEach(
-                function(btn) { btn.addEventListener('click', closeTrModal); }
+                function(btn) {
+                btn.addEventListener('click', closeTrModal);
+            }
             );
         }
 

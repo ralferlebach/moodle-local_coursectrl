@@ -95,7 +95,9 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
                 var sid = btn.getAttribute('data-sectionid');
                 root.querySelectorAll(
                     'input[name="cmids[]"][data-sectionid="' + sid + '"]:not(:disabled)'
-                ).forEach(function(cb) { cb.checked = true; });
+                ).forEach(function(cb) {
+                    cb.checked = true;
+                });
             });
         });
 
@@ -106,7 +108,9 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
                 // Deselect all CM checkboxes in this section.
                 root.querySelectorAll(
                     'input[name="cmids[]"][data-sectionid="' + sid + '"]'
-                ).forEach(function(cb) { cb.checked = false; });
+                ).forEach(function(cb) {
+                    cb.checked = false;
+                });
                 // Also uncheck the section header checkbox itself.
                 var sectionCb = root.querySelector(
                     'input[name="sectionids[]"][data-sectionid="' + sid + '"]'
@@ -123,7 +127,9 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
                 var sid = sectionCb.getAttribute('data-sectionid');
                 root.querySelectorAll(
                     'input[name="cmids[]"][data-sectionid="' + sid + '"]:not(:disabled)'
-                ).forEach(function(cb) { cb.checked = sectionCb.checked; });
+                ).forEach(function(cb) {
+                    cb.checked = sectionCb.checked;
+                });
             });
         });
 
@@ -142,7 +148,9 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
                 e.preventDefault();
                 var selected = Array.from(
                     root.querySelectorAll('input[name="cmids[]"]:checked')
-                ).map(function(cb) { return parseInt(cb.value, 10); });
+                ).map(function(cb) {
+                    return parseInt(cb.value, 10);
+                });
 
                 if (selected.length === 0) {
                     return;
@@ -160,7 +168,9 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
                     getCmids: function() {
                         return Array.from(
                             root.querySelectorAll('input[name="cmids[]"]:checked')
-                        ).map(function(cb) { return parseInt(cb.value, 10); });
+                        ).map(function(cb) {
+                            return parseInt(cb.value, 10);
+                        });
                     },
                     getDelta: function() {
                         var d = parseInt((daysEl && daysEl.value) || '0', 10);

@@ -116,7 +116,9 @@ define([], function() {
         var nodes = data.nodes;
         var edges = data.edges;
         var nodeIndex = {};
-        nodes.forEach(function(n) { nodeIndex[n.id] = n; });
+        nodes.forEach(function(n) {
+            nodeIndex[n.id] = n;
+        });
         var connected = {};
         edges.forEach(function(edge) {
             connected[edge.from] = true;
@@ -353,6 +355,7 @@ define([], function() {
             : '';
 
         var rowY = GANTT_PAD;
+        // eslint-disable-next-line complexity
         rows.forEach(function(row) {
             var rh = row.issection ? SECTION_ROW_H : GANTT_ROW_H;
             var midY = rowY + rh / 2;
@@ -737,7 +740,9 @@ define([], function() {
             var ganttTab = root.querySelector('[href="#panel-gantt"]');
             if (ganttTab && ganttCanvas) {
                 ganttTab.addEventListener('click', function() {
-                    setTimeout(function() { renderGantt(ganttCanvas); }, 50);
+                    setTimeout(function() {
+                        renderGantt(ganttCanvas);
+                    }, 50);
                 });
             }
             initFilters(root);

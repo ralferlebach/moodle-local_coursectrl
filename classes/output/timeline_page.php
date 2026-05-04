@@ -191,6 +191,9 @@ class timeline_page implements renderable, templatable {
             ];
         }
 
+        // Auto-open shift modal when triggered from an external link.
+        $autoopendata = $this->build_autoopen_context($allentries);
+
         return [
             'courseid' => $course->id,
             'coursefullname' => format_string($course->fullname),
@@ -239,8 +242,70 @@ class timeline_page implements renderable, templatable {
                 '/local/coursectrl/shift.php',
                 ['courseid' => $course->id]
             ))->out(false),
+            'autoopen'         => !empty($autoopendata),
+            'autoopen_cmids'   => $autoopendata['cmids'] ?? '',
+            'autoopen_mode'    => $autoopendata['mode'] ?? 'slot',
+            'autoopen_label'   => $autoopendata['label'] ?? '',
+            'autoopen_field'   => $autoopendata['field'] ?? '',
+            'autoopen_following' => $autoopendata['following'] ?? false,
         ] + $this->build_textreview_context($course->id);
     }
+    /**
+     * Build autoopen context when the shift dialog should open on page load.
+     *
+     * Reads autoopen_mode, autoopen_ts, autoopen_cmid, autoopen_field from
+     * $this->filters and resolves the correct cmid set from $allentries.
+     *
+     * @param array $allentries All date entries from date_collector.
+     * @return array Empty array when autoopen is not requested.
+     */
+    private function build_autoopen_context(array $allentries): array {
+        $mode  = (string) ($this->filters['autoopen_mode'] ?? '');
+        $ts    = (int)    ($this->filters['autoopen_ts']   ?? 0);
+        $cmid  = (int)    ($this->filters['autoopen_cmid'] ?? 0);
+        $field = (string) ($this->filters['autoopen_field'] ?? '');
+
+        if ($mode === '') {
+            return [];
+        }
+
+        if ($mode === 'entry' && $cmid > 0) {
+            return [
+                'cmids'     => (string) $cmid,
+                'mode'      => 'entry',
+                'field'     => $field,
+                'label'     => '',
+                'following' => false,
+            ];
+        }
+
+        if (($mode === 'slot' || $mode === 'following') && $ts > 0) {
+            $cmids = [];
+            foreach ($allentries as $entry) {
+                $ets = (int) $entry['timestamp'];
+                if ($mode === 'slot' && $ets !== $ts) {
+                    continue;
+                }
+                if ($mode === 'following' && $ets < $ts) {
+                    continue;
+                }
+                $id = (int) $entry['cmid'];
+                if (!in_array($id, $cmids, true)) {
+                    $cmids[] = $id;
+                }
+            }
+            return [
+                'cmids'     => implode(',', $cmids),
+                'mode'      => 'slot',
+                'field'     => '',
+                'label'     => '',
+                'following' => $mode === 'following',
+            ];
+        }
+
+        return [];
+    }
+
     /**
      * Build textreview context variables for the text-review tab.
      *

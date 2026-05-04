@@ -153,8 +153,15 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
             if (d) {
                 d.style.display = 'none';
                 d.classList.remove('show');
+                d.setAttribute('aria-hidden', 'true');
             }
         });
+        // Remove modal backdrop and body class regardless of how the modal was opened.
+        var bd = document.querySelector('.modal-backdrop');
+        if (bd) {
+            bd.remove();
+        }
+        document.body.classList.remove('modal-open');
         if (shiftApplied) {
             window.location.reload();
         }

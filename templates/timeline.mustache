@@ -254,8 +254,8 @@
 
   {{! ── Shift dialog (existing mechanism) ─────────────────────────────── }}
   {{! Shift workflow modal — 3-step: config → preview → (text review) }}
-  <div id="coursectrl-shift-dialog" class="modal fade" tabindex="-1" role="dialog"
-       style="display:none" aria-hidden="true"
+  <div id="coursectrl-shift-dialog" class="modal fade{{#autoopen}} show{{/autoopen}}" tabindex="-1" role="dialog"
+       style="{{#autoopen}}display:block{{/autoopen}}{{^autoopen}}display:none{{/autoopen}}" aria-hidden="{{#autoopen}}false{{/autoopen}}{{^autoopen}}true{{/autoopen}}"
        data-label-config="{{#str}} timeline_shift_heading, local_coursectrl {{/str}}"
        data-label-preview="{{#str}} preview_title, local_coursectrl {{/str}}"
        data-label-textreview="{{#str}} tab_textreview, local_coursectrl {{/str}}"
@@ -293,13 +293,13 @@
           <form method="post" action="{{shifturl}}" id="coursectrl-shift-form">
             <input type="hidden" name="sesskey" value="{{sesskey}}">
             <input type="hidden" name="courseid" value="{{courseid}}">
-            <input type="hidden" name="cmids" id="coursectrl-shift-cmids" value="">
+            <input type="hidden" name="cmids" id="coursectrl-shift-cmids" value="{{autoopen_cmids}}">
             <input type="hidden" name="action_type" value="shift_dates">
-            <input type="hidden" name="mode" id="coursectrl-shift-mode" value="slot">
+            <input type="hidden" name="mode" id="coursectrl-shift-mode" value="{{#autoopen}}{{autoopen_mode}}{{/autoopen}}{{^autoopen}}slot{{/autoopen}}">
             <input type="hidden" name="followdeps"
-                   id="coursectrl-shift-followdeps" value="0">
+                   id="coursectrl-shift-followdeps" value="{{#autoopen_following}}1{{/autoopen_following}}{{^autoopen_following}}0{{/autoopen_following}}">
             <input type="hidden" name="shift_fields"
-                   id="coursectrl-shift-fields" value="">
+                   id="coursectrl-shift-fields" value="{{autoopen_field}}">
             <div class="modal-body py-2">
               <p id="coursectrl-shift-target" class="small text-muted mb-2"></p>
               <div class="d-flex gap-3 mb-2" style="width:25rem">
@@ -788,6 +788,15 @@
 </div>
 
 {{#js}}
+(function() {
+    var dlg = document.getElementById('coursectrl-shift-dialog');
+    if (dlg && dlg.classList.contains('show')) {
+        var bd = document.createElement('div');
+        bd.className = 'modal-backdrop fade show';
+        document.body.appendChild(bd);
+        document.body.classList.add('modal-open');
+    }
+}());
 require(['local_coursectrl/timeline'], function(T) {
     T.init(document.querySelector('[data-region="local_coursectrl-timeline"]'));
 });

@@ -578,7 +578,7 @@ define([], function() {
      * @param {Element} opts.modal       The modal root element.
      * @param {HTMLFormElement} opts.form The shift config form.
      * @param {number}  opts.courseid    Course id.
-     * @param {number[]} opts.getCmids   Function returning selected cmids.
+     * @param {Array}    opts.getTargets Function returning the shift target array.
      * @param {number}  opts.getDelta    Function returning delta in seconds.
      * @param {boolean} opts.getScanText Function returning whether text scan is wanted.
      * @param {Function} opts.onComplete Optional callback when workflow is done.
@@ -736,15 +736,9 @@ define([], function() {
                     execBtn.disabled = true;
 
                     // Push cmids + delta into form hidden fields.
-                    var cmids = opts.getCmids();
                     var deltaS = opts.getDelta();
-                    var fCmids = form.querySelector('[name="cmids"]') ||
-                                  form.querySelector('[id$="shift-cmids"]');
                     var fDays = form.querySelector('[name="delta_days"]');
                     var fHours = form.querySelector('[name="delta_hours"]');
-                    if (fCmids) {
-                        fCmids.value = cmids.join(',');
-                    }
                     var days = Math.trunc(deltaS / 86400);
                     var hours = Math.trunc((deltaS % 86400) / 3600);
                     var minutes = Math.trunc((deltaS % 3600) / 60);
@@ -814,7 +808,7 @@ define([], function() {
                                         }
                                     });
                                 }
-                                return;
+                                return null;
                             }
 
                             // Text scan requested — load step3.

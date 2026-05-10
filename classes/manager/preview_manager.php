@@ -389,9 +389,7 @@ class preview_manager {
 
         if (in_array('completionexpected', $cmfields, true) && (int) $cm->completionexpected > 0) {
             $oldval = (int) $cm->completionexpected;
-            $previewfields[] = [
-                'field'   => 'completionexpected',
-                'label'   => field_label_resolver::resolve('completionexpected', '', 'cm'),
+            $previewfields['completionexpected'] = [
                 'old'     => $oldval,
                 'new'     => $oldval + $delta,
                 'shifted' => $delta !== 0,
@@ -404,7 +402,12 @@ class preview_manager {
                 $dates = [];
                 $this->collect_availability_dates($avail, $dates, $delta);
                 foreach ($dates as $desc) {
-                    $previewfields[] = $desc;
+                    // Key by field name so preview_bulk_action resolves the label correctly.
+                    $previewfields[$desc['field']] = [
+                        'old'     => $desc['old'],
+                        'new'     => $desc['new'],
+                        'shifted' => $desc['shifted'],
+                    ];
                 }
             }
         }
@@ -419,7 +422,9 @@ class preview_manager {
             $name = $cmobj->name;
         }
 
-        return new preview_change($cmid, 'core_coursemodule', $name, $previewfields);
+        // Use mod_<modname> so preview_bulk_action icon lookup can short-circuit.
+        $modcomponent = $cmobj ? 'mod_' . $cmobj->modname : 'core_coursemodule';
+        return new preview_change($cmid, $modcomponent, $name, $previewfields);
     }
 
     /**

@@ -97,10 +97,16 @@ class preview_bulk_action extends external_api {
 
         $changes = [];
         foreach ($result['changes'] as $change) {
-            $modname = str_replace('mod_', '', $change->get_component());
+            // Resolve the actual module name from the cmid: adapter subplugins
+            // (coursectrlmod_*) and system components (core_coursemodule) do not
+            // carry their own monologo image; we need mod_<modname> for the icon
+            // and the real modname for field_label_resolver.
+            $cmobj = get_coursemodule_from_id('', $change->get_cmid(), 0, false, IGNORE_MISSING);
+            $modname   = $cmobj ? $cmobj->modname : '';
+            $iconcomponent = $modname !== '' ? 'mod_' . $modname : $change->get_component();
             $iconurl = (new \moodle_url('/theme/image.php', [
                 'theme'     => isset($PAGE->theme) ? $PAGE->theme->name : 'boost',
-                'component' => $change->get_component(),
+                'component' => $iconcomponent,
                 'image'     => 'monologo',
                 'rev'       => -1,
             ]))->out(false);

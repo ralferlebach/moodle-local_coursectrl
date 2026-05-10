@@ -46,7 +46,10 @@
 
 namespace local_coursectrl\manager;
 
+use local_coursectrl\local\analysis\date_collector;
 use local_coursectrl\local\contract\activity_adapter;
+use local_coursectrl\local\dto\shift_target;
+use local_coursectrl\local\field_label_resolver;
 use local_coursectrl\local\dto\preview_change;
 use local_coursectrl\local\dto\validation_result;
 
@@ -99,6 +102,14 @@ class preview_manager {
      * @return array
      */
     public function build(int $courseid, string $action, array $payload, array $cmids = []): array {
+        // Targets-based path: delegate when payload carries structured targets.
+        if (!empty($payload['targets'])) {
+            $targets = [];
+            foreach ($payload['targets'] as $t) {
+                $targets[] = shift_target::from_array($t);
+            }
+            return $this->build_from_targets($courseid, $action, $payload, $targets);
+        }
         if (empty($cmids)) {
             $cmids = $this->collect_supported_cmids_for_course($courseid);
         } else {
@@ -186,7 +197,273 @@ class preview_manager {
      * @param string $action canonical action identifier.
      * @return array{routed: array<string, array{adapter: activity_adapter, cmids: int[]}>, skipped: array, errors: array}
      */
-    private function group_cmids_by_adapter(array $cmids, string $action): array {
+    /**
+     * Build a preview from a structured list of shift_target objects.
+     *
+     * Groups adapter targets by (component, field-set) for batched adapter
+     * calls. CM-level and availability targets are previewed directly from
+     * the course_modules row so they appear in the changes list rather than
+     * being silently skipped.
+     *
+     * @param int          $courseid Course id.
+     * @param string       $action   Canonical action identifier.
+     * @param array        $payload  Action payload (must contain 'delta').
+     * @param shift_target[] $targets Structured target list.
+     * @return array Preview result in the same shape as build().
+     */
+    private function build_from_targets(
+        int $courseid,
+        string $action,
+        array $payload,
+        array $targets
+    ): array {
+        global $DB;
+
+        $delta = (int) ($payload['delta'] ?? 0);
+        $changes = [];
+        $skipped = [];
+        $errors  = [];
+
+        // Validate all target cmids belong to the course.
+        $allcmids = array_values(
+            array_unique(array_map(function (shift_target $t) {
+                return $t->get_cmid();
+            }, $targets))
+        );
+        $validcmids = $this->filter_cmids_to_course($courseid, $allcmids);
+        $validset = array_flip($validcmids);
+
+        // Separate targets by source; discard invalid cmids silently.
+        $adaptertargets = [];
+        $cmtargets      = [];
+        $availtargets   = [];
+        foreach ($targets as $target) {
+            $cmid = $target->get_cmid();
+            if (!isset($validset[$cmid])) {
+                continue;
+            }
+            if ($target->get_source() === shift_target::SOURCE_ADAPTER) {
+                $adaptertargets[$cmid][] = $target->get_field();
+            } else if ($target->get_source() === shift_target::SOURCE_CM) {
+                $cmtargets[$cmid][] = $target->get_field();
+            } else if ($target->get_source() === shift_target::SOURCE_AVAILABILITY) {
+                $availtargets[$cmid][] = $target->get_field();
+            }
+        }
+
+        // Group adapter targets by (frankenstyle component, sorted field list).
+        $adaptergroups = [];
+        foreach ($adaptertargets as $cmid => $fields) {
+            $adapter = $this->registry->get_for_cmid($cmid);
+            if ($adapter === null) {
+                $skipped[] = ['cmid' => $cmid, 'reason' => 'no_adapter'];
+                continue;
+            }
+            $component = $adapter::component();
+            sort($fields);
+            $groupkey = $component . '|' . implode(',', $fields);
+            if (!isset($adaptergroups[$groupkey])) {
+                $adaptergroups[$groupkey] = [
+                    'adapter'   => $adapter,
+                    'component' => $component,
+                    'fields'    => $fields,
+                    'cmids'     => [],
+                ];
+            }
+            $adaptergroups[$groupkey]['cmids'][] = $cmid;
+        }
+
+        foreach ($adaptergroups as $group) {
+            $adapterpayload = $payload;
+            if (!empty($group['fields'])) {
+                $adapterpayload['fields'] = $group['fields'];
+            }
+            $adaptercmids = $group['cmids'];
+            $validation = validation_result::from_adapter_array(
+                $group['adapter']->validate_action($action, $adapterpayload, $adaptercmids)
+            );
+            if (!$validation->is_valid()) {
+                foreach ($adaptercmids as $cmid) {
+                    foreach ($validation->get_errors() as $error) {
+                        $errors[] = [
+                            'cmid'      => $cmid,
+                            'component' => $group['component'],
+                            'code'      => $error['code'] ?? 'invalid_payload',
+                            'details'   => $error,
+                        ];
+                    }
+                }
+                continue;
+            }
+            try {
+                $preview = $group['adapter']->preview_action(
+                    $action,
+                    $adapterpayload,
+                    $adaptercmids
+                );
+            } catch (\Throwable $e) {
+                foreach ($adaptercmids as $cmid) {
+                    $errors[] = [
+                        'cmid'      => $cmid,
+                        'component' => $group['component'],
+                        'code'      => 'preview_failed',
+                        'message'   => $e->getMessage(),
+                    ];
+                }
+                continue;
+            }
+            foreach ($preview['items'] ?? [] as $item) {
+                $cmid = (int) ($item['cmid'] ?? 0);
+                $changes[$cmid] = new preview_change(
+                    $cmid,
+                    $group['component'],
+                    (string) ($item['name'] ?? ''),
+                    $item['fields'] ?? []
+                );
+            }
+        }
+
+        // Preview CM-level targets (completionexpected, availability dates).
+        $allcmlevel = array_unique(
+            array_merge(array_keys($cmtargets), array_keys($availtargets))
+        );
+        foreach ($allcmlevel as $cmid) {
+            $change = $this->build_cm_level_preview(
+                (int) $cmid,
+                $cmtargets[$cmid] ?? [],
+                $availtargets[$cmid] ?? [],
+                $delta,
+                $DB
+            );
+            if ($change !== null) {
+                $changes[$cmid] = $change;
+            }
+        }
+
+        return [
+            'action'  => $action,
+            'payload' => $payload,
+            'changes' => $changes,
+            'skipped' => $skipped,
+            'errors'  => $errors,
+            'summary' => [
+                'total'   => count($allcmids),
+                'changes' => count($changes),
+                'skipped' => count($skipped),
+                'errors'  => count($errors),
+            ],
+        ];
+    }
+
+    /**
+     * Build a preview_change for CM-level date fields of one course module.
+     *
+     * Covers completionexpected (source=cm) and availability date conditions
+     * (source=availability). Returns null when nothing would change.
+     *
+     * @param int      $cmid         Course module id.
+     * @param string[] $cmfields     CM-source field names to preview.
+     * @param string[] $availfields  Availability-source field names to preview.
+     * @param int      $delta        Shift delta in seconds.
+     * @param \moodle_database $db  DB instance.
+     * @return preview_change|null
+     */
+    private function build_cm_level_preview(
+        int $cmid,
+        array $cmfields,
+        array $availfields,
+        int $delta,
+        \moodle_database $db
+    ): ?preview_change {
+        $cm = $db->get_record(
+            'course_modules',
+            ['id' => $cmid],
+            'id, completionexpected, availability',
+            IGNORE_MISSING
+        );
+        if (!$cm) {
+            return null;
+        }
+
+        $previewfields = [];
+
+        if (in_array('completionexpected', $cmfields, true) && (int) $cm->completionexpected > 0) {
+            $oldval = (int) $cm->completionexpected;
+            $previewfields[] = [
+                'field'   => 'completionexpected',
+                'label'   => field_label_resolver::resolve('completionexpected', '', 'cm'),
+                'old'     => $oldval,
+                'new'     => $oldval + $delta,
+                'shifted' => $delta !== 0,
+            ];
+        }
+
+        if (!empty($availfields) && !empty($cm->availability)) {
+            $avail = json_decode((string) $cm->availability, true);
+            if (is_array($avail)) {
+                $dates = [];
+                $this->collect_availability_dates($avail, $dates, $delta);
+                foreach ($dates as $desc) {
+                    $previewfields[] = $desc;
+                }
+            }
+        }
+
+        if (empty($previewfields)) {
+            return null;
+        }
+
+        $name = '';
+        $cmobj = get_coursemodule_from_id('', $cmid, 0, false, IGNORE_MISSING);
+        if ($cmobj) {
+            $name = $cmobj->name;
+        }
+
+        return new preview_change($cmid, 'core_coursemodule', $name, $previewfields);
+    }
+
+    /**
+     * Recursively collect date-condition previews from an availability node.
+     *
+     * @param array  $node   Decoded availability condition node.
+     * @param array  $dates  Accumulator for preview field descriptors.
+     * @param int    $delta  Shift delta in seconds.
+     * @param int    $idx    Running index for field key generation.
+     * @return void
+     */
+    private function collect_availability_dates(
+        array $node,
+        array &$dates,
+        int $delta,
+        int &$idx = 0
+    ): void {
+        if (($node['type'] ?? '') === 'date' && isset($node['t']) && (int) $node['t'] > 0) {
+            $oldval = (int) $node['t'];
+            $e = $node['e'] ?? 'a';
+            $dates[] = [
+                'field'   => 'availability_' . ($e === '>=' ? 'from' : 'until') . '_' . $idx,
+                'label'   => field_label_resolver::resolve(
+                    'availability_' . ($e === '>=' ? 'from' : 'until') . '_0',
+                    '',
+                    'availability'
+                ),
+                'old'     => $oldval,
+                'new'     => $oldval + $delta,
+                'shifted' => $delta !== 0,
+            ];
+            $idx++;
+            return;
+        }
+        if (isset($node['c']) && is_array($node['c'])) {
+            foreach ($node['c'] as $child) {
+                if (is_array($child)) {
+                    $this->collect_availability_dates($child, $dates, $delta, $idx);
+                }
+            }
+        }
+    }
+
+        private function group_cmids_by_adapter(array $cmids, string $action): array {
         $routed  = [];
         $skipped = [];
         $errors  = [];

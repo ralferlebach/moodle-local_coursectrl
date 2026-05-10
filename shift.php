@@ -38,8 +38,8 @@ $followdeps = optional_param('followdeps', 0, PARAM_INT);
 $deltadays  = optional_param('delta_days', 0, PARAM_INT);
 $deltahours   = optional_param('delta_hours', 0, PARAM_INT);
 $deltaminutes = optional_param('delta_minutes', 0, PARAM_INT);
-$fieldsraw      = optional_param('fields', '', PARAM_TEXT);
-$shiftfieldsraw = optional_param('shift_fields', '', PARAM_TEXT);
+$fieldsraw   = optional_param('fields', '', PARAM_TEXT);
+$targetsraw  = optional_param('targets', '', PARAM_RAW);
 $scantext   = optional_param('scan_text', 0, PARAM_INT);
 $formatjson = optional_param('format', '', PARAM_ALPHA) === 'json';
 
@@ -79,6 +79,7 @@ if ($followdeps && !empty($cmids)) {
     $service = new \local_coursectrl\local\inventory\inventory_service();
     $snapshot = $service->build_for_course($courseid);
     $depindex = new \local_coursectrl\local\analysis\dependency_index($snapshot->cms);
+    $datacollector = new \local_coursectrl\local\analysis\date_collector();
 
     $expanded = array_fill_keys($cmids, true);
     $queue = $cmids;
@@ -91,19 +92,40 @@ if ($followdeps && !empty($cmids)) {
             }
         }
     }
+    $expandedcmids = array_diff(array_keys($expanded), $cmids);
     $cmids = array_keys($expanded);
+    // When targets are set, also add all date entries of expanded cmids as targets.
+    if (!empty($payload['targets']) && !empty($expandedcmids)) {
+        $expentries = $datacollector->collect(
+            array_intersect_key($snapshot->cms, array_flip($expandedcmids))
+        );
+        foreach ($expentries as $entry) {
+            $payload['targets'][] = [
+                'cmid'      => (int) $entry['cmid'],
+                'source'    => (string) $entry['source'],
+                'field'     => (string) $entry['field'],
+                'timestamp' => (int) $entry['timestamp'],
+            ];
+        }
+    }
 }
 
 // Build the payload for the selected action.
 $payload = [];
 if ($actiontype === 'shift_dates') {
     $payload['delta'] = ($deltadays * 86400) + ($deltahours * 3600) + ($deltaminutes * 60);
-    // Optional field restriction: only shift the specified fields.
-    $shiftfields = array_values(
-        array_filter(array_map('trim', explode(',', $shiftfieldsraw)))
-    );
-    if (!empty($shiftfields)) {
-        $payload['fields'] = $shiftfields;
+    // Parse structured targets when provided (target-based shift from timeline).
+    $targets = \local_coursectrl\local\dto\shift_target::from_json_array($targetsraw);
+    if (!empty($targets)) {
+        // Expand cmids from targets for the followdeps BFS pass.
+        $cmids = array_values(
+            array_unique(array_map(function ($t) {
+                return $t->get_cmid();
+            }, $targets))
+        );
+        $payload['targets'] = array_map(function ($t) {
+            return $t->to_array();
+        }, $targets);
     }
     $hasvaliddelta = $payload['delta'] !== 0;
     $nothingtodo = empty($cmids) || !$hasvaliddelta;

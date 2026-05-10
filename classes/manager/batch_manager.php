@@ -38,6 +38,7 @@ namespace local_coursectrl\manager;
 
 use core\persistent;
 use local_coursectrl\event\batch_created;
+use local_coursectrl\local\dto\shift_target;
 use local_coursectrl\event\batch_executed;
 use local_coursectrl\local\contract\activity_adapter;
 use local_coursectrl\local\persistent\batch;
@@ -92,6 +93,21 @@ class batch_manager {
         int $userid
     ): int {
         global $DB;
+
+        // Targets-based path: delegate when payload carries structured targets.
+        if (!empty($payload['targets'])) {
+            $targets = [];
+            foreach ($payload['targets'] as $t) {
+                $targets[] = shift_target::from_array($t);
+            }
+            return $this->execute_from_targets(
+                $courseid,
+                $action,
+                $payload,
+                $targets,
+                $userid
+            );
+        }
 
         if (empty($cmids)) {
             $cmids = $this->collect_supported_cmids_for_course($courseid);
@@ -399,6 +415,179 @@ class batch_manager {
     }
 
     /**
+     * Execute a shift_dates action from a structured target list.
+     *
+     * Routes each target to the correct execution path based on its source:
+     *   SOURCE_ADAPTER  — groups targets by (component, field-set) and calls the adapter.
+     *   SOURCE_CM       — shifts completionexpected directly in course_modules.
+     *   SOURCE_AVAILABILITY — shifts date conditions in the availability JSON.
+     *
+     * @param int            $courseid Course id.
+     * @param string         $action   Canonical action identifier.
+     * @param array          $payload  Must contain 'delta'; 'targets' key is ignored here.
+     * @param shift_target[] $targets  Structured target list.
+     * @param int            $userid   Acting user id.
+     * @return int Batch id of the persisted batch row.
+     */
+    private function execute_from_targets(
+        int $courseid,
+        string $action,
+        array $payload,
+        array $targets,
+        int $userid
+    ): int {
+        global $DB;
+
+        $delta = (int) ($payload['delta'] ?? 0);
+
+        // Validate target cmids belong to this course.
+        $allcmids = array_values(
+            array_unique(array_map(function (shift_target $t) {
+                return $t->get_cmid();
+            }, $targets))
+        );
+        $validcmids = $this->filter_cmids_to_course($courseid, $allcmids);
+        if (count($validcmids) !== count($allcmids)) {
+            throw new \moodle_exception('invalidcmid', 'local_coursectrl');
+        }
+
+        // Strip 'targets' from payload before persisting — keep it lean.
+        $storedpayload = $payload;
+        unset($storedpayload['targets']);
+        $batch = $this->create_batch_row($courseid, $userid, $action, $storedpayload);
+        $batchid = (int) $batch->get('id');
+
+        $createdevent = batch_created::create([
+            'context'  => \context_course::instance($courseid),
+            'objectid' => $batchid,
+            'userid'   => $userid,
+            'courseid' => $courseid,
+            'other'    => ['action' => $action],
+        ]);
+        $createdevent->trigger();
+
+        // Separate by source.
+        $adaptertargets = [];
+        $cmtargets      = [];
+        $availtargets   = [];
+        foreach ($targets as $target) {
+            $cmid = $target->get_cmid();
+            if ($target->get_source() === shift_target::SOURCE_ADAPTER) {
+                $adaptertargets[$cmid][] = $target->get_field();
+            } else if ($target->get_source() === shift_target::SOURCE_CM) {
+                $cmtargets[$cmid][] = $target->get_field();
+            } else if ($target->get_source() === shift_target::SOURCE_AVAILABILITY) {
+                $availtargets[$cmid] = true;
+            }
+        }
+
+        // Group adapter targets by (component, sorted field-set).
+        $adaptergroups = [];
+        foreach ($adaptertargets as $cmid => $fields) {
+            $adapter = $this->registry->get_for_cmid($cmid);
+            if ($adapter === null) {
+                continue;
+            }
+            $component = $adapter::component();
+            sort($fields);
+            $groupkey = $component . '|' . implode(',', $fields);
+            if (!isset($adaptergroups[$groupkey])) {
+                $adaptergroups[$groupkey] = [
+                    'adapter'   => $adapter,
+                    'component' => $component,
+                    'fields'    => $fields,
+                    'cmids'     => [],
+                ];
+            }
+            $adaptergroups[$groupkey]['cmids'][] = $cmid;
+        }
+
+        $hasanyfailure = false;
+        $successfulbyadapter = [];
+        $summary = [
+            'total'   => count($allcmids),
+            'success' => 0,
+            'noop'    => 0,
+            'skipped' => 0,
+            'error'   => 0,
+        ];
+
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            foreach ($adaptergroups as $group) {
+                $adapterpayload = $storedpayload;
+                if (!empty($group['fields'])) {
+                    $adapterpayload['fields'] = $group['fields'];
+                }
+                $result = $group['adapter']->execute_action(
+                    $action,
+                    $adapterpayload,
+                    $group['cmids'],
+                    $userid
+                );
+                if (!empty($result['errors'])) {
+                    $hasanyfailure = true;
+                }
+                $successfulcmids = $this->persist_adapter_results(
+                    $batchid,
+                    $group['component'],
+                    $result['items'] ?? [],
+                    $summary,
+                    $hasanyfailure
+                );
+                foreach ($result['cm_snapshots'] ?? [] as $cmid => $state) {
+                    $this->persist_snapshot($batchid, (int) $cmid, 'core_coursemodule', $state);
+                }
+                if (!empty($successfulcmids)) {
+                    $successfulbyadapter[$group['component']] = [
+                        'adapter' => $group['adapter'],
+                        'cmids'   => $successfulcmids,
+                    ];
+                }
+            }
+
+            // Shift CM-level fields for cm and availability targets.
+            $cmlevelcmids = array_unique(
+                array_merge(array_keys($cmtargets), array_keys($availtargets))
+            );
+            foreach ($cmlevelcmids as $cmid) {
+                $this->shift_cm_level_dates(
+                    (int) $cmid,
+                    $delta,
+                    $batchid,
+                    $summary,
+                    $hasanyfailure
+                );
+            }
+
+            $transaction->allow_commit();
+        } catch (\Throwable $e) {
+            $transaction->rollback($e);
+            $batch->set('status', batch::STATUS_FAILED);
+            $batch->update();
+            throw $e;
+        }
+
+        $batch->set('status', $hasanyfailure ? batch::STATUS_FAILED : batch::STATUS_EXECUTED);
+        $batch->update();
+        $this->refresh_calendars($successfulbyadapter, $batchid);
+
+        $event = batch_executed::create([
+            'context'  => \context_course::instance($courseid),
+            'objectid' => $batchid,
+            'userid'   => $userid,
+            'courseid' => $courseid,
+            'other'    => [
+                'action'  => $action,
+                'summary' => $summary,
+            ],
+        ]);
+        $event->trigger();
+
+        return $batchid;
+    }
+
+        /**
      * Shift CM-level date fields for a single course module without an adapter.
      *
      * Handles the two system-level date fields that apply to ALL activity types:

@@ -28,6 +28,7 @@
  */
 
 namespace local_coursectrl\output;
+use local_coursectrl\local\dto\shift_target;
 use local_coursectrl\local\field_label_resolver;
 use local_coursectrl\local\analysis\calendar_grid_builder;
 use local_coursectrl\local\analysis\date_collector;
@@ -149,7 +150,9 @@ class timeline_page implements renderable, templatable {
                 'name' => $entry['name'],
                 'modname' => $entry['modname'],
                 'component' => $entry['component'],
-                'field' => $entry['fieldlabel'],
+                'field'     => $entry['fieldlabel'],
+                'fieldkey'  => $entry['field'],
+                'timestamp' => (int) $entry['timestamp'],
                 'source' => $entry['source'],
                 'deletable' => in_array($entry['source'], ['adapter', 'cm', 'availability'], true),
                 'activityurl' => (new \moodle_url(
@@ -242,12 +245,10 @@ class timeline_page implements renderable, templatable {
                 '/local/coursectrl/shift.php',
                 ['courseid' => $course->id]
             ))->out(false),
-            'autoopen'         => !empty($autoopendata),
-            'autoopen_cmids'   => $autoopendata['cmids'] ?? '',
-            'autoopen_mode'    => $autoopendata['mode'] ?? 'slot',
-            'autoopen_label'   => $autoopendata['label'] ?? '',
-            'autoopen_field'   => $autoopendata['field'] ?? '',
-            'autoopen_following' => $autoopendata['following'] ?? false,
+            'autoopen'              => !empty($autoopendata),
+            'autoopen_targets_json' => $autoopendata['targets_json'] ?? '[]',
+            'autoopen_mode'         => $autoopendata['mode'] ?? 'slot',
+            'autoopen_following'    => $autoopendata['following'] ?? false,
         ] + $this->build_textreview_context($course->id);
     }
     /**
@@ -269,18 +270,39 @@ class timeline_page implements renderable, templatable {
             return [];
         }
 
-        if ($mode === 'entry' && $cmid > 0) {
+        if ($mode === 'entry' && $cmid > 0 && $field !== '') {
+            // Look up source and timestamp from the current entries.
+            $targetdata = null;
+            foreach ($allentries as $entry) {
+                if ((int) $entry['cmid'] === $cmid && $entry['field'] === $field) {
+                    $targetdata = [
+                        'cmid'      => $cmid,
+                        'source'    => (string) $entry['source'],
+                        'field'     => $field,
+                        'timestamp' => (int) $entry['timestamp'],
+                    ];
+                    break;
+                }
+            }
+            if ($targetdata === null) {
+                // Field not in current entries: infer source from field name.
+                $targetdata = [
+                    'cmid'      => $cmid,
+                    'source'    => shift_target::resolve_source($field),
+                    'field'     => $field,
+                    'timestamp' => 0,
+                ];
+            }
             return [
-                'cmids'     => (string) $cmid,
-                'mode'      => 'entry',
-                'field'     => $field,
-                'label'     => '',
-                'following' => false,
+                'targets_json' => json_encode([$targetdata]),
+                'mode'         => 'entry',
+                'following'    => false,
             ];
         }
 
         if (($mode === 'slot' || $mode === 'following') && $ts > 0) {
-            $cmids = [];
+            $targets = [];
+            $seen = [];
             foreach ($allentries as $entry) {
                 $ets = (int) $entry['timestamp'];
                 if ($mode === 'slot' && $ets !== $ts) {
@@ -289,17 +311,22 @@ class timeline_page implements renderable, templatable {
                 if ($mode === 'following' && $ets < $ts) {
                     continue;
                 }
-                $id = (int) $entry['cmid'];
-                if (!in_array($id, $cmids, true)) {
-                    $cmids[] = $id;
+                $key = $entry['cmid'] . ':' . $entry['field'];
+                if (isset($seen[$key])) {
+                    continue;
                 }
+                $seen[$key] = true;
+                $targets[] = [
+                    'cmid'      => (int) $entry['cmid'],
+                    'source'    => (string) $entry['source'],
+                    'field'     => (string) $entry['field'],
+                    'timestamp' => $ets,
+                ];
             }
             return [
-                'cmids'     => implode(',', $cmids),
-                'mode'      => 'slot',
-                'field'     => '',
-                'label'     => '',
-                'following' => $mode === 'following',
+                'targets_json' => json_encode($targets),
+                'mode'         => 'slot',
+                'following'    => $mode === 'following',
             ];
         }
 
@@ -307,6 +334,7 @@ class timeline_page implements renderable, templatable {
     }
 
     /**
+     * Build textreview context    /**
      * Build textreview context variables for the text-review tab.
      *
      * Loads persisted text_hit records for the course, pre-populates the

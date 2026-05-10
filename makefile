@@ -38,7 +38,7 @@ fix-lint-php:
 lint-js:
 	@echo ""
 	@echo "=== ESLint ==="
-	-cd $(MOODLE_ROOT)/$(PLUGIN_PATH) && npx grunt amd --force
+	-npx grunt amd --force
 	-cd $(MOODLE_ROOT) && npx grunt eslint --root=. \
 	    --files=$(PLUGIN_PATH)/amd/src/
 

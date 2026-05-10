@@ -151,7 +151,6 @@ define([], function() {
         data.set('format', 'json');
         data.set('scan_text', String(scantext));
         return fetch(form.action, {method: 'POST', body: data})
-            // eslint-disable-next-line promise/always-return
             .then(function(r) {
                 if (!r.ok) {
                     throw new Error('HTTP ' + r.status);
@@ -650,7 +649,7 @@ define([], function() {
             var previewBtn = step1.querySelector('[data-ccwf-action="preview"]');
             if (previewBtn) {
                 previewBtn.addEventListener('click', function() {
-                    var cmids = opts.getCmids();
+                    var targets = opts.getTargets ? opts.getTargets() : [];
                     var delta = opts.getDelta();
                     // Validate inline — never open an empty modal.
                     var errEl = step1.querySelector('[data-ccwf-step1-error]');
@@ -658,7 +657,7 @@ define([], function() {
                         errEl.textContent = '';
                         errEl.classList.add('d-none');
                     }
-                    if (cmids.length === 0) {
+                    if (targets.length === 0) {
                         if (errEl) {
                             errEl.textContent = lbl.errNoselect;
                             errEl.classList.remove('d-none');
@@ -672,17 +671,13 @@ define([], function() {
                         }
                         return;
                     }
-                    var payload = {delta: delta};
+                    var payload = {delta: delta, targets: targets};
                     previewBtn.disabled = true;
                     previewBtn.textContent = '\u2026';
-                    fetchPreview(courseid, 'shift_dates', payload, cmids)
-                        // eslint-disable-next-line promise/always-return
+                    fetchPreview(courseid, 'shift_dates', payload, [])
                         .then(function(preview) {
                             previewBtn.disabled = false;
                             previewBtn.textContent = lbl.btnPreview;
-                            // Allow execution when only system-level fields exist
-                    // (cmids without adapters are 'skipped' in preview
-                    // but batch_manager shifts their availability dates).
                     var canExec = (preview.summary.changes || 0) > 0
                         || (preview.summary.skipped || 0) > 0;
                             var html = renderPreviewHtml(preview);
@@ -775,7 +770,6 @@ define([], function() {
                     }
 
                     doShift(form, doScan)
-                        // eslint-disable-next-line promise/always-return
                         .then(function(result) {
                             if (!result.success) {
                                 if (previewBody) {
@@ -787,7 +781,7 @@ define([], function() {
                                     previewBody.appendChild(errDiv);
                                 }
                                 execBtn.disabled = false;
-                                return;
+                                return null;
                             }
                             var s = result.summary;
                             var successHtml =
@@ -810,11 +804,11 @@ define([], function() {
                                     execBtn.classList.add('d-none');
                                 }
                                 if (backBtn) {
-                                    backBtn.textContent = lbl.btnClose;
-                                    backBtn.removeEventListener('click', function() {
-                                    // No-op placeholder for removeEventListener.
-                                });
-                                    backBtn.addEventListener('click', function() {
+                                    // Replace with a clone to shed all previous listeners.
+                                    var backBtnClone = backBtn.cloneNode(true);
+                                    backBtn.parentNode.replaceChild(backBtnClone, backBtn);
+                                    backBtnClone.textContent = lbl.btnClose;
+                                    backBtnClone.addEventListener('click', function() {
                                         if (opts.onComplete) {
                                             opts.onComplete(result);
                                         }
@@ -835,7 +829,6 @@ define([], function() {
                             setTitle(modal.getAttribute('data-label-textreview') || '');
 
                             fetchTextHits(courseid)
-                                // eslint-disable-next-line promise/always-return
                                 .then(function(data) {
                                     var deltaSec = opts.getDelta();
                                     var hitsHtml = renderHitsHtml(data.hits, deltaSec, false, lbl);
@@ -860,13 +853,12 @@ define([], function() {
                                                     return;
                                                 }
                                                 applyBtn3.disabled = true;
-                                                // eslint-disable-next-line promise/no-nesting
                                                 applyTextChanges(courseid, ids, applyDelta)
-                        .then(function() {
+                                                    .then(function() {
                                                         if (opts.onComplete) {
                                                             opts.onComplete(result);
                                                         }
-                                                    return null;
+                                                        return null;
                                                     })
                                                     .catch(function() {
                                                         applyBtn3.disabled = false;

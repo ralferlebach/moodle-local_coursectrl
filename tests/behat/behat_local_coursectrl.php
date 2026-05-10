@@ -31,8 +31,7 @@ use Behat\Mink\Exception\ExpectationException;
  * Behat steps for local_coursectrl.
  */
 class behat_local_coursectrl extends behat_base {
-
-    // ── Navigation steps ──────────────────────────────────────────────────
+    // Navigation steps.
 
     /**
      * Navigate to the checks page for the given course (consistency tab).
@@ -156,7 +155,7 @@ class behat_local_coursectrl extends behat_base {
         $this->wait_for_pending_js();
     }
 
-    // ── Shift-modal interaction steps ─────────────────────────────────────
+    // Shift-modal interaction steps.
 
     /**
      * Click the first shift-slot button visible on the timeline.
@@ -495,7 +494,7 @@ class behat_local_coursectrl extends behat_base {
         $this->wait_for_pending_js();
     }
 
-    // ── Text-review tab interaction ────────────────────────────────────────
+    // Text-review tab interaction steps.
 
     /**
      * Assert that an activity icon for a given module type is present in
@@ -542,15 +541,15 @@ class behat_local_coursectrl extends behat_base {
         $this->getSession()->wait(1000); // Confirmation modal opens.
         $this->wait_for_pending_js();
         // Confirm in the modal if it appears.
-        $confirmBtn = $this->find('css', '[data-action="confirm-apply-text"]');
-        if ($confirmBtn !== null) {
-            $confirmBtn->click();
+        $confirmbtn = $this->find('css', '[data-action="confirm-apply-text"]');
+        if ($confirmbtn !== null) {
+            $confirmbtn->click();
             $this->getSession()->wait(5000);
             $this->wait_for_pending_js();
         }
     }
 
-    // ── Database assertion steps ───────────────────────────────────────────
+    // Database assertion steps.
 
     /**
      * Assert that the duedate of an assignment was shifted by a given number of days.

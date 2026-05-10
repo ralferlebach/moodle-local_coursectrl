@@ -28,7 +28,7 @@ fix-phpdoc:
 lint-php:
 	@echo ""
 	@echo "=== phpcs (reads phpcs.xml, excludes tools/) ==="
-	-cd $(MOODLE_ROOT)/$(PLUGIN_PATH) && phpcs . --standard=moodle --error-severity=1 --warning-severity=1
+	-cd $(MOODLE_ROOT)/$(PLUGIN_PATH) && phpcs --standard=moodle --extensions=php --severity=1 --no-cache .
 
 fix-lint-php:
 	@echo ""

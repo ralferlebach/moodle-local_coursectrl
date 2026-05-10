@@ -341,7 +341,7 @@ define([], function() {
                 locHtml = '<code>' + escHtml(hit.entitytype) + ':' + hit.entityid + '</code>';
             }
             locHtml += ' <span class="badge bg-light text-dark border ms-1 small">' +
-                escHtml(hit.fieldname) + '</span>';
+                escHtml(hit.fieldlabel || hit.fieldname) + '</span>';
 
             // Format normalizedvalue (ISO string) as localized date for display.
             // Use date-only format when the matched text contained no time component.
@@ -650,6 +650,11 @@ define([], function() {
             if (previewBtn) {
                 previewBtn.addEventListener('click', function() {
                     var targets = opts.getTargets ? opts.getTargets() : [];
+                    // Fall back to getCmids for manage.php bulk-selection.
+                    var previewcmids = [];
+                    if (targets.length === 0 && opts.getCmids) {
+                        previewcmids = opts.getCmids();
+                    }
                     var delta = opts.getDelta();
                     // Validate inline — never open an empty modal.
                     var errEl = step1.querySelector('[data-ccwf-step1-error]');
@@ -657,7 +662,7 @@ define([], function() {
                         errEl.textContent = '';
                         errEl.classList.add('d-none');
                     }
-                    if (targets.length === 0) {
+                    if (targets.length === 0 && previewcmids.length === 0) {
                         if (errEl) {
                             errEl.textContent = lbl.errNoselect;
                             errEl.classList.remove('d-none');
@@ -671,10 +676,13 @@ define([], function() {
                         }
                         return;
                     }
-                    var payload = {delta: delta, targets: targets};
+                    var payload = {delta: delta};
+                    if (targets.length > 0) {
+                        payload.targets = targets;
+                    }
                     previewBtn.disabled = true;
                     previewBtn.textContent = '\u2026';
-                    fetchPreview(courseid, 'shift_dates', payload, [])
+                    fetchPreview(courseid, 'shift_dates', payload, previewcmids)
                         .then(function(preview) {
                             previewBtn.disabled = false;
                             previewBtn.textContent = lbl.btnPreview;
@@ -737,6 +745,15 @@ define([], function() {
 
                     // Push cmids + delta into form hidden fields.
                     var deltaS = opts.getDelta();
+                    // Populate cmids form field for manage.php legacy path.
+                    if (opts.getCmids) {
+                        var legacycmids = opts.getCmids();
+                        var fCmids = form.querySelector('[name="cmids"]') ||
+                                     form.querySelector('[id$="shift-cmids"]');
+                        if (fCmids) {
+                            fCmids.value = legacycmids.join(',');
+                        }
+                    }
                     var fDays = form.querySelector('[name="delta_days"]');
                     var fHours = form.querySelector('[name="delta_hours"]');
                     var days = Math.trunc(deltaS / 86400);

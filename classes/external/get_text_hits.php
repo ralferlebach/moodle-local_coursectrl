@@ -32,6 +32,7 @@ use core_external\external_function_parameters;
 use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
+use local_coursectrl\local\field_label_resolver;
 use local_coursectrl\manager\textreview_manager;
 
 /**
@@ -177,7 +178,12 @@ class get_text_hits extends external_api {
                 'cmurl'  => $cmurl,
                 'modname' => $modname,
                 'iconurl' => $iconurl,
-                'fieldname' => $hit->get('fieldname'),
+                'fieldname'  => $hit->get('fieldname'),
+                'fieldlabel' => field_label_resolver::resolve(
+                    (string) $hit->get('fieldname'),
+                    $modname,
+                    $entitytype
+                ),
                 'matchedtext' => $hit->get('matchedtext'),
                 'normalizedvalue' => $normalizedval,
                 'normalizedts' => $normalizedval ? (int) strtotime($normalizedval) : 0,
@@ -211,7 +217,13 @@ class get_text_hits extends external_api {
                     'cmurl' => new external_value(PARAM_URL, 'Activity URL', VALUE_OPTIONAL, ''),
                     'modname' => new external_value(PARAM_ALPHANUMEXT, 'Module name', VALUE_OPTIONAL, ''),
                     'iconurl' => new external_value(PARAM_URL, 'Module icon URL', VALUE_OPTIONAL, ''),
-                    'fieldname' => new external_value(PARAM_ALPHANUMEXT, 'Field name'),
+                    'fieldname'  => new external_value(PARAM_ALPHANUMEXT, 'Field name'),
+                    'fieldlabel' => new external_value(
+                        PARAM_TEXT,
+                        'Localised field label',
+                        VALUE_OPTIONAL,
+                        ''
+                    ),
                     'matchedtext' => new external_value(PARAM_RAW, 'Matched date substring'),
                     'normalizedvalue' => new external_value(PARAM_RAW, 'ISO 8601 normalised value'),
                     'normalizedts' => new external_value(PARAM_INT, 'Unix timestamp of normalised value', VALUE_OPTIONAL, 0),

@@ -33,7 +33,7 @@ require_sesskey();
 
 $courseid   = required_param('courseid', PARAM_INT);
 $actiontype = required_param('action_type', PARAM_ALPHANUMEXT);
-$cmidsraw   = required_param('cmids', PARAM_RAW);
+$cmidsraw   = optional_param('cmids', '', PARAM_RAW);
 $followdeps = optional_param('followdeps', 0, PARAM_INT);
 $deltadays  = optional_param('delta_days', 0, PARAM_INT);
 $deltahours   = optional_param('delta_hours', 0, PARAM_INT);
@@ -71,6 +71,17 @@ $PAGE->navbar->add(
 $PAGE->navbar->add(get_string('result_title', 'local_coursectrl'));
 
 $cmids = array_values(array_filter(array_map('intval', explode(',', $cmidsraw))));
+
+// When targets are provided (target-based timeline shift), extract cmids
+// from the targets JSON so the cmids list is populated before followdeps
+// BFS and the nothingtodo guard below.
+if (empty($cmids) && $targetsraw !== '') {
+    $earlyparse = \local_coursectrl\local\dto\shift_target::from_json_array($targetsraw);
+    foreach ($earlyparse as $t) {
+        $cmids[] = $t->get_cmid();
+    }
+    $cmids = array_values(array_unique($cmids));
+}
 
 $timelineurl = new moodle_url('/local/coursectrl/timeline.php', ['courseid' => $courseid]);
 

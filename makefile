@@ -1,5 +1,5 @@
 MOODLE_ROOT := /var/www/html/moodle45_aliseadele
-PLUGIN_PATH  := blocks/coursectrldates
+PLUGIN_PATH  := local/coursectrl
 PHP          := php
 
 .PHONY: all fix check fix-phpdoc lint-php lint-js lint-phpdoc lint-mustache

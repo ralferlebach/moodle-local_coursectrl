@@ -1,5 +1,5 @@
 MOODLE_ROOT := /var/www/html/moodle45_aliseadele
-PLUGIN_PATH  := local/coursectrl
+PLUGIN_PATH  := blocks/coursectrldates
 PHP          := php
 
 .PHONY: all fix check fix-phpdoc lint-php lint-js lint-phpdoc lint-mustache
@@ -8,10 +8,10 @@ all: clear fix-phpdoc lint-php fix-lint-php lint-js lint-phpdoc lint-mustache
 	@echo ""
 	@echo "=== All checks complete. Review output above for errors. ==="
 
-fix: clear fix-phpdoc fix-lint-php
+fix: clear fix-phpdoc fix-lint-php lint-js
 	@echo ""
 	@echo "=== All fixes complete. ==="
-	
+
 check: clear lint-php lint-js lint-phpdoc lint-mustache
 	@echo ""
 	@echo "=== All checks complete. Review output above for errors. ==="
@@ -38,9 +38,9 @@ fix-lint-php:
 lint-js:
 	@echo ""
 	@echo "=== ESLint ==="
+	-cd $(MOODLE_ROOT)/$(PLUGIN_PATH) && npx grunt amd --force
 	-cd $(MOODLE_ROOT) && npx grunt eslint --root=. \
-	    --files=$(PLUGIN_PATH)/amd/src/ \
-		--show-lint-warnings
+	    --files=$(PLUGIN_PATH)/amd/src/
 
 lint-phpdoc:
 	@echo ""

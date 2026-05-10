@@ -42,7 +42,7 @@ $focusdayparam = optional_param('focus_day', '', PARAM_ALPHANUMEXT);
 // autoopen: 'slot' | 'following' | 'entry'
 // shift_ts:    unix timestamp (slot / following)
 // shift_cmid:  course-module id (entry)
-// shift_field: field name (entry)
+// shift_field: field name for entry-mode autoopen.
 $autoopenmode  = optional_param('autoopen', '', PARAM_ALPHA);
 $autoshiftts   = optional_param('shift_ts', 0, PARAM_INT);
 $autoshiftcmid = optional_param('shift_cmid', 0, PARAM_INT);

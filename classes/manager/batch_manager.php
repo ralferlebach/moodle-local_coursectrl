@@ -587,7 +587,7 @@ class batch_manager {
         return $batchid;
     }
 
-        /**
+    /**
      * Shift CM-level date fields for a single course module without an adapter.
      *
      * Handles the two system-level date fields that apply to ALL activity types:

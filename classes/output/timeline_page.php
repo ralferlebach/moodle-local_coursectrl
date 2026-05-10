@@ -261,9 +261,9 @@ class timeline_page implements renderable, templatable {
      * @return array Empty array when autoopen is not requested.
      */
     private function build_autoopen_context(array $allentries): array {
-        $mode  = (string) ($this->filters['autoopen_mode'] ?? '');
-        $ts    = (int)    ($this->filters['autoopen_ts']   ?? 0);
-        $cmid  = (int)    ($this->filters['autoopen_cmid'] ?? 0);
+        $mode = (string) ($this->filters['autoopen_mode'] ?? '');
+        $ts   = (int) ($this->filters['autoopen_ts'] ?? 0);
+        $cmid = (int) ($this->filters['autoopen_cmid'] ?? 0);
         $field = (string) ($this->filters['autoopen_field'] ?? '');
 
         if ($mode === '') {

@@ -468,7 +468,15 @@ class preview_manager {
         }
     }
 
-        private function group_cmids_by_adapter(array $cmids, string $action): array {
+    /**
+     * Group the input cmids by responsible adapter, separating out cmids
+     * without an adapter or whose adapter does not support the action.
+     *
+     * @param int[]  $cmids  Input cmid list.
+     * @param string $action Canonical action identifier.
+     * @return array Grouping with keys: routed, skipped, errors.
+     */
+    private function group_cmids_by_adapter(array $cmids, string $action): array {
         $routed  = [];
         $skipped = [];
         $errors  = [];

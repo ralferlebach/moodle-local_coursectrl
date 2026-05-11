@@ -15,6 +15,16 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * Plugin dependency declarations for local_coursectrl.
+ *
+ * Lists required Moodle plugins and their minimum versions.
+ *
+ * @package    local_coursectrl
+ * @copyright  2026 Ralf Erlebach
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+/**
  * Dependency graph and Gantt view for the Course Control Hub.
  *
  * @package    local_coursectrl

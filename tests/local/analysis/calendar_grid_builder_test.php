@@ -55,6 +55,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
     /**
      * A course over 3 months must produce 3 month blocks.
      * @covers \local_coursectrl\local\analysis\calendar_grid_builder
+     * @return void
      */
     public function test_month_count(): void {
         $this->resetAfterTest();
@@ -73,6 +74,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
     /**
      * No end date with no entries — calendar covers at least now + 3 months.
      * @covers \local_coursectrl\local\analysis\calendar_grid_builder
+     * @return void
      */
     public function test_default_end_date_no_entries(): void {
         $this->resetAfterTest();
@@ -88,6 +90,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
     /**
      * No end date with a late entry — calendar reaches end of month+2 of that entry.
      * @covers \local_coursectrl\local\analysis\calendar_grid_builder
+     * @return void
      */
     public function test_default_end_date_with_late_entry(): void {
         $this->resetAfterTest();
@@ -116,6 +119,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
     /**
      * Days with entries must be marked with count and entry list.
      * @covers \local_coursectrl\local\analysis\calendar_grid_builder
+     * @return void
      */
     public function test_day_with_entries(): void {
         $this->resetAfterTest();
@@ -149,6 +153,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
     /**
      * Each week row must contain exactly 7 cells.
      * @covers \local_coursectrl\local\analysis\calendar_grid_builder
+     * @return void
      */
     public function test_week_has_seven_cells(): void {
         $this->resetAfterTest();
@@ -166,6 +171,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
     /**
      * Padding cells before/after the month must be inmonth=false.
      * @covers \local_coursectrl\local\analysis\calendar_grid_builder
+     * @return void
      */
     public function test_padding_cells(): void {
         $this->resetAfterTest();
@@ -186,6 +192,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
     /**
      * Past days must be marked ispast=true.
      * @covers \local_coursectrl\local\analysis\calendar_grid_builder
+     * @return void
      */
     public function test_past_flag(): void {
         $this->resetAfterTest();
@@ -213,6 +220,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
     /**
      * Today flag must be set correctly.
      * @covers \local_coursectrl\local\analysis\calendar_grid_builder
+     * @return void
      */
     public function test_today_flag(): void {
         $this->resetAfterTest();
@@ -235,6 +243,7 @@ final class calendar_grid_builder_test extends \advanced_testcase {
     /**
      * Zero startdate must fall back to "now" for the first month.
      * @covers \local_coursectrl\local\analysis\calendar_grid_builder
+     * @return void
      */
     public function test_zero_startdate_fallback(): void {
         $this->resetAfterTest();

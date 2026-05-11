@@ -73,6 +73,7 @@ final class visibility_simulator_test extends \advanced_testcase {
     /**
      * No restrictions → CM is accessible.
      * @covers \local_coursectrl\local\simulation\visibility_simulator
+     * @return void
      */
     public function test_no_restrictions_accessible(): void {
         $this->resetAfterTest();
@@ -88,6 +89,7 @@ final class visibility_simulator_test extends \advanced_testcase {
     /**
      * Teacher-hidden CM is inaccessible regardless of availability.
      * @covers \local_coursectrl\local\simulation\visibility_simulator
+     * @return void
      */
     public function test_hidden_cm_not_accessible(): void {
         $this->resetAfterTest();
@@ -104,6 +106,7 @@ final class visibility_simulator_test extends \advanced_testcase {
     /**
      * Date restriction in past → accessible.
      * @covers \local_coursectrl\local\simulation\visibility_simulator
+     * @return void
      */
     public function test_past_date_restriction_passes(): void {
         $this->resetAfterTest();
@@ -123,6 +126,7 @@ final class visibility_simulator_test extends \advanced_testcase {
     /**
      * Date restriction in future → not accessible.
      * @covers \local_coursectrl\local\simulation\visibility_simulator
+     * @return void
      */
     public function test_future_date_restriction_blocks(): void {
         $this->resetAfterTest();
@@ -141,6 +145,7 @@ final class visibility_simulator_test extends \advanced_testcase {
     /**
      * All results are keyed by cmid.
      * @covers \local_coursectrl\local\simulation\visibility_simulator
+     * @return void
      */
     public function test_results_keyed_by_cmid(): void {
         $this->resetAfterTest();

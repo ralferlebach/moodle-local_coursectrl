@@ -37,6 +37,7 @@ use core_external\external_api;
  *   required_capability_exception for enrolled users that lack the cap
  *   (e.g. students).
  *
+ * @runTestsInSeparateProcesses
  * @covers \local_coursectrl\external\get_inventory
  */
 final class get_inventory_test extends \advanced_testcase {

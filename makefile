@@ -35,10 +35,10 @@ NPX           ?= npx
         fix-lint-php fix-phpdoc amd phpunit
 
 # ---------------------------------------------------------------------------
-# all: auto-fix everything, then run full check suite
+# all: auto-fix everything, then re-run full check suite
 # All steps run regardless of individual failures.
 # ---------------------------------------------------------------------------
-all: clear fix-phpdoc lint-php fix-lint-php lint-js lint-phpdoc lint-mustache lint-gherkin
+all: clear fix check
 	@echo ""
 	@echo "=== All checks complete. Review output above for errors. ==="
 
@@ -53,12 +53,12 @@ fix: clear fix-phpdoc fix-lint-php amd lint-js
 # check: check-only run (no auto-fix)
 # All checks run even if individual ones fail.
 # ---------------------------------------------------------------------------
-check: clear lint-php lint-js lint-phpdoc lint-mustache lint-gherkin
+check: clear lint-php lint-phpdoc lint-js lint-mustache lint-gherkin amd phpunit
 	@echo ""
 	@echo "=== All checks complete. Review output above for errors. ==="
 
 # ---------------------------------------------------------------------------
-# clear
+# clear: clear screen
 # ---------------------------------------------------------------------------
 clear:
 	clear
@@ -94,11 +94,7 @@ lint-phpdoc:
 	-cd $(MOODLE_ROOT) && $(PHP) local/moodlecheck/cli/moodlecheck.php \
 		--path=local/coursectrl \
 		--exclude=local/coursectrl/tools \
-		--format=text 2>&1 | grep -B1 '    Line' | grep -v '^--$$' ; \
-	cd $(MOODLE_ROOT) && $(PHP) local/moodlecheck/cli/moodlecheck.php \
-		--path=local/coursectrl \
-		--exclude=local/coursectrl/tools \
-		--format=text > /dev/null
+		--format=text 2>&1 | grep -B1 '    Line' | grep -v '^--$$' || true
 
 # ---------------------------------------------------------------------------
 # fix-phpdoc: tools/fix_phpdoc.php — auto-fixes PHPDoc in plugin source
@@ -132,22 +128,32 @@ lint-gherkin:
 	-cd $(MOODLE_ROOT) && $(NPX) grunt gherkinlint --root=.
 
 # ---------------------------------------------------------------------------
-# amd: rebuild minified AMD files
+# amd: rebuild AMD files for this plugin only.
+# find builds a comma-separated list of actual .js file paths so rollup
+# receives entry points, not a directory (which would cause E_RESOLVE).
 # ---------------------------------------------------------------------------
 amd:
-	@echo "=== Rebuilding AMD (grunt amd) ==="
-	cd $(MOODLE_ROOT) && $(NPX) grunt amd --root=. 2>/dev/null || \
-	( echo "grunt unavailable — falling back to terser for shift_workflow" && \
-	  cd $(PLUGIN_DIR) && terser amd/src/shift_workflow.js \
-	      --compress passes=2 --mangle \
-	      --source-map "filename=amd/build/shift_workflow.min.js.map,url=shift_workflow.min.js.map" \
-	      --output amd/build/shift_workflow.min.js )
+	@echo "=== Rebuilding AMD (plugin only, grunt amd --files) ==="
+	-cd $(MOODLE_ROOT) && files=$$(find local/coursectrl/amd/src -name '*.js' \
+	    | tr '\n' ',' | sed 's/,$$//'); \
+	    $(NPX) grunt amd --root=. --force --files="$$files"
 
 # ---------------------------------------------------------------------------
 # phpunit: run PHPUnit testsuite for this plugin
+#
+# One-time setup required — add to config.php, then run init:
+#   $CFG->phpunit_dataroot = '/var/www/html/moodle45_aliseadele/phpunit_data';
+#   $CFG->phpunit_prefix   = 'phpu_';
+#   php admin/tool/phpunit/cli/init.php
 # ---------------------------------------------------------------------------
 phpunit:
 	@echo "=== PHPUnit ==="
-	-cd $(MOODLE_ROOT) && $(PHP) vendor/bin/phpunit \
-		--testsuite local_coursectrl_testsuite \
-		--testdox
+	@if ! $(PHP) -r "define('CLI_SCRIPT',1); require '$(MOODLE_ROOT)/config.php'; "\
+		"exit(empty(\$$CFG->phpunit_dataroot) ? 1 : 0);" 2>/dev/null; then \
+		echo "SKIP: phpunit_dataroot not set in config.php."; \
+		echo "      Add to config.php and run: php admin/tool/phpunit/cli/init.php"; \
+	else \
+		cd $(MOODLE_ROOT) && $(PHP) vendor/bin/phpunit \
+			--testsuite local_coursectrl_testsuite \
+			--testdox 2>&1 | grep -vE '^ ✔ |^$$' || true; \
+	fi

@@ -96,6 +96,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
     /**
      * An activity with no conditions is reachable immediately.
      * @covers \local_coursectrl\local\analysis\deep_journey_simulator
+     * @return void
      */
     public function test_open_activity_is_reachable(): void {
         $this->resetAfterTest();
@@ -110,6 +111,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
     /**
      * Linear chain A→B→C: all reachable by working through A then B.
      * @covers \local_coursectrl\local\analysis\deep_journey_simulator
+     * @return void
      */
     public function test_linear_chain_all_reachable(): void {
         $this->resetAfterTest();
@@ -130,6 +132,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
     /**
      * Activity dependent on a hidden prerequisite is unreachable.
      * @covers \local_coursectrl\local\analysis\deep_journey_simulator
+     * @return void
      */
     public function test_dep_on_hidden_is_unreachable(): void {
         $this->resetAfterTest();
@@ -146,6 +149,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
     /**
      * Circular dependency: neither can be reached first.
      * @covers \local_coursectrl\local\analysis\deep_journey_simulator
+     * @return void
      */
     public function test_circular_dep_both_unreachable(): void {
         $this->resetAfterTest();
@@ -163,6 +167,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
     /**
      * Journey steps are recorded in visit order.
      * @covers \local_coursectrl\local\analysis\deep_journey_simulator
+     * @return void
      */
     public function test_journey_steps_recorded(): void {
         $this->resetAfterTest();
@@ -187,6 +192,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
     /**
      * No groups → one scenario (empty set).
      * @covers \local_coursectrl\local\analysis\deep_journey_simulator
+     * @return void
      */
     public function test_no_groups_returns_one_scenario(): void {
         $this->resetAfterTest();
@@ -198,6 +204,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
     /**
      * Two groups → 4 scenarios: {}, {G1}, {G2}, {G1,G2}.
      * @covers \local_coursectrl\local\analysis\deep_journey_simulator
+     * @return void
      */
     public function test_two_groups_returns_four_scenarios(): void {
         $this->resetAfterTest();
@@ -209,6 +216,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
     /**
      * max_group_combinations limits the number of scenarios returned.
      * @covers \local_coursectrl\local\analysis\deep_journey_simulator
+     * @return void
      */
     public function test_max_group_combinations_limits_output(): void {
         $this->resetAfterTest();
@@ -223,6 +231,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
     /**
      * Fully open course with no conditions → no findings.
      * @covers \local_coursectrl\local\analysis\deep_journey_simulator
+     * @return void
      */
     public function test_simulate_open_course_no_findings(): void {
         $this->resetAfterTest();
@@ -237,6 +246,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
     /**
      * Circular dep produces journey_unreachable findings.
      * @covers \local_coursectrl\local\analysis\deep_journey_simulator
+     * @return void
      */
     public function test_simulate_circular_produces_findings(): void {
         $this->resetAfterTest();
@@ -252,6 +262,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
     /**
      * Severity is escalated to error when the blocked activity is in critcmids.
      * @covers \local_coursectrl\local\analysis\deep_journey_simulator
+     * @return void
      */
     public function test_simulate_escalates_severity_for_critcmid(): void {
         $this->resetAfterTest();
@@ -275,6 +286,7 @@ final class deep_journey_simulator_test extends \advanced_testcase {
     /**
      * Each finding contains a non-empty simlink.
      * @covers \local_coursectrl\local\analysis\deep_journey_simulator
+     * @return void
      */
     public function test_simulate_finding_has_simlink(): void {
         $this->resetAfterTest();

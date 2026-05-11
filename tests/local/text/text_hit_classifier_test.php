@@ -44,6 +44,7 @@ final class text_hit_classifier_test extends \basic_testcase {
     /**
      * ISO date with valid normalisation must be safe.
      * @covers \local_coursectrl\local\text\text_hit_classifier
+     * @return void
      */
     public function test_iso_with_value_is_safe(): void {
         $hit = ['pattern' => 'iso_ymd', 'groups' => []];
@@ -54,6 +55,7 @@ final class text_hit_classifier_test extends \basic_testcase {
     /**
      * German full date with valid normalisation must be safe.
      * @covers \local_coursectrl\local\text\text_hit_classifier
+     * @return void
      */
     public function test_de_full_with_value_is_safe(): void {
         $hit = ['pattern' => 'de_dmy_full', 'groups' => []];
@@ -64,6 +66,7 @@ final class text_hit_classifier_test extends \basic_testcase {
     /**
      * German numeric full date with valid normalisation must be safe.
      * @covers \local_coursectrl\local\text\text_hit_classifier
+     * @return void
      */
     public function test_de_numeric_full_with_value_is_safe(): void {
         $hit = ['pattern' => 'de_numeric_full', 'groups' => []];
@@ -74,6 +77,7 @@ final class text_hit_classifier_test extends \basic_testcase {
     /**
      * English full date with valid normalisation must be safe.
      * @covers \local_coursectrl\local\text\text_hit_classifier
+     * @return void
      */
     public function test_en_full_with_value_is_safe(): void {
         $hit = ['pattern' => 'en_mdy_full', 'groups' => []];
@@ -84,6 +88,7 @@ final class text_hit_classifier_test extends \basic_testcase {
     /**
      * Safe pattern that fails to normalise must be informational.
      * @covers \local_coursectrl\local\text\text_hit_classifier
+     * @return void
      */
     public function test_safe_pattern_without_value_is_informational(): void {
         $hit = ['pattern' => 'iso_ymd', 'groups' => []];
@@ -94,6 +99,7 @@ final class text_hit_classifier_test extends \basic_testcase {
     /**
      * No-year pattern with normalisation must be ambiguous.
      * @covers \local_coursectrl\local\text\text_hit_classifier
+     * @return void
      */
     public function test_noyear_with_value_is_ambiguous(): void {
         $hit = ['pattern' => 'de_dmy_noyear', 'groups' => []];
@@ -104,6 +110,7 @@ final class text_hit_classifier_test extends \basic_testcase {
     /**
      * No-year pattern without normalisation must be informational.
      * @covers \local_coursectrl\local\text\text_hit_classifier
+     * @return void
      */
     public function test_noyear_without_value_is_informational(): void {
         $hit = ['pattern' => 'de_dmy_noyear', 'groups' => []];
@@ -114,6 +121,7 @@ final class text_hit_classifier_test extends \basic_testcase {
     /**
      * US numeric format must always be ambiguous (DD/MM vs MM/DD).
      * @covers \local_coursectrl\local\text\text_hit_classifier
+     * @return void
      */
     public function test_us_numeric_is_ambiguous(): void {
         $hit = ['pattern' => 'us_numeric_full', 'groups' => []];
@@ -124,6 +132,7 @@ final class text_hit_classifier_test extends \basic_testcase {
     /**
      * German numeric no-year must be ambiguous.
      * @covers \local_coursectrl\local\text\text_hit_classifier
+     * @return void
      */
     public function test_de_numeric_noyear_is_ambiguous(): void {
         $hit = ['pattern' => 'de_numeric_noyear', 'groups' => []];
@@ -134,6 +143,7 @@ final class text_hit_classifier_test extends \basic_testcase {
     /**
      * English no-year must be ambiguous.
      * @covers \local_coursectrl\local\text\text_hit_classifier
+     * @return void
      */
     public function test_en_noyear_is_ambiguous(): void {
         $hit = ['pattern' => 'en_mdy_noyear', 'groups' => []];
@@ -144,6 +154,7 @@ final class text_hit_classifier_test extends \basic_testcase {
     /**
      * Unknown pattern with normalisation must be ambiguous.
      * @covers \local_coursectrl\local\text\text_hit_classifier
+     * @return void
      */
     public function test_unknown_pattern_with_value_is_ambiguous(): void {
         $hit = ['pattern' => 'unknown_pattern', 'groups' => []];
@@ -154,6 +165,7 @@ final class text_hit_classifier_test extends \basic_testcase {
     /**
      * Unknown pattern without normalisation must be informational.
      * @covers \local_coursectrl\local\text\text_hit_classifier
+     * @return void
      */
     public function test_unknown_pattern_without_value_is_informational(): void {
         $hit = ['pattern' => 'unknown_pattern', 'groups' => []];

@@ -101,6 +101,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
 
     /**
      * Create a real course so Moodle group APIs do not throw on unknown course id.
+     * @return void
      */
     protected function setUp(): void {
         parent::setUp();
@@ -112,6 +113,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
     /**
      * Empty CMs produce an empty result and an empty persisted state.
      * @covers \local_coursectrl\local\analysis\risk_assessment_runner
+     * @return void
      */
     public function test_empty_cms_returns_empty(): void {
         $this->resetAfterTest();
@@ -124,6 +126,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
     /**
      * Each returned item has the minimum required keys.
      * @covers \local_coursectrl\local\analysis\risk_assessment_runner
+     * @return void
      */
     public function test_output_items_have_required_keys(): void {
         $this->resetAfterTest();
@@ -150,6 +153,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
     /**
      * A 2-node cycle produces a circular_dep_transitive finding in the output.
      * @covers \local_coursectrl\local\analysis\risk_assessment_runner
+     * @return void
      */
     public function test_cycle_produces_circular_finding(): void {
         $this->resetAfterTest();
@@ -168,6 +172,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
     /**
      * Dependency on a hidden CM → dep_on_hidden in output.
      * @covers \local_coursectrl\local\analysis\risk_assessment_runner
+     * @return void
      */
     public function test_dep_on_hidden_in_output(): void {
         $this->resetAfterTest();
@@ -188,6 +193,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
     /**
      * Temporal conflicts from consistency_runner appear in the merged output.
      * @covers \local_coursectrl\local\analysis\risk_assessment_runner
+     * @return void
      */
     public function test_consistency_warnings_merged_into_output(): void {
         $this->resetAfterTest();
@@ -228,6 +234,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
     /**
      * Items are sorted by score descending.
      * @covers \local_coursectrl\local\analysis\risk_assessment_runner
+     * @return void
      */
     public function test_output_sorted_by_score_descending(): void {
         $this->resetAfterTest();
@@ -256,6 +263,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
     /**
      * run() persists results; load_last() returns them.
      * @covers \local_coursectrl\local\analysis\risk_assessment_runner
+     * @return void
      */
     public function test_persist_and_load_last(): void {
         $this->resetAfterTest();
@@ -278,6 +286,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
     /**
      * A second run() replaces the prior persisted results (no accumulation).
      * @covers \local_coursectrl\local\analysis\risk_assessment_runner
+     * @return void
      */
     public function test_second_run_replaces_first(): void {
         $this->resetAfterTest();
@@ -301,6 +310,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
     /**
      * load_last() returns [] when no assessment has been run.
      * @covers \local_coursectrl\local\analysis\risk_assessment_runner
+     * @return void
      */
     public function test_load_last_empty_before_first_run(): void {
         $this->resetAfterTest();
@@ -311,6 +321,7 @@ final class risk_assessment_runner_test extends \advanced_testcase {
     /**
      * last_run_time() returns 0 before any run and a positive timestamp after.
      * @covers \local_coursectrl\local\analysis\risk_assessment_runner
+     * @return void
      */
     public function test_last_run_time(): void {
         $this->resetAfterTest();

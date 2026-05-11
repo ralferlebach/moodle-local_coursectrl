@@ -35,6 +35,7 @@ use local_coursectrl\manager\textreview_manager;
 /**
  * Integration tests for apply_text_changes.
  *
+ * @runTestsInSeparateProcesses
  * @covers \local_coursectrl\external\apply_text_changes
  * @covers \local_coursectrl\manager\textreview_manager
  */

@@ -49,6 +49,7 @@ final class snapshot_test extends \advanced_testcase {
     /**
      * A persisted snapshot can be reloaded by id.
      * @covers \local_coursectrl\local\persistent\snapshot
+     * @return void
      */
     public function test_create_and_reload(): void {
         $this->resetAfterTest();
@@ -79,6 +80,7 @@ final class snapshot_test extends \advanced_testcase {
      * The component column is nullable for non-cm entities such as
      * sections, labels or text fields.
      * @covers \local_coursectrl\local\persistent\snapshot
+     * @return void
      */
     public function test_component_can_be_null(): void {
         $this->resetAfterTest();
@@ -95,6 +97,7 @@ final class snapshot_test extends \advanced_testcase {
     /**
      * Multiple snapshots for the same entity in the same batch are allowed.
      * @covers \local_coursectrl\local\persistent\snapshot
+     * @return void
      */
     public function test_multiple_snapshots_per_entity(): void {
         $this->resetAfterTest();

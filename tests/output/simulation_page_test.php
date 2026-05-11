@@ -52,6 +52,7 @@ final class simulation_page_test extends \advanced_testcase {
     /**
      * Without a submitted state hasresults is false and resultrows is empty.
      * @covers \local_coursectrl\output\simulation_page
+     * @return void
      */
     public function test_no_state_means_no_results(): void {
         $this->resetAfterTest();
@@ -65,6 +66,7 @@ final class simulation_page_test extends \advanced_testcase {
     /**
      * Required scalar keys are always present in the export.
      * @covers \local_coursectrl\output\simulation_page
+     * @return void
      */
     public function test_required_scalar_keys_present(): void {
         $this->resetAfterTest();
@@ -89,6 +91,7 @@ final class simulation_page_test extends \advanced_testcase {
     /**
      * With a learner state supplied, hasresults=true and resultrows contains one row per CM.
      * @covers \local_coursectrl\output\simulation_page
+     * @return void
      */
     public function test_with_state_produces_result_rows(): void {
         $this->resetAfterTest();
@@ -108,6 +111,7 @@ final class simulation_page_test extends \advanced_testcase {
     /**
      * Accessible + incomplete + tracked CM appears in nextsteprows.
      * @covers \local_coursectrl\output\simulation_page
+     * @return void
      */
     public function test_accessible_incomplete_is_next_step(): void {
         $this->resetAfterTest();
@@ -127,6 +131,7 @@ final class simulation_page_test extends \advanced_testcase {
     /**
      * Teacher-hidden CM shows accessible=false in resultrows.
      * @covers \local_coursectrl\output\simulation_page
+     * @return void
      */
     public function test_hidden_cm_not_accessible_in_results(): void {
         $this->resetAfterTest();
@@ -147,6 +152,7 @@ final class simulation_page_test extends \advanced_testcase {
      * Uses the existing build_snapshot() helper and creates a real DB course+assign
      * so format_string() + s() can be exercised on actual Moodle course-module data.
      * @covers \local_coursectrl\output\simulation_page
+     * @return void
      */
     public function test_activity_name_xss_is_escaped_in_completion_label(): void {
         global $PAGE;
@@ -207,6 +213,7 @@ final class simulation_page_test extends \advanced_testcase {
      * Group names with HTML event handlers are escaped when used in group-reason labels.
      * Adds a real group to the DB, then verifies export does not contain raw HTML.
      * @covers \local_coursectrl\output\simulation_page
+     * @return void
      */
     public function test_group_name_xss_is_escaped_in_group_label(): void {
         global $PAGE;
@@ -235,6 +242,7 @@ final class simulation_page_test extends \advanced_testcase {
     /**
      * Grouping names with HTML are escaped when used in grouping-reason labels.
      * @covers \local_coursectrl\output\simulation_page
+     * @return void
      */
     public function test_grouping_name_xss_is_escaped_in_grouping_label(): void {
         global $PAGE;
@@ -270,6 +278,7 @@ final class simulation_page_test extends \advanced_testcase {
      * contains the escaped form (&#60;script&#62; or &lt;script&gt;) but not
      * the raw payload.
      * @covers \local_coursectrl\output\simulation_page
+     * @return void
      */
     public function test_completion_reason_label_xss_is_escaped(): void {
         global $PAGE, $DB;
@@ -365,6 +374,7 @@ final class simulation_page_test extends \advanced_testcase {
      * a fail reason), and verifies the label produced by format_reason()
      * does not contain the raw payload.
      * @covers \local_coursectrl\output\simulation_page
+     * @return void
      */
     public function test_group_reason_label_xss_is_escaped(): void {
         global $PAGE;

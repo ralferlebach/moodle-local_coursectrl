@@ -15,6 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * Fix-action handler for local_coursectrl.
+ *
+ * Receives AJAX requests to apply one-click fixes (e.g. unhide_cm)
+ * identified by the checks page and dispatches them via fix_manager.
+ *
+ * @package    local_coursectrl
+ * @copyright  2026 Ralf Erlebach
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+/**
  * One-click fix action endpoint for the checks page.
  *
  * Accepts a POST request with:

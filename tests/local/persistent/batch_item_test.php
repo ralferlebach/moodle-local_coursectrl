@@ -50,6 +50,7 @@ final class batch_item_test extends \advanced_testcase {
     /**
      * A persisted batch_item can be reloaded by id.
      * @covers \local_coursectrl\local\persistent\batch_item
+     * @return void
      */
     public function test_create_and_reload(): void {
         $this->resetAfterTest();
@@ -76,6 +77,7 @@ final class batch_item_test extends \advanced_testcase {
      * component, previewjson and resultjson are nullable in the schema and
      * can be omitted on creation.
      * @covers \local_coursectrl\local\persistent\batch_item
+     * @return void
      */
     public function test_nullable_columns(): void {
         $this->resetAfterTest();
@@ -96,6 +98,7 @@ final class batch_item_test extends \advanced_testcase {
     /**
      * The four legal item statuses are accepted.
      * @covers \local_coursectrl\local\persistent\batch_item
+     * @return void
      */
     public function test_legal_statuses(): void {
         $this->resetAfterTest();

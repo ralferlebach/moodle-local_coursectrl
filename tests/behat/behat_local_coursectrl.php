@@ -579,7 +579,7 @@ class behat_local_coursectrl extends behat_base {
      * Assert that the duedate of an assignment was shifted by a given number of days.
      * The original duedate is read from the DB and compared to the shifted expectation.
      *
-     * @Then the duedate of assign :name in course :shortname should be shifted by :days day(s) from :original_ts
+     * @Then the duedate of assign :name in course :shortname should be shifted by :days day(s) from :originalts
      * @param string $name        Assignment name.
      * @param string $shortname   Course shortname.
      * @param int    $days        Number of days to shift.
@@ -609,7 +609,7 @@ class behat_local_coursectrl extends behat_base {
      * Assert that the completionexpected of a course module was shifted by a given
      * number of days from a known original timestamp.
      *
-     * @Then the completionexpected of :modtype :name in course :shortname should be shifted by :days day(s) from :original_ts
+     * @Then the completionexpected of :modtype :name in course :shortname should be shifted by :days day(s) from :originalts
      * @param string $modtype     Module type (e.g. "forum").
      * @param string $name        Module instance name.
      * @param string $shortname   Course shortname.
@@ -647,7 +647,7 @@ class behat_local_coursectrl extends behat_base {
     /**
      * Assert that the duedate of an assignment is still the original value (not shifted).
      *
-     * @Then the duedate of assign :name in course :shortname should still be :original_ts
+     * @Then the duedate of assign :name in course :shortname should still be :originalts
      * @param string $name       Assignment name.
      * @param string $shortname  Course shortname.
      * @param int    $originalts Expected original Unix timestamp.
@@ -729,7 +729,7 @@ class behat_local_coursectrl extends behat_base {
     /**
      * Assert that an arbitrary date field of a module was shifted by a given number of days.
      *
-     * @Then the :field of :modtype :name in course :shortname should be shifted by :days day(s) from :original_ts
+     * @Then the :field of :modtype :name in course :shortname should be shifted by :days day(s) from :originalts
      * @param string $field      Field name inside the module table (e.g. "timeopen").
      * @param string $modtype    Module type (e.g. "quiz").
      * @param string $name       Module instance name.
@@ -762,7 +762,7 @@ class behat_local_coursectrl extends behat_base {
     /**
      * Assert that an arbitrary date field of a module is still the original value.
      *
-     * @Then the :field of :modtype :name in course :shortname should still be :original_ts
+     * @Then the :field of :modtype :name in course :shortname should still be :originalts
      * @param string $field      Field name inside the module table.
      * @param string $modtype    Module type.
      * @param string $name       Module instance name.
@@ -940,7 +940,7 @@ class behat_local_coursectrl extends behat_base {
     /**
      * Assert that the timeopen of a quiz was shifted by a number of days.
      *
-     * @Then the timeopen of quiz :name in course :shortname should be shifted by :days day(s) from :original_ts
+     * @Then the timeopen of quiz :name in course :shortname should be shifted by :days day(s) from :originalts
      * @param string $name       Quiz instance name.
      * @param string $shortname  Course shortname.
      * @param int    $days       Number of days shifted.
@@ -949,7 +949,9 @@ class behat_local_coursectrl extends behat_base {
      */
     public function timeopen_of_quiz_should_be_shifted(
         string $name,
-        string $fieldkey
+        string $shortname,
+        int $days,
+        int $originalts
     ): void {
         global $DB;
         $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
@@ -967,7 +969,7 @@ class behat_local_coursectrl extends behat_base {
     /**
      * Assert that the timeopen of a quiz has not changed.
      *
-     * @Then the timeopen of quiz :name in course :shortname should still be :original_ts
+     * @Then the timeopen of quiz :name in course :shortname should still be :originalts
      * @param string $name       Quiz instance name.
      * @param string $shortname  Course shortname.
      * @param int    $originalts Expected unchanged timestamp.
@@ -976,7 +978,7 @@ class behat_local_coursectrl extends behat_base {
     public function timeopen_of_quiz_should_still_be(
         string $name,
         string $shortname,
-        int $ts
+        int $originalts
     ): void {
         global $DB;
         $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
@@ -993,7 +995,7 @@ class behat_local_coursectrl extends behat_base {
     /**
      * Assert that the timeclose of a quiz was shifted by a number of days.
      *
-     * @Then the timeclose of quiz :name in course :shortname should be shifted by :days day(s) from :original_ts
+     * @Then the timeclose of quiz :name in course :shortname should be shifted by :days day(s) from :originalts
      * @param string $name       Quiz instance name.
      * @param string $shortname  Course shortname.
      * @param int    $days       Number of days shifted.
@@ -1022,7 +1024,7 @@ class behat_local_coursectrl extends behat_base {
     /**
      * Assert that the timeclose of a quiz has not changed.
      *
-     * @Then the timeclose of quiz :name in course :shortname should still be :original_ts
+     * @Then the timeclose of quiz :name in course :shortname should still be :originalts
      * @param string $name       Quiz instance name.
      * @param string $shortname  Course shortname.
      * @param int    $originalts Expected unchanged timestamp.
@@ -1048,7 +1050,7 @@ class behat_local_coursectrl extends behat_base {
     /**
      * Assert that the completionexpected of an assign was shifted by a number of days.
      *
-     * @Then the completionexpected of assign :name in course :shortname should be shifted by :days day(s) from :original_ts
+     * @Then the completionexpected of assign :name in course :shortname should be shifted by :days day(s) from :originalts
      * @param string $name       Assign instance name.
      * @param string $shortname  Course shortname.
      * @param int    $days       Number of days shifted.
@@ -1073,40 +1075,5 @@ class behat_local_coursectrl extends behat_base {
                 $this->getSession()
             );
         }
-        $btn->click();
-        $this->wait_for_pending_js();
-    }
-
-    /**
-     * Set a completion-based availability dependency between two activities
-     * by writing the Moodle availability JSON directly to course_modules.
-     *
-     * @Given the availability of :modtype :name in course :shortname depends on completion of :modtype2 :name2
-     * @param string $modtype    Module type of the dependent activity (e.g. "quiz").
-     * @param string $name       Name of the dependent activity.
-     * @param string $shortname  Course shortname.
-     * @param string $modtype2   Module type of the prerequisite activity.
-     * @param string $name2      Name of the prerequisite activity.
-     */
-    public function set_availability_completion_dependency(
-        string $modtype,
-        string $name,
-        string $shortname,
-        string $modtype2,
-        string $name2
-    ): void {
-        global $DB;
-        $course  = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
-        $prereq  = $DB->get_record($modtype2, ['course' => $course->id, 'name' => $name2], 'id', MUST_EXIST);
-        $prereqcm = get_coursemodule_from_instance($modtype2, (int) $prereq->id, (int) $course->id, false, MUST_EXIST);
-        $mod = $DB->get_record($modtype, ['course' => $course->id, 'name' => $name], 'id', MUST_EXIST);
-        $cm  = get_coursemodule_from_instance($modtype, (int) $mod->id, (int) $course->id, false, MUST_EXIST);
-        $avail = json_encode([
-            'op'   => '&',
-            'c'    => [['type' => 'completion', 'cm' => (int) $prereqcm->id, 'e' => 1]],
-            'showc' => [true],
-        ]);
-        $DB->set_field('course_modules', 'availability', $avail, ['id' => $cm->id]);
-        rebuild_course_cache((int) $course->id, true);
     }
 }

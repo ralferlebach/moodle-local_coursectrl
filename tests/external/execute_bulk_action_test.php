@@ -32,6 +32,7 @@ use local_coursectrl\local\persistent\batch;
  * Integration tests for execute_bulk_action including capability
  * enforcement, DB mutation verification and result structure validation.
  *
+ * @runTestsInSeparateProcesses
  * @covers \local_coursectrl\external\execute_bulk_action
  */
 final class execute_bulk_action_test extends \advanced_testcase {

@@ -15,6 +15,16 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * Simulation entry point for local_coursectrl.
+ *
+ * Renders the learner-journey simulation page.
+ *
+ * @package    local_coursectrl
+ * @copyright  2026 Ralf Erlebach
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+/**
  * Compatibility redirect: simulation.php → checks.php?tab=simulation.
  *
  * The simulation view has been moved into the unified checks page.

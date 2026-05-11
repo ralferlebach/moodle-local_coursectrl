@@ -31,6 +31,7 @@ use core_external\external_api;
  * Integration tests for preview_bulk_action including capability
  * enforcement and result structure validation.
  *
+ * @runTestsInSeparateProcesses
  * @covers \local_coursectrl\external\preview_bulk_action
  */
 final class preview_bulk_action_test extends \advanced_testcase {

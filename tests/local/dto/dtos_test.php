@@ -40,6 +40,7 @@ final class dtos_test extends \advanced_testcase {
      * @covers \local_coursectrl\local\dto\preview_change
      * @covers \local_coursectrl\local\dto\validation_result
      * @covers \local_coursectrl\local\dto\execution_result
+     * @return void
      */
     public function test_preview_change_getters(): void {
         $fields = [
@@ -58,6 +59,7 @@ final class dtos_test extends \advanced_testcase {
      * @covers \local_coursectrl\local\dto\preview_change
      * @covers \local_coursectrl\local\dto\validation_result
      * @covers \local_coursectrl\local\dto\execution_result
+     * @return void
      */
     public function test_preview_change_has_changes(): void {
         $changed = new preview_change(1, 'mod_assign', 'A', [
@@ -76,6 +78,7 @@ final class dtos_test extends \advanced_testcase {
      * @covers \local_coursectrl\local\dto\preview_change
      * @covers \local_coursectrl\local\dto\validation_result
      * @covers \local_coursectrl\local\dto\execution_result
+     * @return void
      */
     public function test_preview_change_to_array(): void {
         $change = new preview_change(7, 'mod_quiz', 'Q', ['timeopen' => ['old' => 1, 'new' => 2]]);
@@ -95,6 +98,7 @@ final class dtos_test extends \advanced_testcase {
      * @covers \local_coursectrl\local\dto\preview_change
      * @covers \local_coursectrl\local\dto\validation_result
      * @covers \local_coursectrl\local\dto\execution_result
+     * @return void
      */
     public function test_validation_result_from_adapter_array(): void {
         $valid = validation_result::from_adapter_array([
@@ -121,6 +125,7 @@ final class dtos_test extends \advanced_testcase {
      * @covers \local_coursectrl\local\dto\preview_change
      * @covers \local_coursectrl\local\dto\validation_result
      * @covers \local_coursectrl\local\dto\execution_result
+     * @return void
      */
     public function test_execution_result_getters_and_to_array(): void {
         $snapshot = ['component' => 'mod_assign', 'cmid' => 9, 'fields' => ['duedate' => 1]];
@@ -143,6 +148,7 @@ final class dtos_test extends \advanced_testcase {
      * @covers \local_coursectrl\local\dto\preview_change
      * @covers \local_coursectrl\local\dto\validation_result
      * @covers \local_coursectrl\local\dto\execution_result
+     * @return void
      */
     public function test_execution_result_failed_with_message(): void {
         $result = new execution_result(

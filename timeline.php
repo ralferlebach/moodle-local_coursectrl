@@ -15,6 +15,16 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * Timeline entry point for local_coursectrl.
+ *
+ * Renders the Gantt / timeline page and handles shift-autoopen URL parameters.
+ *
+ * @package    local_coursectrl
+ * @copyright  2026 Ralf Erlebach
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+/**
  * Chronological timeline manager page for the Course Control Hub.
  *
  * @package    local_coursectrl
@@ -39,10 +49,10 @@ $focuscmid    = optional_param('focus', 0, PARAM_INT);
 $focusdayparam = optional_param('focus_day', '', PARAM_ALPHANUMEXT);
 
 // Autoopen shift dialog from external link (e.g. block_coursectrldates).
-// autoopen: 'slot' | 'following' | 'entry'
-// shift_ts:    unix timestamp (slot / following)
-// shift_cmid:  course-module id (entry)
-// shift_field: field name for entry-mode autoopen.
+// Autoopen: 'slot' | 'following' | 'entry'.
+// Shift_ts:    unix timestamp (slot / following).
+// Shift_cmid:  course-module id (entry).
+// Shift_field: field name (entry).
 $autoopenmode  = optional_param('autoopen', '', PARAM_ALPHA);
 $autoshiftts   = optional_param('shift_ts', 0, PARAM_INT);
 $autoshiftcmid = optional_param('shift_cmid', 0, PARAM_INT);
@@ -85,7 +95,7 @@ $service = new \local_coursectrl\local\inventory\inventory_service();
 $snapshot = $service->build_for_course($courseid);
 
 // Auto-enable showpast when the URL targets a past-dated entry and the user
-// has not explicitly toggled the filter in this request. Both entry points are
+// has not explicitly toggled the filter in this request; both entry points are
 // handled: focus=CMID (checks page) and focus_day=YYYY-MM-DD (calendar links).
 $focusdaykey = '';
 $now = time();

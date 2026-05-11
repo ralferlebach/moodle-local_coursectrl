@@ -163,6 +163,7 @@ define([], function() {
             })
             .catch(function() {
                 btn.disabled = false;
+                return null;
             });
     };
 
@@ -751,6 +752,7 @@ define([], function() {
                         .catch(function() {
                             previewBtn.disabled = false;
                             previewBtn.textContent = lbl.btnPreview;
+                            return null;
                         });
                 });
             }
@@ -902,16 +904,16 @@ define([], function() {
                                             if (opts.onComplete) {
                                                 opts.onComplete(shiftResult);
                                             }
-                                            return;
+                                        } else {
+                                            executeApplyText(
+                                                applyBtn3,
+                                                courseid,
+                                                ids,
+                                                applyDelta,
+                                                shiftResult,
+                                                opts.onComplete
+                                            );
                                         }
-                                        executeApplyText(
-                                            applyBtn3,
-                                            courseid,
-                                            ids,
-                                            applyDelta,
-                                            shiftResult,
-                                            opts.onComplete
-                                        );
                                     });
                                 }
                                 wireCtxToggles(step3);
@@ -930,6 +932,7 @@ define([], function() {
                                     escHtml((err && err.message) || lbl.lblErrTitle) + '</div>';
                             }
                             execBtn.disabled = false;
+                            return null;
                         });
                 });
             }

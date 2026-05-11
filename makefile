@@ -14,6 +14,8 @@
 #   make lint-js        — ESLint on AMD source files
 #   make lint-gherkin   — Gherkin feature-file lint
 #   make lint-mustache  — Mustache template syntax
+#   make lint-cpd       — phpcpd --min-lines 5 --min-tokens 70 (tests/ und tools/ ausgeschlossen)
+#   make lint-md        — phpmd text cleancode,codesize,controversial,...
 #
 # Auto-fixers:
 #   make fix-lint-php   — phpcbf PHP code-style auto-fix
@@ -31,6 +33,7 @@ PHPCBF        ?= phpcbf
 NPX           ?= npx
 
 .PHONY: all fix check clear \
+        lint-cpd lint-md \
         lint-php lint-phpdoc lint-js lint-gherkin lint-mustache \
         fix-lint-php fix-phpdoc amd phpunit
 
@@ -53,7 +56,7 @@ fix: clear fix-phpdoc fix-lint-php amd lint-js
 # check: check-only run (no auto-fix)
 # All checks run even if individual ones fail.
 # ---------------------------------------------------------------------------
-check: clear lint-php lint-phpdoc lint-js lint-mustache lint-gherkin amd phpunit
+check: clear lint-php lint-phpdoc lint-js lint-mustache lint-gherkin lint-cpd lint-md amd phpunit
 	@echo ""
 	@echo "=== All checks complete. Review output above for errors. ==="
 
@@ -67,6 +70,7 @@ clear:
 # lint-php: PHP CodeSniffer — severity 1
 # ---------------------------------------------------------------------------
 lint-php:
+	@echo ""
 	@echo "=== phpcs (reads phpcs.xml, excludes tools/) ==="
 	-cd $(PLUGIN_DIR) && $(PHPCS) \
 		--standard=moodle \
@@ -79,6 +83,7 @@ lint-php:
 # fix-lint-php: phpcbf auto-fix
 # ---------------------------------------------------------------------------
 fix-lint-php:
+	@echo ""
 	@echo "=== phpcbf (auto-fix) ==="
 	-cd $(PLUGIN_DIR) && $(PHPCBF) \
 		--standard=moodle \
@@ -90,6 +95,7 @@ fix-lint-php:
 # Shows errors (no || true suppression) but continues the build.
 # ---------------------------------------------------------------------------
 lint-phpdoc:
+	@echo ""
 	@echo "=== PHPDoc (local_moodlecheck, excludes tools/) ==="
 	-cd $(MOODLE_ROOT) && $(PHP) local/moodlecheck/cli/moodlecheck.php \
 		--path=local/coursectrl \
@@ -100,6 +106,7 @@ lint-phpdoc:
 # fix-phpdoc: tools/fix_phpdoc.php — auto-fixes PHPDoc in plugin source
 # ---------------------------------------------------------------------------
 fix-phpdoc:
+	@echo ""
 	@echo "=== fix_phpdoc (tools/fix_phpdoc.php) ==="
 	-$(PHP) $(PLUGIN_DIR)/tools/fix_phpdoc.php $(PLUGIN_DIR)
 
@@ -107,14 +114,33 @@ fix-phpdoc:
 # lint-mustache: Mustache template syntax
 # ---------------------------------------------------------------------------
 lint-mustache:
+	@echo ""
 	@echo "=== Mustache syntax check ==="
 	-$(PHP) $(PLUGIN_DIR)/tools/mustache_check.php \
 		$(PLUGIN_DIR)/templates 2>&1 | grep -v '^OK:' || true
 
 # ---------------------------------------------------------------------------
+# lint-cpd: PHP Copy/Paste Detector (informational; continue-on-error)
+# ---------------------------------------------------------------------------
+lint-cpd:
+	@echo ""
+	@echo "=== PHP Copy/Paste Detector ==="
+	-cd $(PLUGIN_DIR) && phpcpd --min-lines 5 --min-tokens 70 . || true
+
+# ---------------------------------------------------------------------------
+# lint-md: PHP Mess Detector (informational; continue-on-error)
+# ---------------------------------------------------------------------------
+lint-md:
+	@echo ""
+	@echo "=== PHP Mess Detector ==="
+	-cd $(PLUGIN_DIR) && phpmd . text cleancode,codesize,controversial,design,naming,unusedcode \
+		--exclude tests,tools || true
+
+# ---------------------------------------------------------------------------
 # lint-js: ESLint on AMD source (0 warnings = CI standard)
 # ---------------------------------------------------------------------------
 lint-js:
+	@echo ""
 	@echo "=== ESLint ==="
 	-cd $(MOODLE_ROOT) && $(NPX) grunt eslint --root=. \
 		--files=local/coursectrl/amd/src/ \
@@ -124,6 +150,7 @@ lint-js:
 # lint-gherkin: Gherkin feature-file lint
 # ---------------------------------------------------------------------------
 lint-gherkin:
+	@echo ""
 	@echo "=== Gherkin lint ==="
 	-cd $(MOODLE_ROOT) && $(NPX) grunt gherkinlint --root=.
 
@@ -133,6 +160,7 @@ lint-gherkin:
 # receives entry points, not a directory (which would cause E_RESOLVE).
 # ---------------------------------------------------------------------------
 amd:
+	@echo ""
 	@echo "=== Rebuilding AMD (plugin only, grunt amd --files) ==="
 	-cd $(MOODLE_ROOT) && files=$$(find local/coursectrl/amd/src -name '*.js' \
 	    | tr '\n' ',' | sed 's/,$$//'); \
@@ -147,6 +175,7 @@ amd:
 #   php admin/tool/phpunit/cli/init.php
 # ---------------------------------------------------------------------------
 phpunit:
+	@echo ""
 	@echo "=== PHPUnit ==="
 	@if ! $(PHP) -r "define('CLI_SCRIPT',1); require '$(MOODLE_ROOT)/config.php'; "\
 		"exit(empty(\$$CFG->phpunit_dataroot) ? 1 : 0);" 2>/dev/null; then \

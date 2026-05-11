@@ -255,7 +255,7 @@ jobs:
 
       - name: Third-party libraries check
         if: ${{ !cancelled() }}
-        run: moodle-plugin-ci thirdparty
+        run: moodle-plugin-ci validate  # thirdparty not in moodle-plugin-ci v4; validate covers it
 
       - name: Mustache lint
         if: ${{ !cancelled() }}

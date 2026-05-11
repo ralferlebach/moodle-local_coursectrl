@@ -63,116 +63,18 @@ class graph_dataset_builder {
         array $blockedids = [],
         array $nextstepids = []
     ): array {
-        if (empty($cms)) {
-            return $this->empty_result();
-        }
-
-        // Use e=1 unlock conditions only for layout and edges.
-        // e=0 'gate-closing' conditions are not prerequisites in the
-        // sequencing sense — they create false-positive circular alerts.
+        // Delegate to build_with_forward() using the e=1 unlock forward map.
+        // e=0 gate-closing conditions are excluded; build_with_forward()
+        // uses the supplied map for layout and edge generation.
         $forward = $depindex->get_unlock_forward();
-        $circular = $depindex->find_circular_deps();
-        $circularset = $this->build_circular_set($circular);
-
-        // Merge grade-based forward deps into the externally-provided
-        // forward map so that activities gated only by a grade still get a
-        // layer greater than their grade source, instead of being painted
-        // in column 0 in front of the activity they actually depend on.
-        // The original $forward is still used below for edge generation,
-        // so the visible-edge semantics are unchanged.
-        $layoutforward = $forward;
-        foreach ($depindex->get_grade_forward() as $cmid => $deps) {
-            $existing = $layoutforward[$cmid] ?? [];
-            $layoutforward[$cmid] = array_values(array_unique(array_merge($existing, $deps)));
-        }
-        $layers = $this->assign_layers($cms, $layoutforward);
-        // Build reverse map for R4 neighbour-weight positioning.
-        $reverseforpos = [];
-        foreach ($layoutforward as $cmid => $deps) {
-            foreach ($deps as $dep) {
-                $reverseforpos[$dep][] = $cmid;
-            }
-        }
-        $layerpositions = $this->assign_layer_positions($layers, $layoutforward, $reverseforpos);
-        $layercount = empty($layers) ? 0 : max(array_values($layers)) + 1;
-
-        $nodes = [];
-        foreach ($cms as $cm) {
-            $nodes[] = [
-                'id' => $cm->id,
-                'label' => $cm->name,
-                'modname' => $cm->modname,
-                'component' => $cm->get_component(),
-                'visible' => $cm->visible,
-                'circular' => isset($circularset[$cm->id]),
-                'haswarnings' => !empty($warnings[$cm->id]),
-                'blocked' => in_array($cm->id, $blockedids, true),
-                'nextstep' => in_array($cm->id, $nextstepids, true),
-                'layer' => $layers[$cm->id] ?? 0,
-                'layerpos' => $layerpositions[$cm->id] ?? 0,
-                'url' => (new \moodle_url(
-                    '/mod/' . $cm->modname . '/view.php',
-                    ['id' => $cm->id]
-                ))->out(false),
-                'editurl' => (new \moodle_url(
-                    '/course/modedit.php',
-                    ['update' => $cm->id, 'return' => 1]
-                ))->out(false),
-            ];
-        }
-
-        $knownids = array_fill_keys(array_keys($cms), true);
-        $circularedgeset = [];
-        foreach ($circular as $pair) {
-            $key = min($pair['a'], $pair['b']) . '-' . max($pair['a'], $pair['b']);
-            $circularedgeset[$key] = true;
-        }
-        $edges = [];
-        $edgeset = [];
-        foreach ($forward as $cmid => $prereqs) {
-            foreach ($prereqs as $depcmid) {
-                if (!isset($knownids[$depcmid])) {
-                    continue;
-                }
-                $edgeset[$cmid . '-' . $depcmid] = true;
-                $key = min($cmid, $depcmid) . '-' . max($cmid, $depcmid);
-                $edges[] = [
-                    'from' => $cmid,
-                    'to' => $depcmid,
-                    'circular' => isset($circularedgeset[$key]),
-                ];
-            }
-        }
-        // Grade-based dependency edges (same visual as completion-based edges).
-        // Skipped when the cmid pair already has a completion-based edge.
-        $gradeforward = $depindex->get_grade_forward();
-        foreach ($gradeforward as $cmid => $prereqs) {
-            foreach ($prereqs as $depcmid) {
-                if (!isset($knownids[$depcmid])) {
-                    continue;
-                }
-                if (isset($edgeset[$cmid . '-' . $depcmid])) {
-                    continue; // Already represented by a completion edge.
-                }
-                $edgeset[$cmid . '-' . $depcmid] = true;
-                $key = min($cmid, $depcmid) . '-' . max($cmid, $depcmid);
-                $edges[] = [
-                    'from' => $cmid,
-                    'to' => $depcmid,
-                    'circular' => isset($circularedgeset[$key]),
-                ];
-            }
-        }
-
-        return [
-            'nodes' => $nodes,
-            'edges' => $edges,
-            'nodecount' => count($nodes),
-            'edgecount' => count($edges),
-            'layercount' => $layercount,
-            'hasonlynodes' => count($edges) === 0,
-            'hasdata' => true,
-        ];
+        return $this->build_with_forward(
+            $cms,
+            $depindex,
+            $forward,
+            $warnings,
+            $blockedids,
+            $nextstepids
+        );
     }
 
     /**

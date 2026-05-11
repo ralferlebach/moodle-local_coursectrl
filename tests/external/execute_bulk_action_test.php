@@ -27,7 +27,12 @@ namespace local_coursectrl\external;
 use core_external\external_api;
 use local_coursectrl\local\persistent\batch;
 
+defined('MOODLE_INTERNAL') || die();
+
+require_once(__DIR__ . '/cross_course_test_trait.php');
+
 #[\PHPUnit\Framework\Attributes\CoversClass(\local_coursectrl\external\execute_bulk_action::class)]
+
 /**
  * Integration tests for execute_bulk_action including capability
  * enforcement, DB mutation verification and result structure validation.
@@ -36,6 +41,9 @@ use local_coursectrl\local\persistent\batch;
  * @covers \local_coursectrl\external\execute_bulk_action
  */
 final class execute_bulk_action_test extends \advanced_testcase {
+    use cross_course_test_trait;
+
+
     /** @var int Reference timestamp. */
     private const BASE_TIME = 1700000000;
 
@@ -176,15 +184,8 @@ final class execute_bulk_action_test extends \advanced_testcase {
     public function test_execute_rejects_cmid_from_foreign_course(): void {
         $this->resetAfterTest();
 
-        $course1  = $this->getDataGenerator()->create_course();
-        $course2  = $this->getDataGenerator()->create_course();
-        $teacher  = $this->getDataGenerator()->create_user();
-        $this->getDataGenerator()->enrol_user($teacher->id, $course1->id, 'editingteacher');
-        $this->getDataGenerator()->enrol_user($teacher->id, $course2->id, 'editingteacher');
-
-        $assign2 = $this->getDataGenerator()
-            ->get_plugin_generator('mod_assign')
-            ->create_instance(['course' => $course2->id, 'duedate' => self::BASE_TIME]);
+        ['course1' => $course1, 'teacher' => $teacher, 'assign2' => $assign2] =
+            $this->setup_cross_course_teacher_assign(self::BASE_TIME);
 
         $this->setUser($teacher);
         $this->expectException(\moodle_exception::class);

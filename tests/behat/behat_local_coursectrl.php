@@ -726,68 +726,9 @@ class behat_local_coursectrl extends behat_base {
         );
     }
 
-    /**
-     * Assert that an arbitrary date field of a module was shifted by a given number of days.
-     *
-     * @Then the :field of :modtype :name in course :shortname should be shifted by :days day(s) from :originalts
-     * @param string $field      Field name inside the module table (e.g. "timeopen").
-     * @param string $modtype    Module type (e.g. "quiz").
-     * @param string $name       Module instance name.
-     * @param string $shortname  Course shortname.
-     * @param int    $days       Number of days shifted.
-     * @param int    $originalts Original Unix timestamp.
-     * @return void
-     */
-    public function field_of_module_should_be_shifted(
-        string $field,
-        string $modtype,
-        string $name,
-        string $shortname,
-        int $days,
-        int $originalts
-    ): void {
-        global $DB;
-        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
-        $row = $DB->get_record($modtype, ['course' => $course->id, 'name' => $name], $field, MUST_EXIST);
-        $expected = $originalts + ($days * DAYSECS);
-        $actual   = (int) $row->$field;
-        if (abs($actual - $expected) > 60) {
-            throw new \Behat\Mink\Exception\ExpectationException(
-                "{$modtype}.{$field}: expected ~{$expected}, got {$actual}",
-                $this->getSession()
-            );
-        }
-    }
 
-    /**
-     * Assert that an arbitrary date field of a module is still the original value.
-     *
-     * @Then the :field of :modtype :name in course :shortname should still be :originalts
-     * @param string $field      Field name inside the module table.
-     * @param string $modtype    Module type.
-     * @param string $name       Module instance name.
-     * @param string $shortname  Course shortname.
-     * @param int    $originalts Expected unchanged Unix timestamp.
-     * @return void
-     */
-    public function field_of_module_should_still_be(
-        string $field,
-        string $modtype,
-        string $name,
-        string $shortname,
-        int $originalts
-    ): void {
-        global $DB;
-        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
-        $row = $DB->get_record($modtype, ['course' => $course->id, 'name' => $name], $field, MUST_EXIST);
-        $actual = (int) $row->$field;
-        if (abs($actual - $originalts) > 60) {
-            throw new \Behat\Mink\Exception\ExpectationException(
-                "{$modtype}.{$field}: expected to remain {$originalts}, got {$actual}",
-                $this->getSession()
-            );
-        }
-    }
+
+
 
     /**
      * Assert that the entry shift button for a given activity + field carries

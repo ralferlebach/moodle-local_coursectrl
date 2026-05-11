@@ -125,7 +125,7 @@ final class fixture_simulation_test extends \advanced_testcase {
 
         $cmid = (int) $assign->cmid;
         $this->assertArrayHasKey($cmid, $results);
-        $this->assertTrue($results[$cmid]['accessible'], 'CM without restrictions should be accessible');
+        $this->assertTrue($results[(int)$assign->cmid]['accessible'], 'CM without restrictions should be accessible');
     }
 
     /**
@@ -147,8 +147,8 @@ final class fixture_simulation_test extends \advanced_testcase {
         $results = $sim->simulate($cms, $state);
 
         $cmid = (int) $assign->cmid;
-        $this->assertFalse($results[$cmid]['accessible'], 'Hidden CM should not be accessible');
-        $this->assertSame(condition_evaluator::STATUS_FAIL, $results[$cmid]['status']);
+        $this->assertFalse($results[(int)$assign->cmid]['accessible'], 'Hidden CM should not be accessible');
+        $this->assertSame(condition_evaluator::STATUS_FAIL, $results[(int)$assign->cmid]['status']);
     }
 
     // Simulation: Abschluss-Bedingungen.
@@ -227,6 +227,33 @@ final class fixture_simulation_test extends \advanced_testcase {
         );
     }
 
+
+    /**
+     * Create a course with one group and one assign whose availability
+     * requires membership in that group.
+     *
+     * @return array{courseid:int, groupid:int, cmid:int}
+     */
+    private function create_course_with_group_assign(): array {
+        global $DB;
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $group = $this->getDataGenerator()->create_group(['courseid' => $course->id]);
+        $assign = $this->getDataGenerator()->get_plugin_generator('mod_assign')
+            ->create_instance(['course' => $course->id, 'completion' => 2]);
+        $DB->set_field(
+            'course_modules',
+            'availability',
+            $this->avail_requires_group((int)$group->id),
+            ['id' => (int)$assign->cmid]
+        );
+        rebuild_course_cache($course->id, true);
+        return [
+            'courseid' => (int)$course->id,
+            'groupid'  => (int)$group->id,
+            'cmid'     => (int)$assign->cmid,
+        ];
+    }
+
     // Simulation: Gruppen-Bedingungen.
 
     /**
@@ -237,28 +264,15 @@ final class fixture_simulation_test extends \advanced_testcase {
      */
     public function test_group_condition_met_grants_access(): void {
         $this->resetAfterTest();
-        global $DB;
-        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
-        $group = $this->getDataGenerator()->create_group(['courseid' => $course->id]);
-        $assign = $this->getDataGenerator()->get_plugin_generator('mod_assign')
-            ->create_instance(['course' => $course->id, 'completion' => 2]);
-
-        $DB->set_field(
-            'course_modules',
-            'availability',
-            $this->avail_requires_group((int)$group->id),
-            ['id' => (int)$assign->cmid]
-        );
-
-        rebuild_course_cache($course->id, true);
-
-        $cms = $this->get_cms($course->id);
-        $state = new learner_state(self::T_FUTURE, [], [(int)$group->id], []);
+        ['courseid' => $courseid, 'groupid' => $groupid, 'cmid' => $cmid] =
+            $this->create_course_with_group_assign();
+        $cms = $this->get_cms($courseid);
+        $state = new learner_state(self::T_FUTURE, [], [$groupid], []);
         $sim = new visibility_simulator();
         $results = $sim->simulate($cms, $state);
 
         $this->assertTrue(
-            $results[(int)$assign->cmid]['accessible'],
+            $results[$cmid]['accessible'],
             'CM should be accessible when learner is in required group'
         );
     }
@@ -271,28 +285,16 @@ final class fixture_simulation_test extends \advanced_testcase {
      */
     public function test_group_condition_not_met_blocks(): void {
         $this->resetAfterTest();
-        global $DB;
-        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
-        $group = $this->getDataGenerator()->create_group(['courseid' => $course->id]);
-        $assign = $this->getDataGenerator()->get_plugin_generator('mod_assign')
-            ->create_instance(['course' => $course->id, 'completion' => 2]);
-
-        $DB->set_field(
-            'course_modules',
-            'availability',
-            $this->avail_requires_group((int)$group->id),
-            ['id' => (int)$assign->cmid]
-        );
-        rebuild_course_cache($course->id, true);
-
-        $cms = $this->get_cms($course->id);
-        // Lernender in ANDERER Gruppe (id 9999).
+        ['courseid' => $courseid, 'cmid' => $cmid] =
+            $this->create_course_with_group_assign();
+        $cms = $this->get_cms($courseid);
+        // Learner is in a different group.
         $state = new learner_state(self::T_FUTURE, [], [9999], []);
         $sim = new visibility_simulator();
         $results = $sim->simulate($cms, $state);
 
         $this->assertFalse(
-            $results[(int)$assign->cmid]['accessible'],
+            $results[$cmid]['accessible'],
             'CM should be locked for learner not in required group'
         );
     }

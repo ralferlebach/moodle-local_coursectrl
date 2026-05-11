@@ -186,32 +186,17 @@ class batch_manager {
                     ];
                 }
             }
-            $transaction->allow_commit();
-        } catch (\Throwable $e) {
-            $transaction->rollback($e);
-            $batch->set('status', batch::STATUS_FAILED);
-            $batch->update();
-            throw $e;
-        }
-
-        $batch->set('status', $hasanyfailure ? batch::STATUS_FAILED : batch::STATUS_EXECUTED);
-        $batch->update();
-
-        $this->refresh_calendars($successfulbyadapter, $batchid);
-
-        $event = batch_executed::create([
-            'context'  => \context_course::instance($courseid),
-            'objectid' => $batchid,
-            'userid'   => $userid,
-            'courseid' => $courseid,
-            'other'    => [
-                'action'  => $action,
-                'summary' => $summary,
-            ],
-        ]);
-        $event->trigger();
-
-        return $batchid;
+        return $this->finalize_batch(
+            $transaction,
+            $batch,
+            $hasanyfailure,
+            $successfulbyadapter,
+            $batchid,
+            $userid,
+            $courseid,
+            $action,
+            $summary
+        );
     }
 
     /**
@@ -300,6 +285,59 @@ class batch_manager {
      * @param int $batchid Parent batch id (for debug output).
      * @return void
      */
+
+    /**
+     * Commit the transaction, set final batch status, fire batch_executed event.
+     *
+     * Shared by execute() and execute_from_targets() to avoid duplication.
+     *
+     * @param \moodle_transaction $transaction       Active DB transaction.
+     * @param batch               $batch             Batch persistent.
+     * @param bool                $hasanyfailure     Whether any item failed.
+     * @param array               $successfulbyadapter Adapter results for calendar refresh.
+     * @param int                 $batchid           Batch row id.
+     * @param int                 $userid            Acting user id.
+     * @param int                 $courseid          Course id.
+     * @param string              $action            Action identifier.
+     * @param array               $summary           Summary counters.
+     * @return int Batch id.
+     */
+    private function finalize_batch(
+        \moodle_transaction $transaction,
+        batch $batch,
+        bool $hasanyfailure,
+        array $successfulbyadapter,
+        int $batchid,
+        int $userid,
+        int $courseid,
+        string $action,
+        array $summary
+    ): int {
+        try {
+            $transaction->allow_commit();
+        } catch (\Throwable $e) {
+            $transaction->rollback($e);
+            $batch->set('status', batch::STATUS_FAILED);
+            $batch->update();
+            throw $e;
+        }
+        $batch->set('status', $hasanyfailure ? batch::STATUS_FAILED : batch::STATUS_EXECUTED);
+        $batch->update();
+        $this->refresh_calendars($successfulbyadapter, $batchid);
+        $event = batch_executed::create([
+            'context'  => \context_course::instance($courseid),
+            'objectid' => $batchid,
+            'userid'   => $userid,
+            'courseid' => $courseid,
+            'other'    => [
+                'action'  => $action,
+                'summary' => $summary,
+            ],
+        ]);
+        $event->trigger();
+        return $batchid;
+    }
+
     private function refresh_calendars(array $successfulbyadapter, int $batchid): void {
         foreach ($successfulbyadapter as $entry) {
             try {
@@ -607,31 +645,17 @@ class batch_manager {
                 );
             }
 
-            $transaction->allow_commit();
-        } catch (\Throwable $e) {
-            $transaction->rollback($e);
-            $batch->set('status', batch::STATUS_FAILED);
-            $batch->update();
-            throw $e;
-        }
-
-        $batch->set('status', $hasanyfailure ? batch::STATUS_FAILED : batch::STATUS_EXECUTED);
-        $batch->update();
-        $this->refresh_calendars($successfulbyadapter, $batchid);
-
-        $event = batch_executed::create([
-            'context'  => \context_course::instance($courseid),
-            'objectid' => $batchid,
-            'userid'   => $userid,
-            'courseid' => $courseid,
-            'other'    => [
-                'action'  => $action,
-                'summary' => $summary,
-            ],
-        ]);
-        $event->trigger();
-
-        return $batchid;
+        return $this->finalize_batch(
+            $transaction,
+            $batch,
+            $hasanyfailure,
+            $successfulbyadapter,
+            $batchid,
+            $userid,
+            $courseid,
+            $action,
+            $summary
+        );
     }
 
     /**

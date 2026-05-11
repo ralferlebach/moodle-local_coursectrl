@@ -161,31 +161,16 @@ final class fixture_simulation_test extends \advanced_testcase {
      */
     public function test_completion_dep_not_met_blocks_access(): void {
         $this->resetAfterTest();
-        global $DB;
-        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
-        $gen = $this->getDataGenerator();
-        $prereq = $gen->get_plugin_generator('mod_assign')
-            ->create_instance(['course' => $course->id, 'completion' => 2]);
-        $dependent = $gen->get_plugin_generator('mod_assign')
-            ->create_instance(['course' => $course->id, 'completion' => 2]);
-
-        $DB->set_field(
-            'course_modules',
-            'availability',
-            $this->avail_requires_completion((int)$prereq->cmid),
-            ['id' => (int)$dependent->cmid]
-        );
-
-        rebuild_course_cache($course->id, true);
-
-        $cms = $this->get_cms($course->id);
-        // Lernender hat prereq NICHT abgeschlossen.
+        ['courseid' => $courseid, 'prereqcmid' => $prereqcmid, 'dependentcmid' => $dependentcmid] =
+            $this->create_course_with_completion_pair();
+        $cms = $this->get_cms($courseid);
+        // Learner has NOT completed the prereq.
         $state = new learner_state(self::T_FUTURE, [], [], []);
         $sim = new visibility_simulator();
         $results = $sim->simulate($cms, $state);
 
         $this->assertFalse(
-            $results[(int)$dependent->cmid]['accessible'],
+            $results[$dependentcmid]['accessible'],
             'CM should be locked when completion prerequisite is not met'
         );
     }
@@ -198,26 +183,11 @@ final class fixture_simulation_test extends \advanced_testcase {
      */
     public function test_completion_dep_met_grants_access(): void {
         $this->resetAfterTest();
-        global $DB;
-        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
-        $gen = $this->getDataGenerator();
-        $prereq = $gen->get_plugin_generator('mod_assign')
-            ->create_instance(['course' => $course->id, 'completion' => 2]);
-        $dependent = $gen->get_plugin_generator('mod_assign')
-            ->create_instance(['course' => $course->id, 'completion' => 2]);
-
-        $DB->set_field(
-            'course_modules',
-            'availability',
-            $this->avail_requires_completion((int)$prereq->cmid),
-            ['id' => (int)$dependent->cmid]
-        );
-
-        rebuild_course_cache($course->id, true);
-
-        $cms = $this->get_cms($course->id);
-        // Lernender HAT prereq abgeschlossen (state=1).
-        $state = new learner_state(self::T_FUTURE, [(int)$prereq->cmid => 1], [], []);
+        ['courseid' => $courseid, 'prereqcmid' => $prereqcmid, 'dependentcmid' => $dependentcmid] =
+            $this->create_course_with_completion_pair();
+        $cms = $this->get_cms($courseid);
+        // Learner HAS completed the prereq (state=1).
+        $state = new learner_state(self::T_FUTURE, [$prereqcmid => 1], [], []);
         $sim = new visibility_simulator();
         $results = $sim->simulate($cms, $state);
 
@@ -227,6 +197,35 @@ final class fixture_simulation_test extends \advanced_testcase {
         );
     }
 
+
+
+    /**
+     * Create a course with a prereq assign and a dependent assign
+     * whose availability requires completion of the prereq.
+     *
+     * @return array{courseid:int, prereqcmid:int, dependentcmid:int}
+     */
+    private function create_course_with_completion_pair(): array {
+        global $DB;
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $gen = $this->getDataGenerator();
+        $prereq = $gen->get_plugin_generator('mod_assign')
+            ->create_instance(['course' => $course->id, 'completion' => 2]);
+        $dependent = $gen->get_plugin_generator('mod_assign')
+            ->create_instance(['course' => $course->id, 'completion' => 2]);
+        $DB->set_field(
+            'course_modules',
+            'availability',
+            $this->avail_requires_completion((int)$prereq->cmid),
+            ['id' => (int)$dependent->cmid]
+        );
+        rebuild_course_cache($course->id, true);
+        return [
+            'courseid'      => (int)$course->id,
+            'prereqcmid'    => (int)$prereq->cmid,
+            'dependentcmid' => (int)$dependent->cmid,
+        ];
+    }
 
     /**
      * Create a course with one group and one assign whose availability

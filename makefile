@@ -70,7 +70,6 @@ clear:
 # lint-php: PHP CodeSniffer — severity 1
 # ---------------------------------------------------------------------------
 lint-php:
-	@echo ""
 	@echo "=== phpcs (reads phpcs.xml, excludes tools/) ==="
 	-cd $(PLUGIN_DIR) && $(PHPCS) \
 		--standard=moodle \

@@ -22,8 +22,11 @@ name: Moodle Plugin CI
 
 on:
   push:
-    branches: ['**']
+    branches-ignore:
+      - main
   pull_request:
+    branches-ignore:
+      - main
 
 env:
   MOODLE_CI: '^4'

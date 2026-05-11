@@ -15,6 +15,16 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * Cache definitions for local_coursectrl.
+ *
+ * Declares the Moodle MUC caches used by the plugin.
+ *
+ * @package    local_coursectrl
+ * @copyright  2026 Ralf Erlebach
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+/**
  * Moodle Universal Cache (MUC) definitions for local_coursectrl.
  *
  * caldata — Application-level cache for holiday and free-period data

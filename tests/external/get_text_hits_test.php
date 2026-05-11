@@ -33,6 +33,7 @@ use local_coursectrl\local\persistent\text_hit;
 /**
  * Integration tests for get_text_hits.
  *
+ * @runTestsInSeparateProcesses
  * @covers \local_coursectrl\external\get_text_hits
  */
 final class get_text_hits_test extends \advanced_testcase {

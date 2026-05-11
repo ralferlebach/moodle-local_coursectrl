@@ -42,6 +42,7 @@ final class consistency_runner_test extends \advanced_testcase {
     /**
      * Empty CMs produce an empty result without errors.
      * @covers \local_coursectrl\local\analysis\consistency_runner
+     * @return void
      */
     public function test_empty_cms_returns_empty(): void {
         $this->resetAfterTest();
@@ -54,6 +55,7 @@ final class consistency_runner_test extends \advanced_testcase {
     /**
      * A temporal conflict is returned under the correct cmid with type key.
      * @covers \local_coursectrl\local\analysis\consistency_runner
+     * @return void
      */
     public function test_temporal_conflict_surfaced(): void {
         $this->resetAfterTest();
@@ -82,6 +84,7 @@ final class consistency_runner_test extends \advanced_testcase {
     /**
      * A dangling dependency is returned under the depending CM's cmid.
      * @covers \local_coursectrl\local\analysis\consistency_runner
+     * @return void
      */
     public function test_dangling_dep_surfaced(): void {
         $this->resetAfterTest();
@@ -103,6 +106,7 @@ final class consistency_runner_test extends \advanced_testcase {
     /**
      * Both conflict types can appear together for different CMs in one call.
      * @covers \local_coursectrl\local\analysis\consistency_runner
+     * @return void
      */
     public function test_multiple_issues_across_cms(): void {
         $this->resetAfterTest();
@@ -135,6 +139,7 @@ final class consistency_runner_test extends \advanced_testcase {
     /**
      * A CM with no issues is not present in the result map.
      * @covers \local_coursectrl\local\analysis\consistency_runner
+     * @return void
      */
     public function test_clean_cm_absent_from_result(): void {
         $this->resetAfterTest();

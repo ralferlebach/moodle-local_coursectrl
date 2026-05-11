@@ -15,6 +15,16 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * Checks entry point for local_coursectrl.
+ *
+ * Renders the consistency, risk and simulation checks page.
+ *
+ * @package    local_coursectrl
+ * @copyright  2026 Ralf Erlebach
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+/**
  * Checks page for the Course Control Hub.
  *
  * Unified page with three tabs:

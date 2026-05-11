@@ -85,6 +85,7 @@ final class accessibility_checker_test extends \advanced_testcase {
     /**
      * Mode 'off' → always returns empty, even for hidden CMs.
      * @covers \local_coursectrl\local\analysis\accessibility_checker
+     * @return void
      */
     public function test_mode_off_returns_empty(): void {
         $this->resetAfterTest();
@@ -99,6 +100,7 @@ final class accessibility_checker_test extends \advanced_testcase {
     /**
      * Mode 'static': hidden CM → r1_hidden.
      * @covers \local_coursectrl\local\analysis\accessibility_checker
+     * @return void
      */
     public function test_static_hidden_cm_flagged(): void {
         $this->resetAfterTest();
@@ -115,6 +117,7 @@ final class accessibility_checker_test extends \advanced_testcase {
     /**
      * Mode 'static': visible CM → no issue, even with restrictive availability.
      * @covers \local_coursectrl\local\analysis\accessibility_checker
+     * @return void
      */
     public function test_static_visible_cm_no_issue(): void {
         $this->resetAfterTest();
@@ -127,6 +130,7 @@ final class accessibility_checker_test extends \advanced_testcase {
     /**
      * Mode 'static': severity override respected.
      * @covers \local_coursectrl\local\analysis\accessibility_checker
+     * @return void
      */
     public function test_static_severity_override(): void {
         $this->resetAfterTest();
@@ -140,6 +144,7 @@ final class accessibility_checker_test extends \advanced_testcase {
     /**
      * Mode 'static': empty CMs → empty result.
      * @covers \local_coursectrl\local\analysis\accessibility_checker
+     * @return void
      */
     public function test_static_empty_cms(): void {
         $this->resetAfterTest();
@@ -150,6 +155,7 @@ final class accessibility_checker_test extends \advanced_testcase {
     /**
      * Mode 'static': multiple CMs — hidden ones flagged, visible not.
      * @covers \local_coursectrl\local\analysis\accessibility_checker
+     * @return void
      */
     public function test_static_mixed_visibility(): void {
         $this->resetAfterTest();
@@ -170,6 +176,7 @@ final class accessibility_checker_test extends \advanced_testcase {
     /**
      * Mode 'simulation': hidden CM → r1_hidden (same as static).
      * @covers \local_coursectrl\local\analysis\accessibility_checker
+     * @return void
      */
     public function test_simulation_hidden_cm_flagged(): void {
         $this->resetAfterTest();
@@ -184,6 +191,7 @@ final class accessibility_checker_test extends \advanced_testcase {
     /**
      * Mode 'simulation': visible CM without availability → not flagged.
      * @covers \local_coursectrl\local\analysis\accessibility_checker
+     * @return void
      */
     public function test_simulation_no_availability_not_flagged(): void {
         $this->resetAfterTest();
@@ -199,6 +207,7 @@ final class accessibility_checker_test extends \advanced_testcase {
      * A neutral learner state uses today's time, so a CM gated behind a
      * far-future date evaluates to FAIL.
      * @covers \local_coursectrl\local\analysis\accessibility_checker
+     * @return void
      */
     public function test_simulation_future_date_condition_flagged(): void {
         $this->resetAfterTest();
@@ -214,6 +223,7 @@ final class accessibility_checker_test extends \advanced_testcase {
     /**
      * Mode 'simulation': visible CM with past date → not flagged (accessible).
      * @covers \local_coursectrl\local\analysis\accessibility_checker
+     * @return void
      */
     public function test_simulation_past_date_condition_not_flagged(): void {
         $this->resetAfterTest();
@@ -227,6 +237,7 @@ final class accessibility_checker_test extends \advanced_testcase {
     /**
      * Mode 'simulation': unsatisfied completion condition → r1_not_accessible.
      * @covers \local_coursectrl\local\analysis\accessibility_checker
+     * @return void
      */
     public function test_simulation_completion_condition_flagged(): void {
         $this->resetAfterTest();
@@ -244,6 +255,7 @@ final class accessibility_checker_test extends \advanced_testcase {
     /**
      * Mode 'simulation': result has expected keys.
      * @covers \local_coursectrl\local\analysis\accessibility_checker
+     * @return void
      */
     public function test_simulation_result_shape(): void {
         $this->resetAfterTest();

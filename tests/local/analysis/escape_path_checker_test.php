@@ -89,6 +89,7 @@ final class escape_path_checker_test extends \advanced_testcase {
     /**
      * No findings → no results.
      * @covers \local_coursectrl\local\analysis\escape_path_checker
+     * @return void
      */
     public function test_empty_findings_returns_empty(): void {
         $this->resetAfterTest();
@@ -102,6 +103,7 @@ final class escape_path_checker_test extends \advanced_testcase {
     /**
      * A circular_dep finding gets escape_type='break_cycle', has_escape=true.
      * @covers \local_coursectrl\local\analysis\escape_path_checker
+     * @return void
      */
     public function test_circular_dep_escape_break_cycle(): void {
         $this->resetAfterTest();
@@ -124,6 +126,7 @@ final class escape_path_checker_test extends \advanced_testcase {
     /**
      * Breaking a cycle with a downstream CM → cascade_count includes that CM.
      * @covers \local_coursectrl\local\analysis\escape_path_checker
+     * @return void
      */
     public function test_circular_dep_cascade_includes_downstream(): void {
         $this->resetAfterTest();
@@ -147,6 +150,7 @@ final class escape_path_checker_test extends \advanced_testcase {
     /**
      * dep_on_hidden finding → escape_type='unhide_cm', has_escape=true.
      * @covers \local_coursectrl\local\analysis\escape_path_checker
+     * @return void
      */
     public function test_dep_on_hidden_escape_unhide(): void {
         $this->resetAfterTest();
@@ -168,6 +172,7 @@ final class escape_path_checker_test extends \advanced_testcase {
     /**
      * Unhiding a CM that has further dependents exposes cascade_cmids.
      * @covers \local_coursectrl\local\analysis\escape_path_checker
+     * @return void
      */
     public function test_dep_on_hidden_cascade_counted(): void {
         $this->resetAfterTest();
@@ -191,6 +196,7 @@ final class escape_path_checker_test extends \advanced_testcase {
     /**
      * completion_no_tracking finding → escape_type='enable_completion', has_escape=true.
      * @covers \local_coursectrl\local\analysis\escape_path_checker
+     * @return void
      */
     public function test_completion_no_tracking_escape_enable(): void {
         $this->resetAfterTest();
@@ -214,6 +220,7 @@ final class escape_path_checker_test extends \advanced_testcase {
     /**
      * Unknown finding type → has_escape=false, escape_type='none'.
      * @covers \local_coursectrl\local\analysis\escape_path_checker
+     * @return void
      */
     public function test_unknown_type_no_escape(): void {
         $this->resetAfterTest();
@@ -231,6 +238,7 @@ final class escape_path_checker_test extends \advanced_testcase {
     /**
      * Every result has the required keys.
      * @covers \local_coursectrl\local\analysis\escape_path_checker
+     * @return void
      */
     public function test_result_has_required_keys(): void {
         $this->resetAfterTest();
@@ -249,6 +257,7 @@ final class escape_path_checker_test extends \advanced_testcase {
     /**
      * Multiple findings produce one result per finding, in the same order.
      * @covers \local_coursectrl\local\analysis\escape_path_checker
+     * @return void
      */
     public function test_multiple_findings_one_result_each(): void {
         $this->resetAfterTest();
@@ -266,6 +275,7 @@ final class escape_path_checker_test extends \advanced_testcase {
     /**
      * cascade_cmids does not include the originally broken cmids themselves.
      * @covers \local_coursectrl\local\analysis\escape_path_checker
+     * @return void
      */
     public function test_cascade_does_not_include_broken_cmids(): void {
         $this->resetAfterTest();

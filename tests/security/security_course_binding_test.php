@@ -48,6 +48,7 @@ use local_coursectrl\local\persistent\text_hit;
  * @covers \local_coursectrl\manager\batch_manager
  * @covers \local_coursectrl\manager\preview_manager
  * @covers \local_coursectrl\manager\rollback_manager
+ * @runTestsInSeparateProcesses
  * @covers \local_coursectrl\manager\textreview_manager
  */
 final class security_course_binding_test extends \advanced_testcase {

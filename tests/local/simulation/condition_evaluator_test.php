@@ -54,6 +54,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * Null/empty availability means accessible=true with no reasons.
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_null_availability_is_accessible(): void {
         $this->resetAfterTest();
@@ -67,6 +68,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * Completion condition passes when cmid is marked complete (state=1).
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_completion_passes_when_complete(): void {
         $this->resetAfterTest();
@@ -81,6 +83,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * Completion condition fails when cmid is incomplete.
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_completion_fails_when_incomplete(): void {
         $this->resetAfterTest();
@@ -94,6 +97,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * Completion state=2 (pass) satisfies e=1 (any complete).
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_completion_pass_satisfies_e1(): void {
         $this->resetAfterTest();
@@ -107,6 +111,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * Completion e=2 (must pass) fails when actual state is 1 (complete, no pass flag).
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_completion_e2_fails_when_state_is_1(): void {
         $this->resetAfterTest();
@@ -120,6 +125,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * Date condition >= past timestamp passes.
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_date_from_past_passes(): void {
         $this->resetAfterTest();
@@ -133,6 +139,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * Date condition >= future timestamp fails.
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_date_from_future_fails(): void {
         $this->resetAfterTest();
@@ -146,6 +153,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * Date condition < future threshold passes (content available before deadline).
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_date_until_future_passes(): void {
         $this->resetAfterTest();
@@ -159,6 +167,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * Group condition passes when learner is in the required group.
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_group_passes_when_member(): void {
         $this->resetAfterTest();
@@ -172,6 +181,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * Group condition fails when learner is not in the required group.
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_group_fails_when_not_member(): void {
         $this->resetAfterTest();
@@ -185,6 +195,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * Grade condition always returns unknown.
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_grade_condition_is_unknown(): void {
         $this->resetAfterTest();
@@ -202,6 +213,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * Grade above min threshold passes when gradeitemmap resolves the item.
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_grade_passes_when_above_min(): void {
         $this->resetAfterTest();
@@ -217,6 +229,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * Grade below min threshold fails.
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_grade_fails_when_below_min(): void {
         $this->resetAfterTest();
@@ -232,6 +245,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * Grade below max threshold passes (exclusive upper bound).
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_grade_passes_when_below_max(): void {
         $this->resetAfterTest();
@@ -246,6 +260,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * Grade exactly at max fails (exclusive upper bound).
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_grade_fails_when_at_max(): void {
         $this->resetAfterTest();
@@ -260,6 +275,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * No grade in learner state → unknown (even with gradeitemmap present).
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_grade_unknown_when_no_grade_in_state(): void {
         $this->resetAfterTest();
@@ -274,6 +290,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * OR operator passes when at least one condition passes.
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_or_operator_passes_with_one_match(): void {
         $this->resetAfterTest();
@@ -292,6 +309,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * AND operator fails when any condition fails.
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_and_operator_fails_with_one_mismatch(): void {
         $this->resetAfterTest();
@@ -308,6 +326,7 @@ final class condition_evaluator_test extends \advanced_testcase {
     /**
      * Negated AND (!&) passes when at least one child fails.
      * @covers \local_coursectrl\local\simulation\condition_evaluator
+     * @return void
      */
     public function test_nand_operator_accessible_when_one_fails(): void {
         $this->resetAfterTest();

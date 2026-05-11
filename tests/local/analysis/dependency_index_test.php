@@ -60,6 +60,7 @@ final class dependency_index_test extends \basic_testcase {
     /**
      * Forward deps must list the prerequisite cmids.
      * @covers \local_coursectrl\local\analysis\dependency_index
+     * @return void
      */
     public function test_forward_deps(): void {
         $cms = [
@@ -75,6 +76,7 @@ final class dependency_index_test extends \basic_testcase {
     /**
      * Reverse deps must list the dependent cmids.
      * @covers \local_coursectrl\local\analysis\dependency_index
+     * @return void
      */
     public function test_reverse_deps(): void {
         $cms = [
@@ -93,6 +95,7 @@ final class dependency_index_test extends \basic_testcase {
     /**
      * has_dependents must return true for activities with dependents.
      * @covers \local_coursectrl\local\analysis\dependency_index
+     * @return void
      */
     public function test_has_dependents(): void {
         $cms = [
@@ -108,6 +111,7 @@ final class dependency_index_test extends \basic_testcase {
     /**
      * Date restrictions must be extracted from availability JSON.
      * @covers \local_coursectrl\local\analysis\dependency_index
+     * @return void
      */
     public function test_date_restrictions(): void {
         $json = json_encode([
@@ -127,6 +131,7 @@ final class dependency_index_test extends \basic_testcase {
     /**
      * has_restrictions must be true for CMs with any restriction.
      * @covers \local_coursectrl\local\analysis\dependency_index
+     * @return void
      */
     public function test_has_restrictions(): void {
         $cms = [
@@ -142,6 +147,7 @@ final class dependency_index_test extends \basic_testcase {
     /**
      * Circular dependencies must be detected.
      * @covers \local_coursectrl\local\analysis\dependency_index
+     * @return void
      */
     public function test_find_circular_deps(): void {
         $cms = [
@@ -159,6 +165,7 @@ final class dependency_index_test extends \basic_testcase {
     /**
      * No circular deps must return empty array.
      * @covers \local_coursectrl\local\analysis\dependency_index
+     * @return void
      */
     public function test_no_circular(): void {
         $cms = [
@@ -174,6 +181,7 @@ final class dependency_index_test extends \basic_testcase {
     /**
      * Empty CMs must produce an empty index.
      * @covers \local_coursectrl\local\analysis\dependency_index
+     * @return void
      */
     public function test_empty_cms(): void {
         $index = new dependency_index([]);
@@ -186,6 +194,7 @@ final class dependency_index_test extends \basic_testcase {
     /**
      * Chain A→B→C must have correct forward and reverse maps.
      * @covers \local_coursectrl\local\analysis\dependency_index
+     * @return void
      */
     public function test_chain(): void {
         $cms = [
@@ -228,6 +237,7 @@ final class dependency_index_test extends \basic_testcase {
     /**
      * No gradeitemmap → get_grade_forward() returns empty.
      * @covers \local_coursectrl\local\analysis\dependency_index
+     * @return void
      */
     public function test_grade_forward_empty_without_map(): void {
         $cms = [
@@ -241,6 +251,7 @@ final class dependency_index_test extends \basic_testcase {
     /**
      * With gradeitemmap, grade condition resolves to cmid edge.
      * @covers \local_coursectrl\local\analysis\dependency_index
+     * @return void
      */
     public function test_grade_forward_resolved_via_map(): void {
         $cms = [
@@ -258,6 +269,7 @@ final class dependency_index_test extends \basic_testcase {
     /**
      * Unknown grade item id (not in map) produces no grade edge.
      * @covers \local_coursectrl\local\analysis\dependency_index
+     * @return void
      */
     public function test_grade_forward_unknown_item_produces_no_edge(): void {
         $cms = [
@@ -271,6 +283,7 @@ final class dependency_index_test extends \basic_testcase {
     /**
      * Grade dep on self is excluded (no self-loops in graph).
      * @covers \local_coursectrl\local\analysis\dependency_index
+     * @return void
      */
     public function test_grade_forward_excludes_self_loop(): void {
         $cms = [20 => $this->cm(20, $this->gradedep(99))];

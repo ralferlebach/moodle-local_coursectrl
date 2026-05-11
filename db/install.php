@@ -15,6 +15,16 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * Post-install hook for local_coursectrl.
+ *
+ * Runs once after the plugin tables have been created by the installer.
+ *
+ * @package    local_coursectrl
+ * @copyright  2026 Ralf Erlebach
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+/**
  * Post-install steps for local_coursectrl.
  *
  * @package    local_coursectrl

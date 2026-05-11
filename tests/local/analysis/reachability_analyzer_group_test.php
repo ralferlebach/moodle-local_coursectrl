@@ -85,6 +85,7 @@ final class reachability_analyzer_group_test extends \advanced_testcase {
     /**
      * No dangling_group issue when no group_resolver is passed.
      * @covers \local_coursectrl\local\analysis\reachability_analyzer
+     * @return void
      */
     public function test_no_resolver_skips_group_checks(): void {
         $this->resetAfterTest();
@@ -99,6 +100,7 @@ final class reachability_analyzer_group_test extends \advanced_testcase {
     /**
      * dangling_group is raised when group does not exist in the course.
      * @covers \local_coursectrl\local\analysis\reachability_analyzer
+     * @return void
      */
     public function test_dangling_group_raised_for_missing_group(): void {
         $this->resetAfterTest();
@@ -116,6 +118,7 @@ final class reachability_analyzer_group_test extends \advanced_testcase {
     /**
      * No dangling_group when the required group exists.
      * @covers \local_coursectrl\local\analysis\reachability_analyzer
+     * @return void
      */
     public function test_no_dangling_group_when_group_exists(): void {
         $this->resetAfterTest();
@@ -137,6 +140,7 @@ final class reachability_analyzer_group_test extends \advanced_testcase {
     /**
      * dangling_grouping is raised when grouping does not exist.
      * @covers \local_coursectrl\local\analysis\reachability_analyzer
+     * @return void
      */
     public function test_dangling_grouping_raised_for_missing_grouping(): void {
         $this->resetAfterTest();
@@ -154,6 +158,7 @@ final class reachability_analyzer_group_test extends \advanced_testcase {
     /**
      * Existing grouping produces no dangling_grouping issue.
      * @covers \local_coursectrl\local\analysis\reachability_analyzer
+     * @return void
      */
     public function test_no_dangling_grouping_when_grouping_exists(): void {
         $this->resetAfterTest();

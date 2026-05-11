@@ -42,6 +42,7 @@ final class availability_parser_test extends \basic_testcase {
     /**
      * Null input must return empty result with no restrictions.
      * @covers \local_coursectrl\local\analysis\availability_parser
+     * @return void
      */
     public function test_parse_null(): void {
         $result = $this->parser->parse(null);
@@ -52,6 +53,7 @@ final class availability_parser_test extends \basic_testcase {
     /**
      * Empty string must return empty result.
      * @covers \local_coursectrl\local\analysis\availability_parser
+     * @return void
      */
     public function test_parse_empty_string(): void {
         $result = $this->parser->parse('');
@@ -61,6 +63,7 @@ final class availability_parser_test extends \basic_testcase {
     /**
      * Completion condition must be extracted.
      * @covers \local_coursectrl\local\analysis\availability_parser
+     * @return void
      */
     public function test_parse_completion(): void {
         $json = json_encode([
@@ -80,6 +83,7 @@ final class availability_parser_test extends \basic_testcase {
     /**
      * Date conditions must be extracted with direction and timestamp.
      * @covers \local_coursectrl\local\analysis\availability_parser
+     * @return void
      */
     public function test_parse_date(): void {
         $json = json_encode([
@@ -100,6 +104,7 @@ final class availability_parser_test extends \basic_testcase {
     /**
      * Grade conditions must be extracted.
      * @covers \local_coursectrl\local\analysis\availability_parser
+     * @return void
      */
     public function test_parse_grade(): void {
         $json = json_encode([
@@ -118,6 +123,7 @@ final class availability_parser_test extends \basic_testcase {
     /**
      * Group and grouping conditions must be extracted.
      * @covers \local_coursectrl\local\analysis\availability_parser
+     * @return void
      */
     public function test_parse_group(): void {
         $json = json_encode([
@@ -138,6 +144,7 @@ final class availability_parser_test extends \basic_testcase {
     /**
      * Multiple completion deps must all be extracted.
      * @covers \local_coursectrl\local\analysis\availability_parser
+     * @return void
      */
     public function test_parse_multiple_completions(): void {
         $json = json_encode([
@@ -157,6 +164,7 @@ final class availability_parser_test extends \basic_testcase {
     /**
      * Convenience method must return only cmids.
      * @covers \local_coursectrl\local\analysis\availability_parser
+     * @return void
      */
     public function test_get_completion_deps(): void {
         $json = json_encode([
@@ -174,6 +182,7 @@ final class availability_parser_test extends \basic_testcase {
     /**
      * Convenience method must return date conditions.
      * @covers \local_coursectrl\local\analysis\availability_parser
+     * @return void
      */
     public function test_get_date_conditions(): void {
         $json = json_encode([
@@ -191,6 +200,7 @@ final class availability_parser_test extends \basic_testcase {
     /**
      * Unknown condition types must go into otherconditions.
      * @covers \local_coursectrl\local\analysis\availability_parser
+     * @return void
      */
     public function test_parse_unknown_type(): void {
         $json = json_encode([
@@ -208,6 +218,7 @@ final class availability_parser_test extends \basic_testcase {
     /**
      * Invalid JSON must return empty result gracefully.
      * @covers \local_coursectrl\local\analysis\availability_parser
+     * @return void
      */
     public function test_parse_invalid_json(): void {
         $result = $this->parser->parse('{broken');

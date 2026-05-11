@@ -168,9 +168,9 @@ class batch_manager {
                     $hasanyfailure
                 );
                 // Persist core_coursemodule snapshots for completionexpected
-                // captured by the executor before shifting. This enables
-                // the rollback_manager to restore these CM-level fields
-                // alongside the adapter's own field snapshots.
+                // Captured by the executor before shifting. This enables
+                // The rollback_manager to restore these CM-level fields
+                // Alongside the adapter's own field snapshots.
                 foreach ($result['cm_snapshots'] ?? [] as $cmid => $state) {
                     $this->persist_snapshot(
                         $batchid,
@@ -512,6 +512,28 @@ class batch_manager {
             'error'   => 0,
         ];
 
+        // Pre-snapshot cm-level values for CMIDs that have both adapter
+        // And cm-level targets, so we can detect if the adapter already
+        // Shifted a cm-level field and avoid double-shifting it below.
+        $prelevel = [];
+        foreach (array_keys($adaptertargets) as $acmid) {
+            $acmid = (int) $acmid;
+            if (isset($cmtargets[$acmid]) || isset($availtargets[$acmid])) {
+                $snap = $DB->get_record(
+                    'course_modules',
+                    ['id' => $acmid],
+                    'id, completionexpected, availability',
+                    IGNORE_MISSING
+                );
+                if ($snap) {
+                    $prelevel[$acmid] = [
+                        'completionexpected' => (int) $snap->completionexpected,
+                        'availability'       => (string) ($snap->availability ?? ''),
+                    ];
+                }
+            }
+        }
+
         $transaction = $DB->start_delegated_transaction();
         try {
             foreach ($adaptergroups as $group) {
@@ -547,22 +569,37 @@ class batch_manager {
             }
 
             // Shift CM-level fields for cm and availability targets.
-            // Pass the explicit field list so only the targeted fields are shifted.
+            // Skip any field the adapter already shifted (pre-snapshot check).
             $cmlevelcmids = array_unique(
                 array_merge(array_keys($cmtargets), array_keys($availtargets))
             );
             foreach ($cmlevelcmids as $cmid) {
-                $shiftfields = array_merge(
-                    $cmtargets[$cmid] ?? [],
-                    $availtargets[$cmid] ?? []
-                );
+                $cmid = (int) $cmid;
+                $cfields = $cmtargets[$cmid] ?? [];
+                $afields = $availtargets[$cmid] ?? [];
+                // If the adapter shifted completionexpected for this CMID,
+                // Remove it from the explicit cm-level shift to prevent
+                // Double-shifting (adapter may ignore payload.fields for cm-level).
+                if (!empty($prelevel[$cmid]) && in_array('completionexpected', $cfields, true)) {
+                    $postce = (int) $DB->get_field(
+                        'course_modules',
+                        'completionexpected',
+                        ['id' => $cmid]
+                    );
+                    if ($postce !== $prelevel[$cmid]['completionexpected']) {
+                        $cfields = array_values(array_diff($cfields, ['completionexpected']));
+                    }
+                }
+                if (empty($cfields) && empty($afields)) {
+                    continue;
+                }
                 $this->shift_cm_level_dates(
-                    (int) $cmid,
+                    $cmid,
                     $delta,
                     $batchid,
                     $summary,
                     $hasanyfailure,
-                    $shiftfields
+                    array_merge($cfields, $afields)
                 );
             }
 

@@ -631,13 +631,22 @@ final class batch_manager_test extends \advanced_testcase {
         $this->resetAfterTest();
         global $DB;
 
+        // Use DIFFERENT CMIDs for adapter and cm-level targets so Moodle module
+        // update side-effects on completionexpected do not interfere.
         $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
         $assign = $this->getDataGenerator()->get_plugin_generator('mod_assign')->create_instance([
             'course'  => $course->id,
             'name'    => 'Assign-MX',
             'duedate' => self::BASE_TIME,
         ]);
-        $DB->set_field('course_modules', 'completionexpected', self::BASE_TIME, ['id' => $assign->cmid]);
+        // Use forum (no adapter) for the cm-level target.
+        $forum = $this->getDataGenerator()->get_plugin_generator('mod_forum')->create_instance([
+            'course' => $course->id,
+            'name'   => 'Forum-MX',
+        ]);
+        $DB->set_field('course_modules', 'completionexpected', self::BASE_TIME, ['id' => $forum->cmid]);
+        // Ensure assign completionexpected is NOT set — it must not be shifted.
+        $DB->set_field('course_modules', 'completionexpected', 0, ['id' => $assign->cmid]);
 
         $manager = new batch_manager();
         $manager->execute(
@@ -647,28 +656,34 @@ final class batch_manager_test extends \advanced_testcase {
                 'delta'   => self::ONE_DAY,
                 'targets' => [
                     [
-                        'cmid' => (int) $assign->cmid,
-                        'source' => 'adapter',
-                        'field' => 'duedate',
+                        'cmid'      => (int) $assign->cmid,
+                        'source'    => 'adapter',
+                        'field'     => 'duedate',
                         'timestamp' => self::BASE_TIME,
                     ],
                     [
-                        'cmid' => (int) $assign->cmid,
-                        'source' => 'cm',
-                        'field' => 'completionexpected',
+                        'cmid'      => (int) $forum->cmid,
+                        'source'    => 'cm',
+                        'field'     => 'completionexpected',
                         'timestamp' => self::BASE_TIME,
                     ],
                 ],
             ],
-            [(int) $assign->cmid],
+            [(int) $assign->cmid, (int) $forum->cmid],
             0
         );
 
+        // Assign duedate must be shifted.
         $newdue = (int) $DB->get_field('assign', 'duedate', ['id' => $assign->id]);
         $this->assertSame(self::BASE_TIME + self::ONE_DAY, $newdue, 'duedate shifted by one day');
 
-        $newce = (int) $DB->get_field('course_modules', 'completionexpected', ['id' => $assign->cmid]);
+        // Forum completionexpected must be shifted exactly once.
+        $newce = (int) $DB->get_field('course_modules', 'completionexpected', ['id' => $forum->cmid]);
         $this->assertSame(self::BASE_TIME + self::ONE_DAY, $newce, 'completionexpected shifted exactly once');
+
+        // Assign completionexpected (not targeted) must remain zero.
+        $assignce = (int) $DB->get_field('course_modules', 'completionexpected', ['id' => $assign->cmid]);
+        $this->assertSame(0, $assignce, 'assign completionexpected must not be touched');
     }
 
     /**
@@ -735,7 +750,7 @@ final class batch_manager_test extends \advanced_testcase {
         // walks all date nodes (individual-condition precision not yet implemented).
         // This assertion documents the CURRENT behaviour.
         // Once per-condition precision is added it must become:
-        // assertSame(self::BASE_TIME + 2 * self::ONE_DAY, $until1) — not shifted.
+        // Future: assertSame(BASE_TIME + 2 * ONE_DAY, $until1) when per-condition precision is added.
         $this->assertSame(
             self::BASE_TIME + 2 * self::ONE_DAY + self::ONE_DAY,
             $until1,

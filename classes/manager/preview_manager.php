@@ -277,7 +277,12 @@ class preview_manager {
         }
 
         foreach ($adaptergroups as $group) {
+            // Strip meta-keys that are not part of the adapter contract.
+            // Targets and followdeps are internal routing hints; passing
+            // Them to the adapter causes it to bypass payload.fields.
             $adapterpayload = $payload;
+            unset($adapterpayload['targets']);
+            unset($adapterpayload['followdeps']);
             if (!empty($group['fields'])) {
                 $adapterpayload['fields'] = $group['fields'];
             }
@@ -317,11 +322,24 @@ class preview_manager {
             }
             foreach ($preview['items'] ?? [] as $item) {
                 $cmid = (int) ($item['cmid'] ?? 0);
+                $rawfields = $item['fields'] ?? [];
+                // Filter to only the fields that were explicitly targeted.
+                // Adapters may return all their date fields regardless of
+                // Payload.fields, so we apply the restriction here.
+                if (!empty($group['fields'])) {
+                    $rawfields = array_intersect_key(
+                        $rawfields,
+                        array_flip($group['fields'])
+                    );
+                }
+                if (empty($rawfields)) {
+                    continue;
+                }
                 $changes[$cmid] = new preview_change(
                     $cmid,
                     $group['component'],
                     (string) ($item['name'] ?? ''),
-                    $item['fields'] ?? []
+                    $rawfields
                 );
             }
         }

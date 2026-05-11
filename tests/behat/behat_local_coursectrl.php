@@ -758,36 +758,6 @@ class behat_local_coursectrl extends behat_base {
         }
     }
 
-
-
-    /**
-     * Click the shift-entry button for a specific activity name and raw field key.
-     *
-     * More precise than clicking by modtype alone when multiple activities of
-     * the same type exist on the timeline.
-     *
-     * @When I click the entry shift button for activity :name and field :fieldkey
-     * @param string $name     Activity name (displayed in the timeline link).
-     * @param string $fieldkey Raw technical field key, e.g. "duedate", "completionexpected".
-     */
-    public function i_click_entry_shift_button_for_activity_and_field(
-        string $name,
-        string $fieldkey
-    ): void {
-        // Find the shift-entry button with data-field matching $fieldkey inside
-        // A list item that contains a link with text $name.
-        $selector = 'li:has(a:contains("' . $name . '")) [data-action="shift-entry"][data-field="' . $fieldkey . '"]';
-        $btn = $this->find('css', $selector);
-        if ($btn === null) {
-            throw new ExpectationException(
-                'No shift-entry button found for activity \'' . $name . '\' with fieldkey \'' . $fieldkey . '\'',
-                $this->getSession()
-            );
-        }
-        $btn->click();
-        $this->wait_for_pending_js();
-    }
-
     /**
      * Assert that a DB date field on an activity was shifted by an exact number
      * of days from a known timestamp.

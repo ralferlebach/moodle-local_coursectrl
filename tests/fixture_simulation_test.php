@@ -192,7 +192,7 @@ final class fixture_simulation_test extends \advanced_testcase {
         $results = $sim->simulate($cms, $state);
 
         $this->assertTrue(
-            $results[(int)$dependent->cmid]['accessible'],
+            $results[$dependentcmid]['accessible'],
             'CM should be accessible when completion prerequisite is met'
         );
     }

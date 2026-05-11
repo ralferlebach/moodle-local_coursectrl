@@ -1,4 +1,4 @@
-@local_coursectrl @local_coursectrl_shift_workflow
+@local @local_coursectrl @local_coursectrl_shift_workflow
 Feature: Timeline date shift – slot, following, and entry modes
   As a teacher
   I want to shift course activity dates from the timeline

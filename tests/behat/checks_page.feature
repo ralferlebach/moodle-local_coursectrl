@@ -1,4 +1,4 @@
-@local_coursectrl @local_coursectrl_checks
+@local @local_coursectrl @local_coursectrl_checks
 Feature: Checks page tab navigation and basic findings
   As a teacher
   I want to use the Checks page to see consistency issues and structural risks

@@ -13,31 +13,16 @@ automatically. All bulk operations are fully logged and can be rolled back.
 
 ## Features
 
-* **Dashboard / Cockpit** — at-a-glance view of upcoming activity dates, open issues, and
+* **Dashboard**: at-a-glance view of upcoming activity dates, open issues, and
   recent bulk actions for the current course.
-* **Timeline & Gantt** — visual overview of all activity dates and availability windows;
-  supports bulk date shifting directly from the timeline with a 3-step modal workflow.
-* **Dependency Graph** — interactive graph of completion and availability dependencies;
-  highlights circular locks, unreachable nodes, and simulation state overlays.
-* **Checks — Problems** — rule-based scan (rules R0–R7) covering date inversions,
-  hidden-but-tracked activities, missing completion settings, stale group conditions,
-  and structural dead ends.
-* **Checks — Solutions** — prioritised fix suggestions linked directly to each detected
-  problem, with one-click navigation to the affected activity.
-* **Checks — Simulation** — learner journey simulator evaluating visibility and
-  accessibility for a defined learner state (point in time, group membership, assumed
-  completion and grade results), detecting dead ends before learners encounter them.
-* **Bulk Date Shift** — shift structured date fields across all selected activities by
-  days, hours, and minutes; preview shows every changed field with old/new values,
-  resolved locale-aware field labels, and human-readable dates.
-* **Text Review** — scans free-text fields (descriptions, labels, section texts) for
-  embedded date references, classifies them as safe / ambiguous / informational, and
-  offers controlled in-place updates in a dedicated review step.
-* **History & Rollback** — full audit log of all executed bulk actions; individual
-  batches can be selected and rolled back with a single click.
-* **Extensible via subplugins** — `coursectrlmod_*` adapters encapsulate
-  activity-type-specific logic; new activity types can be added without modifying the
-  core plugin code.
+* **Timeline**: shifting single dates or as batches by calendar, including information tokens in free texts, as well as a visual overview of all activity dates and availability windows.
+* **Dependency**: interactive graph of completion and availability dependencies.
+* **Manage**: shifting dates for one or multiple activities.
+* **Checks**: rule-based surface scan and simulation-based deep scanning for problems in course design and dependencies, solutions and simulation for specific course progress trajectories.
+* **Checks — Solutions**: prioritised fix suggestions linked directly to each detected
+* **History & Rollback**: full audit log of all executed bulk actions.
+* supporting all standard activities of MOODLE as well as multiple foreign activity types via subplugins.
+* support for open calendar APIs for holidays and term breaks.
 
 ## Installation
 
@@ -51,12 +36,9 @@ automatically. All bulk operations are fully logged and can be rolled back.
 3. Navigate to **Site administration → Users → Permissions → Define roles** and assign
    the plugin capabilities to the appropriate roles (see *Settings* below).
 
-4. Optionally install the companion **Course Control Hub Block** (`block_coursectrl`)
-   to give teachers a one-click entry point directly inside each course page.
+4. Optionally install the companion **Course Control Hub Block** (`block_coursectrldates`)
+   to give teachers a one-click entry point directly inside each course page. (new with vers. 1.1)
 
-**Upgrade:** Replace the contents of `local/coursectrl/` with the new version and visit
-**Site administration → Notifications**. Database migrations run automatically; no manual
-SQL is required.
 
 ### Requirements
 
@@ -66,7 +48,7 @@ SQL is required.
 | PHP | 8.2 | 8.4 |
 | Database | MariaDB 10.6 / PostgreSQL 14 | MariaDB 10.11 / PostgreSQL 16 |
 
-### Included subplugin adapters (1.0.0)
+### Included subplugin adapters (1.1.0)
 
 | Subplugin | Activity type |
 |---|---|
@@ -112,7 +94,7 @@ Full documentation of all settings and pages is in the [User Guide](docs/user-gu
 
 ## Contributors
 
-* **Ralf Erlebach** — author and lead developer
+* **Ralf Erlebach** — author and developer
 
 ## License
 

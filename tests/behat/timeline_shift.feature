@@ -1,4 +1,4 @@
-@local_coursectrl @local_coursectrl_timeline_shift
+@local @local_coursectrl @local_coursectrl_timeline_shift
 Feature: Timeline date shift for availability-condition dates
   As a teacher
   I want to shift availability-based dates on the timeline

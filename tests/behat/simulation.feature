@@ -1,4 +1,4 @@
-@local_coursectrl @local_coursectrl_simulation
+@local @local_coursectrl @local_coursectrl_simulation
 Feature: Simulation tab functionality
   As a teacher
   I want to run the learner journey simulation

@@ -1,4 +1,4 @@
-@local_coursectrl @local_coursectrl_dashboard
+@local @local_coursectrl @local_coursectrl_dashboard
 Feature: Course Control Hub dashboard cockpit layout
   As a teacher
   I want to see the Course Control Hub dashboard

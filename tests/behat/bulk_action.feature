@@ -1,4 +1,4 @@
-@local_coursectrl @local_coursectrl_bulk
+@local @local_coursectrl @local_coursectrl_bulk
 Feature: Bulk action selection, preview, and execution
   As a teacher with bulkaction capability
   I want to shift dates across multiple course activities at once

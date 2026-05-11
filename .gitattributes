@@ -1,6 +1,36 @@
 # Normalise line endings on all text files.
 * text=auto
 
+# Keep generated and source artefacts byte-stable across Linux/macOS/Windows.
+# Moodle/Grunt/Rollup writes LF line endings in CI; pinning these files avoids
+# false stale-build failures caused by CRLF checkouts or editor rewrites.
+*.php      text eol=lf
+*.js       text eol=lf
+*.json     text eol=lf
+*.map      text eol=lf
+*.css      text eol=lf
+*.scss     text eol=lf
+*.mustache text eol=lf
+*.xml      text eol=lf
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.md       text eol=lf
+*.feature  text eol=lf
+*.txt      text eol=lf
+*.sh       text eol=lf
+*.svg      text eol=lf
+
+# Binary artefacts must never be line-ending normalised.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.zip  binary
+*.gz   binary
+*.tgz  binary
+
 # ── Development documentation (not deployed to production) ────────────────────
 # Session logs, coding-standards prompts, and specification documents are
 # development artefacts only. They are excluded from `git archive` exports

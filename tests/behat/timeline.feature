@@ -1,4 +1,4 @@
-@local_coursectrl @local_coursectrl_timeline
+@local @local_coursectrl @local_coursectrl_timeline
 Feature: Course Control Hub timeline and text review tab
   As a teacher
   I want to use the timeline and text review features

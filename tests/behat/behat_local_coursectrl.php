@@ -901,4 +901,172 @@ class behat_local_coursectrl extends behat_base {
         $DB->set_field('course_modules', 'availability', $avail, ['id' => $cm->id]);
         rebuild_course_cache((int) $course->id, true);
     }
+
+    /**
+     * Assert that the timeopen of a quiz was shifted by a number of days.
+     *
+     * @Then the timeopen of quiz :name in course :shortname should be shifted by :days day(s) from :original_ts
+     * @param string $name       Quiz instance name.
+     * @param string $shortname  Course shortname.
+     * @param int    $days       Number of days shifted.
+     * @param int    $originalts Original Unix timestamp.
+     */
+    public function timeopen_of_quiz_should_be_shifted(
+        string $name,
+        string $fieldkey
+    ): void {
+        global $DB;
+        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $row = $DB->get_record('quiz', ['course' => $course->id, 'name' => $name], 'timeopen', MUST_EXIST);
+        $expected = $originalts + ($days * DAYSECS);
+        $actual = (int) $row->timeopen;
+        if (abs($actual - $expected) > 60) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                'quiz.timeopen: expected ~' . $expected . ', got ' . $actual,
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Assert that the timeopen of a quiz has not changed.
+     *
+     * @Then the timeopen of quiz :name in course :shortname should still be :original_ts
+     * @param string $name       Quiz instance name.
+     * @param string $shortname  Course shortname.
+     * @param int    $originalts Expected unchanged timestamp.
+     */
+    public function timeopen_of_quiz_should_still_be(
+        string $name,
+        string $shortname,
+        int $ts
+    ): void {
+        global $DB;
+        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $row = $DB->get_record('quiz', ['course' => $course->id, 'name' => $name], 'timeopen', MUST_EXIST);
+        $actual = (int) $row->timeopen;
+        if (abs($actual - $originalts) > 60) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                'quiz.timeopen: expected to remain ' . $originalts . ', got ' . $actual,
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Assert that the timeclose of a quiz was shifted by a number of days.
+     *
+     * @Then the timeclose of quiz :name in course :shortname should be shifted by :days day(s) from :original_ts
+     * @param string $name       Quiz instance name.
+     * @param string $shortname  Course shortname.
+     * @param int    $days       Number of days shifted.
+     * @param int    $originalts Original Unix timestamp.
+     */
+    public function timeclose_of_quiz_should_be_shifted(
+        string $name,
+        string $shortname,
+        int $days,
+        int $originalts
+    ): void {
+        global $DB;
+        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $row = $DB->get_record('quiz', ['course' => $course->id, 'name' => $name], 'timeclose', MUST_EXIST);
+        $expected = $originalts + ($days * DAYSECS);
+        $actual = (int) $row->timeclose;
+        if (abs($actual - $expected) > 60) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                'quiz.timeclose: expected ~' . $expected . ', got ' . $actual,
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Assert that the timeclose of a quiz has not changed.
+     *
+     * @Then the timeclose of quiz :name in course :shortname should still be :original_ts
+     * @param string $name       Quiz instance name.
+     * @param string $shortname  Course shortname.
+     * @param int    $originalts Expected unchanged timestamp.
+     */
+    public function timeclose_of_quiz_should_still_be(
+        string $name,
+        string $shortname,
+        int $originalts
+    ): void {
+        global $DB;
+        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $row = $DB->get_record('quiz', ['course' => $course->id, 'name' => $name], 'timeclose', MUST_EXIST);
+        $actual = (int) $row->timeclose;
+        if (abs($actual - $originalts) > 60) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                'quiz.timeclose: expected to remain ' . $originalts . ', got ' . $actual,
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Assert that the completionexpected of an assign was shifted by a number of days.
+     *
+     * @Then the completionexpected of assign :name in course :shortname should be shifted by :days day(s) from :original_ts
+     * @param string $name       Assign instance name.
+     * @param string $shortname  Course shortname.
+     * @param int    $days       Number of days shifted.
+     * @param int    $originalts Original Unix timestamp.
+     */
+    public function completionexpected_of_assign_should_be_shifted(
+        string $name,
+        string $shortname,
+        int $days,
+        int $originalts
+    ): void {
+        global $DB;
+        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $assign = $DB->get_record('assign', ['course' => $course->id, 'name' => $name], 'id', MUST_EXIST);
+        $cm = get_coursemodule_from_instance('assign', (int) $assign->id, (int) $course->id, false, MUST_EXIST);
+        $expected = $originalts + ($days * DAYSECS);
+        $actual = (int) $DB->get_field('course_modules', 'completionexpected', ['id' => $cm->id]);
+        if (abs($actual - $expected) > 60) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                'completionexpected: expected ~' . $expected . ', got ' . $actual,
+                $this->getSession()
+            );
+        }
+        $btn->click();
+        $this->wait_for_pending_js();
+    }
+
+    /**
+     * Set a completion-based availability dependency between two activities
+     * by writing the Moodle availability JSON directly to course_modules.
+     *
+     * @Given the availability of :modtype :name in course :shortname depends on completion of :modtype2 :name2
+     * @param string $modtype    Module type of the dependent activity (e.g. "quiz").
+     * @param string $name       Name of the dependent activity.
+     * @param string $shortname  Course shortname.
+     * @param string $modtype2   Module type of the prerequisite activity.
+     * @param string $name2      Name of the prerequisite activity.
+     */
+    public function set_availability_completion_dependency(
+        string $modtype,
+        string $name,
+        string $shortname,
+        string $modtype2,
+        string $name2
+    ): void {
+        global $DB;
+        $course  = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $prereq  = $DB->get_record($modtype2, ['course' => $course->id, 'name' => $name2], 'id', MUST_EXIST);
+        $prereqcm = get_coursemodule_from_instance($modtype2, (int) $prereq->id, (int) $course->id, false, MUST_EXIST);
+        $mod = $DB->get_record($modtype, ['course' => $course->id, 'name' => $name], 'id', MUST_EXIST);
+        $cm  = get_coursemodule_from_instance($modtype, (int) $mod->id, (int) $course->id, false, MUST_EXIST);
+        $avail = json_encode([
+            'op'   => '&',
+            'c'    => [['type' => 'completion', 'cm' => (int) $prereqcm->id, 'e' => 1]],
+            'showc' => [true],
+        ]);
+        $DB->set_field('course_modules', 'availability', $avail, ['id' => $cm->id]);
+        rebuild_course_cache((int) $course->id, true);
+    }
 }

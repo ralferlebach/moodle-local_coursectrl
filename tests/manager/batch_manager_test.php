@@ -735,7 +735,7 @@ final class batch_manager_test extends \advanced_testcase {
         // walks all date nodes (individual-condition precision not yet implemented).
         // This assertion documents the CURRENT behaviour.
         // Once per-condition precision is added it must become:
-        //   assertSame(self::BASE_TIME + 2 * self::ONE_DAY, $until1) — not shifted.
+        // assertSame(self::BASE_TIME + 2 * self::ONE_DAY, $until1) — not shifted.
         $this->assertSame(
             self::BASE_TIME + 2 * self::ONE_DAY + self::ONE_DAY,
             $until1,

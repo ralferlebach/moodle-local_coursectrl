@@ -913,9 +913,7 @@ class behat_local_coursectrl extends behat_base {
      */
     public function timeopen_of_quiz_should_be_shifted(
         string $name,
-        string $shortname,
-        int $days,
-        int $originalts
+        string $fieldkey
     ): void {
         global $DB;
         $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
@@ -941,7 +939,7 @@ class behat_local_coursectrl extends behat_base {
     public function timeopen_of_quiz_should_still_be(
         string $name,
         string $shortname,
-        int $originalts
+        int $ts
     ): void {
         global $DB;
         $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
@@ -1035,5 +1033,40 @@ class behat_local_coursectrl extends behat_base {
                 $this->getSession()
             );
         }
+        $btn->click();
+        $this->wait_for_pending_js();
+    }
+
+    /**
+     * Set a completion-based availability dependency between two activities
+     * by writing the Moodle availability JSON directly to course_modules.
+     *
+     * @Given the availability of :modtype :name in course :shortname depends on completion of :modtype2 :name2
+     * @param string $modtype    Module type of the dependent activity (e.g. "quiz").
+     * @param string $name       Name of the dependent activity.
+     * @param string $shortname  Course shortname.
+     * @param string $modtype2   Module type of the prerequisite activity.
+     * @param string $name2      Name of the prerequisite activity.
+     */
+    public function set_availability_completion_dependency(
+        string $modtype,
+        string $name,
+        string $shortname,
+        string $modtype2,
+        string $name2
+    ): void {
+        global $DB;
+        $course  = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $prereq  = $DB->get_record($modtype2, ['course' => $course->id, 'name' => $name2], 'id', MUST_EXIST);
+        $prereqcm = get_coursemodule_from_instance($modtype2, (int) $prereq->id, (int) $course->id, false, MUST_EXIST);
+        $mod = $DB->get_record($modtype, ['course' => $course->id, 'name' => $name], 'id', MUST_EXIST);
+        $cm  = get_coursemodule_from_instance($modtype, (int) $mod->id, (int) $course->id, false, MUST_EXIST);
+        $avail = json_encode([
+            'op'   => '&',
+            'c'    => [['type' => 'completion', 'cm' => (int) $prereqcm->id, 'e' => 1]],
+            'showc' => [true],
+        ]);
+        $DB->set_field('course_modules', 'availability', $avail, ['id' => $cm->id]);
+        rebuild_course_cache((int) $course->id, true);
     }
 }

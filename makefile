@@ -40,7 +40,8 @@ lint-js:
 	@echo "=== ESLint ==="
 	-npx grunt amd --force
 	-cd $(MOODLE_ROOT) && npx grunt eslint --root=. \
-	    --files=$(PLUGIN_PATH)/amd/src/
+	    --files=$(PLUGIN_PATH)/amd/src/ \
+		--show-lint-warnings
 
 lint-phpdoc:
 	@echo ""

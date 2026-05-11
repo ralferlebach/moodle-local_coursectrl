@@ -681,6 +681,10 @@ define([], function() {
                     if (targets.length > 0) {
                         payload.targets = targets;
                     }
+                    // Include followdeps so the preview expands dependents.
+                    if (opts.getFollowdeps && opts.getFollowdeps()) {
+                        payload.followdeps = 1;
+                    }
                     previewBtn.disabled = true;
                     previewBtn.textContent = '\u2026';
                     fetchPreview(courseid, 'shift_dates', payload, previewcmids)

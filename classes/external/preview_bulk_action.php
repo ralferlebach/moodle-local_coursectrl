@@ -87,6 +87,41 @@ class preview_bulk_action extends external_api {
             $payload = [];
         }
 
+        // Expand dependents when followdeps=1 is embedded in the payload
+        // (mirrors the BFS expansion in shift.php for the execute path).
+        if (!empty($payload['followdeps']) && !empty($payload['targets'])) {
+            $service  = new \local_coursectrl\local\inventory\inventory_service();
+            $snapshot = $service->build_for_course((int) $params['courseid']);
+            $depindex = new \local_coursectrl\local\analysis\dependency_index($snapshot->cms);
+            $datacollector = new \local_coursectrl\local\analysis\date_collector();
+            $sourcecmids = array_unique(array_column($payload['targets'], 'cmid'));
+            $expanded    = array_fill_keys($sourcecmids, true);
+            $queue       = $sourcecmids;
+            while (!empty($queue)) {
+                $current = array_shift($queue);
+                foreach ($depindex->get_dependents($current) as $dep) {
+                    if (!isset($expanded[$dep])) {
+                        $expanded[$dep] = true;
+                        $queue[] = $dep;
+                    }
+                }
+            }
+            $expandedcmids = array_diff(array_keys($expanded), $sourcecmids);
+            if (!empty($expandedcmids)) {
+                $expentries = $datacollector->collect(
+                    array_intersect_key($snapshot->cms, array_flip($expandedcmids))
+                );
+                foreach ($expentries as $entry) {
+                    $payload['targets'][] = [
+                        'cmid'      => (int) $entry['cmid'],
+                        'source'    => (string) $entry['source'],
+                        'field'     => (string) $entry['field'],
+                        'timestamp' => (int) $entry['timestamp'],
+                    ];
+                }
+            }
+        }
+
         $manager = new preview_manager();
         $result = $manager->build(
             $params['courseid'],

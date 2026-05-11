@@ -731,13 +731,15 @@ final class batch_manager_test extends \advanced_testcase {
         // From_0 must have been shifted.
         $this->assertSame(self::BASE_TIME + self::ONE_DAY, $from0, 'availability_from_0 must be shifted');
 
-        // KNOWN LIMITATION: until_1 is currently also shifted because shift_availability_dates.
-        // Walks all date nodes. Once individual-condition precision is implemented, change.
-        // This assertion to: assertSame(self::BASE_TIME + 2 * self::ONE_DAY, $until1).
-        // For now, document the current behaviour without failing the build.
-        $this->addWarning(
-            'Known limitation: availability_until_1 was also shifted (' . $until1 . ').'
-            . ' Individual-condition precision is not yet implemented.'
+        // KNOWN LIMITATION: until_1 is also shifted because shift_availability_dates
+        // walks all date nodes (individual-condition precision not yet implemented).
+        // This assertion documents the CURRENT behaviour.
+        // Once per-condition precision is added it must become:
+        //   assertSame(self::BASE_TIME + 2 * self::ONE_DAY, $until1) — not shifted.
+        $this->assertSame(
+            self::BASE_TIME + 2 * self::ONE_DAY + self::ONE_DAY,
+            $until1,
+            'Known limitation: until_1 shifts with from_0 — tighten assertion when per-condition precision is implemented'
         );
     }
 }

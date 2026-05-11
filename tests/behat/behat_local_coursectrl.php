@@ -201,7 +201,7 @@ class behat_local_coursectrl extends behat_base {
         }
         if ($btn === null) {
             throw new ExpectationException(
-                "No shift-entry button found for module type '{$modtype}'",
+                'No shift-entry button found for module type \'' . $modtype . '\'',
                 $this->getSession()
             );
         }
@@ -780,7 +780,7 @@ class behat_local_coursectrl extends behat_base {
         $btn = $this->find('css', $selector);
         if ($btn === null) {
             throw new ExpectationException(
-                "No shift-entry button found for activity '{$name}' with fieldkey '{$fieldkey}'",
+                'No shift-entry button found for activity \'' . $name . '\' with fieldkey \'' . $fieldkey . '\'',
                 $this->getSession()
             );
         }
@@ -870,22 +870,22 @@ class behat_local_coursectrl extends behat_base {
         );
         if ($btn === null) {
             throw new ExpectationException(
-                "Shift-entry button with data-field="{$fieldkey}" not found for activity "{$name}". "
-                . "Check that fieldkey (not fieldlabel) is used in data-field.",
+                'Shift-entry button with data-field="' . $fieldkey . '" not found for activity "' . $name . '".' .
+                ' Check that fieldkey (not fieldlabel) is used in data-field.',
                 $this->getSession()
             );
         }
         $source = $btn->getAttribute('data-source');
         if ($source === null || $source === '') {
             throw new ExpectationException(
-                "data-source attribute is missing on shift-entry button for "{$name}" / "{$fieldkey}"",
+                'data-source attribute is missing on shift-entry button for "' . $name . '" / "' . $fieldkey . '".',
                 $this->getSession()
             );
         }
         $timestamp = $btn->getAttribute('data-timestamp');
         if ($timestamp === null || $timestamp === '') {
             throw new ExpectationException(
-                "data-timestamp attribute is missing on shift-entry button for "{$name}" / "{$fieldkey}"",
+                'data-timestamp attribute is missing on shift-entry button for "' . $name . '" / "' . $fieldkey . '".',
                 $this->getSession()
             );
         }

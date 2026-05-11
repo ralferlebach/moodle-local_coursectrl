@@ -94,6 +94,30 @@ Feature: Timeline shift – field-precise assertions and data-attribute verifica
     # timeopen (at 1781913600, one day earlier) must NOT be shifted.
     And the timeopen of quiz Quiz-PRC in course PRECISECRS should still be 1781913600
 
+
+  @javascript
+  Scenario: Following-shift moves targets at or after the chosen timestamp but not earlier ones
+    Given I log in as "teacher1"
+    And I am on the timeline page for course "PRECISECRS"
+    # Click the Following button at the slot for timeclose (1782000000).
+    # Entries at this slot: quiz timeclose, assign duedate.
+    # Entry BEFORE this slot: quiz timeopen (1781913600) — must NOT move.
+    When I click the first following shift button on the timeline
+    Then the shift modal should be visible
+    When I set the shift days to 1
+    And I click the shift preview button and wait
+    Then the shift preview summary should contain "Feld(er)"
+    # Preview must NOT mention timeopen (which is at an earlier slot).
+    And I should not see "timeopen" in the "[data-ccwf-preview-body]" "css_element"
+    When I apply the shift and wait
+    And I click on "[data-ccwf-action='back']" "css_element"
+    And I wait "3" seconds
+    # Targets in and after the slot are shifted.
+    Then the timeclose of quiz Quiz-PRC in course PRECISECRS should be shifted by 1 day(s) from 1782000000
+    And the duedate of assign Task-PRC in course PRECISECRS should be shifted by 1 day(s) from 1782000000
+    # quiz timeopen is BEFORE the following-point — must be unchanged.
+    And the timeopen of quiz Quiz-PRC in course PRECISECRS should still be 1781913600
+
   # ── Preview/Execute consistency ───────────────────────────────────────────
 
   @javascript

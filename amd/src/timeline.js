@@ -319,6 +319,10 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
                         return [];
                     }
                 },
+                getFollowdeps: function() {
+                    var v = document.getElementById('coursectrl-shift-followdeps');
+                    return v ? v.value === '1' : false;
+                },
                 getDelta: function() {
                     var d = parseInt(
                         (document.getElementById('coursectrl-shift-delta-days') || {}).value || '0',

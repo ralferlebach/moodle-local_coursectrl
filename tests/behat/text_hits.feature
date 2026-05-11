@@ -1,4 +1,4 @@
-@local_coursectrl @local_coursectrl_texthits
+@local @local_coursectrl @local_coursectrl_texthits
 Feature: Text-hit scanning and date replacement in free-text fields
   As a teacher
   I want to find date references in activity descriptions

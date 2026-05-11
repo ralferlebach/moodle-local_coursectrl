@@ -1,4 +1,4 @@
-@local_coursectrl @local_coursectrl_shift_precise
+@local @local_coursectrl @local_coursectrl_shift_precise
 Feature: Timeline shift – field-precise assertions and data-attribute verification
   As a teacher
   I want to shift exactly the dates I target

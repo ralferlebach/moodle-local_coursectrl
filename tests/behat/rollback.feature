@@ -1,4 +1,4 @@
-@local_coursectrl @local_coursectrl_rollback
+@local @local_coursectrl @local_coursectrl_rollback
 Feature: Rollback of executed bulk actions in the history page
   As a teacher with rollback capability
   I want to undo a bulk date-shift action

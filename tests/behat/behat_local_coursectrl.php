@@ -579,7 +579,7 @@ class behat_local_coursectrl extends behat_base {
      * Assert that the duedate of an assignment was shifted by a given number of days.
      * The original duedate is read from the DB and compared to the shifted expectation.
      *
-     * @Then /^the duedate of assign "?(.+?)"? in course "?(.+?)"? should be shifted by (-?\d+) day\(s\) from (-?\d+)$/
+     * @Then /^the duedate of assign "?(.+?)"? in course "?(\S+?)"? should be shifted by (-?\d+) day\(s\) from (-?\d+)$/
      * @param string $name        Assignment name.
      * @param string $shortname   Course shortname.
      * @param int    $days        Number of days to shift.
@@ -609,7 +609,7 @@ class behat_local_coursectrl extends behat_base {
      * Assert that the completionexpected of a course module was shifted by a given
      * number of days from a known original timestamp.
      *
-     * @Then /^the completionexpected of (\w+) "?(.+?)"? in course "?(.+?)"? should be shifted by (-?\d+) day\(s\) from (-?\d+)$/
+     * @Then /^the completionexpected of (\w+) "?(.+?)"? in course "?(\S+?)"? should be shifted by (-?\d+) day\(s\) from (-?\d+)$/
      * @param string $modtype     Module type (e.g. "forum").
      * @param string $name        Module instance name.
      * @param string $shortname   Course shortname.
@@ -881,7 +881,7 @@ class behat_local_coursectrl extends behat_base {
     /**
      * Assert that the timeopen of a quiz was shifted by a number of days.
      *
-     * @Then /^the timeopen of quiz "?(.+?)"? in course "?(.+?)"? should be shifted by (-?\d+) day\(s\) from (-?\d+)$/
+     * @Then /^the timeopen of quiz "?(.+?)"? in course "?(\S+?)"? should be shifted by (-?\d+) day\(s\) from (-?\d+)$/
      * @param string $name       Quiz instance name.
      * @param string $shortname  Course shortname.
      * @param int    $days       Number of days shifted.
@@ -936,7 +936,7 @@ class behat_local_coursectrl extends behat_base {
     /**
      * Assert that the timeclose of a quiz was shifted by a number of days.
      *
-     * @Then /^the timeclose of quiz "?(.+?)"? in course "?(.+?)"? should be shifted by (-?\d+) day\(s\) from (-?\d+)$/
+     * @Then /^the timeclose of quiz "?(.+?)"? in course "?(\S+?)"? should be shifted by (-?\d+) day\(s\) from (-?\d+)$/
      * @param string $name       Quiz instance name.
      * @param string $shortname  Course shortname.
      * @param int    $days       Number of days shifted.

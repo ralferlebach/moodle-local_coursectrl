@@ -158,10 +158,11 @@ class preview_bulk_action extends external_api {
             'skipped'     => $skipped,
             'errors'      => $errors,
             'summary'     => [
-                'total'   => (int)$result['summary']['total'],
-                'changes' => (int)$result['summary']['changes'],
-                'skipped' => (int)$result['summary']['skipped'],
-                'errors'  => (int)$result['summary']['errors'],
+                'total'      => (int) ($result['summary']['total'] ?? 0),
+                'changes'    => (int) ($result['summary']['changes'] ?? 0),
+                'fieldcount' => (int) ($result['summary']['fieldcount'] ?? 0),
+                'skipped'    => (int) ($result['summary']['skipped'] ?? 0),
+                'errors'     => (int) ($result['summary']['errors'] ?? 0),
             ],
         ];
     }
@@ -200,10 +201,11 @@ class preview_bulk_action extends external_api {
                 ])
             ),
             'summary' => new external_single_structure([
-                'total' => new external_value(PARAM_INT, 'Total cmids processed'),
-                'changes' => new external_value(PARAM_INT, 'Count of cmids with preview changes'),
-                'skipped' => new external_value(PARAM_INT, 'Count of skipped cmids'),
-                'errors' => new external_value(PARAM_INT, 'Count of errored cmids'),
+                'total'      => new external_value(PARAM_INT, 'Total cmids processed'),
+                'changes'    => new external_value(PARAM_INT, 'Count of cmids with preview changes'),
+                'fieldcount' => new external_value(PARAM_INT, 'Total number of date fields to be shifted'),
+                'skipped'    => new external_value(PARAM_INT, 'Count of skipped cmids'),
+                'errors'     => new external_value(PARAM_INT, 'Count of errored cmids'),
             ]),
         ]);
     }

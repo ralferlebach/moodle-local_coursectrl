@@ -800,11 +800,14 @@ define([], function() {
                                 return null;
                             }
                             var s = result.summary;
+                            var shiftedfields = s.fieldcount || s.success;
+                            var shiftedacts = s.success;
                             successHtml =
                                 '<div class="alert alert-success py-2 mb-2 small">' +
                                 '<i class="fa fa-check-circle mr-1"></i>' +
-                                '<strong>' + s.success + '</strong> ' +
+                                '<strong>' + shiftedfields + '</strong> ' +
                                 escHtml(lbl.msgShifted) +
+                                ' <span class="text-muted">(' + shiftedacts + ' Aktivit\u00e4t(en))</span>' +
                                 (s.error > 0
                                     ? ', <strong class="text-danger">' +
                                       s.error + ' ' + escHtml(lbl.msgErrors) +

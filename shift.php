@@ -176,7 +176,7 @@ rebuild_course_cache($courseid);
 $batch = new \local_coursectrl\local\persistent\batch($batchid);
 $items = \local_coursectrl\local\persistent\batch_item::get_records(['batchid' => $batchid]);
 
-$summary = ['total' => count($items), 'success' => 0, 'noop' => 0, 'skipped' => 0, 'error' => 0];
+$summary = ['total' => count($items), 'success' => 0, 'fieldcount' => 0, 'noop' => 0, 'skipped' => 0, 'error' => 0];
 foreach ($items as $item) {
     $status = $item->get('status');
     $resultraw = $item->get('resultjson');
@@ -188,6 +188,8 @@ foreach ($items as $item) {
             $summary['noop']++;
         } else {
             $summary['success']++;
+            // Count individual fields changed for accurate UI messaging.
+            $summary['fieldcount'] += is_array($changed) ? count($changed) : 1;
         }
     } else if ($status === \local_coursectrl\local\persistent\batch_item::STATUS_SKIPPED) {
         $summary['skipped']++;

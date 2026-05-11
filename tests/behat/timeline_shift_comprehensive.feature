@@ -340,3 +340,31 @@ Feature: Timeline date shift – slot, following, and entry modes
     Then the duedate of assign Aufgabe-A in course SHIFTCRS should be shifted by 1 day(s) from 1781481600
     # Forum-C completionexpected wurde NICHT verändert.
     And the completionexpected of forum Forum-C in course SHIFTCRS should still be 1781481600
+
+  @javascript
+  Scenario: M2-Entry-Followdeps-mit-echter-Abhaengigkeit – dependente Aktivität wird mit verschoben
+    # Activity A (assign A1) has duedate.
+    # Activity B (quiz B1) depends on A1 completion and has its own timeopen.
+    # Enabling followdeps when shifting A1 must also shift B1.
+    Given the following "activities" exist:
+      | activity | course     | name | duedate    |
+      | assign   | SHIFTCRS   | A1   | 1700000000 |
+    And the following "activities" exist:
+      | activity | course     | name | timeopen   |
+      | quiz     | SHIFTCRS   | B1   | 1700086400 |
+    And the availability of quiz "B1" in course "SHIFTCRS" depends on completion of assign "A1"
+    And I log in as "teacher1"
+    And I am on the timeline page for course "SHIFTCRS"
+    When I click the entry shift button for activity "A1" and field "duedate"
+    Then the shift modal should be visible
+    When I enable the followdeps checkbox in the shift modal
+    And I set the shift days to 1
+    And I click the shift preview button and wait
+    # Preview must contain both A1 and the dependent B1.
+    Then I should see "A1" in the "[data-ccwf-preview-body]" "css_element"
+    And I should see "B1" in the "[data-ccwf-preview-body]" "css_element"
+    When I apply the shift and wait
+    And I click on "[data-ccwf-action='back']" "css_element"
+    And I wait "3" seconds
+    Then the duedate of assign "A1" in course "SHIFTCRS" should be shifted by 1 day(s) from 1700000000
+    And the timeopen of quiz "B1" in course "SHIFTCRS" should be shifted by 1 day(s) from 1700086400

@@ -140,6 +140,33 @@ define([], function() {
     };
 
     /**
+     * Apply text changes and call onComplete when done.
+     *
+     * Defined outside any promise callback to avoid promise/no-nesting ESLint rule.
+     *
+     * @param {HTMLElement}  btn        Button to disable during request.
+     * @param {number}       cid        Course id.
+     * @param {number[]}     ids        Selected text-hit ids.
+     * @param {number}       delta      Shift delta in seconds.
+     * @param {object|null}  sresult    Shift result for onComplete callback.
+     * @param {Function}     oncomplete Callback invoked on success.
+     * @return {void}
+     */
+    var executeApplyText = function(btn, cid, ids, delta, sresult, oncomplete) {
+        btn.disabled = true;
+        applyTextChanges(cid, ids, delta)
+            .then(function() {
+                if (oncomplete) {
+                    oncomplete(sresult);
+                }
+                return null;
+            })
+            .catch(function() {
+                btn.disabled = false;
+            });
+    };
+
+    /**
      * POST the shift form to shift.php with format=json.
      *
      * @param {HTMLFormElement} form Shift form element.
@@ -877,17 +904,14 @@ define([], function() {
                                             }
                                             return;
                                         }
-                                        applyBtn3.disabled = true;
-                                        applyTextChanges(courseid, ids, applyDelta)
-                                            .then(function() {
-                                                if (opts.onComplete) {
-                                                    opts.onComplete(shiftResult);
-                                                }
-                                                return null;
-                                            })
-                                            .catch(function() {
-                                                applyBtn3.disabled = false;
-                                            });
+                                        executeApplyText(
+                                            applyBtn3,
+                                            courseid,
+                                            ids,
+                                            applyDelta,
+                                            shiftResult,
+                                            opts.onComplete
+                                        );
                                     });
                                 }
                                 wireCtxToggles(step3);

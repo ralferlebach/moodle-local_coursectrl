@@ -440,4 +440,73 @@ final class preview_manager_test extends \advanced_testcase {
         // This is a known semantic limitation — documented, not changed.
         $this->assertSame(1, $result['summary']['changes']);
     }
+
+    /**
+     * When followdeps is set in the payload, preview must include the dependent
+     * activity's dates even though it was not in the original target list.
+     *
+     * This exercises the BFS expansion path in preview_bulk_action::execute()
+     * by calling it directly with a real course graph.
+     *
+     * @covers \local_coursectrl\external\preview_bulk_action
+     */
+    public function test_followdeps_expands_dependent_activities_in_preview(): void {
+        $this->resetAfterTest();
+        global $DB;
+
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $assign = $this->getDataGenerator()->get_plugin_generator('mod_assign')->create_instance([
+            'course'  => $course->id,
+            'name'    => 'ActivityA',
+            'duedate' => self::BASE_TIME,
+        ]);
+        $quiz = $this->getDataGenerator()->get_plugin_generator('mod_quiz')->create_instance([
+            'course'   => $course->id,
+            'name'     => 'ActivityB',
+            'timeopen' => self::BASE_TIME + self::ONE_DAY,
+        ]);
+
+        // Make quiz depend on assign completion.
+        $avail = json_encode([
+            'op'    => '&',
+            'c'     => [['type' => 'completion', 'cm' => (int) $assign->cmid, 'e' => 1]],
+            'showc' => [true],
+        ]);
+        $DB->set_field('course_modules', 'availability', $avail, ['id' => $quiz->cmid]);
+        rebuild_course_cache((int) $course->id, true);
+
+        // Preview with followdeps via the external function (which does BFS expansion).
+        $this->setAdminUser();
+        $payload = [
+            'delta'      => self::ONE_DAY,
+            'followdeps' => 1,
+            'targets'    => [
+                [
+                    'cmid'      => (int) $assign->cmid,
+                    'source'    => 'adapter',
+                    'field'     => 'duedate',
+                    'timestamp' => self::BASE_TIME,
+                ],
+            ],
+        ];
+        $result = \local_coursectrl\external\preview_bulk_action::execute(
+            (int) $course->id,
+            'shift_dates',
+            json_encode($payload),
+            [(int) $assign->cmid]
+        );
+
+        // Both activities must appear in the preview.
+        $previewcmids = array_column($result['changes'], 'cmid');
+        $this->assertContains(
+            (int) $assign->cmid,
+            $previewcmids,
+            'ActivityA (the shifted activity) must appear in preview'
+        );
+        $this->assertContains(
+            (int) $quiz->cmid,
+            $previewcmids,
+            'ActivityB (depends on A via completion) must appear in preview when followdeps is set'
+        );
+    }
 }

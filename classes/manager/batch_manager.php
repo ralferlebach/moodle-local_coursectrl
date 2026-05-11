@@ -451,9 +451,13 @@ class batch_manager {
             throw new \moodle_exception('invalidcmid', 'local_coursectrl');
         }
 
-        // Strip 'targets' from payload before persisting — keep it lean.
+        // Strip internal routing hints from payload before persisting.
+        // Set skip_cm_completion so the adapter executor does not auto-shift
+        // completionexpected; batch_manager controls it via shift_cm_level_dates.
         $storedpayload = $payload;
         unset($storedpayload['targets']);
+        unset($storedpayload['followdeps']);
+        $storedpayload['skip_cm_completion'] = true;
         $batch = $this->create_batch_row($courseid, $userid, $action, $storedpayload);
         $batchid = (int) $batch->get('id');
 
@@ -690,7 +694,21 @@ class batch_manager {
             $changed[] = 'completionexpected';
         }
         if ($wantavailability && !empty($cm->availability)) {
-            $newavail = $this->shift_availability_dates((string) $cm->availability, $delta);
+            // Pass only the targeted availability field keys so walk_availability_node
+            // Shifts only the conditions that were explicitly selected.
+            $availtargetkeys = array_values(
+                array_filter(
+                    $shiftfields,
+                    function ($f) {
+                        return strpos($f, 'availability_') === 0;
+                    }
+                )
+            );
+            $newavail = $this->shift_availability_dates(
+                (string) $cm->availability,
+                $delta,
+                $availtargetkeys
+            );
             if ($newavail !== (string) $cm->availability) {
                 $update->availability = $newavail;
                 $changed[] = 'availability';
@@ -732,16 +750,22 @@ class batch_manager {
      * type === 'date' and a 't' (timestamp) value greater than zero. No new
      * nodes are inserted; only existing timestamp values are rewritten.
      *
-     * @param string $json Raw availability JSON from {course_modules}.availability.
-     * @param int $delta Seconds to add.
+     * @param string   $json       Raw availability JSON from {course_modules}.availability.
+     * @param int      $delta      Seconds to shift.
+     * @param string[] $targetkeys Availability field keys to shift; empty = shift all.
      * @return string Modified JSON string, or the original on parse failure.
      */
-    private function shift_availability_dates(string $json, int $delta): string {
+    private function shift_availability_dates(
+        string $json,
+        int $delta,
+        array $targetkeys = []
+    ): string {
         $data = json_decode($json, true);
         if (!is_array($data)) {
             return $json;
         }
-        $data = $this->walk_availability_node($data, $delta);
+        $idx = 0;
+        $data = $this->walk_availability_node($data, $delta, $targetkeys, $idx);
         $encoded = json_encode($data);
         return ($encoded !== false) ? $encoded : $json;
     }
@@ -749,19 +773,38 @@ class batch_manager {
     /**
      * Recursively walk an availability condition node and shift date timestamps.
      *
-     * @param array $node  Decoded availability node.
-     * @param int   $delta Seconds to shift.
+     * Optionally restricts the shift to specific field keys (availability_from_0,
+     * availability_until_1, etc.). The index $idx must be passed by reference so
+     * the same sequential numbering is used as in collect_availability_dates().
+     *
+     * @param array    $node       Decoded availability node.
+     * @param int      $delta      Seconds to shift.
+     * @param string[] $targetkeys Field keys to shift; empty shifts all.
+     * @param int      $idx        Running date-node counter (pass by reference).
      * @return array Modified node.
      */
-    private function walk_availability_node(array $node, int $delta): array {
+    private function walk_availability_node(
+        array $node,
+        int $delta,
+        array $targetkeys,
+        int &$idx
+    ): array {
         if (($node['type'] ?? '') === 'date' && isset($node['t']) && (int) $node['t'] > 0) {
-            $node['t'] = (int) $node['t'] + $delta;
+            // Generate the field key using the same logic as collect_availability_dates.
+            $d   = $node['d'] ?? '>=';
+            $dir = ($d === '>=') ? 'from' : 'until';
+            $fieldkey = 'availability_' . $dir . '_' . $idx;
+            $idx++;
+            // Only shift if either no restriction or this key is targeted.
+            if (empty($targetkeys) || in_array($fieldkey, $targetkeys, true)) {
+                $node['t'] = (int) $node['t'] + $delta;
+            }
             return $node;
         }
         if (isset($node['c']) && is_array($node['c'])) {
             foreach ($node['c'] as $i => $child) {
                 if (is_array($child)) {
-                    $node['c'][$i] = $this->walk_availability_node($child, $delta);
+                    $node['c'][$i] = $this->walk_availability_node($child, $delta, $targetkeys, $idx);
                 }
             }
         }

@@ -338,7 +338,13 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
                 onComplete: function() {
                     shiftApplied = true;
                     closeDialogs();
-                    location.reload();
+                    // Strip autoopen parameters so the modal does not re-open on reload.
+                    var reloadurl = new URL(window.location.href);
+                    reloadurl.searchParams.delete('autoopen');
+                    reloadurl.searchParams.delete('shift_ts');
+                    reloadurl.searchParams.delete('shift_cmid');
+                    reloadurl.searchParams.delete('shift_field');
+                    window.location.href = reloadurl.toString();
                 },
             });
         }

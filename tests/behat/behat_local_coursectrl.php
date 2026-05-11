@@ -668,4 +668,226 @@ class behat_local_coursectrl extends behat_base {
         $DB->set_field('course_modules', 'completionexpected', $timestamp, ['id' => $cm->id]);
         rebuild_course_cache($course->id, true);
     }
+    /**
+     * Click the shift-entry button for a specific activity name and field key.
+     * More precise than the module-type-only variant when multiple activities
+     * of the same type appear on the timeline.
+     *
+     * @When I click the entry shift button for activity :name and field :fieldkey
+     * @param string $name     Activity name as displayed in the timeline link text.
+     * @param string $fieldkey Raw technical field key, e.g. "duedate".
+     */
+    public function i_click_entry_shift_button_for_activity_and_field(
+        string $name,
+        string $fieldkey
+    ): void {
+        $selector = '[data-action="shift-entry"][data-field="' . $fieldkey . '"]';
+        $buttons = $this->find_all('css', $selector);
+        foreach ($buttons as $btn) {
+            $li = $btn->getParent()->getParent();
+            if ($li && strpos($li->getText(), $name) !== false) {
+                $btn->click();
+                $this->wait_for_pending_js();
+                return;
+            }
+        }
+        throw new \Behat\Mink\Exception\ExpectationException(
+            "No shift-entry button found for activity '{$name}' and field '{$fieldkey}'",
+            $this->getSession()
+        );
+    }
+
+    /**
+     * Assert that an arbitrary date field of a module was shifted by a given number of days.
+     *
+     * @Then the :field of :modtype :name in course :shortname should be shifted by :days day(s) from :original_ts
+     * @param string $field      Field name inside the module table (e.g. "timeopen").
+     * @param string $modtype    Module type (e.g. "quiz").
+     * @param string $name       Module instance name.
+     * @param string $shortname  Course shortname.
+     * @param int    $days       Number of days shifted.
+     * @param int    $originalts Original Unix timestamp.
+     */
+    public function field_of_module_should_be_shifted(
+        string $field,
+        string $modtype,
+        string $name,
+        string $shortname,
+        int $days,
+        int $originalts
+    ): void {
+        global $DB;
+        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $row = $DB->get_record($modtype, ['course' => $course->id, 'name' => $name], $field, MUST_EXIST);
+        $expected = $originalts + ($days * DAYSECS);
+        $actual   = (int) $row->$field;
+        if (abs($actual - $expected) > 60) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "{$modtype}.{$field}: expected ~{$expected}, got {$actual}",
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Assert that an arbitrary date field of a module is still the original value.
+     *
+     * @Then the :field of :modtype :name in course :shortname should still be :original_ts
+     * @param string $field      Field name inside the module table.
+     * @param string $modtype    Module type.
+     * @param string $name       Module instance name.
+     * @param string $shortname  Course shortname.
+     * @param int    $originalts Expected unchanged Unix timestamp.
+     */
+    public function field_of_module_should_still_be(
+        string $field,
+        string $modtype,
+        string $name,
+        string $shortname,
+        int $originalts
+    ): void {
+        global $DB;
+        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $row = $DB->get_record($modtype, ['course' => $course->id, 'name' => $name], $field, MUST_EXIST);
+        $actual = (int) $row->$field;
+        if (abs($actual - $originalts) > 60) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "{$modtype}.{$field}: expected to remain {$originalts}, got {$actual}",
+                $this->getSession()
+            );
+        }
+    }
+
+
+
+    /**
+     * Click the shift-entry button for a specific activity name and raw field key.
+     *
+     * More precise than clicking by modtype alone when multiple activities of
+     * the same type exist on the timeline.
+     *
+     * @When I click the entry shift button for activity :name and field :fieldkey
+     * @param string $name     Activity name (displayed in the timeline link).
+     * @param string $fieldkey Raw technical field key, e.g. "duedate", "completionexpected".
+     */
+    public function i_click_entry_shift_button_for_activity_and_field(
+        string $name,
+        string $fieldkey
+    ): void {
+        // Find the shift-entry button with data-field matching $fieldkey inside
+        // A list item that contains a link with text $name.
+        $selector = 'li:has(a:contains("' . $name . '")) [data-action="shift-entry"][data-field="' . $fieldkey . '"]';
+        $btn = $this->find('css', $selector);
+        if ($btn === null) {
+            throw new ExpectationException(
+                "No shift-entry button found for activity '{$name}' with fieldkey '{$fieldkey}'",
+                $this->getSession()
+            );
+        }
+        $btn->click();
+        $this->wait_for_pending_js();
+    }
+
+    /**
+     * Assert that a DB date field on an activity was shifted by an exact number
+     * of days from a known timestamp.
+     *
+     * Supports: assign (duedate), quiz (timeopen, timeclose).
+     *
+     * @Then the :field of :modtype :name in course :shortname should be shifted by :days day(s) from :originalts
+     * @param string $field      Raw DB field name.
+     * @param string $modtype    Module type.
+     * @param string $name       Module instance name.
+     * @param string $shortname  Course shortname.
+     * @param int    $days       Number of days shifted.
+     * @param int    $originalts Original Unix timestamp.
+     */
+    public function field_of_modtype_should_be_shifted(
+        string $field,
+        string $modtype,
+        string $name,
+        string $shortname,
+        int $days,
+        int $originalts
+    ): void {
+        global $DB;
+        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $row    = $DB->get_record($modtype, ['course' => $course->id, 'name' => $name], 'id, ' . $field, MUST_EXIST);
+        $expected = $originalts + ($days * DAYSECS);
+        $actual   = (int) $row->$field;
+        if (abs($actual - $expected) > 60) {
+            throw new ExpectationException(
+                "Expected {$field} ≈ {$expected} (original {$originalts} + {$days} d), got {$actual}",
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Assert that a DB date field on an activity has NOT been changed.
+     *
+     * @Then the :field of :modtype :name in course :shortname should still be :originalts
+     * @param string $field      Raw DB field name.
+     * @param string $modtype    Module type.
+     * @param string $name       Module instance name.
+     * @param string $shortname  Course shortname.
+     * @param int    $originalts Expected original (unchanged) Unix timestamp.
+     */
+    public function field_of_modtype_should_still_be(
+        string $field,
+        string $modtype,
+        string $name,
+        string $shortname,
+        int $originalts
+    ): void {
+        global $DB;
+        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $row    = $DB->get_record($modtype, ['course' => $course->id, 'name' => $name], 'id, ' . $field, MUST_EXIST);
+        $actual = (int) $row->$field;
+        if (abs($actual - $originalts) > 60) {
+            throw new ExpectationException(
+                "Expected {$field} to remain {$originalts} but got {$actual}",
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Assert that the entry shift button for a given activity + field carries
+     * the correct data-source and data-field attributes (not a localized label).
+     *
+     * @Then the entry shift button for :name and fieldkey :fieldkey should carry correct data attributes
+     * @param string $name     Activity name.
+     * @param string $fieldkey Expected raw field key in data-field attribute.
+     */
+    public function entry_shift_button_should_carry_correct_data_attrs(
+        string $name,
+        string $fieldkey
+    ): void {
+        $btn = $this->find(
+            'css',
+            'li:has(a:contains("' . $name . '")) [data-action="shift-entry"][data-field="' . $fieldkey . '"]'
+        );
+        if ($btn === null) {
+            throw new ExpectationException(
+                "Shift-entry button with data-field="{$fieldkey}" not found for activity "{$name}". "
+                . "Check that fieldkey (not fieldlabel) is used in data-field.",
+                $this->getSession()
+            );
+        }
+        $source = $btn->getAttribute('data-source');
+        if ($source === null || $source === '') {
+            throw new ExpectationException(
+                "data-source attribute is missing on shift-entry button for "{$name}" / "{$fieldkey}"",
+                $this->getSession()
+            );
+        }
+        $timestamp = $btn->getAttribute('data-timestamp');
+        if ($timestamp === null || $timestamp === '') {
+            throw new ExpectationException(
+                "data-timestamp attribute is missing on shift-entry button for "{$name}" / "{$fieldkey}"",
+                $this->getSession()
+            );
+        }
+    }
 }

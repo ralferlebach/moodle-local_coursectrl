@@ -181,10 +181,13 @@ class preview_manager {
             'skipped' => $skipped,
             'errors'  => $errors,
             'summary' => [
-                'total'   => count($cmids),
-                'changes' => count($changes),
-                'skipped' => count($skipped),
-                'errors'  => count($errors),
+                'total'      => count($cmids),
+                'changes'    => count($changes),
+                'fieldcount' => array_sum(
+                    array_map(fn($c) => count($c->get_fields()), array_values($changes))
+                ),
+                'skipped'    => count($skipped),
+                'errors'     => count($errors),
             ],
         ];
     }
@@ -336,8 +339,29 @@ class preview_manager {
                 $DB
             );
             if ($change !== null) {
-                $changes[$cmid] = $change;
+                if (isset($changes[$cmid])) {
+                    // Merge CM-level fields into the existing adapter preview so
+                    // Both duedate and completionexpected appear for the same CMID.
+                    $mergedfields = array_merge(
+                        $changes[$cmid]->get_fields(),
+                        $change->get_fields()
+                    );
+                    $changes[$cmid] = new preview_change(
+                        (int) $cmid,
+                        $changes[$cmid]->get_component(),
+                        $changes[$cmid]->get_name(),
+                        $mergedfields
+                    );
+                } else {
+                    $changes[$cmid] = $change;
+                }
             }
+        }
+
+        // Compute total field count across all changed activities.
+        $fieldcount = 0;
+        foreach ($changes as $change) {
+            $fieldcount += count($change->get_fields());
         }
 
         return [
@@ -347,10 +371,11 @@ class preview_manager {
             'skipped' => $skipped,
             'errors'  => $errors,
             'summary' => [
-                'total'   => count($allcmids),
-                'changes' => count($changes),
-                'skipped' => count($skipped),
-                'errors'  => count($errors),
+                'total'      => count($allcmids),
+                'changes'    => count($changes),
+                'fieldcount' => $fieldcount,
+                'skipped'    => count($skipped),
+                'errors'     => count($errors),
             ],
         ];
     }

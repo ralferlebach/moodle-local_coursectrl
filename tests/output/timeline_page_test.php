@@ -198,4 +198,121 @@ final class timeline_page_test extends \advanced_testcase {
         $this->assertSame(0, $data['totalentries']);
         $this->assertSame(0, $data['totaldays']);
     }
+
+    /**
+     * Every timeline entry must export fieldkey (raw field name), source, and timestamp.
+     *
+     * These attributes feed the data-field / data-source / data-timestamp HTML attributes
+     * used by timeline.js to build structured shift targets.
+     *
+     * @covers \local_coursectrl\output\timeline_page
+     */
+    public function test_entries_carry_fieldkey_source_timestamp(): void {
+        $this->resetAfterTest();
+        global $PAGE, $DB;
+
+        // Create a real course with a forum with completionexpected so
+        // The date_collector produces a cm-source entry.
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $forum  = $this->getDataGenerator()->get_plugin_generator('mod_forum')->create_instance([
+            'course' => $course->id,
+            'name'   => 'Forum X',
+        ]);
+        // Set completionexpected directly in course_modules.
+        $expectedts = 1800000000;
+        $DB->set_field('course_modules', 'completionexpected', $expectedts, ['id' => $forum->cmid]);
+
+        $service  = new \local_coursectrl\local\inventory\inventory_service();
+        $snapshot = $service->build_for_course((int) $course->id);
+        $page     = new timeline_page($snapshot);
+        $data     = $page->export_for_template($PAGE->get_renderer('core'));
+
+        // Collect all entries across all days/slots.
+        $entries = [];
+        foreach ($data['days'] as $day) {
+            foreach ($day['slots'] as $slot) {
+                foreach ($slot['entries'] as $entry) {
+                    $entries[] = $entry;
+                }
+            }
+        }
+
+        $this->assertNotEmpty($entries, 'Expected at least one timeline entry from completionexpected');
+
+        foreach ($entries as $entry) {
+            // Fieldkey must be present and non-empty.
+            $this->assertArrayHasKey('fieldkey', $entry, 'Entry must have fieldkey');
+            $this->assertNotEmpty($entry['fieldkey'], 'fieldkey must not be empty');
+
+            // Field (the visible label) must differ from fieldkey for non-English strings,
+            // Or at least be present.
+            $this->assertArrayHasKey('field', $entry, 'Entry must have field (label)');
+
+            // Source must be one of the three valid values.
+            $this->assertArrayHasKey('source', $entry, 'Entry must have source');
+            $this->assertContains(
+                $entry['source'],
+                ['adapter', 'cm', 'availability'],
+                'Entry source must be adapter, cm, or availability'
+            );
+
+            // Timestamp must be integer matching the slot timekey.
+            $this->assertArrayHasKey('timestamp', $entry, 'Entry must have timestamp');
+            $this->assertIsInt($entry['timestamp']);
+        }
+
+        // Find the completionexpected entry specifically.
+        $cmentry = null;
+        foreach ($entries as $entry) {
+            if ($entry['fieldkey'] === 'completionexpected') {
+                $cmentry = $entry;
+                break;
+            }
+        }
+        $this->assertNotNull($cmentry, 'Timeline must contain a completionexpected entry');
+        $this->assertSame('cm', $cmentry['source'], 'completionexpected must have source=cm');
+        $this->assertSame($expectedts, $cmentry['timestamp']);
+        // Fieldkey must be the raw key, not the localized label.
+        $this->assertSame('completionexpected', $cmentry['fieldkey']);
+        // Field (label) should NOT be the raw key in a properly configured environment.
+        // It may equal the raw key only when get_string returns the identifier fallback.
+        $this->assertNotEmpty($cmentry['field']);
+    }
+
+    /**
+     * Autoopen context for entry mode must produce a valid targets_json.
+     *
+     * @covers \local_coursectrl\output\timeline_page
+     */
+    public function test_autoopen_entry_produces_targets_json(): void {
+        $this->resetAfterTest();
+        global $PAGE, $DB;
+
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $forum  = $this->getDataGenerator()->get_plugin_generator('mod_forum')->create_instance([
+            'course' => $course->id,
+        ]);
+        $expectedts = 1800000000;
+        $DB->set_field('course_modules', 'completionexpected', $expectedts, ['id' => $forum->cmid]);
+
+        $service  = new \local_coursectrl\local\inventory\inventory_service();
+        $snapshot = $service->build_for_course((int) $course->id);
+        $filters  = [
+            'autoopen_mode'  => 'entry',
+            'autoopen_cmid'  => (int) $forum->cmid,
+            'autoopen_field' => 'completionexpected',
+        ];
+        $page = new timeline_page($snapshot, $filters);
+        $data = $page->export_for_template($PAGE->get_renderer('core'));
+
+        $this->assertTrue($data['autoopen'], 'autoopen must be true when autoopen_mode is set');
+        $this->assertArrayHasKey('autoopen_targets_json', $data);
+
+        $targets = json_decode($data['autoopen_targets_json'], true);
+        $this->assertIsArray($targets);
+        $this->assertCount(1, $targets, 'Entry autoopen must produce exactly one target');
+        $this->assertSame((int) $forum->cmid, $targets[0]['cmid']);
+        $this->assertSame('completionexpected', $targets[0]['field']);
+        $this->assertSame('cm', $targets[0]['source']);
+    }
 }

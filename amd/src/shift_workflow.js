@@ -208,10 +208,11 @@ define([], function() {
                 ' Systemfelder (Verf\u00fcgbarkeitsbedingungen) verschoben.' +
                 '</div>';
         }
+        var fieldcount = s.fieldcount || s.changes;
         var summaryHtml =
             '<p class="small mb-2">' +
-            '<strong>' + s.changes + '</strong> Felder in ' +
-            '<strong>' + s.total + '</strong> Aktivität(en) werden geändert' +
+            '<strong>' + fieldcount + '</strong> Feld(er) in ' +
+            '<strong>' + s.changes + '</strong> Aktivität(en) werden geändert' +
             (s.skipped > 0 ? ', <span class="text-muted">' + s.skipped + ' ohne Datumsvorgaben</span>' : '') +
             (s.errors > 0 ? ', <span class="text-danger">' + s.errors + ' Fehler</span>' : '') +
             '.</p>';
@@ -780,11 +781,15 @@ define([], function() {
                             '</div>';
                     }
 
+                    // Closure vars so the flat promise chain can share state across .then() calls.
+                    var shiftResult = null;
+                    var successHtml = '';
+
                     doShift(form, doScan)
                         .then(function(result) {
+                            shiftResult = result;
                             if (!result.success) {
                                 if (previewBody) {
-                                    // Use textContent to prevent XSS from error message content.
                                     var errDiv = document.createElement('div');
                                     errDiv.className = 'alert alert-danger py-2 small';
                                     errDiv.textContent = result.error || lbl.errGeneric;
@@ -795,7 +800,7 @@ define([], function() {
                                 return null;
                             }
                             var s = result.summary;
-                            var successHtml =
+                            successHtml =
                                 '<div class="alert alert-success py-2 mb-2 small">' +
                                 '<i class="fa fa-check-circle mr-1"></i>' +
                                 '<strong>' + s.success + '</strong> ' +
@@ -815,7 +820,6 @@ define([], function() {
                                     execBtn.classList.add('d-none');
                                 }
                                 if (backBtn) {
-                                    // Replace with a clone to shed all previous listeners.
                                     var backBtnClone = backBtn.cloneNode(true);
                                     backBtn.parentNode.replaceChild(backBtnClone, backBtn);
                                     backBtnClone.textContent = lbl.btnClose;
@@ -828,7 +832,8 @@ define([], function() {
                                 return null;
                             }
 
-                            // Text scan requested — load step3.
+                            // Text scan: show spinner, then return the hits promise.
+                            // Returning the promise flattens the chain without nesting.
                             if (previewBody) {
                                 previewBody.innerHTML =
                                     successHtml +
@@ -838,66 +843,60 @@ define([], function() {
                                     '</div>';
                             }
                             setTitle(modal.getAttribute('data-label-textreview') || '');
-
-                            fetchTextHits(courseid)
-                                .then(function(data) {
-                                    var deltaSec = opts.getDelta();
-                                    var hitsHtml = renderHitsHtml(data.hits, deltaSec, false, lbl);
-                                    if (step3) {
-                                        step3.querySelector('[data-ccwf-hits-body]').innerHTML = hitsHtml;
-                                        step3.querySelector('[data-ccwf-shift-result]').innerHTML = successHtml;
-                                        var applyBtn3raw = step3.querySelector('[data-ccwf-action="apply-text"]');
-                                        if (applyBtn3raw) {
-                                            // Clone to remove any previous listeners from earlier shifts.
-                                            var applyBtn3 = applyBtn3raw.cloneNode(true);
-                                            applyBtn3raw.parentNode.replaceChild(applyBtn3, applyBtn3raw);
-                                            var applyDelta = opts.getDelta();
-                                            applyBtn3.addEventListener('click', function() {
-                                                var ids = [];
-                                                step3.querySelectorAll('.ccwf-hit-cb:checked').forEach(function(cb) {
-                                                    ids.push(parseInt(cb.getAttribute('data-hitid'), 10));
-                                                });
-                                                if (ids.length === 0) {
-                                                    if (opts.onComplete) {
-                                                        opts.onComplete(result);
-                                                    }
-                                                    return;
-                                                }
-                                                applyBtn3.disabled = true;
-                                                applyTextChanges(courseid, ids, applyDelta)
-                                                    .then(function() {
-                                                        if (opts.onComplete) {
-                                                            opts.onComplete(result);
-                                                        }
-                                                        return null;
-                                                    })
-                                                    .catch(function() {
-                                                        applyBtn3.disabled = false;
-                                                    });
-                                            });
-                                        }
-                                        wireCtxToggles(step3);
-                                        showStep('3');
-                                    }
+                            return fetchTextHits(courseid);
+                        })
+                        .then(function(data) {
+                            if (!data || !shiftResult) {
                                 return null;
-                                })
-                                .catch(function() {
-                                    if (previewBody) {
-                                        previewBody.innerHTML =
-                                            successHtml +
-                                            '<p class="small text-muted mt-2 mb-0">Textanalyse nicht verfügbar.</p>';
-                                    }
-                                    if (execBtn) {
-                                        execBtn.classList.add('d-none');
-                                    }
-                                });
-                        return null;
+                            }
+                            var deltaSec = opts.getDelta();
+                            var hitsHtml = renderHitsHtml(data.hits, deltaSec, false, lbl);
+                            if (step3) {
+                                step3.querySelector('[data-ccwf-hits-body]').innerHTML = hitsHtml;
+                                step3.querySelector('[data-ccwf-shift-result]').innerHTML = successHtml;
+                                var applyBtn3raw = step3.querySelector('[data-ccwf-action="apply-text"]');
+                                if (applyBtn3raw) {
+                                    var applyBtn3 = applyBtn3raw.cloneNode(true);
+                                    applyBtn3raw.parentNode.replaceChild(applyBtn3, applyBtn3raw);
+                                    var applyDelta = opts.getDelta();
+                                    applyBtn3.addEventListener('click', function() {
+                                        var ids = [];
+                                        step3.querySelectorAll('.ccwf-hit-cb:checked').forEach(function(cb) {
+                                            ids.push(parseInt(cb.getAttribute('data-hitid'), 10));
+                                        });
+                                        if (ids.length === 0) {
+                                            if (opts.onComplete) {
+                                                opts.onComplete(shiftResult);
+                                            }
+                                            return;
+                                        }
+                                        applyBtn3.disabled = true;
+                                        applyTextChanges(courseid, ids, applyDelta)
+                                            .then(function() {
+                                                if (opts.onComplete) {
+                                                    opts.onComplete(shiftResult);
+                                                }
+                                                return null;
+                                            })
+                                            .catch(function() {
+                                                applyBtn3.disabled = false;
+                                            });
+                                    });
+                                }
+                                wireCtxToggles(step3);
+                                showStep('3');
+                            }
+                            return null;
                         })
                         .catch(function(err) {
-                            if (previewBody) {
+                            if (err && previewBody) {
+                                previewBody.innerHTML =
+                                    (successHtml || '') +
+                                    '<p class="small text-muted mt-2 mb-0">Textanalyse nicht verfügbar.</p>';
+                            } else if (previewBody) {
                                 previewBody.innerHTML =
                                     '<div class="alert alert-danger py-2 small">' +
-                                    escHtml(err.message || lbl.lblErrTitle) + '</div>';
+                                    escHtml((err && err.message) || lbl.lblErrTitle) + '</div>';
                             }
                             execBtn.disabled = false;
                         });

@@ -72,20 +72,38 @@ $PAGE->navbar->add(get_string('result_title', 'local_coursectrl'));
 
 $cmids = array_values(array_filter(array_map('intval', explode(',', $cmidsraw))));
 
-// When targets are provided (target-based timeline shift), extract cmids
-// from the targets JSON so the cmids list is populated before followdeps
-// BFS and the nothingtodo guard below.
-if (empty($cmids) && $targetsraw !== '') {
-    $earlyparse = \local_coursectrl\local\dto\shift_target::from_json_array($targetsraw);
-    foreach ($earlyparse as $t) {
-        $cmids[] = $t->get_cmid();
-    }
-    $cmids = array_values(array_unique($cmids));
-}
 
 $timelineurl = new moodle_url('/local/coursectrl/timeline.php', ['courseid' => $courseid]);
 
+// Build the payload first so that the followdeps BFS below can safely read
+// $payload['targets'] and extend it with entries from expanded CMIDs.
+$payload = [];
+if ($actiontype === 'shift_dates') {
+    $payload['delta'] = ($deltadays * 86400) + ($deltahours * 3600) + ($deltaminutes * 60);
+    // Parse structured targets and derive the initial cmid list from them.
+    $initialtargets = \local_coursectrl\local\dto\shift_target::from_json_array($targetsraw);
+    if (!empty($initialtargets)) {
+        $cmids = array_values(
+            array_unique(array_map(function ($t) {
+                return $t->get_cmid();
+            }, $initialtargets))
+        );
+        $payload['targets'] = array_map(function ($t) {
+            return $t->to_array();
+        }, $initialtargets);
+    }
+    $hasvaliddelta = $payload['delta'] !== 0;
+    $nothingtodo = empty($cmids) || !$hasvaliddelta;
+} else if ($actiontype === 'unset_dates') {
+    $fields = array_filter(array_map('trim', explode(',', $fieldsraw)));
+    $payload['fields'] = array_values($fields);
+    $nothingtodo = empty($cmids) || empty($payload['fields']);
+} else {
+    throw new moodle_exception('invalidaction', 'local_coursectrl');
+}
+
 // Expand with dependents if followdeps is set.
+// $payload is now fully initialised, so $payload['targets'] can be extended safely.
 if ($followdeps && !empty($cmids)) {
     $service = new \local_coursectrl\local\inventory\inventory_service();
     $snapshot = $service->build_for_course($courseid);
@@ -105,7 +123,7 @@ if ($followdeps && !empty($cmids)) {
     }
     $expandedcmids = array_diff(array_keys($expanded), $cmids);
     $cmids = array_keys($expanded);
-    // When targets are set, also add all date entries of expanded cmids as targets.
+    // Append date entries of expanded cmids as targets when operating in target mode.
     if (!empty($payload['targets']) && !empty($expandedcmids)) {
         $expentries = $datacollector->collect(
             array_intersect_key($snapshot->cms, array_flip($expandedcmids))
@@ -121,32 +139,6 @@ if ($followdeps && !empty($cmids)) {
     }
 }
 
-// Build the payload for the selected action.
-$payload = [];
-if ($actiontype === 'shift_dates') {
-    $payload['delta'] = ($deltadays * 86400) + ($deltahours * 3600) + ($deltaminutes * 60);
-    // Parse structured targets when provided (target-based shift from timeline).
-    $targets = \local_coursectrl\local\dto\shift_target::from_json_array($targetsraw);
-    if (!empty($targets)) {
-        // Expand cmids from targets for the followdeps BFS pass.
-        $cmids = array_values(
-            array_unique(array_map(function ($t) {
-                return $t->get_cmid();
-            }, $targets))
-        );
-        $payload['targets'] = array_map(function ($t) {
-            return $t->to_array();
-        }, $targets);
-    }
-    $hasvaliddelta = $payload['delta'] !== 0;
-    $nothingtodo = empty($cmids) || !$hasvaliddelta;
-} else if ($actiontype === 'unset_dates') {
-    $fields = array_filter(array_map('trim', explode(',', $fieldsraw)));
-    $payload['fields'] = array_values($fields);
-    $nothingtodo = empty($cmids) || empty($payload['fields']);
-} else {
-    throw new moodle_exception('invalidaction', 'local_coursectrl');
-}
 
 if ($nothingtodo) {
     if ($formatjson) {

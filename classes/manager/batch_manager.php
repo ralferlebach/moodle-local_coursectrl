@@ -477,7 +477,7 @@ class batch_manager {
             } else if ($target->get_source() === shift_target::SOURCE_CM) {
                 $cmtargets[$cmid][] = $target->get_field();
             } else if ($target->get_source() === shift_target::SOURCE_AVAILABILITY) {
-                $availtargets[$cmid] = true;
+                $availtargets[$cmid][] = $target->get_field();
             }
         }
 
@@ -547,16 +547,22 @@ class batch_manager {
             }
 
             // Shift CM-level fields for cm and availability targets.
+            // Pass the explicit field list so only the targeted fields are shifted.
             $cmlevelcmids = array_unique(
                 array_merge(array_keys($cmtargets), array_keys($availtargets))
             );
             foreach ($cmlevelcmids as $cmid) {
+                $shiftfields = array_merge(
+                    $cmtargets[$cmid] ?? [],
+                    $availtargets[$cmid] ?? []
+                );
                 $this->shift_cm_level_dates(
                     (int) $cmid,
                     $delta,
                     $batchid,
                     $summary,
-                    $hasanyfailure
+                    $hasanyfailure,
+                    $shiftfields
                 );
             }
 
@@ -600,7 +606,8 @@ class batch_manager {
      * @param int   $delta         Seconds to shift (positive = forward).
      * @param int   $batchid       Parent batch id.
      * @param array $summary       Reference to summary counters.
-     * @param bool  $hasanyfailure Failure flag (by reference).
+     * @param bool    $hasanyfailure Failure flag (by reference).
+     * @param string[] $shiftfields   Field names to restrict the shift; empty means all.
      * @return void
      */
     private function shift_cm_level_dates(
@@ -608,7 +615,8 @@ class batch_manager {
         int $delta,
         int $batchid,
         array &$summary,
-        bool &$hasanyfailure
+        bool &$hasanyfailure,
+        array $shiftfields = []
     ): void {
         global $DB;
 
@@ -631,11 +639,20 @@ class batch_manager {
         $update->id = $cmid;
         $changed = [];
 
-        if ((int) $cm->completionexpected > 0) {
+        // When $shiftfields is empty (legacy non-target path) shift everything.
+        // When set, only shift fields that were explicitly targeted.
+        $wantcompletion = empty($shiftfields)
+            || in_array('completionexpected', $shiftfields, true);
+        $wantavailability = empty($shiftfields)
+            || !empty(array_filter($shiftfields, function ($f) {
+                return strpos($f, 'availability_') === 0;
+            }));
+
+        if ($wantcompletion && (int) $cm->completionexpected > 0) {
             $update->completionexpected = (int) $cm->completionexpected + $delta;
             $changed[] = 'completionexpected';
         }
-        if (!empty($cm->availability)) {
+        if ($wantavailability && !empty($cm->availability)) {
             $newavail = $this->shift_availability_dates((string) $cm->availability, $delta);
             if ($newavail !== (string) $cm->availability) {
                 $update->availability = $newavail;

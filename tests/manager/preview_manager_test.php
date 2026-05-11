@@ -293,4 +293,151 @@ final class preview_manager_test extends \advanced_testcase {
         $this->assertSame('shift_dates', $result['action']);
         $this->assertSame(['delta' => 12345], $result['payload']);
     }
+
+    // Target-based preview tests.
+    /**
+     * Target-based preview for a single adapter field (timeopen) must not
+     * include other fields of the same CM (timeclose).
+     *
+     * @covers \local_coursectrl\manager\preview_manager
+     */
+    public function test_target_preview_single_adapter_field(): void {
+        $this->resetAfterTest();
+        $fixture = $this->create_mixed_course();
+
+        $manager = new preview_manager();
+        $payload = [
+            'delta'   => self::ONE_DAY,
+            'targets' => [
+                [
+                    'cmid'      => $fixture['quiz_cmid'],
+                    'source'    => 'adapter',
+                    'field'     => 'timeopen',
+                    'timestamp' => self::BASE_TIME,
+                ],
+            ],
+        ];
+        $result = $manager->build($fixture['courseid'], 'shift_dates', $payload);
+
+        $this->assertCount(1, $result['changes'], 'Exactly one CMID must be in the preview');
+        $change = array_values($result['changes'])[0];
+        $fields = $change->get_fields();
+        $this->assertArrayHasKey('timeopen', $fields, 'timeopen must appear in preview');
+        $this->assertArrayNotHasKey('timeclose', $fields, 'timeclose must NOT appear when not targeted');
+    }
+
+    /**
+     * Target-based preview for completionexpected on an adapter-capable CM
+     * must include completionexpected and not duedate.
+     *
+     * @covers \local_coursectrl\manager\preview_manager
+     */
+    public function test_target_preview_cm_level_on_adapter_cm(): void {
+        $this->resetAfterTest();
+        global $DB;
+        $fixture = $this->create_mixed_course();
+
+        // Set completionexpected on the assign CM.
+        $DB->set_field('course_modules', 'completionexpected', self::BASE_TIME, ['id' => $fixture['assign_cmid']]);
+
+        $manager = new preview_manager();
+        $payload = [
+            'delta'   => self::ONE_DAY,
+            'targets' => [
+                [
+                    'cmid'      => $fixture['assign_cmid'],
+                    'source'    => 'cm',
+                    'field'     => 'completionexpected',
+                    'timestamp' => self::BASE_TIME,
+                ],
+            ],
+        ];
+        $result = $manager->build($fixture['courseid'], 'shift_dates', $payload);
+
+        $this->assertCount(1, $result['changes'], 'Exactly one preview change expected');
+        $change = array_values($result['changes'])[0];
+        $fields = $change->get_fields();
+        $this->assertArrayHasKey('completionexpected', $fields, 'completionexpected must be in preview');
+        $this->assertArrayNotHasKey('duedate', $fields, 'duedate must NOT appear when only cm-level target');
+        // Old value must match what was set.
+        $this->assertSame(self::BASE_TIME, $fields['completionexpected']['old']);
+        $this->assertSame(self::BASE_TIME + self::ONE_DAY, $fields['completionexpected']['new']);
+    }
+
+    /**
+     * When a CMID has both adapter and CM-level targets, both must appear
+     * in the preview — not one silently overwriting the other.
+     *
+     * @covers \local_coursectrl\manager\preview_manager
+     */
+    public function test_target_preview_merged_adapter_and_cm_for_same_cmid(): void {
+        $this->resetAfterTest();
+        global $DB;
+        $fixture = $this->create_mixed_course();
+        $DB->set_field('course_modules', 'completionexpected', self::BASE_TIME, ['id' => $fixture['assign_cmid']]);
+
+        $manager = new preview_manager();
+        $payload = [
+            'delta'   => self::ONE_DAY,
+            'targets' => [
+                [
+                    'cmid' => $fixture['assign_cmid'],
+                    'source' => 'adapter',
+                    'field' => 'duedate',
+                    'timestamp' => self::BASE_TIME,
+                ],
+                [
+                    'cmid' => $fixture['assign_cmid'],
+                    'source' => 'cm',
+                    'field' => 'completionexpected',
+                    'timestamp' => self::BASE_TIME,
+                ],
+            ],
+        ];
+        $result = $manager->build($fixture['courseid'], 'shift_dates', $payload);
+
+        // Both fields must survive — no silent overwrite.
+        $this->assertCount(1, $result['changes'], 'Single CMID must produce one merged preview change');
+        $fields = array_values($result['changes'])[0]->get_fields();
+        $this->assertArrayHasKey('duedate', $fields, 'duedate must be present after merge');
+        $this->assertArrayHasKey('completionexpected', $fields, 'completionexpected must survive merge');
+    }
+
+    /**
+     * Summary.total reflects the number of unique target CMIDs, not total targets.
+     *
+     * @covers \local_coursectrl\manager\preview_manager
+     */
+    public function test_target_preview_summary_total_equals_unique_cmids(): void {
+        $this->resetAfterTest();
+        global $DB;
+        $fixture = $this->create_mixed_course();
+        $DB->set_field('course_modules', 'completionexpected', self::BASE_TIME, ['id' => $fixture['assign_cmid']]);
+
+        $manager = new preview_manager();
+        $payload = [
+            'delta'   => self::ONE_DAY,
+            'targets' => [
+                [
+                    'cmid' => $fixture['assign_cmid'],
+                    'source' => 'adapter',
+                    'field' => 'duedate',
+                    'timestamp' => self::BASE_TIME,
+                ],
+                [
+                    'cmid' => $fixture['assign_cmid'],
+                    'source' => 'cm',
+                    'field' => 'completionexpected',
+                    'timestamp' => self::BASE_TIME,
+                ],
+            ],
+        ];
+        $result = $manager->build($fixture['courseid'], 'shift_dates', $payload);
+
+        // Two targets for the same CMID → total = 1 unique CMID.
+        $this->assertSame(1, $result['summary']['total']);
+        // Note: summary.changes counts CMIDs with a preview object, not fields.
+        // This is a known semantic limitation — documented, not changed.
+        $this->assertSame(1, $result['summary']['changes']);
+    }
 }

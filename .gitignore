@@ -60,7 +60,6 @@ temp/
 
 # Frontend build artifacts
 /dist/
-/build/
 /coverage/
 
 # Archives / packaged artifacts

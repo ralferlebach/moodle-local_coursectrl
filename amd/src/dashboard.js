@@ -92,6 +92,42 @@ define([], function() {
         }
     };
 
+    /**
+     * Trigger a text scan when the dashboard loads and no scan has been done yet.
+     *
+     * Reads data-texthitsscanned from the dashboard root element. When the value
+     * is '0', fires a background rescan via get_text_hits so subsequent page
+     * loads show up-to-date results without requiring the user to visit the
+     * Textprüfung tab first.
+     */
+    var autoscanIfNeeded = function() {
+        var root = document.querySelector('[data-region="local_coursectrl-dashboard"]');
+        if (!root || root.getAttribute('data-texthitsscanned') !== '0') {
+            return;
+        }
+        var courseid = parseInt(root.getAttribute('data-courseid') || '0', 10);
+        if (courseid <= 0) {
+            return;
+        }
+        require(['core/ajax'], function(Ajax) {
+            Ajax.call([{
+                methodname: 'local_coursectrl_get_text_hits',
+                args: {courseid: courseid, rescan: true},
+                done: function(result) {
+                    if (result.hits && result.hits.length > 0) {
+                        window.location.reload();
+                    }
+                },
+                fail: function() {
+                    // Silent fail — user can trigger scan via Textprüfung tab.
+                },
+            }]);
+        });
+    };
+
+
+    autoscanIfNeeded();
+
     return {
         init: init,
     };

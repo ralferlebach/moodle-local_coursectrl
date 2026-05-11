@@ -57,6 +57,7 @@ $PAGE->set_url(new moodle_url('/local/coursectrl/index.php', ['courseid' => $cou
 $PAGE->set_title(format_string($course->fullname) . ' - ' . get_string('pluginname', 'local_coursectrl'));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_pagelayout('incourse');
+$PAGE->set_pagetype('course-view-' . $course->format);
 
 $service = new \local_coursectrl\local\inventory\inventory_service();
 $snapshot = $service->build_for_course((int) $courseid);

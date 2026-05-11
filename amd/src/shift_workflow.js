@@ -151,7 +151,6 @@ define([], function() {
         data.set('format', 'json');
         data.set('scan_text', String(scantext));
         return fetch(form.action, {method: 'POST', body: data})
-            // eslint-disable-next-line promise/always-return
             .then(function(r) {
                 if (!r.ok) {
                     throw new Error('HTTP ' + r.status);
@@ -209,10 +208,11 @@ define([], function() {
                 ' Systemfelder (Verf\u00fcgbarkeitsbedingungen) verschoben.' +
                 '</div>';
         }
+        var fieldcount = s.fieldcount || s.changes;
         var summaryHtml =
             '<p class="small mb-2">' +
-            '<strong>' + s.changes + '</strong> Felder in ' +
-            '<strong>' + s.total + '</strong> Aktivität(en) werden geändert' +
+            '<strong>' + fieldcount + '</strong> Feld(er) in ' +
+            '<strong>' + s.changes + '</strong> Aktivität(en) werden geändert' +
             (s.skipped > 0 ? ', <span class="text-muted">' + s.skipped + ' ohne Datumsvorgaben</span>' : '') +
             (s.errors > 0 ? ', <span class="text-danger">' + s.errors + ' Fehler</span>' : '') +
             '.</p>';
@@ -342,7 +342,7 @@ define([], function() {
                 locHtml = '<code>' + escHtml(hit.entitytype) + ':' + hit.entityid + '</code>';
             }
             locHtml += ' <span class="badge bg-light text-dark border ms-1 small">' +
-                escHtml(hit.fieldname) + '</span>';
+                escHtml(hit.fieldlabel || hit.fieldname) + '</span>';
 
             // Format normalizedvalue (ISO string) as localized date for display.
             // Use date-only format when the matched text contained no time component.
@@ -579,7 +579,7 @@ define([], function() {
      * @param {Element} opts.modal       The modal root element.
      * @param {HTMLFormElement} opts.form The shift config form.
      * @param {number}  opts.courseid    Course id.
-     * @param {number[]} opts.getCmids   Function returning selected cmids.
+     * @param {Array}    opts.getTargets Function returning the shift target array.
      * @param {number}  opts.getDelta    Function returning delta in seconds.
      * @param {boolean} opts.getScanText Function returning whether text scan is wanted.
      * @param {Function} opts.onComplete Optional callback when workflow is done.
@@ -650,7 +650,12 @@ define([], function() {
             var previewBtn = step1.querySelector('[data-ccwf-action="preview"]');
             if (previewBtn) {
                 previewBtn.addEventListener('click', function() {
-                    var cmids = opts.getCmids();
+                    var targets = opts.getTargets ? opts.getTargets() : [];
+                    // Fall back to getCmids for manage.php bulk-selection.
+                    var previewcmids = [];
+                    if (targets.length === 0 && opts.getCmids) {
+                        previewcmids = opts.getCmids();
+                    }
                     var delta = opts.getDelta();
                     // Validate inline — never open an empty modal.
                     var errEl = step1.querySelector('[data-ccwf-step1-error]');
@@ -658,7 +663,7 @@ define([], function() {
                         errEl.textContent = '';
                         errEl.classList.add('d-none');
                     }
-                    if (cmids.length === 0) {
+                    if (targets.length === 0 && previewcmids.length === 0) {
                         if (errEl) {
                             errEl.textContent = lbl.errNoselect;
                             errEl.classList.remove('d-none');
@@ -673,16 +678,19 @@ define([], function() {
                         return;
                     }
                     var payload = {delta: delta};
+                    if (targets.length > 0) {
+                        payload.targets = targets;
+                    }
+                    // Include followdeps so the preview expands dependents.
+                    if (opts.getFollowdeps && opts.getFollowdeps()) {
+                        payload.followdeps = 1;
+                    }
                     previewBtn.disabled = true;
                     previewBtn.textContent = '\u2026';
-                    fetchPreview(courseid, 'shift_dates', payload, cmids)
-                        // eslint-disable-next-line promise/always-return
+                    fetchPreview(courseid, 'shift_dates', payload, previewcmids)
                         .then(function(preview) {
                             previewBtn.disabled = false;
                             previewBtn.textContent = lbl.btnPreview;
-                            // Allow execution when only system-level fields exist
-                    // (cmids without adapters are 'skipped' in preview
-                    // but batch_manager shifts their availability dates).
                     var canExec = (preview.summary.changes || 0) > 0
                         || (preview.summary.skipped || 0) > 0;
                             var html = renderPreviewHtml(preview);
@@ -741,15 +749,18 @@ define([], function() {
                     execBtn.disabled = true;
 
                     // Push cmids + delta into form hidden fields.
-                    var cmids = opts.getCmids();
                     var deltaS = opts.getDelta();
-                    var fCmids = form.querySelector('[name="cmids"]') ||
-                                  form.querySelector('[id$="shift-cmids"]');
+                    // Populate cmids form field for manage.php legacy path.
+                    if (opts.getCmids) {
+                        var legacycmids = opts.getCmids();
+                        var fCmids = form.querySelector('[name="cmids"]') ||
+                                     form.querySelector('[id$="shift-cmids"]');
+                        if (fCmids) {
+                            fCmids.value = legacycmids.join(',');
+                        }
+                    }
                     var fDays = form.querySelector('[name="delta_days"]');
                     var fHours = form.querySelector('[name="delta_hours"]');
-                    if (fCmids) {
-                        fCmids.value = cmids.join(',');
-                    }
                     var days = Math.trunc(deltaS / 86400);
                     var hours = Math.trunc((deltaS % 86400) / 3600);
                     var minutes = Math.trunc((deltaS % 3600) / 60);
@@ -774,12 +785,15 @@ define([], function() {
                             '</div>';
                     }
 
+                    // Closure vars so the flat promise chain can share state across .then() calls.
+                    var shiftResult = null;
+                    var successHtml = '';
+
                     doShift(form, doScan)
-                        // eslint-disable-next-line promise/always-return
                         .then(function(result) {
+                            shiftResult = result;
                             if (!result.success) {
                                 if (previewBody) {
-                                    // Use textContent to prevent XSS from error message content.
                                     var errDiv = document.createElement('div');
                                     errDiv.className = 'alert alert-danger py-2 small';
                                     errDiv.textContent = result.error || lbl.errGeneric;
@@ -787,14 +801,17 @@ define([], function() {
                                     previewBody.appendChild(errDiv);
                                 }
                                 execBtn.disabled = false;
-                                return;
+                                return null;
                             }
                             var s = result.summary;
-                            var successHtml =
+                            var shiftedfields = s.fieldcount || s.success;
+                            var shiftedacts = s.success;
+                            successHtml =
                                 '<div class="alert alert-success py-2 mb-2 small">' +
                                 '<i class="fa fa-check-circle mr-1"></i>' +
-                                '<strong>' + s.success + '</strong> ' +
+                                '<strong>' + shiftedfields + '</strong> ' +
                                 escHtml(lbl.msgShifted) +
+                                ' <span class="text-muted">(' + shiftedacts + ' Aktivit\u00e4t(en))</span>' +
                                 (s.error > 0
                                     ? ', <strong class="text-danger">' +
                                       s.error + ' ' + escHtml(lbl.msgErrors) +
@@ -810,20 +827,20 @@ define([], function() {
                                     execBtn.classList.add('d-none');
                                 }
                                 if (backBtn) {
-                                    backBtn.textContent = lbl.btnClose;
-                                    backBtn.removeEventListener('click', function() {
-                                    // No-op placeholder for removeEventListener.
-                                });
-                                    backBtn.addEventListener('click', function() {
+                                    var backBtnClone = backBtn.cloneNode(true);
+                                    backBtn.parentNode.replaceChild(backBtnClone, backBtn);
+                                    backBtnClone.textContent = lbl.btnClose;
+                                    backBtnClone.addEventListener('click', function() {
                                         if (opts.onComplete) {
                                             opts.onComplete(result);
                                         }
                                     });
                                 }
-                                return;
+                                return null;
                             }
 
-                            // Text scan requested — load step3.
+                            // Text scan: show spinner, then return the hits promise.
+                            // Returning the promise flattens the chain without nesting.
                             if (previewBody) {
                                 previewBody.innerHTML =
                                     successHtml +
@@ -833,68 +850,60 @@ define([], function() {
                                     '</div>';
                             }
                             setTitle(modal.getAttribute('data-label-textreview') || '');
-
-                            fetchTextHits(courseid)
-                                // eslint-disable-next-line promise/always-return
-                                .then(function(data) {
-                                    var deltaSec = opts.getDelta();
-                                    var hitsHtml = renderHitsHtml(data.hits, deltaSec, false, lbl);
-                                    if (step3) {
-                                        step3.querySelector('[data-ccwf-hits-body]').innerHTML = hitsHtml;
-                                        step3.querySelector('[data-ccwf-shift-result]').innerHTML = successHtml;
-                                        var applyBtn3raw = step3.querySelector('[data-ccwf-action="apply-text"]');
-                                        if (applyBtn3raw) {
-                                            // Clone to remove any previous listeners from earlier shifts.
-                                            var applyBtn3 = applyBtn3raw.cloneNode(true);
-                                            applyBtn3raw.parentNode.replaceChild(applyBtn3, applyBtn3raw);
-                                            var applyDelta = opts.getDelta();
-                                            applyBtn3.addEventListener('click', function() {
-                                                var ids = [];
-                                                step3.querySelectorAll('.ccwf-hit-cb:checked').forEach(function(cb) {
-                                                    ids.push(parseInt(cb.getAttribute('data-hitid'), 10));
-                                                });
-                                                if (ids.length === 0) {
-                                                    if (opts.onComplete) {
-                                                        opts.onComplete(result);
-                                                    }
-                                                    return;
-                                                }
-                                                applyBtn3.disabled = true;
-                                                // eslint-disable-next-line promise/no-nesting
-                                                applyTextChanges(courseid, ids, applyDelta)
-                        .then(function() {
-                                                        if (opts.onComplete) {
-                                                            opts.onComplete(result);
-                                                        }
-                                                    return null;
-                                                    })
-                                                    .catch(function() {
-                                                        applyBtn3.disabled = false;
-                                                    });
-                                            });
-                                        }
-                                        wireCtxToggles(step3);
-                                        showStep('3');
-                                    }
+                            return fetchTextHits(courseid);
+                        })
+                        .then(function(data) {
+                            if (!data || !shiftResult) {
                                 return null;
-                                })
-                                .catch(function() {
-                                    if (previewBody) {
-                                        previewBody.innerHTML =
-                                            successHtml +
-                                            '<p class="small text-muted mt-2 mb-0">Textanalyse nicht verfügbar.</p>';
-                                    }
-                                    if (execBtn) {
-                                        execBtn.classList.add('d-none');
-                                    }
-                                });
-                        return null;
+                            }
+                            var deltaSec = opts.getDelta();
+                            var hitsHtml = renderHitsHtml(data.hits, deltaSec, false, lbl);
+                            if (step3) {
+                                step3.querySelector('[data-ccwf-hits-body]').innerHTML = hitsHtml;
+                                step3.querySelector('[data-ccwf-shift-result]').innerHTML = successHtml;
+                                var applyBtn3raw = step3.querySelector('[data-ccwf-action="apply-text"]');
+                                if (applyBtn3raw) {
+                                    var applyBtn3 = applyBtn3raw.cloneNode(true);
+                                    applyBtn3raw.parentNode.replaceChild(applyBtn3, applyBtn3raw);
+                                    var applyDelta = opts.getDelta();
+                                    applyBtn3.addEventListener('click', function() {
+                                        var ids = [];
+                                        step3.querySelectorAll('.ccwf-hit-cb:checked').forEach(function(cb) {
+                                            ids.push(parseInt(cb.getAttribute('data-hitid'), 10));
+                                        });
+                                        if (ids.length === 0) {
+                                            if (opts.onComplete) {
+                                                opts.onComplete(shiftResult);
+                                            }
+                                            return;
+                                        }
+                                        applyBtn3.disabled = true;
+                                        applyTextChanges(courseid, ids, applyDelta)
+                                            .then(function() {
+                                                if (opts.onComplete) {
+                                                    opts.onComplete(shiftResult);
+                                                }
+                                                return null;
+                                            })
+                                            .catch(function() {
+                                                applyBtn3.disabled = false;
+                                            });
+                                    });
+                                }
+                                wireCtxToggles(step3);
+                                showStep('3');
+                            }
+                            return null;
                         })
                         .catch(function(err) {
-                            if (previewBody) {
+                            if (err && previewBody) {
+                                previewBody.innerHTML =
+                                    (successHtml || '') +
+                                    '<p class="small text-muted mt-2 mb-0">Textanalyse nicht verfügbar.</p>';
+                            } else if (previewBody) {
                                 previewBody.innerHTML =
                                     '<div class="alert alert-danger py-2 small">' +
-                                    escHtml(err.message || lbl.lblErrTitle) + '</div>';
+                                    escHtml((err && err.message) || lbl.lblErrTitle) + '</div>';
                             }
                             execBtn.disabled = false;
                         });

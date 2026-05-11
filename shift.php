@@ -33,13 +33,13 @@ require_sesskey();
 
 $courseid   = required_param('courseid', PARAM_INT);
 $actiontype = required_param('action_type', PARAM_ALPHANUMEXT);
-$cmidsraw   = required_param('cmids', PARAM_RAW);
+$cmidsraw   = optional_param('cmids', '', PARAM_RAW);
 $followdeps = optional_param('followdeps', 0, PARAM_INT);
 $deltadays  = optional_param('delta_days', 0, PARAM_INT);
 $deltahours   = optional_param('delta_hours', 0, PARAM_INT);
 $deltaminutes = optional_param('delta_minutes', 0, PARAM_INT);
-$fieldsraw      = optional_param('fields', '', PARAM_TEXT);
-$shiftfieldsraw = optional_param('shift_fields', '', PARAM_TEXT);
+$fieldsraw   = optional_param('fields', '', PARAM_TEXT);
+$targetsraw  = optional_param('targets', '', PARAM_RAW);
 $scantext   = optional_param('scan_text', 0, PARAM_INT);
 $formatjson = optional_param('format', '', PARAM_ALPHA) === 'json';
 
@@ -58,6 +58,7 @@ $PAGE->set_title(
 );
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_pagelayout('incourse');
+$PAGE->set_pagetype('course-view-' . $course->format);
 
 $PAGE->navbar->add(
     get_string('pluginname', 'local_coursectrl'),
@@ -71,13 +72,43 @@ $PAGE->navbar->add(get_string('result_title', 'local_coursectrl'));
 
 $cmids = array_values(array_filter(array_map('intval', explode(',', $cmidsraw))));
 
+
 $timelineurl = new moodle_url('/local/coursectrl/timeline.php', ['courseid' => $courseid]);
 
+// Build the payload first so that the followdeps BFS below can safely read
+// $payload['targets'] and extend it with entries from expanded CMIDs.
+$payload = [];
+if ($actiontype === 'shift_dates') {
+    $payload['delta'] = ($deltadays * 86400) + ($deltahours * 3600) + ($deltaminutes * 60);
+    // Parse structured targets and derive the initial cmid list from them.
+    $initialtargets = \local_coursectrl\local\dto\shift_target::from_json_array($targetsraw);
+    if (!empty($initialtargets)) {
+        $cmids = array_values(
+            array_unique(array_map(function ($t) {
+                return $t->get_cmid();
+            }, $initialtargets))
+        );
+        $payload['targets'] = array_map(function ($t) {
+            return $t->to_array();
+        }, $initialtargets);
+    }
+    $hasvaliddelta = $payload['delta'] !== 0;
+    $nothingtodo = empty($cmids) || !$hasvaliddelta;
+} else if ($actiontype === 'unset_dates') {
+    $fields = array_filter(array_map('trim', explode(',', $fieldsraw)));
+    $payload['fields'] = array_values($fields);
+    $nothingtodo = empty($cmids) || empty($payload['fields']);
+} else {
+    throw new moodle_exception('invalidaction', 'local_coursectrl');
+}
+
 // Expand with dependents if followdeps is set.
+// $payload is now fully initialised, so $payload['targets'] can be extended safely.
 if ($followdeps && !empty($cmids)) {
     $service = new \local_coursectrl\local\inventory\inventory_service();
     $snapshot = $service->build_for_course($courseid);
     $depindex = new \local_coursectrl\local\analysis\dependency_index($snapshot->cms);
+    $datacollector = new \local_coursectrl\local\analysis\date_collector();
 
     $expanded = array_fill_keys($cmids, true);
     $queue = $cmids;
@@ -90,29 +121,24 @@ if ($followdeps && !empty($cmids)) {
             }
         }
     }
+    $expandedcmids = array_diff(array_keys($expanded), $cmids);
     $cmids = array_keys($expanded);
+    // Append date entries of expanded cmids as targets when operating in target mode.
+    if (!empty($payload['targets']) && !empty($expandedcmids)) {
+        $expentries = $datacollector->collect(
+            array_intersect_key($snapshot->cms, array_flip($expandedcmids))
+        );
+        foreach ($expentries as $entry) {
+            $payload['targets'][] = [
+                'cmid'      => (int) $entry['cmid'],
+                'source'    => (string) $entry['source'],
+                'field'     => (string) $entry['field'],
+                'timestamp' => (int) $entry['timestamp'],
+            ];
+        }
+    }
 }
 
-// Build the payload for the selected action.
-$payload = [];
-if ($actiontype === 'shift_dates') {
-    $payload['delta'] = ($deltadays * 86400) + ($deltahours * 3600) + ($deltaminutes * 60);
-    // Optional field restriction: only shift the specified fields.
-    $shiftfields = array_values(
-        array_filter(array_map('trim', explode(',', $shiftfieldsraw)))
-    );
-    if (!empty($shiftfields)) {
-        $payload['fields'] = $shiftfields;
-    }
-    $hasvaliddelta = $payload['delta'] !== 0;
-    $nothingtodo = empty($cmids) || !$hasvaliddelta;
-} else if ($actiontype === 'unset_dates') {
-    $fields = array_filter(array_map('trim', explode(',', $fieldsraw)));
-    $payload['fields'] = array_values($fields);
-    $nothingtodo = empty($cmids) || empty($payload['fields']);
-} else {
-    throw new moodle_exception('invalidaction', 'local_coursectrl');
-}
 
 if ($nothingtodo) {
     if ($formatjson) {
@@ -150,7 +176,7 @@ rebuild_course_cache($courseid);
 $batch = new \local_coursectrl\local\persistent\batch($batchid);
 $items = \local_coursectrl\local\persistent\batch_item::get_records(['batchid' => $batchid]);
 
-$summary = ['total' => count($items), 'success' => 0, 'noop' => 0, 'skipped' => 0, 'error' => 0];
+$summary = ['total' => count($items), 'success' => 0, 'fieldcount' => 0, 'noop' => 0, 'skipped' => 0, 'error' => 0];
 foreach ($items as $item) {
     $status = $item->get('status');
     $resultraw = $item->get('resultjson');
@@ -162,6 +188,8 @@ foreach ($items as $item) {
             $summary['noop']++;
         } else {
             $summary['success']++;
+            // Count individual fields changed for accurate UI messaging.
+            $summary['fieldcount'] += is_array($changed) ? count($changed) : 1;
         }
     } else if ($status === \local_coursectrl\local\persistent\batch_item::STATUS_SKIPPED) {
         $summary['skipped']++;

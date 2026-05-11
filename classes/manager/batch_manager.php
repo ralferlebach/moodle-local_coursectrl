@@ -38,6 +38,7 @@ namespace local_coursectrl\manager;
 
 use core\persistent;
 use local_coursectrl\event\batch_created;
+use local_coursectrl\local\dto\shift_target;
 use local_coursectrl\event\batch_executed;
 use local_coursectrl\local\contract\activity_adapter;
 use local_coursectrl\local\persistent\batch;
@@ -92,6 +93,21 @@ class batch_manager {
         int $userid
     ): int {
         global $DB;
+
+        // Targets-based path: delegate when payload carries structured targets.
+        if (!empty($payload['targets'])) {
+            $targets = [];
+            foreach ($payload['targets'] as $t) {
+                $targets[] = shift_target::from_array($t);
+            }
+            return $this->execute_from_targets(
+                $courseid,
+                $action,
+                $payload,
+                $targets,
+                $userid
+            );
+        }
 
         if (empty($cmids)) {
             $cmids = $this->collect_supported_cmids_for_course($courseid);
@@ -152,9 +168,9 @@ class batch_manager {
                     $hasanyfailure
                 );
                 // Persist core_coursemodule snapshots for completionexpected
-                // captured by the executor before shifting. This enables
-                // the rollback_manager to restore these CM-level fields
-                // alongside the adapter's own field snapshots.
+                // Captured by the executor before shifting. This enables
+                // The rollback_manager to restore these CM-level fields
+                // Alongside the adapter's own field snapshots.
                 foreach ($result['cm_snapshots'] ?? [] as $cmid => $state) {
                     $this->persist_snapshot(
                         $batchid,
@@ -399,6 +415,222 @@ class batch_manager {
     }
 
     /**
+     * Execute a shift_dates action from a structured target list.
+     *
+     * Routes each target to the correct execution path based on its source:
+     *   SOURCE_ADAPTER  — groups targets by (component, field-set) and calls the adapter.
+     *   SOURCE_CM       — shifts completionexpected directly in course_modules.
+     *   SOURCE_AVAILABILITY — shifts date conditions in the availability JSON.
+     *
+     * @param int            $courseid Course id.
+     * @param string         $action   Canonical action identifier.
+     * @param array          $payload  Must contain 'delta'; 'targets' key is ignored here.
+     * @param shift_target[] $targets  Structured target list.
+     * @param int            $userid   Acting user id.
+     * @return int Batch id of the persisted batch row.
+     */
+    private function execute_from_targets(
+        int $courseid,
+        string $action,
+        array $payload,
+        array $targets,
+        int $userid
+    ): int {
+        global $DB;
+
+        $delta = (int) ($payload['delta'] ?? 0);
+
+        // Validate target cmids belong to this course.
+        $allcmids = array_values(
+            array_unique(array_map(function (shift_target $t) {
+                return $t->get_cmid();
+            }, $targets))
+        );
+        $validcmids = $this->filter_cmids_to_course($courseid, $allcmids);
+        if (count($validcmids) !== count($allcmids)) {
+            throw new \moodle_exception('invalidcmid', 'local_coursectrl');
+        }
+
+        // Strip 'targets' from payload before persisting — keep it lean.
+        $storedpayload = $payload;
+        unset($storedpayload['targets']);
+        $batch = $this->create_batch_row($courseid, $userid, $action, $storedpayload);
+        $batchid = (int) $batch->get('id');
+
+        $createdevent = batch_created::create([
+            'context'  => \context_course::instance($courseid),
+            'objectid' => $batchid,
+            'userid'   => $userid,
+            'courseid' => $courseid,
+            'other'    => ['action' => $action],
+        ]);
+        $createdevent->trigger();
+
+        // Separate by source.
+        $adaptertargets = [];
+        $cmtargets      = [];
+        $availtargets   = [];
+        foreach ($targets as $target) {
+            $cmid = $target->get_cmid();
+            if ($target->get_source() === shift_target::SOURCE_ADAPTER) {
+                $adaptertargets[$cmid][] = $target->get_field();
+            } else if ($target->get_source() === shift_target::SOURCE_CM) {
+                $cmtargets[$cmid][] = $target->get_field();
+            } else if ($target->get_source() === shift_target::SOURCE_AVAILABILITY) {
+                $availtargets[$cmid][] = $target->get_field();
+            }
+        }
+
+        // Group adapter targets by (component, sorted field-set).
+        $adaptergroups = [];
+        foreach ($adaptertargets as $cmid => $fields) {
+            $adapter = $this->registry->get_for_cmid($cmid);
+            if ($adapter === null) {
+                continue;
+            }
+            $component = $adapter::component();
+            sort($fields);
+            $groupkey = $component . '|' . implode(',', $fields);
+            if (!isset($adaptergroups[$groupkey])) {
+                $adaptergroups[$groupkey] = [
+                    'adapter'   => $adapter,
+                    'component' => $component,
+                    'fields'    => $fields,
+                    'cmids'     => [],
+                ];
+            }
+            $adaptergroups[$groupkey]['cmids'][] = $cmid;
+        }
+
+        $hasanyfailure = false;
+        $successfulbyadapter = [];
+        $summary = [
+            'total'   => count($allcmids),
+            'success' => 0,
+            'noop'    => 0,
+            'skipped' => 0,
+            'error'   => 0,
+        ];
+
+        // Pre-snapshot cm-level values for CMIDs that have both adapter
+        // And cm-level targets, so we can detect if the adapter already
+        // Shifted a cm-level field and avoid double-shifting it below.
+        $prelevel = [];
+        foreach (array_keys($adaptertargets) as $acmid) {
+            $acmid = (int) $acmid;
+            if (isset($cmtargets[$acmid]) || isset($availtargets[$acmid])) {
+                $snap = $DB->get_record(
+                    'course_modules',
+                    ['id' => $acmid],
+                    'id, completionexpected, availability',
+                    IGNORE_MISSING
+                );
+                if ($snap) {
+                    $prelevel[$acmid] = [
+                        'completionexpected' => (int) $snap->completionexpected,
+                        'availability'       => (string) ($snap->availability ?? ''),
+                    ];
+                }
+            }
+        }
+
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            foreach ($adaptergroups as $group) {
+                $adapterpayload = $storedpayload;
+                if (!empty($group['fields'])) {
+                    $adapterpayload['fields'] = $group['fields'];
+                }
+                $result = $group['adapter']->execute_action(
+                    $action,
+                    $adapterpayload,
+                    $group['cmids'],
+                    $userid
+                );
+                if (!empty($result['errors'])) {
+                    $hasanyfailure = true;
+                }
+                $successfulcmids = $this->persist_adapter_results(
+                    $batchid,
+                    $group['component'],
+                    $result['items'] ?? [],
+                    $summary,
+                    $hasanyfailure
+                );
+                foreach ($result['cm_snapshots'] ?? [] as $cmid => $state) {
+                    $this->persist_snapshot($batchid, (int) $cmid, 'core_coursemodule', $state);
+                }
+                if (!empty($successfulcmids)) {
+                    $successfulbyadapter[$group['component']] = [
+                        'adapter' => $group['adapter'],
+                        'cmids'   => $successfulcmids,
+                    ];
+                }
+            }
+
+            // Shift CM-level fields for cm and availability targets.
+            // Skip any field the adapter already shifted (pre-snapshot check).
+            $cmlevelcmids = array_unique(
+                array_merge(array_keys($cmtargets), array_keys($availtargets))
+            );
+            foreach ($cmlevelcmids as $cmid) {
+                $cmid = (int) $cmid;
+                $cfields = $cmtargets[$cmid] ?? [];
+                $afields = $availtargets[$cmid] ?? [];
+                // If the adapter shifted completionexpected for this CMID,
+                // Remove it from the explicit cm-level shift to prevent
+                // Double-shifting (adapter may ignore payload.fields for cm-level).
+                if (!empty($prelevel[$cmid]) && in_array('completionexpected', $cfields, true)) {
+                    $postce = (int) $DB->get_field(
+                        'course_modules',
+                        'completionexpected',
+                        ['id' => $cmid]
+                    );
+                    if ($postce !== $prelevel[$cmid]['completionexpected']) {
+                        $cfields = array_values(array_diff($cfields, ['completionexpected']));
+                    }
+                }
+                if (empty($cfields) && empty($afields)) {
+                    continue;
+                }
+                $this->shift_cm_level_dates(
+                    $cmid,
+                    $delta,
+                    $batchid,
+                    $summary,
+                    $hasanyfailure,
+                    array_merge($cfields, $afields)
+                );
+            }
+
+            $transaction->allow_commit();
+        } catch (\Throwable $e) {
+            $transaction->rollback($e);
+            $batch->set('status', batch::STATUS_FAILED);
+            $batch->update();
+            throw $e;
+        }
+
+        $batch->set('status', $hasanyfailure ? batch::STATUS_FAILED : batch::STATUS_EXECUTED);
+        $batch->update();
+        $this->refresh_calendars($successfulbyadapter, $batchid);
+
+        $event = batch_executed::create([
+            'context'  => \context_course::instance($courseid),
+            'objectid' => $batchid,
+            'userid'   => $userid,
+            'courseid' => $courseid,
+            'other'    => [
+                'action'  => $action,
+                'summary' => $summary,
+            ],
+        ]);
+        $event->trigger();
+
+        return $batchid;
+    }
+
+    /**
      * Shift CM-level date fields for a single course module without an adapter.
      *
      * Handles the two system-level date fields that apply to ALL activity types:
@@ -411,7 +643,8 @@ class batch_manager {
      * @param int   $delta         Seconds to shift (positive = forward).
      * @param int   $batchid       Parent batch id.
      * @param array $summary       Reference to summary counters.
-     * @param bool  $hasanyfailure Failure flag (by reference).
+     * @param bool    $hasanyfailure Failure flag (by reference).
+     * @param string[] $shiftfields   Field names to restrict the shift; empty means all.
      * @return void
      */
     private function shift_cm_level_dates(
@@ -419,7 +652,8 @@ class batch_manager {
         int $delta,
         int $batchid,
         array &$summary,
-        bool &$hasanyfailure
+        bool &$hasanyfailure,
+        array $shiftfields = []
     ): void {
         global $DB;
 
@@ -442,11 +676,20 @@ class batch_manager {
         $update->id = $cmid;
         $changed = [];
 
-        if ((int) $cm->completionexpected > 0) {
+        // When $shiftfields is empty (legacy non-target path) shift everything.
+        // When set, only shift fields that were explicitly targeted.
+        $wantcompletion = empty($shiftfields)
+            || in_array('completionexpected', $shiftfields, true);
+        $wantavailability = empty($shiftfields)
+            || !empty(array_filter($shiftfields, function ($f) {
+                return strpos($f, 'availability_') === 0;
+            }));
+
+        if ($wantcompletion && (int) $cm->completionexpected > 0) {
             $update->completionexpected = (int) $cm->completionexpected + $delta;
             $changed[] = 'completionexpected';
         }
-        if (!empty($cm->availability)) {
+        if ($wantavailability && !empty($cm->availability)) {
             $newavail = $this->shift_availability_dates((string) $cm->availability, $delta);
             if ($newavail !== (string) $cm->availability) {
                 $update->availability = $newavail;

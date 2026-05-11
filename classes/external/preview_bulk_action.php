@@ -87,6 +87,41 @@ class preview_bulk_action extends external_api {
             $payload = [];
         }
 
+        // Expand dependents when followdeps=1 is embedded in the payload
+        // (mirrors the BFS expansion in shift.php for the execute path).
+        if (!empty($payload['followdeps']) && !empty($payload['targets'])) {
+            $service  = new \local_coursectrl\local\inventory\inventory_service();
+            $snapshot = $service->build_for_course((int) $params['courseid']);
+            $depindex = new \local_coursectrl\local\analysis\dependency_index($snapshot->cms);
+            $datacollector = new \local_coursectrl\local\analysis\date_collector();
+            $sourcecmids = array_unique(array_column($payload['targets'], 'cmid'));
+            $expanded    = array_fill_keys($sourcecmids, true);
+            $queue       = $sourcecmids;
+            while (!empty($queue)) {
+                $current = array_shift($queue);
+                foreach ($depindex->get_dependents($current) as $dep) {
+                    if (!isset($expanded[$dep])) {
+                        $expanded[$dep] = true;
+                        $queue[] = $dep;
+                    }
+                }
+            }
+            $expandedcmids = array_diff(array_keys($expanded), $sourcecmids);
+            if (!empty($expandedcmids)) {
+                $expentries = $datacollector->collect(
+                    array_intersect_key($snapshot->cms, array_flip($expandedcmids))
+                );
+                foreach ($expentries as $entry) {
+                    $payload['targets'][] = [
+                        'cmid'      => (int) $entry['cmid'],
+                        'source'    => (string) $entry['source'],
+                        'field'     => (string) $entry['field'],
+                        'timestamp' => (int) $entry['timestamp'],
+                    ];
+                }
+            }
+        }
+
         $manager = new preview_manager();
         $result = $manager->build(
             $params['courseid'],
@@ -97,10 +132,16 @@ class preview_bulk_action extends external_api {
 
         $changes = [];
         foreach ($result['changes'] as $change) {
-            $modname = str_replace('mod_', '', $change->get_component());
+            // Resolve the actual module name from the cmid: adapter subplugins
+            // (coursectrlmod_*) and system components (core_coursemodule) do not
+            // carry their own monologo image; we need mod_<modname> for the icon
+            // and the real modname for field_label_resolver.
+            $cmobj = get_coursemodule_from_id('', $change->get_cmid(), 0, false, IGNORE_MISSING);
+            $modname   = $cmobj ? $cmobj->modname : '';
+            $iconcomponent = $modname !== '' ? 'mod_' . $modname : $change->get_component();
             $iconurl = (new \moodle_url('/theme/image.php', [
                 'theme'     => isset($PAGE->theme) ? $PAGE->theme->name : 'boost',
-                'component' => $change->get_component(),
+                'component' => $iconcomponent,
                 'image'     => 'monologo',
                 'rev'       => -1,
             ]))->out(false);
@@ -152,10 +193,11 @@ class preview_bulk_action extends external_api {
             'skipped'     => $skipped,
             'errors'      => $errors,
             'summary'     => [
-                'total'   => (int)$result['summary']['total'],
-                'changes' => (int)$result['summary']['changes'],
-                'skipped' => (int)$result['summary']['skipped'],
-                'errors'  => (int)$result['summary']['errors'],
+                'total'      => (int) ($result['summary']['total'] ?? 0),
+                'changes'    => (int) ($result['summary']['changes'] ?? 0),
+                'fieldcount' => (int) ($result['summary']['fieldcount'] ?? 0),
+                'skipped'    => (int) ($result['summary']['skipped'] ?? 0),
+                'errors'     => (int) ($result['summary']['errors'] ?? 0),
             ],
         ];
     }
@@ -194,10 +236,11 @@ class preview_bulk_action extends external_api {
                 ])
             ),
             'summary' => new external_single_structure([
-                'total' => new external_value(PARAM_INT, 'Total cmids processed'),
-                'changes' => new external_value(PARAM_INT, 'Count of cmids with preview changes'),
-                'skipped' => new external_value(PARAM_INT, 'Count of skipped cmids'),
-                'errors' => new external_value(PARAM_INT, 'Count of errored cmids'),
+                'total'      => new external_value(PARAM_INT, 'Total cmids processed'),
+                'changes'    => new external_value(PARAM_INT, 'Count of cmids with preview changes'),
+                'fieldcount' => new external_value(PARAM_INT, 'Total number of date fields to be shifted'),
+                'skipped'    => new external_value(PARAM_INT, 'Count of skipped cmids'),
+                'errors'     => new external_value(PARAM_INT, 'Count of errored cmids'),
             ]),
         ]);
     }

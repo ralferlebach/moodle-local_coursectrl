@@ -40,9 +40,11 @@ $PAGE->set_url(new moodle_url('/local/coursectrl/history.php', [
     'page'     => $page,
 ]));
 $PAGE->set_context($context);
+$PAGE->set_course($course);
 $PAGE->set_title(get_string('nav_history', 'local_coursectrl'));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_pagelayout('incourse');
+$PAGE->set_pagetype('course-view-' . $course->format);
 
 $PAGE->navbar->add(
     get_string('pluginname', 'local_coursectrl'),

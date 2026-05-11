@@ -56,31 +56,45 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
 
 
     /**
-     * Collect cmids from entry buttons inside a slot card body.
+     * Build a structured shift target from a shift-entry button element.
+     *
+     * @param {HTMLElement} btn A [data-action="shift-entry"] button.
+     * @return {{cmid: number, source: string, field: string, timestamp: number}}
+     */
+    var targetFromBtn = function(btn) {
+        return {
+            cmid:      parseInt(btn.getAttribute('data-cmid'), 10),
+            source:    btn.getAttribute('data-source') || 'adapter',
+            field:     btn.getAttribute('data-field') || '',
+            timestamp: parseInt(btn.getAttribute('data-timestamp'), 10) || 0
+        };
+    };
+
+    /**
+     * Collect shift targets from entry buttons inside a slot card body.
      *
      * @param {HTMLElement} slotBody .card-body of a slot row.
-     * @return {string[]} Array of cmid strings.
+     * @return {Array} Array of target objects.
      */
-    var cmidsForSlotBody = function(slotBody) {
-        var ids = [];
+    var targetsForSlotBody = function(slotBody) {
+        var targets = [];
         slotBody.querySelectorAll('[data-action="shift-entry"]').forEach(function(b) {
-            ids.push(b.getAttribute('data-cmid'));
+            targets.push(targetFromBtn(b));
         });
-        return ids;
+        return targets;
     };
 
     // ── Modal helpers ────────────────────────────────────────────────────────
 
     /**
-     * Open the shift dialog, reset to step 1, pre-fill cmids/label/title.
+     * Open the shift dialog, reset to step 1, pre-fill targets/label/title.
      *
-     * @param {string[]} cmids     CM ids to shift.
-     * @param {string}   mode      'slot', 'entry' or 'following'.
-     * @param {string}   label     Human-readable scope description.
-     * @param {boolean}  following True for shift-following action.
-     * @param {string}   field     Optional single field name to restrict the shift.
+     * @param {Array}   targets   Structured shift targets [{cmid, source, field, timestamp}].
+     * @param {string}  mode      'slot', 'entry' or 'following'.
+     * @param {string}  label     Human-readable scope description.
+     * @param {boolean} following True for shift-following action.
      */
-    var openShiftDialog = function(cmids, mode, label, following, field) {
+    var openShiftDialog = function(targets, mode, label, following) {
         var dialog = document.getElementById('coursectrl-shift-dialog');
         if (!dialog) {
             return;
@@ -89,14 +103,12 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
         // Reset the workflow to step 1 before opening.
         ShiftWorkflow.reset(dialog);
 
-        document.getElementById('coursectrl-shift-cmids').value = cmids.join(',');
-        document.getElementById('coursectrl-shift-mode').value = mode;
-
-        // Set field restriction (single field for entry-level shifts, empty for slot/following).
-        var fieldsInput = document.getElementById('coursectrl-shift-fields');
-        if (fieldsInput) {
-            fieldsInput.value = (field && mode === 'entry') ? field : '';
+        var targetsInput = document.getElementById('coursectrl-shift-targets');
+        if (targetsInput) {
+            targetsInput.value = JSON.stringify(targets);
         }
+
+        document.getElementById('coursectrl-shift-mode').value = mode;
 
         var daysEl = document.getElementById('coursectrl-shift-delta-days');
         var hoursEl = document.getElementById('coursectrl-shift-delta-hours');
@@ -153,8 +165,15 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
             if (d) {
                 d.style.display = 'none';
                 d.classList.remove('show');
+                d.setAttribute('aria-hidden', 'true');
             }
         });
+        // Remove modal backdrop and body class regardless of how the modal was opened.
+        var bd = document.querySelector('.modal-backdrop');
+        if (bd) {
+            bd.remove();
+        }
+        document.body.classList.remove('modal-open');
         if (shiftApplied) {
             window.location.reload();
         }
@@ -243,8 +262,8 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
         root.querySelectorAll('[data-action="shift-slot"]').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var slotBody = btn.closest('.card-body');
-                var cmids = slotBody ? cmidsForSlotBody(slotBody) : [];
-                openShiftDialog(cmids, 'slot', 'Zeitfenster: ' + cmids.length + ' Eintr\u00e4ge', false);
+                var targets = slotBody ? targetsForSlotBody(slotBody) : [];
+                openShiftDialog(targets, 'slot', 'Zeitfenster: ' + targets.length + ' Eintr\u00e4ge', false);
             });
         });
 
@@ -252,33 +271,32 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
         root.querySelectorAll('[data-action="shift-following"]').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var ts = parseInt(btn.getAttribute('data-timestamp'), 10) || 0;
-                var cmids = [];
-                root.querySelectorAll('.card-body').forEach(function(slotBody) {
-                    var slotBtn = slotBody.querySelector('[data-action="shift-slot"]');
-                    if (!slotBtn) {
+                var targets = [];
+                var seen = {};
+                root.querySelectorAll('[data-action="shift-entry"]').forEach(function(b) {
+                    var entryTs = parseInt(b.getAttribute('data-timestamp'), 10) || 0;
+                    if (entryTs < ts) {
                         return;
                     }
-                    var candidateTs = parseInt(slotBtn.getAttribute('data-timestamp'), 10) || 0;
-                    if (candidateTs >= ts) {
-                        cmids = cmids.concat(cmidsForSlotBody(slotBody));
+                    var key = b.getAttribute('data-cmid') + ':' + b.getAttribute('data-field');
+                    if (seen[key]) {
+                        return;
                     }
+                    seen[key] = true;
+                    targets.push(targetFromBtn(b));
                 });
-                cmids = cmids.filter(function(v, i, a) {
-                    return a.indexOf(v) === i;
-                });
-                openShiftDialog(cmids, 'slot', 'Ab diesem Zeitpunkt: ' + cmids.length + ' Eintr\u00e4ge', true);
+                openShiftDialog(targets, 'slot', 'Ab diesem Zeitpunkt: ' + targets.length + ' Eintr\u00e4ge', true);
             });
         });
 
         // Open shift dialog for a single entry.
         root.querySelectorAll('[data-action="shift-entry"]').forEach(function(btn) {
             btn.addEventListener('click', function() {
-                var cmid = btn.getAttribute('data-cmid');
-                var field = btn.getAttribute('data-field') || '';
+                var target = targetFromBtn(btn);
                 var li = btn.closest('li');
                 var link = li ? li.querySelector('a') : null;
-                var name = link ? link.textContent.trim() : 'cmid ' + cmid;
-                openShiftDialog([cmid], 'entry', name, false, field);
+                var name = link ? link.textContent.trim() : 'cmid ' + target.cmid;
+                openShiftDialog([target], 'entry', name, false);
             });
         });
 
@@ -290,9 +308,20 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
                 modal: shiftModal,
                 form: shiftForm,
                 courseid: courseid,
-                getCmids: function() {
-                    var v = document.getElementById('coursectrl-shift-cmids');
-                    return v ? v.value.split(',').filter(Boolean).map(Number) : [];
+                getTargets: function() {
+                    var v = document.getElementById('coursectrl-shift-targets');
+                    if (!v || !v.value) {
+                        return [];
+                    }
+                    try {
+                        return JSON.parse(v.value);
+                    } catch (e) {
+                        return [];
+                    }
+                },
+                getFollowdeps: function() {
+                    var v = document.getElementById('coursectrl-shift-followdeps');
+                    return v ? v.value === '1' : false;
                 },
                 getDelta: function() {
                     var d = parseInt(
@@ -313,7 +342,13 @@ define(['local_coursectrl/shift_workflow'], function(ShiftWorkflow) {
                 onComplete: function() {
                     shiftApplied = true;
                     closeDialogs();
-                    location.reload();
+                    // Strip autoopen parameters so the modal does not re-open on reload.
+                    var reloadurl = new URL(window.location.href);
+                    reloadurl.searchParams.delete('autoopen');
+                    reloadurl.searchParams.delete('shift_ts');
+                    reloadurl.searchParams.delete('shift_cmid');
+                    reloadurl.searchParams.delete('shift_field');
+                    window.location.href = reloadurl.toString();
                 },
             });
         }

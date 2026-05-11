@@ -1,0 +1,63 @@
+name: Moodle Plugin CI (5.2 Ready)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  moodle-plugin-ci:
+    runs-on: ubuntu-24.04 # Neuestes Ubuntu für PHP 8.3+ und aktuelle Browser-Treiber
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        # 405 (Moodle 4.5 LTS) und 502 (Moodle 5.2 Stable)
+        moodle-branch: ['MOODLE_405_STABLE', 'MOODLE_502_STABLE']
+        php: ['8.3', '8.4'] # Moodle 5.2 benötigt min. PHP 8.3
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: gd, mysqli, zip, intl, soap, sodium # Sodium ist Pflicht ab 4.2+
+          ini-values: max_input_vars=5000 # Erforderlich ab Moodle 5.0+
+
+      - name: Setup Moodle Plugin CI
+        uses: moodlehq/moodle-plugin-ci/setup@v4
+        with:
+          moodle-branch: ${{ matrix.moodle-branch }}
+          # Automatische DB-Bereitstellung (MySQL 8.4/MariaDB 10.11 kompatibel)
+          
+      - name: PHP Checks (Lint & Sniffer)
+        run: |
+          moodle-plugin-ci phplint
+          moodle-plugin-ci phpcs
+        
+      - name: Frontend Checks (Mustache & Grunt)
+        run: |
+          moodle-plugin-ci mustache
+          moodle-plugin-ci grunt
+        
+      - name: PHPUnit Tests
+        run: moodle-plugin-ci phpunit
+
+      # Behat Konfiguration für Moodle 5.2 UI-Tests
+      - name: Run Behat Tests
+        id: behat
+        run: moodle-plugin-ci behat --profile chrome --auto-rerun 2
+        
+      # Upload von Screenshots bei Fehlern (hilfreich für Behat-Debugging)
+      - name: Upload Behat Faildump
+        if: ${{ failure() && steps.behat.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Behat Faildump (${{ matrix.moodle-branch }}-${{ matrix.php }})
+          path: ${{ github.workspace }}/moodledata/behat_dump
+          retention-days: 7

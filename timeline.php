@@ -38,6 +38,16 @@ $shiftbatchid = optional_param('batchid', 0, PARAM_INT);
 $focuscmid    = optional_param('focus', 0, PARAM_INT);
 $focusdayparam = optional_param('focus_day', '', PARAM_ALPHANUMEXT);
 
+// Autoopen shift dialog from external link (e.g. block_coursectrldates).
+// autoopen: 'slot' | 'following' | 'entry'
+// shift_ts:    unix timestamp (slot / following)
+// shift_cmid:  course-module id (entry)
+// shift_field: field name for entry-mode autoopen.
+$autoopenmode  = optional_param('autoopen', '', PARAM_ALPHA);
+$autoshiftts   = optional_param('shift_ts', 0, PARAM_INT);
+$autoshiftcmid = optional_param('shift_cmid', 0, PARAM_INT);
+$autoshiftfield = optional_param('shift_field', '', PARAM_ALPHANUMEXT);
+
 $course = get_course($courseid);
 $context = context_course::instance($courseid);
 require_login($course);
@@ -117,6 +127,10 @@ $filters = [
     'from_shift' => (bool) $fromshift,
     'shift_batchid' => $shiftbatchid,
     'focusdaykey' => $focusdaykey,
+    'autoopen_mode'   => $autoopenmode,
+    'autoopen_ts'     => $autoshiftts,
+    'autoopen_cmid'   => $autoshiftcmid,
+    'autoopen_field'  => $autoshiftfield,
 ];
 
 $renderable = new \local_coursectrl\output\timeline_page($snapshot, $filters);

@@ -8,10 +8,10 @@ all: clear fix-phpdoc lint-php fix-lint-php lint-js lint-phpdoc lint-mustache
 	@echo ""
 	@echo "=== All checks complete. Review output above for errors. ==="
 
-fix: clear fix-phpdoc fix-lint-php
+fix: clear fix-phpdoc fix-lint-php lint-js
 	@echo ""
 	@echo "=== All fixes complete. ==="
-	
+
 check: clear lint-php lint-js lint-phpdoc lint-mustache
 	@echo ""
 	@echo "=== All checks complete. Review output above for errors. ==="
@@ -28,7 +28,7 @@ fix-phpdoc:
 lint-php:
 	@echo ""
 	@echo "=== phpcs (reads phpcs.xml, excludes tools/) ==="
-	-cd $(MOODLE_ROOT)/$(PLUGIN_PATH) && phpcs .
+	-cd $(MOODLE_ROOT)/$(PLUGIN_PATH) && phpcs --standard=moodle --extensions=php --severity=1 --no-cache .
 
 fix-lint-php:
 	@echo ""
@@ -38,6 +38,7 @@ fix-lint-php:
 lint-js:
 	@echo ""
 	@echo "=== ESLint ==="
+	-npx grunt amd --force
 	-cd $(MOODLE_ROOT) && npx grunt eslint --root=. \
 	    --files=$(PLUGIN_PATH)/amd/src/ \
 		--show-lint-warnings

@@ -268,7 +268,12 @@ jobs:
       - name: Behat
         id: behat
         if: ${{ !cancelled() }}
-        run: moodle-plugin-ci behat --profile chrome --scss-deprecations
+        run: >-
+          moodle-plugin-ci behat
+          --profile chrome
+          --tags "@local_coursectrl and not @broken"
+          --start-servers
+          --scss-deprecations
 
       - name: Upload Behat faildump
         if: ${{ failure() && steps.behat.outcome == 'failure' }}

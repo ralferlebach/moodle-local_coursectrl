@@ -38,6 +38,7 @@ class behat_local_coursectrl extends behat_base {
      *
      * @Given /^I am on the checks page for course "(?P<shortname_string>(?:[^"]|\\")*)"$/
      * @param string $shortname Course short name.
+     * @return void
      */
     public function i_am_on_the_checks_page_for_course(string $shortname): void {
         global $DB;
@@ -53,6 +54,7 @@ class behat_local_coursectrl extends behat_base {
      * @Given /^I am on the checks page for course "(?P<shortname_string>(?:[^"]|\\")*)" tab "(?P<tab_string>(?:[^"]|\\")*)"$/
      * @param string $shortname Course short name.
      * @param string $tab       Tab name: consistency | risks | simulation.
+     * @return void
      */
     public function i_am_on_the_checks_page_tab(string $shortname, string $tab): void {
         global $DB;
@@ -70,6 +72,7 @@ class behat_local_coursectrl extends behat_base {
      *
      * @Given /^I run the risk assessment for course "(?P<shortname_string>(?:[^"]|\\")*)"$/
      * @param string $shortname Course short name.
+     * @return void
      */
     public function i_run_the_risk_assessment(string $shortname): void {
         global $DB;
@@ -87,6 +90,7 @@ class behat_local_coursectrl extends behat_base {
      *
      * @Given I am on the coursectrl dashboard for course :shortname
      * @param string $shortname Course shortname.
+     * @return void
      */
     public function i_am_on_the_coursectrl_dashboard_for_course(string $shortname): void {
         global $DB;
@@ -101,6 +105,7 @@ class behat_local_coursectrl extends behat_base {
      *
      * @Given I am on the timeline page for course :shortname
      * @param string $shortname Course shortname.
+     * @return void
      */
     public function i_am_on_the_timeline_page_for_course(string $shortname): void {
         global $DB;
@@ -115,6 +120,7 @@ class behat_local_coursectrl extends behat_base {
      *
      * @Given I am on the textreview tab for course :shortname
      * @param string $shortname Course shortname.
+     * @return void
      */
     public function i_am_on_the_textreview_tab_for_course(string $shortname): void {
         global $DB;
@@ -132,6 +138,7 @@ class behat_local_coursectrl extends behat_base {
      *
      * @Given /^I am on the manage page for course "(?P<shortname_string>(?:[^"]|\\")*)"$/
      * @param string $shortname Course short name.
+     * @return void
      */
     public function i_am_on_the_manage_page_for_course(string $shortname): void {
         global $DB;
@@ -146,6 +153,7 @@ class behat_local_coursectrl extends behat_base {
      *
      * @Given /^I am on the history page for course "(?P<shortname_string>(?:[^"]|\\")*)"$/
      * @param string $shortname Course short name.
+     * @return void
      */
     public function i_am_on_the_history_page_for_course(string $shortname): void {
         global $DB;
@@ -161,6 +169,7 @@ class behat_local_coursectrl extends behat_base {
      * Click the first shift-slot button visible on the timeline.
      *
      * @When I click the first slot shift button on the timeline
+     * @return void
      */
     public function i_click_first_slot_shift_button(): void {
         $btn = $this->find('css', '[data-action="shift-slot"]');
@@ -175,6 +184,7 @@ class behat_local_coursectrl extends behat_base {
      * Click the first shift-following button visible on the timeline.
      *
      * @When I click the first following shift button on the timeline
+     * @return void
      */
     public function i_click_first_following_shift_button(): void {
         $btn = $this->find('css', '[data-action="shift-following"]');
@@ -190,6 +200,7 @@ class behat_local_coursectrl extends behat_base {
      *
      * @When I click the entry shift button for :modtype on the timeline
      * @param string $modtype Module type, e.g. "assign", "forum".
+     * @return void
      */
     public function i_click_entry_shift_button_for_modtype(string $modtype): void {
         // Find a shift-entry button whose parent li contains a pix element for this module.
@@ -214,6 +225,7 @@ class behat_local_coursectrl extends behat_base {
      *
      * @When I set the shift days to :days
      * @param int $days Number of days.
+     * @return void
      */
     public function i_set_shift_days(int $days): void {
         $this->getSession()->executeScript(
@@ -226,6 +238,7 @@ class behat_local_coursectrl extends behat_base {
      *
      * @When I set the shift hours to :hours
      * @param int $hours Number of hours.
+     * @return void
      */
     public function i_set_shift_hours(int $hours): void {
         $this->getSession()->executeScript(
@@ -238,6 +251,7 @@ class behat_local_coursectrl extends behat_base {
      *
      * @When I set the shift minutes to :minutes
      * @param int $minutes Number of minutes.
+     * @return void
      */
     public function i_set_shift_minutes(int $minutes): void {
         $this->getSession()->executeScript(
@@ -249,6 +263,7 @@ class behat_local_coursectrl extends behat_base {
      * Enable the followdeps checkbox in the shift modal.
      *
      * @When I enable the followdeps checkbox in the shift modal
+     * @return void
      */
     public function i_enable_followdeps_checkbox(): void {
         $cb = $this->find('css', '#coursectrl-shift-followdeps-cb');
@@ -279,6 +294,7 @@ class behat_local_coursectrl extends behat_base {
      * Click the Preview button in the shift modal and wait for the AJAX response.
      *
      * @When I click the shift preview button and wait
+     * @return void
      */
     public function i_click_shift_preview_and_wait(): void {
         $btn = $this->find('css', '[data-ccwf-action="preview"]');
@@ -330,6 +346,7 @@ class behat_local_coursectrl extends behat_base {
      *
      * @When I click the preview info button :index
      * @param int $index 1-based index of the info button.
+     * @return void
      */
     public function i_click_preview_info_button(int $index): void {
         $buttons = $this->find_all('css', '[data-ccwf-preview-body] .ccwf-preview-toggle');
@@ -348,6 +365,7 @@ class behat_local_coursectrl extends behat_base {
      * Enable the "text review after shift" checkbox in the preview step.
      *
      * @When I enable the text review checkbox in the shift preview
+     * @return void
      */
     public function i_enable_text_review_checkbox(): void {
         $cb = $this->find('css', '#ccwf-scantext-cb');
@@ -366,6 +384,7 @@ class behat_local_coursectrl extends behat_base {
      * Click "Verschiebung anwenden" and wait for the AJAX result.
      *
      * @When I apply the shift and wait
+     * @return void
      */
     public function i_apply_shift_and_wait(): void {
         $btn = $this->find('css', '[data-ccwf-action="execute"]');
@@ -453,6 +472,7 @@ class behat_local_coursectrl extends behat_base {
      * Click the first (i) context button in the text review step and wait.
      *
      * @When I click the first context button in the text review step
+     * @return void
      */
     public function i_click_first_context_button_in_text_review(): void {
         $btn = $this->find('css', '[data-ccwf-step="3"] .ccwf-ctx-btn');
@@ -468,6 +488,7 @@ class behat_local_coursectrl extends behat_base {
      *
      * @When I select the first :count text hit checkboxes
      * @param int $count Number of checkboxes to check.
+     * @return void
      */
     public function i_select_first_text_hit_checkboxes(int $count): void {
         $checkboxes = $this->find_all('css', '[data-ccwf-step="3"] .ccwf-hit-cb');
@@ -483,6 +504,7 @@ class behat_local_coursectrl extends behat_base {
      * Click "Ausgewählte Textänderungen anwenden" and wait.
      *
      * @When I apply the selected text changes and wait
+     * @return void
      */
     public function i_apply_selected_text_changes(): void {
         $btn = $this->find('css', '[data-ccwf-action="apply-text"]');
@@ -519,6 +541,7 @@ class behat_local_coursectrl extends behat_base {
      *
      * @When I set the textreview delta to :days days
      * @param int $days Delta in days (positive or negative).
+     * @return void
      */
     public function i_set_textreview_delta_days(int $days): void {
         $this->getSession()->executeScript(
@@ -531,6 +554,7 @@ class behat_local_coursectrl extends behat_base {
      * Apply text changes from the Textprüfung tab (not from the shift modal).
      *
      * @When I apply text changes from the textreview tab and wait
+     * @return void
      */
     public function i_apply_text_changes_from_tab(): void {
         $btn = $this->find('css', '#coursectrl-textreview-apply-btn');
@@ -560,6 +584,7 @@ class behat_local_coursectrl extends behat_base {
      * @param string $shortname   Course shortname.
      * @param int    $days        Number of days to shift.
      * @param int    $originalts  Original Unix timestamp to compute expected value from.
+     * @return void
      */
     public function duedate_should_be_shifted(
         string $name,
@@ -590,6 +615,7 @@ class behat_local_coursectrl extends behat_base {
      * @param string $shortname   Course shortname.
      * @param int    $days        Number of days to shift.
      * @param int    $originalts  Original Unix timestamp.
+     * @return void
      */
     public function completionexpected_should_be_shifted(
         string $modtype,
@@ -625,6 +651,7 @@ class behat_local_coursectrl extends behat_base {
      * @param string $name       Assignment name.
      * @param string $shortname  Course shortname.
      * @param int    $originalts Expected original Unix timestamp.
+     * @return void
      */
     public function duedate_should_still_be(string $name, string $shortname, int $originalts): void {
         global $DB;
@@ -648,6 +675,7 @@ class behat_local_coursectrl extends behat_base {
      * @param string $name      Module instance name.
      * @param string $shortname Course shortname.
      * @param int    $timestamp Unix timestamp to set.
+     * @return void
      */
     public function set_completionexpected(
         string $modtype,
@@ -676,6 +704,7 @@ class behat_local_coursectrl extends behat_base {
      * @When I click the entry shift button for activity :name and field :fieldkey
      * @param string $name     Activity name as displayed in the timeline link text.
      * @param string $fieldkey Raw technical field key, e.g. "duedate".
+     * @return void
      */
     public function i_click_entry_shift_button_for_activity_and_field(
         string $name,
@@ -707,6 +736,7 @@ class behat_local_coursectrl extends behat_base {
      * @param string $shortname  Course shortname.
      * @param int    $days       Number of days shifted.
      * @param int    $originalts Original Unix timestamp.
+     * @return void
      */
     public function field_of_module_should_be_shifted(
         string $field,
@@ -738,6 +768,7 @@ class behat_local_coursectrl extends behat_base {
      * @param string $name       Module instance name.
      * @param string $shortname  Course shortname.
      * @param int    $originalts Expected unchanged Unix timestamp.
+     * @return void
      */
     public function field_of_module_should_still_be(
         string $field,
@@ -813,6 +844,7 @@ class behat_local_coursectrl extends behat_base {
      * @param string $name      Activity name.
      * @param string $shortname Course shortname.
      * @param int    $ts        Unix timestamp to set.
+     * @return void
      */
     public function set_completionexpected_for_activity(
         string $modtype,
@@ -832,6 +864,7 @@ class behat_local_coursectrl extends behat_base {
      *
      * @When I click the slot shift button for timestamp :ts
      * @param int $ts Unix timestamp of the target slot.
+     * @return void
      */
     public function i_click_slot_shift_button_for_timestamp(int $ts): void {
         $btn = $this->find(
@@ -853,6 +886,7 @@ class behat_local_coursectrl extends behat_base {
      *
      * @When I click the following shift button for timestamp :ts
      * @param int $ts Unix timestamp of the target slot.
+     * @return void
      */
     public function i_click_following_shift_button_for_timestamp(int $ts): void {
         $btn = $this->find(
@@ -879,6 +913,7 @@ class behat_local_coursectrl extends behat_base {
      * @param string $shortname  Course shortname.
      * @param string $modtype2   Module type of the prerequisite activity.
      * @param string $name2      Name of the prerequisite activity.
+     * @return void
      */
     public function set_availability_completion_dependency(
         string $modtype,
@@ -910,6 +945,7 @@ class behat_local_coursectrl extends behat_base {
      * @param string $shortname  Course shortname.
      * @param int    $days       Number of days shifted.
      * @param int    $originalts Original Unix timestamp.
+     * @return void
      */
     public function timeopen_of_quiz_should_be_shifted(
         string $name,
@@ -937,6 +973,7 @@ class behat_local_coursectrl extends behat_base {
      * @param string $name       Quiz instance name.
      * @param string $shortname  Course shortname.
      * @param int    $originalts Expected unchanged timestamp.
+     * @return void
      */
     public function timeopen_of_quiz_should_still_be(
         string $name,
@@ -963,6 +1000,7 @@ class behat_local_coursectrl extends behat_base {
      * @param string $shortname  Course shortname.
      * @param int    $days       Number of days shifted.
      * @param int    $originalts Original Unix timestamp.
+     * @return void
      */
     public function timeclose_of_quiz_should_be_shifted(
         string $name,
@@ -990,6 +1028,7 @@ class behat_local_coursectrl extends behat_base {
      * @param string $name       Quiz instance name.
      * @param string $shortname  Course shortname.
      * @param int    $originalts Expected unchanged timestamp.
+     * @return void
      */
     public function timeclose_of_quiz_should_still_be(
         string $name,
@@ -1016,6 +1055,7 @@ class behat_local_coursectrl extends behat_base {
      * @param string $shortname  Course shortname.
      * @param int    $days       Number of days shifted.
      * @param int    $originalts Original Unix timestamp.
+     * @return void
      */
     public function completionexpected_of_assign_should_be_shifted(
         string $name,

@@ -79,6 +79,7 @@ final class preview_manager_test extends \advanced_testcase {
      * Single-adapter call: build with one assign cmid produces a single
      * preview_change with the four assign date fields.
      * @covers \local_coursectrl\manager\preview_manager
+     * @return void
      */
     public function test_single_adapter_assign(): void {
         $this->resetAfterTest();
@@ -104,6 +105,7 @@ final class preview_manager_test extends \advanced_testcase {
      * Multi-adapter routing: build with one assign + one quiz + one
      * feedback cmid produces three correctly typed preview_changes.
      * @covers \local_coursectrl\manager\preview_manager
+     * @return void
      */
     public function test_multi_adapter_routing(): void {
         $this->resetAfterTest();
@@ -135,6 +137,7 @@ final class preview_manager_test extends \advanced_testcase {
      * Empty cmids defaults to "all CMs of all supported components" in
      * the course.
      * @covers \local_coursectrl\manager\preview_manager
+     * @return void
      */
     public function test_empty_cmids_means_whole_course(): void {
         $this->resetAfterTest();
@@ -155,6 +158,7 @@ final class preview_manager_test extends \advanced_testcase {
      * cmids that have no registered adapter are reported as skipped with
      * reason 'no_adapter', not as errors.
      * @covers \local_coursectrl\manager\preview_manager
+     * @return void
      */
     public function test_cmid_without_adapter_is_skipped(): void {
         $this->resetAfterTest();
@@ -181,6 +185,7 @@ final class preview_manager_test extends \advanced_testcase {
      * cmids whose adapter does not advertise the requested action are
      * reported as skipped with reason 'unsupported_action'.
      * @covers \local_coursectrl\manager\preview_manager
+     * @return void
      */
     public function test_cmid_with_unsupported_action_is_skipped(): void {
         $this->resetAfterTest();
@@ -203,6 +208,7 @@ final class preview_manager_test extends \advanced_testcase {
      * Validation errors from the adapter end up in 'errors', not in
      * 'changes', and the changes list is empty.
      * @covers \local_coursectrl\manager\preview_manager
+     * @return void
      */
     public function test_validation_errors_are_reported(): void {
         $this->resetAfterTest();
@@ -225,6 +231,7 @@ final class preview_manager_test extends \advanced_testcase {
      * The summary block reflects the correct counts for changes, skipped
      * and errors after a mixed run.
      * @covers \local_coursectrl\manager\preview_manager
+     * @return void
      */
     public function test_summary_counts(): void {
         $this->resetAfterTest();
@@ -255,6 +262,7 @@ final class preview_manager_test extends \advanced_testcase {
      * call are dispatched to the correct adapter and produce per-component
      * preview_changes whose fields match each adapter's field map.
      * @covers \local_coursectrl\manager\preview_manager
+     * @return void
      */
     public function test_cross_component_routing_uses_correct_field_maps(): void {
         $this->resetAfterTest();
@@ -279,6 +287,7 @@ final class preview_manager_test extends \advanced_testcase {
      * consumers (UI, batch_manager) that need to bind a preview to its
      * intended execute call.
      * @covers \local_coursectrl\manager\preview_manager
+     * @return void
      */
     public function test_result_carries_action_and_payload(): void {
         $this->resetAfterTest();
@@ -300,6 +309,7 @@ final class preview_manager_test extends \advanced_testcase {
      * include other fields of the same CM (timeclose).
      *
      * @covers \local_coursectrl\manager\preview_manager
+     * @return void
      */
     public function test_target_preview_single_adapter_field(): void {
         $this->resetAfterTest();
@@ -331,6 +341,7 @@ final class preview_manager_test extends \advanced_testcase {
      * must include completionexpected and not duedate.
      *
      * @covers \local_coursectrl\manager\preview_manager
+     * @return void
      */
     public function test_target_preview_cm_level_on_adapter_cm(): void {
         $this->resetAfterTest();
@@ -369,6 +380,7 @@ final class preview_manager_test extends \advanced_testcase {
      * in the preview — not one silently overwriting the other.
      *
      * @covers \local_coursectrl\manager\preview_manager
+     * @return void
      */
     public function test_target_preview_merged_adapter_and_cm_for_same_cmid(): void {
         $this->resetAfterTest();
@@ -407,6 +419,7 @@ final class preview_manager_test extends \advanced_testcase {
      * Summary.total reflects the number of unique target CMIDs, not total targets.
      *
      * @covers \local_coursectrl\manager\preview_manager
+     * @return void
      */
     public function test_target_preview_summary_total_equals_unique_cmids(): void {
         $this->resetAfterTest();
@@ -449,6 +462,7 @@ final class preview_manager_test extends \advanced_testcase {
      * by calling it directly with a real course graph.
      *
      * @covers \local_coursectrl\external\preview_bulk_action
+     * @return void
      */
     public function test_followdeps_expands_dependent_activities_in_preview(): void {
         $this->resetAfterTest();

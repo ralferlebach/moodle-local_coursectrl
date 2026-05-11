@@ -34,6 +34,7 @@ final class shift_target_test extends \advanced_testcase {
     /**
      * Adapter fields return SOURCE_ADAPTER.
      * @covers \local_coursectrl\local\dto\shift_target
+     * @return void
      */
     public function test_resolve_source_adapter_fields(): void {
         $this->assertSame(shift_target::SOURCE_ADAPTER, shift_target::resolve_source('duedate'));
@@ -44,6 +45,7 @@ final class shift_target_test extends \advanced_testcase {
     /**
      * completionexpected resolves to SOURCE_CM.
      * @covers \local_coursectrl\local\dto\shift_target
+     * @return void
      */
     public function test_resolve_source_cm(): void {
         $this->assertSame(shift_target::SOURCE_CM, shift_target::resolve_source('completionexpected'));
@@ -52,6 +54,7 @@ final class shift_target_test extends \advanced_testcase {
     /**
      * Fields prefixed availability_ resolve to SOURCE_AVAILABILITY.
      * @covers \local_coursectrl\local\dto\shift_target
+     * @return void
      */
     public function test_resolve_source_availability(): void {
         $this->assertSame(shift_target::SOURCE_AVAILABILITY, shift_target::resolve_source('availability_from_0'));
@@ -61,6 +64,7 @@ final class shift_target_test extends \advanced_testcase {
     /**
      * from_array with explicit source honours the supplied value.
      * @covers \local_coursectrl\local\dto\shift_target
+     * @return void
      */
     public function test_from_array_explicit_source(): void {
         $t = shift_target::from_array(['cmid' => 42, 'source' => 'adapter', 'field' => 'duedate', 'timestamp' => 1700000000]);
@@ -73,6 +77,7 @@ final class shift_target_test extends \advanced_testcase {
     /**
      * from_array without source infers it from the field name.
      * @covers \local_coursectrl\local\dto\shift_target
+     * @return void
      */
     public function test_from_array_infers_source(): void {
         $a = shift_target::from_array(['cmid' => 1, 'field' => 'duedate', 'timestamp' => 0]);
@@ -88,6 +93,7 @@ final class shift_target_test extends \advanced_testcase {
     /**
      * from_json_array parses valid JSON into shift_target instances.
      * @covers \local_coursectrl\local\dto\shift_target
+     * @return void
      */
     public function test_from_json_array_valid(): void {
         $json = json_encode([
@@ -103,6 +109,7 @@ final class shift_target_test extends \advanced_testcase {
     /**
      * from_json_array silently skips entries missing cmid or field.
      * @covers \local_coursectrl\local\dto\shift_target
+     * @return void
      */
     public function test_from_json_array_skips_invalid(): void {
         $json = json_encode([
@@ -119,6 +126,7 @@ final class shift_target_test extends \advanced_testcase {
     /**
      * from_json_array returns empty array on malformed JSON.
      * @covers \local_coursectrl\local\dto\shift_target
+     * @return void
      */
     public function test_from_json_array_malformed(): void {
         $this->assertSame([], shift_target::from_json_array('not json'));
@@ -129,6 +137,7 @@ final class shift_target_test extends \advanced_testcase {
     /**
      * to_array round-trips exactly {cmid, source, field, timestamp}.
      * @covers \local_coursectrl\local\dto\shift_target
+     * @return void
      */
     public function test_to_array_round_trip(): void {
         $data = ['cmid' => 99, 'source' => 'availability', 'field' => 'availability_from_0', 'timestamp' => 999];
@@ -138,6 +147,7 @@ final class shift_target_test extends \advanced_testcase {
     /**
      * Multiple targets survive encode→from_json_array round-trip.
      * @covers \local_coursectrl\local\dto\shift_target
+     * @return void
      */
     public function test_json_round_trip(): void {
         $originals = [

@@ -759,70 +759,6 @@ class behat_local_coursectrl extends behat_base {
     }
 
     /**
-     * Assert that a DB date field on an activity was shifted by an exact number
-     * of days from a known timestamp.
-     *
-     * Supports: assign (duedate), quiz (timeopen, timeclose).
-     *
-     * @Then the :field of :modtype :name in course :shortname should be shifted by :days day(s) from :originalts
-     * @param string $field      Raw DB field name.
-     * @param string $modtype    Module type.
-     * @param string $name       Module instance name.
-     * @param string $shortname  Course shortname.
-     * @param int    $days       Number of days shifted.
-     * @param int    $originalts Original Unix timestamp.
-     */
-    public function field_of_modtype_should_be_shifted(
-        string $field,
-        string $modtype,
-        string $name,
-        string $shortname,
-        int $days,
-        int $originalts
-    ): void {
-        global $DB;
-        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
-        $row    = $DB->get_record($modtype, ['course' => $course->id, 'name' => $name], 'id, ' . $field, MUST_EXIST);
-        $expected = $originalts + ($days * DAYSECS);
-        $actual   = (int) $row->$field;
-        if (abs($actual - $expected) > 60) {
-            throw new ExpectationException(
-                "Expected {$field} ≈ {$expected} (original {$originalts} + {$days} d), got {$actual}",
-                $this->getSession()
-            );
-        }
-    }
-
-    /**
-     * Assert that a DB date field on an activity has NOT been changed.
-     *
-     * @Then the :field of :modtype :name in course :shortname should still be :originalts
-     * @param string $field      Raw DB field name.
-     * @param string $modtype    Module type.
-     * @param string $name       Module instance name.
-     * @param string $shortname  Course shortname.
-     * @param int    $originalts Expected original (unchanged) Unix timestamp.
-     */
-    public function field_of_modtype_should_still_be(
-        string $field,
-        string $modtype,
-        string $name,
-        string $shortname,
-        int $originalts
-    ): void {
-        global $DB;
-        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
-        $row    = $DB->get_record($modtype, ['course' => $course->id, 'name' => $name], 'id, ' . $field, MUST_EXIST);
-        $actual = (int) $row->$field;
-        if (abs($actual - $originalts) > 60) {
-            throw new ExpectationException(
-                "Expected {$field} to remain {$originalts} but got {$actual}",
-                $this->getSession()
-            );
-        }
-    }
-
-    /**
      * Assert that the entry shift button for a given activity + field carries
      * the correct data-source and data-field attributes (not a localized label).
      *
@@ -834,10 +770,16 @@ class behat_local_coursectrl extends behat_base {
         string $name,
         string $fieldkey
     ): void {
-        $btn = $this->find(
-            'css',
-            'li:has(a:contains("' . $name . '")) [data-action="shift-entry"][data-field="' . $fieldkey . '"]'
-        );
+        // Use find_all + parent traversal to avoid non-portable :contains() / :has().
+        $buttons = $this->find_all('css', '[data-action="shift-entry"][data-field="' . $fieldkey . '"]');
+        $btn = null;
+        foreach ($buttons as $candidate) {
+            $li = $candidate->getParent();
+            if ($li && strpos($li->getText(), $name) !== false) {
+                $btn = $candidate;
+                break;
+            }
+        }
         if ($btn === null) {
             throw new ExpectationException(
                 'Shift-entry button with data-field="' . $fieldkey . '" not found for activity "' . $name . '".' .
@@ -859,5 +801,104 @@ class behat_local_coursectrl extends behat_base {
                 $this->getSession()
             );
         }
+    }
+
+    /**
+     * Set completionexpected in course_modules for a named activity.
+     *
+     * Used in Behat Background sections to prepare fixtures.
+     *
+     * @Given the completionexpected of :modtype :name in course :shortname is :ts
+     * @param string $modtype   Module type (e.g. "assign", "forum").
+     * @param string $name      Activity name.
+     * @param string $shortname Course shortname.
+     * @param int    $ts        Unix timestamp to set.
+     */
+    public function set_completionexpected_for_activity(
+        string $modtype,
+        string $name,
+        string $shortname,
+        int $ts
+    ): void {
+        global $DB;
+        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $mod    = $DB->get_record($modtype, ['course' => $course->id, 'name' => $name], 'id', MUST_EXIST);
+        $cm     = get_coursemodule_from_instance($modtype, $mod->id, $course->id, false, MUST_EXIST);
+        $DB->set_field('course_modules', 'completionexpected', $ts, ['id' => $cm->id]);
+    }
+
+    /**
+     * Click the slot-shift button for the slot at a specific Unix timestamp.
+     *
+     * @When I click the slot shift button for timestamp :ts
+     * @param int $ts Unix timestamp of the target slot.
+     */
+    public function i_click_slot_shift_button_for_timestamp(int $ts): void {
+        $btn = $this->find(
+            'css',
+            '[data-action="shift-slot"][data-timestamp="' . $ts . '"]'
+        );
+        if ($btn === null) {
+            throw new ExpectationException(
+                'No slot-shift button found for timestamp ' . $ts,
+                $this->getSession()
+            );
+        }
+        $btn->click();
+        $this->wait_for_pending_js();
+    }
+
+    /**
+     * Click the following-shift button for the slot at a specific Unix timestamp.
+     *
+     * @When I click the following shift button for timestamp :ts
+     * @param int $ts Unix timestamp of the target slot.
+     */
+    public function i_click_following_shift_button_for_timestamp(int $ts): void {
+        $btn = $this->find(
+            'css',
+            '[data-action="shift-following"][data-timestamp="' . $ts . '"]'
+        );
+        if ($btn === null) {
+            throw new ExpectationException(
+                'No following-shift button found for timestamp ' . $ts,
+                $this->getSession()
+            );
+        }
+        $btn->click();
+        $this->wait_for_pending_js();
+    }
+
+    /**
+     * Set a completion-based availability dependency between two activities
+     * by writing the Moodle availability JSON directly to course_modules.
+     *
+     * @Given the availability of :modtype :name in course :shortname depends on completion of :modtype2 :name2
+     * @param string $modtype    Module type of the dependent activity (e.g. "quiz").
+     * @param string $name       Name of the dependent activity.
+     * @param string $shortname  Course shortname.
+     * @param string $modtype2   Module type of the prerequisite activity.
+     * @param string $name2      Name of the prerequisite activity.
+     */
+    public function set_availability_completion_dependency(
+        string $modtype,
+        string $name,
+        string $shortname,
+        string $modtype2,
+        string $name2
+    ): void {
+        global $DB;
+        $course  = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $prereq  = $DB->get_record($modtype2, ['course' => $course->id, 'name' => $name2], 'id', MUST_EXIST);
+        $prereqcm = get_coursemodule_from_instance($modtype2, (int) $prereq->id, (int) $course->id, false, MUST_EXIST);
+        $mod = $DB->get_record($modtype, ['course' => $course->id, 'name' => $name], 'id', MUST_EXIST);
+        $cm  = get_coursemodule_from_instance($modtype, (int) $mod->id, (int) $course->id, false, MUST_EXIST);
+        $avail = json_encode([
+            'op'   => '&',
+            'c'    => [['type' => 'completion', 'cm' => (int) $prereqcm->id, 'e' => 1]],
+            'showc' => [true],
+        ]);
+        $DB->set_field('course_modules', 'availability', $avail, ['id' => $cm->id]);
+        rebuild_course_cache((int) $course->id, true);
     }
 }

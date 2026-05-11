@@ -409,10 +409,14 @@ trait shift_dates_executor {
             }
         }
         $cmsnapshots = [];
-        if (!empty($successcmids) && $delta !== 0) {
+        // In target-based calls, batch_manager handles completionexpected
+        // Explicitly via shift_cm_level_dates. The adapter must not also
+        // Shift it automatically, or the field is double-shifted.
+        $skipcmcompletion = !empty($payload['skip_cm_completion']);
+        if (!empty($successcmids) && $delta !== 0 && !$skipcmcompletion) {
             // Capture completionexpected values BEFORE shifting so
-            // batch_manager can persist a core_coursemodule snapshot
-            // that the rollback_manager can later restore.
+            // Batch_manager can persist a core_coursemodule snapshot
+            // That the rollback_manager can later restore.
             global $DB;
             [$insql, $inparams] = $DB->get_in_or_equal(
                 array_map('intval', $successcmids),
@@ -434,7 +438,7 @@ trait shift_dates_executor {
             $this->shift_completionexpected($successcmids, $delta);
         }
         // Pass CM-level snapshots through so batch_manager can persist
-        // core_coursemodule rollback entries alongside adapter entries.
+        // Core_coursemodule rollback entries alongside adapter entries.
         $result['cm_snapshots'] = $cmsnapshots;
         return $result;
     }

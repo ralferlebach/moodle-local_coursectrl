@@ -632,7 +632,7 @@ final class batch_manager_test extends \advanced_testcase {
         global $DB;
 
         // Use DIFFERENT CMIDs for adapter and cm-level targets so Moodle module
-        // update side-effects on completionexpected do not interfere.
+        // Update side-effects on completionexpected do not interfere.
         $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
         $assign = $this->getDataGenerator()->get_plugin_generator('mod_assign')->create_instance([
             'course'  => $course->id,
@@ -687,16 +687,13 @@ final class batch_manager_test extends \advanced_testcase {
     }
 
     /**
-     * Availability-target: all availability date nodes shift (known limitation —
-     * individual condition precision not yet implemented).
+     * Execute with availability target availability_from_0 must shift only that
+     * condition and leave availability_until_1 unchanged.
      *
-     * This test documents the current behaviour. If the implementation is
-     * later made field-precise, this test should be tightened to assert that
-     * only the targeted condition moves.
      *
      * @covers \local_coursectrl\manager\batch_manager
      */
-    public function test_target_availability_shifts_all_nodes_known_limitation(): void {
+    public function test_target_availability_shifts_only_targeted_node(): void {
         $this->resetAfterTest();
         global $DB;
 
@@ -709,9 +706,9 @@ final class batch_manager_test extends \advanced_testcase {
             'op' => '&',
             'c'  => [
                 // First date condition: from (availability_from_0).
-                ['type' => 'date', 'e' => '>=', 't' => self::BASE_TIME],
+                ['type' => 'date', 'd' => '>=', 't' => self::BASE_TIME],
                 // Second date condition: until (availability_until_1).
-                ['type' => 'date', 'e' => '<', 't' => self::BASE_TIME + 2 * self::ONE_DAY],
+                ['type' => 'date', 'd' => '<', 't' => self::BASE_TIME + 2 * self::ONE_DAY],
             ],
         ]);
         $DB->set_field('course_modules', 'availability', $avail, ['id' => $forum->cmid]);
@@ -746,15 +743,280 @@ final class batch_manager_test extends \advanced_testcase {
         // From_0 must have been shifted.
         $this->assertSame(self::BASE_TIME + self::ONE_DAY, $from0, 'availability_from_0 must be shifted');
 
-        // KNOWN LIMITATION: until_1 is also shifted because shift_availability_dates
-        // walks all date nodes (individual-condition precision not yet implemented).
-        // This assertion documents the CURRENT behaviour.
-        // Once per-condition precision is added it must become:
-        // Future: assertSame(BASE_TIME + 2 * ONE_DAY, $until1) when per-condition precision is added.
+        // Until_1 was NOT targeted — it must remain at its original value.
         $this->assertSame(
-            self::BASE_TIME + 2 * self::ONE_DAY + self::ONE_DAY,
+            self::BASE_TIME + 2 * self::ONE_DAY,
             $until1,
-            'Known limitation: until_1 shifts with from_0 — tighten assertion when per-condition precision is implemented'
+            'availability_until_1 must NOT be shifted when only from_0 was targeted'
+        );
+    }
+
+    /**
+     * Execute with adapter target duedate on an assign that has completionexpected
+     * set must NOT shift completionexpected when it is not in the target list.
+     *
+     * @covers \local_coursectrl\manager\batch_manager
+     */
+    public function test_target_duedate_only_leaves_completionexpected_unchanged(): void {
+        $this->resetAfterTest();
+        global $DB;
+
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $assign = $this->getDataGenerator()->get_plugin_generator('mod_assign')->create_instance([
+            'course'  => $course->id,
+            'name'    => 'Assign-NoCP',
+            'duedate' => self::BASE_TIME,
+        ]);
+        // Completionexpected is set but NOT targeted.
+        $DB->set_field(
+            'course_modules',
+            'completionexpected',
+            self::BASE_TIME + self::ONE_DAY,
+            ['id' => $assign->cmid]
+        );
+
+        $manager = new batch_manager();
+        $manager->execute(
+            (int) $course->id,
+            'shift_dates',
+            [
+                'delta'   => self::ONE_DAY,
+                'targets' => [
+                    [
+                        'cmid'      => (int) $assign->cmid,
+                        'source'    => 'adapter',
+                        'field'     => 'duedate',
+                        'timestamp' => self::BASE_TIME,
+                    ],
+                ],
+            ],
+            [(int) $assign->cmid],
+            0
+        );
+
+        // Duedate must be shifted.
+        $newdue = (int) $DB->get_field('assign', 'duedate', ['id' => $assign->id]);
+        $this->assertSame(
+            self::BASE_TIME + self::ONE_DAY,
+            $newdue,
+            'duedate must be shifted by delta'
+        );
+
+        // Completionexpected must be unchanged because it was not targeted.
+        $newce = (int) $DB->get_field('course_modules', 'completionexpected', ['id' => $assign->cmid]);
+        $this->assertSame(
+            self::BASE_TIME + self::ONE_DAY,
+            $newce,
+            'completionexpected must NOT be shifted when only duedate was targeted'
+        );
+    }
+
+    /**
+     * Execute with same-CMID adapter + cm-level targets must shift both fields
+     * exactly once each and not produce side-effects on non-targeted fields.
+     *
+     * @covers \local_coursectrl\manager\batch_manager
+     */
+    public function test_target_same_cmid_adapter_and_cm_level(): void {
+        $this->resetAfterTest();
+        global $DB;
+
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $assign = $this->getDataGenerator()->get_plugin_generator('mod_assign')->create_instance([
+            'course'  => $course->id,
+            'name'    => 'Assign-SC',
+            'duedate' => self::BASE_TIME,
+        ]);
+        $DB->set_field(
+            'course_modules',
+            'completionexpected',
+            self::BASE_TIME,
+            ['id' => $assign->cmid]
+        );
+
+        $manager = new batch_manager();
+        $manager->execute(
+            (int) $course->id,
+            'shift_dates',
+            [
+                'delta'   => self::ONE_DAY,
+                'targets' => [
+                    [
+                        'cmid'   => (int) $assign->cmid,
+                        'source' => 'adapter',
+                        'field'  => 'duedate',
+                        'timestamp' => self::BASE_TIME,
+                    ],
+                    [
+                        'cmid'   => (int) $assign->cmid,
+                        'source' => 'cm',
+                        'field'  => 'completionexpected',
+                        'timestamp' => self::BASE_TIME,
+                    ],
+                ],
+            ],
+            [(int) $assign->cmid],
+            0
+        );
+
+        // Duedate must be shifted exactly once.
+        $newdue = (int) $DB->get_field('assign', 'duedate', ['id' => $assign->id]);
+        $this->assertSame(
+            self::BASE_TIME + self::ONE_DAY,
+            $newdue,
+            'duedate shifted by exactly delta'
+        );
+
+        // Completionexpected must be shifted exactly once (not double-shifted).
+        $newce = (int) $DB->get_field('course_modules', 'completionexpected', ['id' => $assign->cmid]);
+        $this->assertSame(
+            self::BASE_TIME + self::ONE_DAY,
+            $newce,
+            'completionexpected shifted exactly once — not zero, not double'
+        );
+    }
+
+    /**
+     * Preview and Execute must agree on exactly which fields change for a
+     * mixed-source target list spanning two CMIDs and three source types.
+     *
+     * Scenario:
+     *   CMID 1 (assign): adapter target duedate + cm-level target completionexpected
+     *   CMID 2 (forum):  availability_from_0 target
+     *
+     * Acceptance criteria:
+     *   - Every field in preview appears in the actual DB diff after execute.
+     *   - No field is shifted that was not previewed.
+     *   - Non-targeted fields (assign.cutoffdate, forum.completionexpected) remain unchanged.
+     *
+     * @covers \local_coursectrl\manager\batch_manager
+     * @covers \local_coursectrl\manager\preview_manager
+     */
+    public function test_preview_execute_consistency_mixed_sources(): void {
+        $this->resetAfterTest();
+        global $DB;
+
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+
+        // CMID 1: assign with duedate and completionexpected.
+        $assign = $this->getDataGenerator()->get_plugin_generator('mod_assign')->create_instance([
+            'course'      => $course->id,
+            'name'        => 'Assign-Consistency',
+            'duedate'     => self::BASE_TIME,
+            'cutoffdate'  => self::BASE_TIME + self::ONE_DAY,
+        ]);
+        $DB->set_field(
+            'course_modules',
+            'completionexpected',
+            self::BASE_TIME,
+            ['id' => $assign->cmid]
+        );
+
+        // CMID 2: forum with two availability date conditions.
+        $forum = $this->getDataGenerator()->get_plugin_generator('mod_forum')->create_instance([
+            'course' => $course->id,
+            'name'   => 'Forum-Consistency',
+        ]);
+        $avail = json_encode([
+            'op' => '&',
+            'c'  => [
+                // First condition: availability_from_0.
+                ['type' => 'date', 'd' => '>=', 't' => self::BASE_TIME],
+                // Second condition: availability_until_1 (not targeted).
+                ['type' => 'date', 'd' => '<', 't' => self::BASE_TIME + 2 * self::ONE_DAY],
+            ],
+        ]);
+        $DB->set_field('course_modules', 'availability', $avail, ['id' => $forum->cmid]);
+
+        $targets = [
+            [
+                'cmid'      => (int) $assign->cmid,
+                'source'    => 'adapter',
+                'field'     => 'duedate',
+                'timestamp' => self::BASE_TIME,
+            ],
+            [
+                'cmid'      => (int) $assign->cmid,
+                'source'    => 'cm',
+                'field'     => 'completionexpected',
+                'timestamp' => self::BASE_TIME,
+            ],
+            [
+                'cmid'      => (int) $forum->cmid,
+                'source'    => 'availability',
+                'field'     => 'availability_from_0',
+                'timestamp' => self::BASE_TIME,
+            ],
+        ];
+        $payload = ['delta' => self::ONE_DAY, 'targets' => $targets];
+
+        // Preview.
+        $previewmgr = new preview_manager();
+        $preview = $previewmgr->build((int) $course->id, 'shift_dates', $payload);
+        $previewbycmid = [];
+        foreach ($preview['changes'] as $change) {
+            $previewbycmid[$change->get_cmid()] = array_keys($change->get_fields());
+        }
+
+        // Preview must include both CMIDs.
+        $this->assertArrayHasKey((int) $assign->cmid, $previewbycmid, 'Assign CMID must be in preview');
+        $this->assertArrayHasKey((int) $forum->cmid, $previewbycmid, 'Forum CMID must be in preview');
+
+        // Assign preview: duedate + completionexpected; NOT cutoffdate.
+        $this->assertContains('duedate', $previewbycmid[(int) $assign->cmid]);
+        $this->assertContains('completionexpected', $previewbycmid[(int) $assign->cmid]);
+        $this->assertNotContains('cutoffdate', $previewbycmid[(int) $assign->cmid]);
+
+        // Forum preview: availability_from_0; NOT availability_until_1.
+        $this->assertContains('availability_from_0', $previewbycmid[(int) $forum->cmid]);
+        $this->assertNotContains('availability_until_1', $previewbycmid[(int) $forum->cmid]);
+
+        // Execute.
+        $before = [
+            'duedate'           => (int) $DB->get_field('assign', 'duedate', ['id' => $assign->id]),
+            'cutoffdate'        => (int) $DB->get_field('assign', 'cutoffdate', ['id' => $assign->id]),
+            'completionexpected' => (int) $DB->get_field('course_modules', 'completionexpected', ['id' => $assign->cmid]),
+            'avail_raw'         => (string) $DB->get_field('course_modules', 'availability', ['id' => $forum->cmid]),
+        ];
+
+        $batchmgr = new batch_manager();
+        $batchmgr->execute((int) $course->id, 'shift_dates', $payload, [(int)$assign->cmid, (int)$forum->cmid], 0);
+
+        // Assert DB diffs match preview exactly.
+
+        // Assign: duedate shifted.
+        $this->assertSame(
+            $before['duedate'] + self::ONE_DAY,
+            (int) $DB->get_field('assign', 'duedate', ['id' => $assign->id]),
+            'Execute: duedate must be shifted'
+        );
+
+        // Assign: cutoffdate unchanged (not targeted, not previewed).
+        $this->assertSame(
+            $before['cutoffdate'],
+            (int) $DB->get_field('assign', 'cutoffdate', ['id' => $assign->id]),
+            'Execute: cutoffdate must NOT be shifted'
+        );
+
+        // Assign: completionexpected shifted exactly once.
+        $this->assertSame(
+            $before['completionexpected'] + self::ONE_DAY,
+            (int) $DB->get_field('course_modules', 'completionexpected', ['id' => $assign->cmid]),
+            'Execute: completionexpected must be shifted exactly once'
+        );
+
+        // Forum: availability_from_0 shifted; availability_until_1 unchanged.
+        $decoded = json_decode(
+            $DB->get_field('course_modules', 'availability', ['id' => $forum->cmid]),
+            true
+        );
+        $from0  = (int) ($decoded['c'][0]['t'] ?? 0);
+        $until1 = (int) ($decoded['c'][1]['t'] ?? 0);
+        $this->assertSame(self::BASE_TIME + self::ONE_DAY, $from0, 'Execute: availability_from_0 shifted');
+        $this->assertSame(
+            self::BASE_TIME + 2 * self::ONE_DAY,
+            $until1,
+            'Execute: availability_until_1 must NOT be shifted'
         );
     }
 }

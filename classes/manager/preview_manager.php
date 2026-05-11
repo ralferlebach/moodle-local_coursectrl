@@ -445,6 +445,10 @@ class preview_manager {
                 $dates = [];
                 $this->collect_availability_dates($avail, $dates, $delta);
                 foreach ($dates as $desc) {
+                    // Filter to only the explicitly targeted availability fields.
+                    if (!empty($availfields) && !in_array($desc['field'], $availfields, true)) {
+                        continue;
+                    }
                     // Key by field name so preview_bulk_action resolves the label correctly.
                     $previewfields[$desc['field']] = [
                         'old'     => $desc['old'],
@@ -487,11 +491,13 @@ class preview_manager {
     ): void {
         if (($node['type'] ?? '') === 'date' && isset($node['t']) && (int) $node['t'] > 0) {
             $oldval = (int) $node['t'];
-            $e = $node['e'] ?? 'a';
+            // Moodle availability date conditions use key 'd' for direction ('>=' or '<').
+            $d = $node['d'] ?? '>=';
+            $dir = ($d === '>=') ? 'from' : 'until';
             $dates[] = [
-                'field'   => 'availability_' . ($e === '>=' ? 'from' : 'until') . '_' . $idx,
+                'field'   => 'availability_' . $dir . '_' . $idx,
                 'label'   => field_label_resolver::resolve(
-                    'availability_' . ($e === '>=' ? 'from' : 'until') . '_0',
+                    'availability_' . $dir . '_0',
                     '',
                     'availability'
                 ),

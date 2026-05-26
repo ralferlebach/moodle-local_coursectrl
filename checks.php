@@ -41,14 +41,19 @@ require_once(__DIR__ . '/../../config.php');
 
 use local_coursectrl\local\navigation\navigation_builder;
 use local_coursectrl\local\simulation\learner_state;
+use local_coursectrl\local\simulation\simulation_state_normalizer;
 use local_coursectrl\output\checks_page;
 
 $courseid = required_param('courseid', PARAM_INT);
 $tab      = optional_param('tab', 'consistency', PARAM_ALPHANUMEXT);
 $run      = optional_param('run', 0, PARAM_INT);
 
-$course  = get_course($courseid);
-$context = context_course::instance($courseid);
+$resolved = \local_coursectrl\local\page\course_context_resolver::resolve($courseid);
+if (!$resolved) {
+    \local_coursectrl\local\page\course_context_resolver::render_invalid_course_page($PAGE, $OUTPUT);
+}
+$course  = $resolved['course'];
+$context = $resolved['context'];
 require_login($course);
 require_capability('local/coursectrl:view', $context);
 if ($tab === 'simulation') {
@@ -77,34 +82,62 @@ if ($tab === 'simulation' && $run) {
     // Extended state: separate completion/passed checkboxes + grade percentages.
     $simcomplete  = optional_param_array('sim_complete', [], PARAM_INT);
     $simpassed    = optional_param_array('sim_passed', [], PARAM_INT);
-    $simgradesraw = optional_param_array('sim_grade', [], PARAM_RAW);
+    $simgradesraw = optional_param_array('sim_grade', [], PARAM_TEXT);
 
-    if (!empty($simcomplete) || !empty($simpassed)) {
-        $completionsparam = [];
-        $allcmids = array_unique(array_merge(
-            array_keys($simcomplete),
-            array_keys($simpassed)
-        ));
-        foreach ($allcmids as $cmidstr) {
-            $cmid = (int) $cmidstr;
-            if (empty($simcomplete[$cmidstr])) {
-                $completionsparam[$cmid] = 0;
-            } else if (!empty($simpassed[$cmidstr])) {
-                $completionsparam[$cmid] = 2;
-            } else {
-                $completionsparam[$cmid] = 3;
-            }
-        }
+    // Build per-CM metadata for the normalizer (gradepass, completionpassgrade).
+    $cmmeta = [];
+    $graderows = $DB->get_records_sql(
+        "SELECT gi.id, cm.id AS cmid, gi.grademax, gi.gradepass, cm.completionpassgrade,
+                cm.completion
+           FROM {grade_items} gi
+           JOIN {modules} m ON m.name = gi.itemmodule
+           JOIN {course_modules} cm ON cm.module = m.id
+                                    AND cm.instance = gi.iteminstance
+                                    AND cm.course = gi.courseid
+          WHERE gi.courseid = :courseid AND gi.itemtype = 'mod'",
+        ['courseid' => (int) $courseid]
+    );
+    foreach ($graderows as $gr) {
+        $grademax   = (float) ($gr->grademax ?? 100.0);
+        $gradepass  = (float) ($gr->gradepass ?? 0.0);
+        $reqpass    = !empty($gr->completionpassgrade);
+        $haspass    = $gradepass > 0.0 && $grademax > 0.0;
+        $cmmeta[(int) $gr->cmid] = [
+            'completion_requires_pass' => $reqpass && $haspass,
+            'gradepass_pct'            => ($grademax > 0.0 && $gradepass > 0.0)
+                ? round($gradepass / $grademax * 100.0, 1) : 0.0,
+            'completion_enabled'       => (int) $gr->completion > 0,
+            'has_pass_grade'           => $haspass,
+        ];
     }
 
-    $simgrades = [];
+    // Validate grade inputs (PARAM_TEXT → numeric check).
+    $simgradesclean = [];
     foreach ($simgradesraw as $cmidstr => $rawval) {
+        $cmidcheck = (int) $cmidstr;
+        if ($cmidcheck <= 0) {
+            continue; // Ignore invalid cmid keys.
+        }
         $rawval = trim((string) $rawval);
         if ($rawval === '' || !is_numeric($rawval)) {
             continue;
         }
-        $simgrades[(int) $cmidstr] = max(0.0, min(100.0, (float) $rawval));
+        $simgradesclean[$cmidcheck] = max(0.0, min(100.0, (float) $rawval));
     }
+
+    // Get valid cmids for this course (whitelist for the normalizer).
+    $validcmids = array_keys($DB->get_records('course_modules', ['course' => (int) $courseid], '', 'id'));
+
+    // Server-side normalisation: apply the same rules as JS syncSimulationRow().
+    $normalised = simulation_state_normalizer::normalise(
+        $simcomplete,
+        $simpassed,
+        $simgradesclean,
+        $cmmeta,
+        $validcmids
+    );
+    $completionsparam = $normalised['completions'];
+    $simgrades        = $normalised['grades'];
 
     $simstate = new learner_state($simts, $completionsparam, $groupids, $groupingids, $simgrades);
 }

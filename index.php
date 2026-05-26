@@ -28,26 +28,12 @@ use local_coursectrl\local\navigation\navigation_builder;
 
 $courseid = optional_param('courseid', 0, PARAM_INT);
 
-if (!$courseid) {
-    // No course supplied — show a warning to the logged-in user.
-    require_login();
-    $context = context_system::instance();
-    $PAGE->set_context($context);
-    $PAGE->set_url(new moodle_url('/local/coursectrl/index.php'));
-    $PAGE->set_title(get_string('pluginname', 'local_coursectrl'));
-    $PAGE->set_heading(get_string('pluginname', 'local_coursectrl'));
-
-    echo $OUTPUT->header();
-    echo $OUTPUT->notification(
-        get_string('error_no_course', 'local_coursectrl'),
-        \core\output\notification::NOTIFY_WARNING
-    );
-    echo $OUTPUT->footer();
-    exit;
+$resolved = \local_coursectrl\local\page\course_context_resolver::resolve($courseid);
+if (!$resolved) {
+    \local_coursectrl\local\page\course_context_resolver::render_invalid_course_page($PAGE, $OUTPUT);
 }
-
-$course = get_course($courseid);
-$context = context_course::instance($courseid);
+$course  = $resolved['course'];
+$context = $resolved['context'];
 require_login($course);   // Enforces enrolment check for course-scoped pages.
 require_capability('local/coursectrl:view', $context);
 

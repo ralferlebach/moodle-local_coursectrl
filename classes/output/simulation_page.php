@@ -78,7 +78,7 @@ class simulation_page implements renderable, templatable {
         $gradeitemmap = [];
         $gradeinfobycmid = [];
         $sql = "SELECT gi.id, gi.iteminstance, gi.grademax, gi.gradepass, gi.itemmodule,
-                       cm.id AS cmid
+                       cm.id AS cmid, cm.completionpassgrade
                   FROM {grade_items} gi
                   JOIN {modules} m ON m.name = gi.itemmodule
                   JOIN {course_modules} cm ON cm.module = m.id
@@ -88,14 +88,16 @@ class simulation_page implements renderable, templatable {
         $rows = $DB->get_records_sql($sql, ['courseid' => (int) $courseid]);
         foreach ($rows as $row) {
             $gradeitemmap[(int) $row->id] = [
-                'cmid'      => (int) $row->cmid,
-                'grademax'  => (float) ($row->grademax ?? 100.0),
-                'gradepass' => (float) ($row->gradepass ?? 0.0),
+                'cmid'                => (int) $row->cmid,
+                'grademax'            => (float) ($row->grademax ?? 100.0),
+                'gradepass'           => (float) ($row->gradepass ?? 0.0),
+                'completionpassgrade' => !empty($row->completionpassgrade),
             ];
             $gradeinfobycmid[(int) $row->cmid] = [
-                'gradeitemid' => (int) $row->id,
-                'grademax'    => (float) ($row->grademax ?? 100.0),
-                'gradepass'   => (float) ($row->gradepass ?? 0.0),
+                'gradeitemid'         => (int) $row->id,
+                'grademax'            => (float) ($row->grademax ?? 100.0),
+                'gradepass'           => (float) ($row->gradepass ?? 0.0),
+                'completionpassgrade' => !empty($row->completionpassgrade),
             ];
         }
 
@@ -143,13 +145,18 @@ class simulation_page implements renderable, templatable {
             $gradeenabled  = $gradeable;
             $gradedisabled = $hasgrade && !$gradeable;
 
+            // Completion requires passing grade: completionpassgrade=1 in course_modules.
+            $completionrequirespass = $completionenabled && $haspassgrade
+                && !empty($gradeinfobycmid[$cm->id]['completionpassgrade']);
+
             $cmformrows[] = [
                 'cmid'    => $cm->id,
                 'cmname'  => $cm->name,
                 'modname' => $cm->modname,
                 // Completion.
-                'completion_enabled'  => $completionenabled,
-                'completion_disabled' => $completiondisabled,
+                'completion_enabled'      => $completionenabled,
+                'completion_disabled'     => $completiondisabled,
+                'completion_requires_pass' => $completionrequirespass,
                 // Passed.
                 'passgrade_visible'   => $passgradevisible,
                 'passgrade_enabled'   => $passgradeenabled,

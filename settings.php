@@ -221,7 +221,7 @@ if ($hassiteconfig) {
         'local_coursectrl/calopenholidays_enabled',
         get_string('settings_calopenholidays_enabled', 'local_coursectrl'),
         '',
-        0
+        1
     );
     $setting->set_updatedcallback('local_coursectrl_calendar_settings_changed');
     $settings->add($setting);

@@ -58,8 +58,12 @@ $autoshiftts   = optional_param('shift_ts', 0, PARAM_INT);
 $autoshiftcmid = optional_param('shift_cmid', 0, PARAM_INT);
 $autoshiftfield = optional_param('shift_field', '', PARAM_ALPHANUMEXT);
 
-$course = get_course($courseid);
-$context = context_course::instance($courseid);
+$resolved = \local_coursectrl\local\page\course_context_resolver::resolve($courseid);
+if (!$resolved) {
+    \local_coursectrl\local\page\course_context_resolver::render_invalid_course_page($PAGE, $OUTPUT);
+}
+$course  = $resolved['course'];
+$context = $resolved['context'];
 require_login($course);
 require_capability('local/coursectrl:view', $context);
 

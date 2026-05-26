@@ -62,8 +62,12 @@ if (empty($cmids)) {
 // Filter out zero/invalid values.
 $cmids = array_values(array_filter($cmids, fn ($id) => $id > 0));
 
-$course = get_course($courseid);
-$context = context_course::instance($courseid);
+$resolved = \local_coursectrl\local\page\course_context_resolver::resolve($courseid);
+if (!$resolved) {
+    throw new \moodle_exception('error_no_course', 'local_coursectrl');
+}
+$course  = $resolved['course'];
+$context = $resolved['context'];
 
 require_login($course);
 require_sesskey();

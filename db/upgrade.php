@@ -108,5 +108,36 @@ function xmldb_local_coursectrl_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026050300, 'local', 'coursectrl');
     }
 
+    if ($oldversion < 2026051200) {
+        global $CFG;
+        // Initialise calendar-provider defaults that were missing on existing installs.
+        // Only sets values that have not yet been configured by the admin.
+        $rawcountry = get_config('core', 'country') ?: ($CFG->country ?? '');
+        $rawlang    = get_config('core', 'lang') ?: ($CFG->lang ?? current_language());
+
+        $country = strtoupper(substr(trim((string) $rawcountry), 0, 2));
+        if (!preg_match('/^[A-Z]{2}$/', $country)) {
+            $country = 'DE';
+        }
+        $lang = strtoupper(substr(trim((string) $rawlang), 0, 2));
+        if (!preg_match('/^[A-Z]{2}$/', $lang)) {
+            $lang = 'EN';
+        }
+
+        $defaults = [
+            'calopenholidays_enabled'        => 1,
+            'calopenholidays_countryisocode' => $country,
+            'calopenholidays_languageisocode' => $lang,
+            'calnager_countrycode'           => $country,
+        ];
+        foreach ($defaults as $key => $default) {
+            if (get_config('local_coursectrl', $key) === false) {
+                set_config($key, $default, 'local_coursectrl');
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2026051200, 'local', 'coursectrl');
+    }
+
     return true;
 }

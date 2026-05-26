@@ -40,8 +40,12 @@ require_once(__DIR__ . '/../../config.php');
 
 $courseid = required_param('courseid', PARAM_INT);
 
-$course   = get_course($courseid);
-$context  = context_course::instance($courseid);
+$resolved = \local_coursectrl\local\page\course_context_resolver::resolve($courseid);
+if (!$resolved) {
+    throw new \moodle_exception('error_no_course', 'local_coursectrl');
+}
+$course   = $resolved['course'];
+$context  = $resolved['context'];
 require_login($course);
 require_capability('local/coursectrl:simulate', $context);
 
@@ -50,7 +54,7 @@ require_capability('local/coursectrl:simulate', $context);
 $params = ['courseid' => $courseid, 'tab' => 'simulation'];
 $forwardkeys = ['simdate', 'simtime', 'run'];
 foreach ($forwardkeys as $key) {
-    $val = optional_param($key, null, PARAM_RAW);
+    $val = optional_param($key, null, PARAM_TEXT);
     if ($val !== null && $val !== '') {
         $params[$key] = $val;
     }
@@ -68,7 +72,7 @@ $simpassed = optional_param_array('sim_passed', [], PARAM_INT);
 if (!empty($simpassed)) {
     $params['sim_passed'] = $simpassed;
 }
-$simgrade = optional_param_array('sim_grade', [], PARAM_RAW);
+$simgrade = optional_param_array('sim_grade', [], PARAM_TEXT);
 if (!empty($simgrade)) {
     $params['sim_grade'] = $simgrade;
 }

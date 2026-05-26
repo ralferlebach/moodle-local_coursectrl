@@ -30,7 +30,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define([], function() {
+define(['core/templates'], function(Templates) {
 
     /**
      * Escape a string for safe HTML insertion.
@@ -44,6 +44,17 @@ define([], function() {
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;');
+    };
+
+    /**
+     * Remove all child nodes from an element safely (avoids innerHTML).
+     *
+     * @param {HTMLElement} el Element to clear.
+     */
+    var clearElement = function(el) {
+        while (el.firstChild) {
+            el.removeChild(el.firstChild);
+        }
     };
 
     /**
@@ -736,7 +747,7 @@ define([], function() {
 
                             if (step2) {
                                 var previewBodyEl = step2.querySelector('[data-ccwf-preview-body]');
-                                previewBodyEl.innerHTML = html + scantextRow;
+                                Templates.replaceNodeContents(previewBodyEl, html + scantextRow, '');
                                 wirePreviewToggles(previewBodyEl);
                                 var execBtn = step2.querySelector('[data-ccwf-action="execute"]');
                                 if (execBtn) {
@@ -807,11 +818,11 @@ define([], function() {
                     // Show loading state in step2 body.
                     var previewBody = step2.querySelector('[data-ccwf-preview-body]');
                     if (previewBody) {
-                        previewBody.innerHTML =
-                            '<div class="text-center py-3">' +
+                        var spinnerHtml = '<div class="text-center py-3">' +
                             '<div class="spinner-border spinner-border-sm text-primary" role="status"></div>' +
                             '<p class="small text-muted mt-2 mb-0">' + escHtml(lbl.msgLoading) + '</p>' +
                             '</div>';
+                        Templates.replaceNodeContents(previewBody, spinnerHtml, '');
                     }
 
                     // Closure vars so the flat promise chain can share state across .then() calls.
@@ -826,7 +837,7 @@ define([], function() {
                                     var errDiv = document.createElement('div');
                                     errDiv.className = 'alert alert-danger py-2 small';
                                     errDiv.textContent = result.error || lbl.errGeneric;
-                                    previewBody.innerHTML = '';
+                                    clearElement(previewBody);
                                     previewBody.appendChild(errDiv);
                                 }
                                 execBtn.disabled = false;
@@ -850,7 +861,7 @@ define([], function() {
 
                             if (doScan === 0) {
                                 if (previewBody) {
-                                    previewBody.innerHTML = successHtml;
+                                    Templates.replaceNodeContents(previewBody, successHtml, '');
                                 }
                                 if (execBtn) {
                                     execBtn.classList.add('d-none');
@@ -871,12 +882,12 @@ define([], function() {
                             // Text scan: show spinner, then return the hits promise.
                             // Returning the promise flattens the chain without nesting.
                             if (previewBody) {
-                                previewBody.innerHTML =
-                                    successHtml +
+                                var scanSpinner = successHtml +
                                     '<div class="text-center py-2">' +
                                     '<div class="spinner-border spinner-border-sm text-primary" role="status"></div>' +
                                     '<p class="small text-muted mt-2 mb-0">Texte werden analysiert\u2026</p>' +
                                     '</div>';
+                                Templates.replaceNodeContents(previewBody, scanSpinner, '');
                             }
                             setTitle(modal.getAttribute('data-label-textreview') || '');
                             return fetchTextHits(courseid);
@@ -888,8 +899,14 @@ define([], function() {
                             var deltaSec = opts.getDelta();
                             var hitsHtml = renderHitsHtml(data.hits, deltaSec, false, lbl);
                             if (step3) {
-                                step3.querySelector('[data-ccwf-hits-body]').innerHTML = hitsHtml;
-                                step3.querySelector('[data-ccwf-shift-result]').innerHTML = successHtml;
+                                var hitsBodyEl = step3.querySelector('[data-ccwf-hits-body]');
+                                var shiftResultEl = step3.querySelector('[data-ccwf-shift-result]');
+                                if (hitsBodyEl) {
+                                    Templates.replaceNodeContents(hitsBodyEl, hitsHtml, '');
+                                }
+                                if (shiftResultEl) {
+                                    Templates.replaceNodeContents(shiftResultEl, successHtml, '');
+                                }
                                 var applyBtn3raw = step3.querySelector('[data-ccwf-action="apply-text"]');
                                 if (applyBtn3raw) {
                                     var applyBtn3 = applyBtn3raw.cloneNode(true);
@@ -923,13 +940,13 @@ define([], function() {
                         })
                         .catch(function(err) {
                             if (err && previewBody) {
-                                previewBody.innerHTML =
-                                    (successHtml || '') +
+                                var fallbackHtml = (successHtml || '') +
                                     '<p class="small text-muted mt-2 mb-0">Textanalyse nicht verfügbar.</p>';
+                                Templates.replaceNodeContents(previewBody, fallbackHtml, '');
                             } else if (previewBody) {
-                                previewBody.innerHTML =
-                                    '<div class="alert alert-danger py-2 small">' +
+                                var errHtml = '<div class="alert alert-danger py-2 small">' +
                                     escHtml((err && err.message) || lbl.lblErrTitle) + '</div>';
+                                Templates.replaceNodeContents(previewBody, errHtml, '');
                             }
                             execBtn.disabled = false;
                             return null;
@@ -956,15 +973,15 @@ define([], function() {
         }
         var previewBody = modal.querySelector('[data-ccwf-preview-body]');
         if (previewBody) {
-            previewBody.innerHTML = '';
+            clearElement(previewBody);
         }
         var hitsBody = modal.querySelector('[data-ccwf-hits-body]');
         if (hitsBody) {
-            hitsBody.innerHTML = '';
+            clearElement(hitsBody);
         }
         var shiftResult = modal.querySelector('[data-ccwf-shift-result]');
         if (shiftResult) {
-            shiftResult.innerHTML = '';
+            clearElement(shiftResult);
         }
         var titleEl = modal.querySelector('[data-ccwf-title]');
         if (titleEl) {

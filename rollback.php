@@ -29,8 +29,12 @@ require_sesskey();
 $courseid = required_param('courseid', PARAM_INT);
 $batchid = required_param('batchid', PARAM_INT);
 
-$course = get_course($courseid);
-$context = context_course::instance($courseid);
+$resolved = \local_coursectrl\local\page\course_context_resolver::resolve($courseid);
+if (!$resolved) {
+    throw new \moodle_exception('error_no_course', 'local_coursectrl');
+}
+$course  = $resolved['course'];
+$context = $resolved['context'];
 require_login($course);
 require_capability('local/coursectrl:rollback', $context);
 

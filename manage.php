@@ -30,8 +30,12 @@ use local_coursectrl\local\navigation\navigation_builder;
 
 $courseid = required_param('courseid', PARAM_INT);
 
-$course = get_course($courseid);
-$context = context_course::instance($courseid);
+$resolved = \local_coursectrl\local\page\course_context_resolver::resolve($courseid);
+if (!$resolved) {
+    \local_coursectrl\local\page\course_context_resolver::render_invalid_course_page($PAGE, $OUTPUT);
+}
+$course  = $resolved['course'];
+$context = $resolved['context'];
 require_login($course);
 require_capability('local/coursectrl:bulkaction', $context);
 

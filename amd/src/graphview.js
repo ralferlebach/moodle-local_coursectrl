@@ -230,7 +230,10 @@ define([], function() {
             svg.appendChild(group);
         });
 
-        canvas.innerHTML = '';
+        // Clear canvas safely without innerHTML.
+        while (canvas.firstChild) {
+            canvas.removeChild(canvas.firstChild);
+        }
         canvas.appendChild(svg);
     };
 
@@ -642,7 +645,10 @@ define([], function() {
             rowY += rh;
         });
 
-        canvas.innerHTML = '';
+        // Clear canvas safely without innerHTML.
+        while (canvas.firstChild) {
+            canvas.removeChild(canvas.firstChild);
+        }
         canvas.appendChild(svg);
     };
 

@@ -186,8 +186,14 @@ class batch_manager {
                     ];
                 }
             }
+            $transaction->allow_commit();
+        } catch (\Throwable $e) {
+            $transaction->rollback($e);
+            $batch->set('status', batch::STATUS_FAILED);
+            $batch->update();
+            throw $e;
+        }
         return $this->finalize_batch(
-            $transaction,
             $batch,
             $hasanyfailure,
             $successfulbyadapter,
@@ -291,8 +297,7 @@ class batch_manager {
      *
      * Shared by execute() and execute_from_targets() to avoid duplication.
      *
-     * @param \moodle_transaction $transaction       Active DB transaction.
-     * @param batch               $batch             Batch persistent.
+     * @param batch  $batch         Batch persistent.
      * @param bool                $hasanyfailure     Whether any item failed.
      * @param array               $successfulbyadapter Adapter results for calendar refresh.
      * @param int                 $batchid           Batch row id.
@@ -303,7 +308,6 @@ class batch_manager {
      * @return int Batch id.
      */
     private function finalize_batch(
-        \moodle_transaction $transaction,
         batch $batch,
         bool $hasanyfailure,
         array $successfulbyadapter,
@@ -313,14 +317,6 @@ class batch_manager {
         string $action,
         array $summary
     ): int {
-        try {
-            $transaction->allow_commit();
-        } catch (\Throwable $e) {
-            $transaction->rollback($e);
-            $batch->set('status', batch::STATUS_FAILED);
-            $batch->update();
-            throw $e;
-        }
         $batch->set('status', $hasanyfailure ? batch::STATUS_FAILED : batch::STATUS_EXECUTED);
         $batch->update();
         $this->refresh_calendars($successfulbyadapter, $batchid);
@@ -338,6 +334,13 @@ class batch_manager {
         return $batchid;
     }
 
+    /**
+     * Trigger calendar refresh for all adapters that had successful operations.
+     *
+     * @param array $successfulbyadapter Map of component -> {adapter, cmids}.
+     * @param int   $batchid            Parent batch id (for debug output).
+     * @return void
+     */
     private function refresh_calendars(array $successfulbyadapter, int $batchid): void {
         foreach ($successfulbyadapter as $entry) {
             try {
@@ -645,8 +648,14 @@ class batch_manager {
                 );
             }
 
+            $transaction->allow_commit();
+        } catch (\Throwable $e) {
+            $transaction->rollback($e);
+            $batch->set('status', batch::STATUS_FAILED);
+            $batch->update();
+            throw $e;
+        }
         return $this->finalize_batch(
-            $transaction,
             $batch,
             $hasanyfailure,
             $successfulbyadapter,

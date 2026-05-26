@@ -138,7 +138,10 @@
               </thead>
               <tbody>
                 {{#cmformrows}}
-                <tr>
+                <tr data-region="local-coursectrl-sim-row"
+                    data-cmid="{{cmid}}"
+                    data-gradepass="{{gradepass_pct}}"
+                    data-completion-requires-pass="{{#completion_requires_pass}}1{{/completion_requires_pass}}{{^completion_requires_pass}}0{{/completion_requires_pass}}">
                   <td class="py-1 ps-0 small" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
                     {{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}
                     {{cmname}}
@@ -147,6 +150,7 @@
                     {{#completion_enabled}}
                     <input type="checkbox" class="ms-1"
                            name="sim_complete[{{cmid}}]" value="1"
+                           data-field="sim_complete"
                            title="{{lbl_completed}}"
                            {{#assumed_complete}} checked{{/assumed_complete}}>
                     {{/completion_enabled}}
@@ -161,6 +165,7 @@
                     {{#passgrade_enabled}}
                     <input type="checkbox" class="ms-1"
                            name="sim_passed[{{cmid}}]" value="1"
+                           data-field="sim_passed"
                            title="{{lbl_passed}}"
                            {{#assumed_passed}} checked{{/assumed_passed}}>
                     {{/passgrade_enabled}}
@@ -175,6 +180,7 @@
                     {{#grade_enabled}}
                     <input type="number" class="form-control form-control-sm"
                            name="sim_grade[{{cmid}}]"
+                           data-field="sim_grade"
                            min="0" max="100" step="0.1"
                            value="{{assumed_grade}}"
                            title="{{lbl_grade}}"
@@ -354,7 +360,11 @@
         </thead>
         <tbody>
           {{#nextstepformrows}}
-          <tr class="sim-nextstep-row" data-gradepass="{{gradepass_pct}}">
+          <tr class="sim-nextstep-row"
+              data-region="local-coursectrl-sim-row"
+              data-cmid="{{cmid}}"
+              data-gradepass="{{gradepass_pct}}"
+              data-completion-requires-pass="{{#completion_requires_pass}}1{{/completion_requires_pass}}{{^completion_requires_pass}}0{{/completion_requires_pass}}">
             <td class="py-1 ps-1 small" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
               <i class="fa fa-check fa-fw text-success"></i>
               {{#pix}}monologo, mod_{{modname}}, {{cmname}}{{/pix}}
@@ -365,6 +375,7 @@
               <input type="checkbox" class="ms-1"
                      form="local-coursectrl-simform"
                      name="sim_complete[{{cmid}}]" value="1"
+                     data-field="sim_complete"
                      title="{{lbl_completed}}"
                      {{#assumed_complete}}checked{{/assumed_complete}}>
               {{/completion_enabled}}
@@ -380,6 +391,7 @@
               <input type="checkbox" class="ms-1 sim-passed-cb"
                      form="local-coursectrl-simform"
                      name="sim_passed[{{cmid}}]" value="1"
+                     data-field="sim_passed"
                      title="{{lbl_passed}}"
                      {{#assumed_passed}}checked{{/assumed_passed}}>
               {{/passgrade_enabled}}
@@ -395,6 +407,7 @@
               <input type="number" class="form-control form-control-sm sim-grade-input"
                      form="local-coursectrl-simform"
                      name="sim_grade[{{cmid}}]"
+                     data-field="sim_grade"
                      min="0" max="100" step="0.1"
                      value="{{assumed_grade}}"
                      title="{{lbl_grade}}"

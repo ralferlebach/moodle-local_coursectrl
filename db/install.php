@@ -42,6 +42,31 @@
  * @return bool Always true.
  */
 function xmldb_local_coursectrl_install(): bool {
+    global $CFG;
+
+    // Derive country and language from Moodle site configuration.
+    // No external network calls are made; values come from local config only.
+    $rawcountry = get_config('core', 'country') ?: ($CFG->country ?? '');
+    $rawlang    = get_config('core', 'lang') ?: ($CFG->lang ?? current_language());
+
+    // Normalise: country → uppercase ISO-3166-alpha-2, fallback DE.
+    $country = strtoupper(substr(trim((string) $rawcountry), 0, 2));
+    if (!preg_match('/^[A-Z]{2}$/', $country)) {
+        $country = 'DE';
+    }
+
+    // Normalise: language → first two chars uppercase ISO-639-1, fallback EN.
+    // Examples: 'de' → 'DE', 'de_du' → 'DE', 'en_us' → 'EN'.
+    $lang = strtoupper(substr(trim((string) $rawlang), 0, 2));
+    if (!preg_match('/^[A-Z]{2}$/', $lang)) {
+        $lang = 'EN';
+    }
+
+    set_config('calopenholidays_enabled', 1, 'local_coursectrl');
+    set_config('calopenholidays_countryisocode', $country, 'local_coursectrl');
+    set_config('calopenholidays_languageisocode', $lang, 'local_coursectrl');
+    set_config('calnager_countrycode', $country, 'local_coursectrl');
+
     // Queue the adhoc task so the first cron tick warms the holiday cache.
     // Synchronous warming is intentionally avoided in install to keep the
     // installer fast and deterministic (no external network calls).

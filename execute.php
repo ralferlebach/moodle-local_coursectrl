@@ -31,11 +31,15 @@ require_sesskey();
 
 $courseid    = required_param('courseid', PARAM_INT);
 $action      = required_param('action', PARAM_ALPHANUMEXT);
-$payloadjson = required_param('payloadjson', PARAM_RAW);
-$cmidsjson   = required_param('cmidsjson', PARAM_RAW);
+$payloadjson = required_param('payloadjson', PARAM_TEXT);
+$cmidsjson   = required_param('cmidsjson', PARAM_TEXT);
 
-$course = get_course($courseid);
-$context = context_course::instance($courseid);
+$resolved = \local_coursectrl\local\page\course_context_resolver::resolve($courseid);
+if (!$resolved) {
+    throw new \moodle_exception('error_no_course', 'local_coursectrl');
+}
+$course  = $resolved['course'];
+$context = $resolved['context'];
 require_login($course);
 require_capability('local/coursectrl:bulkaction', $context);
 
@@ -60,15 +64,33 @@ $PAGE->navbar->add(
 );
 $PAGE->navbar->add(get_string('result_title', 'local_coursectrl'));
 
-$payload = json_decode($payloadjson, true);
+if (strlen($payloadjson) > 65536) {
+    throw new \invalid_parameter_exception('payloadjson too long.');
+}
+try {
+    $payload = json_decode($payloadjson, true, 8, JSON_THROW_ON_ERROR);
+} catch (\JsonException $e) {
+    throw new \invalid_parameter_exception('payloadjson is not valid JSON.');
+}
 if (!is_array($payload)) {
-    $payload = [];
+    throw new \invalid_parameter_exception('payloadjson must be a JSON object.');
 }
-$cmids = json_decode($cmidsjson, true);
-if (!is_array($cmids)) {
-    $cmids = [];
+
+if (strlen($cmidsjson) > 16384) {
+    throw new \invalid_parameter_exception('cmidsjson too long.');
 }
-$cmids = array_values(array_map('intval', $cmids));
+try {
+    $cmidsarr = json_decode($cmidsjson, true, 4, JSON_THROW_ON_ERROR);
+} catch (\JsonException $e) {
+    throw new \invalid_parameter_exception('cmidsjson is not valid JSON.');
+}
+if (!is_array($cmidsarr)) {
+    throw new \invalid_parameter_exception('cmidsjson must be a JSON array.');
+}
+$cmids = array_values(array_filter(
+    array_map('intval', $cmidsarr),
+    fn($id) => $id > 0
+));
 
 $manager = new \local_coursectrl\manager\batch_manager();
 $batchid = $manager->execute($courseid, $action, $payload, $cmids, (int) $USER->id);

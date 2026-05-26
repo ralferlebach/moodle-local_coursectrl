@@ -103,6 +103,30 @@ class provider implements
             ],
             'privacy:metadata:local_coursectrl_risk'
         );
+
+        // External calendar services: country code, year, and language are
+        // administrative configuration values — not personal user data.
+        // Documented here for transparency as required by Moodle plugin review.
+        $collection->add_external_location_link(
+            'nager_date_api',
+            [
+                'countrycode' => 'privacy:metadata:external:nager:countrycode',
+                'year'        => 'privacy:metadata:external:nager:year',
+            ],
+            'privacy:metadata:external:nager'
+        );
+        $collection->add_external_location_link(
+            'openholidays_api',
+            [
+                'countryisocode'  => 'privacy:metadata:external:openholidays:countryisocode',
+                'languageisocode' => 'privacy:metadata:external:openholidays:languageisocode',
+                'subdivisioncode' => 'privacy:metadata:external:openholidays:subdivisioncode',
+                'validfrom'       => 'privacy:metadata:external:openholidays:validfrom',
+                'validto'         => 'privacy:metadata:external:openholidays:validto',
+            ],
+            'privacy:metadata:external:openholidays'
+        );
+
         return $collection;
     }
 

@@ -30,8 +30,12 @@ use local_coursectrl\output\history_page;
 $courseid = required_param('courseid', PARAM_INT);
 $page     = optional_param('page', 0, PARAM_INT);
 
-$course  = get_course($courseid);
-$context = context_course::instance($courseid);
+$resolved = \local_coursectrl\local\page\course_context_resolver::resolve($courseid);
+if (!$resolved) {
+    \local_coursectrl\local\page\course_context_resolver::render_invalid_course_page($PAGE, $OUTPUT);
+}
+$course  = $resolved['course'];
+$context = $resolved['context'];
 require_login($course);
 require_capability('local/coursectrl:view', $context);
 

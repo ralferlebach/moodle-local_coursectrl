@@ -33,18 +33,22 @@ require_sesskey();
 
 $courseid   = required_param('courseid', PARAM_INT);
 $actiontype = required_param('action_type', PARAM_ALPHANUMEXT);
-$cmidsraw   = optional_param('cmids', '', PARAM_RAW);
+$cmidsraw   = optional_param('cmids', '', PARAM_TEXT);
 $followdeps = optional_param('followdeps', 0, PARAM_INT);
 $deltadays  = optional_param('delta_days', 0, PARAM_INT);
 $deltahours   = optional_param('delta_hours', 0, PARAM_INT);
 $deltaminutes = optional_param('delta_minutes', 0, PARAM_INT);
 $fieldsraw   = optional_param('fields', '', PARAM_TEXT);
-$targetsraw  = optional_param('targets', '', PARAM_RAW);
+$targetsraw  = optional_param('targets', '', PARAM_TEXT);
 $scantext   = optional_param('scan_text', 0, PARAM_INT);
 $formatjson = optional_param('format', '', PARAM_ALPHA) === 'json';
 
-$course = get_course($courseid);
-$context = context_course::instance($courseid);
+$resolved = \local_coursectrl\local\page\course_context_resolver::resolve($courseid);
+if (!$resolved) {
+    throw new \moodle_exception('error_no_course', 'local_coursectrl');
+}
+$course  = $resolved['course'];
+$context = $resolved['context'];
 require_login($course);
 require_capability('local/coursectrl:bulkaction', $context);
 
@@ -70,7 +74,17 @@ $PAGE->navbar->add(
 );
 $PAGE->navbar->add(get_string('result_title', 'local_coursectrl'));
 
-$cmids = array_values(array_filter(array_map('intval', explode(',', $cmidsraw))));
+// Validate cmids format before processing.
+if ($cmidsraw !== '' && !preg_match('/^[0-9]+(,[0-9]+)*$/', $cmidsraw)) {
+    throw new \invalid_parameter_exception('Invalid cmids format.');
+}
+$cmids = array_values(array_unique(array_filter(
+    array_map('intval', array_filter(explode(',', $cmidsraw))),
+    fn($id) => $id > 0
+)));
+if (count($cmids) > 500) {
+    throw new \invalid_parameter_exception('Too many cmids in request.');
+}
 
 
 $timelineurl = new moodle_url('/local/coursectrl/timeline.php', ['courseid' => $courseid]);

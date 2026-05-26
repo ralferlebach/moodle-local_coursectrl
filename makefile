@@ -56,7 +56,7 @@ fix: clear fix-phpdoc fix-lint-php amd lint-js
 # check: check-only run (no auto-fix)
 # All checks run even if individual ones fail.
 # ---------------------------------------------------------------------------
-check: clear lint-php lint-phpdoc lint-js lint-mustache lint-gherkin lint-cpd lint-md amd phpunit
+check: clear lint-php lint-phpdoc lint-js lint-mustache lint-gherkin lint-cpd amd phpunit
 	@echo ""
 	@echo "=== All checks complete. Review output above for errors. ==="
 

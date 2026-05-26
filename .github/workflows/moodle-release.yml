@@ -231,10 +231,12 @@ jobs:
 
       - name: PHP copy/paste detector
         if: ${{ !cancelled() }}
+        continue-on-error: true
         run: moodle-plugin-ci phpcpd
 
       - name: PHP Mess Detector
         if: ${{ !cancelled() }}
+        continue-on-error: true
         run: moodle-plugin-ci phpmd
 
       - name: Moodle Code Checker

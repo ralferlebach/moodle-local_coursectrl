@@ -30,7 +30,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define([], function() {
+define(['core/templates'], function(Templates) {
 
     /**
      * Escape a string for safe HTML insertion.
@@ -44,6 +44,17 @@ define([], function() {
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;');
+    };
+
+    /**
+     * Remove all child nodes from an element safely (avoids innerHTML).
+     *
+     * @param {HTMLElement} el Element to clear.
+     */
+    var clearElement = function(el) {
+        while (el.firstChild) {
+            el.removeChild(el.firstChild);
+        }
     };
 
     /**
@@ -163,6 +174,7 @@ define([], function() {
             })
             .catch(function() {
                 btn.disabled = false;
+                return null;
             });
     };
 
@@ -230,18 +242,21 @@ define([], function() {
                 '</div>';
         }
         if (s.changes === 0 && (s.skipped || 0) > 0) {
-            return '<div class="alert alert-info py-2 small mb-0">' +
-                s.skipped + ' Aktivit\u00e4t(en) werden \u00fcber' +
-                ' Systemfelder (Verf\u00fcgbarkeitsbedingungen) verschoben.' +
-                '</div>';
+            var availMsg = (labels && labels.lblAvailShift)
+                ? (s.skipped + ' ' + labels.lblAvailShift)
+                : (s.skipped + ' activit(y/ies) shifted via availability conditions.');
+            return '<div class="alert alert-info py-2 small mb-0">' + availMsg + '</div>';
         }
         var fieldcount = s.fieldcount || s.changes;
+        var changedLbl = (labels && labels.lblFieldsChanged)
+            ? labels.lblFieldsChanged.replace('{$changes}', s.changes)
+            : ('field(s) in ' + s.changes + ' activit(y/ies) will be changed');
         var summaryHtml =
             '<p class="small mb-2">' +
-            '<strong>' + fieldcount + '</strong> Feld(er) in ' +
-            '<strong>' + s.changes + '</strong> Aktivität(en) werden geändert' +
-            (s.skipped > 0 ? ', <span class="text-muted">' + s.skipped + ' ohne Datumsvorgaben</span>' : '') +
-            (s.errors > 0 ? ', <span class="text-danger">' + s.errors + ' Fehler</span>' : '') +
+            '<strong>' + fieldcount + '</strong> ' + changedLbl +
+            (s.skipped > 0 ? ', <span class="text-muted">' + s.skipped + ' no dates</span>' : '') +
+            (s.errors > 0 ? ', <span class="text-danger">' + s.errors + ' ' +
+                escHtml((labels && labels.msgErrors) || 'error(s)') + '</span>' : '') +
             '.</p>';
 
         var changes = (preview.changes || []).filter(function(c) {
@@ -637,6 +652,14 @@ define([], function() {
             lblYearLabel: modal.getAttribute('data-lbl-yearlabel') || 'Year missing – {$a}',
             lblAmbiguousNotice: modal.getAttribute('data-lbl-ambiguous-notice') || 'Some dates shown for manual review.',
             lblErrTitle: modal.getAttribute('data-lbl-errtitle') || 'Unknown error',
+            lblErrApply: modal.getAttribute('data-lbl-err-apply') || 'Error applying changes.',
+            lblAvailShift: modal.getAttribute('data-lbl-avail-shift') ||
+                'activit(y/ies) shifted via availability conditions.',
+            lblFieldsChanged: modal.getAttribute('data-lbl-fields-changed') ||
+                'field(s) in {$changes} activit(y/ies) will be changed',
+            lblActivities: modal.getAttribute('data-lbl-activities') || 'activit(y/ies)',
+            lblScanning: modal.getAttribute('data-lbl-scanning') || 'Analysing text…',
+            lblScanFailed: modal.getAttribute('data-lbl-scan-failed') || 'Text analysis unavailable.',
         };
 
         var step1 = modal.querySelector('[data-ccwf-step="1"]');
@@ -729,13 +752,13 @@ define([], function() {
                                   ' style="margin:0;float:none;margin-top:0.15rem">' +
                                   '<label class="form-check-label small" for="ccwf-scantext-cb"' +
                                   ' style="margin-left:1.25rem">' +
-                                  (modal.getAttribute('data-label-scantext') || 'Freitexte auf Datumsangaben prüfen') +
+                                  (modal.getAttribute('data-label-scantext') || 'Check texts for date references') +
                                   '</label></div>'
                                 : '';
 
                             if (step2) {
                                 var previewBodyEl = step2.querySelector('[data-ccwf-preview-body]');
-                                previewBodyEl.innerHTML = html + scantextRow;
+                                Templates.replaceNodeContents(previewBodyEl, html + scantextRow, '');
                                 wirePreviewToggles(previewBodyEl);
                                 var execBtn = step2.querySelector('[data-ccwf-action="execute"]');
                                 if (execBtn) {
@@ -751,6 +774,7 @@ define([], function() {
                         .catch(function() {
                             previewBtn.disabled = false;
                             previewBtn.textContent = lbl.btnPreview;
+                            return null;
                         });
                 });
             }
@@ -805,11 +829,11 @@ define([], function() {
                     // Show loading state in step2 body.
                     var previewBody = step2.querySelector('[data-ccwf-preview-body]');
                     if (previewBody) {
-                        previewBody.innerHTML =
-                            '<div class="text-center py-3">' +
+                        var spinnerHtml = '<div class="text-center py-3">' +
                             '<div class="spinner-border spinner-border-sm text-primary" role="status"></div>' +
                             '<p class="small text-muted mt-2 mb-0">' + escHtml(lbl.msgLoading) + '</p>' +
                             '</div>';
+                        Templates.replaceNodeContents(previewBody, spinnerHtml, '');
                     }
 
                     // Closure vars so the flat promise chain can share state across .then() calls.
@@ -824,7 +848,7 @@ define([], function() {
                                     var errDiv = document.createElement('div');
                                     errDiv.className = 'alert alert-danger py-2 small';
                                     errDiv.textContent = result.error || lbl.errGeneric;
-                                    previewBody.innerHTML = '';
+                                    clearElement(previewBody);
                                     previewBody.appendChild(errDiv);
                                 }
                                 execBtn.disabled = false;
@@ -838,7 +862,7 @@ define([], function() {
                                 '<i class="fa fa-check-circle mr-1"></i>' +
                                 '<strong>' + shiftedfields + '</strong> ' +
                                 escHtml(lbl.msgShifted) +
-                                ' <span class="text-muted">(' + shiftedacts + ' Aktivit\u00e4t(en))</span>' +
+                                ' <span class="text-muted">(' + shiftedacts + ' ' + escHtml(lbl.lblActivities) + ')</span>' +
                                 (s.error > 0
                                     ? ', <strong class="text-danger">' +
                                       s.error + ' ' + escHtml(lbl.msgErrors) +
@@ -848,7 +872,7 @@ define([], function() {
 
                             if (doScan === 0) {
                                 if (previewBody) {
-                                    previewBody.innerHTML = successHtml;
+                                    Templates.replaceNodeContents(previewBody, successHtml, '');
                                 }
                                 if (execBtn) {
                                     execBtn.classList.add('d-none');
@@ -869,12 +893,12 @@ define([], function() {
                             // Text scan: show spinner, then return the hits promise.
                             // Returning the promise flattens the chain without nesting.
                             if (previewBody) {
-                                previewBody.innerHTML =
-                                    successHtml +
+                                var scanSpinner = successHtml +
                                     '<div class="text-center py-2">' +
                                     '<div class="spinner-border spinner-border-sm text-primary" role="status"></div>' +
-                                    '<p class="small text-muted mt-2 mb-0">Texte werden analysiert\u2026</p>' +
+                                    '<p class="small text-muted mt-2 mb-0">' + escHtml(lbl.lblScanning) + '</p>' +
                                     '</div>';
+                                Templates.replaceNodeContents(previewBody, scanSpinner, '');
                             }
                             setTitle(modal.getAttribute('data-label-textreview') || '');
                             return fetchTextHits(courseid);
@@ -886,8 +910,14 @@ define([], function() {
                             var deltaSec = opts.getDelta();
                             var hitsHtml = renderHitsHtml(data.hits, deltaSec, false, lbl);
                             if (step3) {
-                                step3.querySelector('[data-ccwf-hits-body]').innerHTML = hitsHtml;
-                                step3.querySelector('[data-ccwf-shift-result]').innerHTML = successHtml;
+                                var hitsBodyEl = step3.querySelector('[data-ccwf-hits-body]');
+                                var shiftResultEl = step3.querySelector('[data-ccwf-shift-result]');
+                                if (hitsBodyEl) {
+                                    Templates.replaceNodeContents(hitsBodyEl, hitsHtml, '');
+                                }
+                                if (shiftResultEl) {
+                                    Templates.replaceNodeContents(shiftResultEl, successHtml, '');
+                                }
                                 var applyBtn3raw = step3.querySelector('[data-ccwf-action="apply-text"]');
                                 if (applyBtn3raw) {
                                     var applyBtn3 = applyBtn3raw.cloneNode(true);
@@ -902,16 +932,16 @@ define([], function() {
                                             if (opts.onComplete) {
                                                 opts.onComplete(shiftResult);
                                             }
-                                            return;
+                                        } else {
+                                            executeApplyText(
+                                                applyBtn3,
+                                                courseid,
+                                                ids,
+                                                applyDelta,
+                                                shiftResult,
+                                                opts.onComplete
+                                            );
                                         }
-                                        executeApplyText(
-                                            applyBtn3,
-                                            courseid,
-                                            ids,
-                                            applyDelta,
-                                            shiftResult,
-                                            opts.onComplete
-                                        );
                                     });
                                 }
                                 wireCtxToggles(step3);
@@ -921,15 +951,16 @@ define([], function() {
                         })
                         .catch(function(err) {
                             if (err && previewBody) {
-                                previewBody.innerHTML =
-                                    (successHtml || '') +
-                                    '<p class="small text-muted mt-2 mb-0">Textanalyse nicht verfügbar.</p>';
+                                var fallbackHtml = (successHtml || '') +
+                                    '<p class="small text-muted mt-2 mb-0">' + escHtml(lbl.lblScanFailed) + '</p>';
+                                Templates.replaceNodeContents(previewBody, fallbackHtml, '');
                             } else if (previewBody) {
-                                previewBody.innerHTML =
-                                    '<div class="alert alert-danger py-2 small">' +
+                                var errHtml = '<div class="alert alert-danger py-2 small">' +
                                     escHtml((err && err.message) || lbl.lblErrTitle) + '</div>';
+                                Templates.replaceNodeContents(previewBody, errHtml, '');
                             }
                             execBtn.disabled = false;
+                            return null;
                         });
                 });
             }
@@ -953,15 +984,15 @@ define([], function() {
         }
         var previewBody = modal.querySelector('[data-ccwf-preview-body]');
         if (previewBody) {
-            previewBody.innerHTML = '';
+            clearElement(previewBody);
         }
         var hitsBody = modal.querySelector('[data-ccwf-hits-body]');
         if (hitsBody) {
-            hitsBody.innerHTML = '';
+            clearElement(hitsBody);
         }
         var shiftResult = modal.querySelector('[data-ccwf-shift-result]');
         if (shiftResult) {
-            shiftResult.innerHTML = '';
+            clearElement(shiftResult);
         }
         var titleEl = modal.querySelector('[data-ccwf-title]');
         if (titleEl) {

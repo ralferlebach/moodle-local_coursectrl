@@ -40,7 +40,9 @@
 
 <div class="local_coursectrl_timeline" data-region="local_coursectrl-timeline"
   {{#hasfocusdaykey}}data-focusdaykey="{{focusdaykey}}"{{/hasfocusdaykey}}
-     data-courseid="{{courseid}}" data-shifturl="{{shifturl}}">
+     data-courseid="{{courseid}}" data-shifturl="{{shifturl}}"
+     data-lbl-slot="{{#str}} shift_lbl_slot, local_coursectrl {{/str}}"
+     data-lbl-following="{{#str}} shift_lbl_following, local_coursectrl {{/str}}">
 
   {{! ── Tab navigation ──────────────────────────────────────────────────── }}
   <ul class="nav nav-tabs mb-3" role="tablist">
@@ -278,7 +280,13 @@
        data-lbl-yearassumed="{{#str}} shift_lbl_yearassumed, local_coursectrl {{/str}}"
        data-lbl-yearlabel="{{#str}} shift_lbl_yearlabel, local_coursectrl {{/str}}"
        data-lbl-ambiguous-notice="{{#str}} shift_lbl_ambiguous_notice, local_coursectrl {{/str}}"
-       data-lbl-errtitle="{{#str}} shift_lbl_errtitle, local_coursectrl {{/str}}">
+       data-lbl-errtitle="{{#str}} shift_lbl_errtitle, local_coursectrl {{/str}}"
+       data-lbl-err-apply="{{#str}} shift_lbl_err_apply, local_coursectrl {{/str}}"
+       data-lbl-avail-shift="{{#str}} shift_lbl_avail_shift, local_coursectrl {{/str}}"
+       data-lbl-fields-changed="{{#str}} shift_lbl_fields_changed, local_coursectrl {{/str}}"
+       data-lbl-activities="{{#str}} shift_lbl_activities, local_coursectrl {{/str}}"
+       data-lbl-scanning="{{#str}} shift_lbl_scanning, local_coursectrl {{/str}}"
+       data-lbl-scan-failed="{{#str}} shift_lbl_scan_failed, local_coursectrl {{/str}}">
     <div class="modal-dialog modal-lg" role="document">
       <div class="modal-content">
         <div class="modal-header py-2">

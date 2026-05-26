@@ -242,18 +242,21 @@ define(['core/templates'], function(Templates) {
                 '</div>';
         }
         if (s.changes === 0 && (s.skipped || 0) > 0) {
-            return '<div class="alert alert-info py-2 small mb-0">' +
-                s.skipped + ' Aktivit\u00e4t(en) werden \u00fcber' +
-                ' Systemfelder (Verf\u00fcgbarkeitsbedingungen) verschoben.' +
-                '</div>';
+            var availMsg = (labels && labels.lblAvailShift)
+                ? (s.skipped + ' ' + labels.lblAvailShift)
+                : (s.skipped + ' activit(y/ies) shifted via availability conditions.');
+            return '<div class="alert alert-info py-2 small mb-0">' + availMsg + '</div>';
         }
         var fieldcount = s.fieldcount || s.changes;
+        var changedLbl = (labels && labels.lblFieldsChanged)
+            ? labels.lblFieldsChanged.replace('{$changes}', s.changes)
+            : ('field(s) in ' + s.changes + ' activit(y/ies) will be changed');
         var summaryHtml =
             '<p class="small mb-2">' +
-            '<strong>' + fieldcount + '</strong> Feld(er) in ' +
-            '<strong>' + s.changes + '</strong> Aktivität(en) werden geändert' +
-            (s.skipped > 0 ? ', <span class="text-muted">' + s.skipped + ' ohne Datumsvorgaben</span>' : '') +
-            (s.errors > 0 ? ', <span class="text-danger">' + s.errors + ' Fehler</span>' : '') +
+            '<strong>' + fieldcount + '</strong> ' + changedLbl +
+            (s.skipped > 0 ? ', <span class="text-muted">' + s.skipped + ' no dates</span>' : '') +
+            (s.errors > 0 ? ', <span class="text-danger">' + s.errors + ' ' +
+                escHtml((labels && labels.msgErrors) || 'error(s)') + '</span>' : '') +
             '.</p>';
 
         var changes = (preview.changes || []).filter(function(c) {
@@ -649,6 +652,14 @@ define(['core/templates'], function(Templates) {
             lblYearLabel: modal.getAttribute('data-lbl-yearlabel') || 'Year missing – {$a}',
             lblAmbiguousNotice: modal.getAttribute('data-lbl-ambiguous-notice') || 'Some dates shown for manual review.',
             lblErrTitle: modal.getAttribute('data-lbl-errtitle') || 'Unknown error',
+            lblErrApply: modal.getAttribute('data-lbl-err-apply') || 'Error applying changes.',
+            lblAvailShift: modal.getAttribute('data-lbl-avail-shift') ||
+                'activit(y/ies) shifted via availability conditions.',
+            lblFieldsChanged: modal.getAttribute('data-lbl-fields-changed') ||
+                'field(s) in {$changes} activit(y/ies) will be changed',
+            lblActivities: modal.getAttribute('data-lbl-activities') || 'activit(y/ies)',
+            lblScanning: modal.getAttribute('data-lbl-scanning') || 'Analysing text…',
+            lblScanFailed: modal.getAttribute('data-lbl-scan-failed') || 'Text analysis unavailable.',
         };
 
         var step1 = modal.querySelector('[data-ccwf-step="1"]');
@@ -741,7 +752,7 @@ define(['core/templates'], function(Templates) {
                                   ' style="margin:0;float:none;margin-top:0.15rem">' +
                                   '<label class="form-check-label small" for="ccwf-scantext-cb"' +
                                   ' style="margin-left:1.25rem">' +
-                                  (modal.getAttribute('data-label-scantext') || 'Freitexte auf Datumsangaben prüfen') +
+                                  (modal.getAttribute('data-label-scantext') || 'Check texts for date references') +
                                   '</label></div>'
                                 : '';
 
@@ -851,7 +862,7 @@ define(['core/templates'], function(Templates) {
                                 '<i class="fa fa-check-circle mr-1"></i>' +
                                 '<strong>' + shiftedfields + '</strong> ' +
                                 escHtml(lbl.msgShifted) +
-                                ' <span class="text-muted">(' + shiftedacts + ' Aktivit\u00e4t(en))</span>' +
+                                ' <span class="text-muted">(' + shiftedacts + ' ' + escHtml(lbl.lblActivities) + ')</span>' +
                                 (s.error > 0
                                     ? ', <strong class="text-danger">' +
                                       s.error + ' ' + escHtml(lbl.msgErrors) +
@@ -885,7 +896,7 @@ define(['core/templates'], function(Templates) {
                                 var scanSpinner = successHtml +
                                     '<div class="text-center py-2">' +
                                     '<div class="spinner-border spinner-border-sm text-primary" role="status"></div>' +
-                                    '<p class="small text-muted mt-2 mb-0">Texte werden analysiert\u2026</p>' +
+                                    '<p class="small text-muted mt-2 mb-0">' + escHtml(lbl.lblScanning) + '</p>' +
                                     '</div>';
                                 Templates.replaceNodeContents(previewBody, scanSpinner, '');
                             }
@@ -941,7 +952,7 @@ define(['core/templates'], function(Templates) {
                         .catch(function(err) {
                             if (err && previewBody) {
                                 var fallbackHtml = (successHtml || '') +
-                                    '<p class="small text-muted mt-2 mb-0">Textanalyse nicht verfügbar.</p>';
+                                    '<p class="small text-muted mt-2 mb-0">' + escHtml(lbl.lblScanFailed) + '</p>';
                                 Templates.replaceNodeContents(previewBody, fallbackHtml, '');
                             } else if (previewBody) {
                                 var errHtml = '<div class="alert alert-danger py-2 small">' +

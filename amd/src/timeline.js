@@ -265,7 +265,9 @@ define(
             btn.addEventListener('click', function() {
                 var slotBody = btn.closest('.card-body');
                 var targets = slotBody ? targetsForSlotBody(slotBody) : [];
-                openShiftDialog(targets, 'slot', 'Zeitfenster: ' + targets.length + ' Eintr\u00e4ge', false);
+                var slotLbl = (root.getAttribute('data-lbl-slot') || 'Time slot: {$a} entries')
+                    .replace('{$a}', String(targets.length));
+                openShiftDialog(targets, 'slot', slotLbl, false);
             });
         });
 
@@ -287,7 +289,9 @@ define(
                     seen[key] = true;
                     targets.push(targetFromBtn(b));
                 });
-                openShiftDialog(targets, 'slot', 'Ab diesem Zeitpunkt: ' + targets.length + ' Eintr\u00e4ge', true);
+                var followLbl = (root.getAttribute('data-lbl-following') || 'From here: {$a} entries')
+                    .replace('{$a}', String(targets.length));
+                openShiftDialog(targets, 'slot', followLbl, true);
             });
         });
 
@@ -437,7 +441,7 @@ define(
                                 var cnt = hitids.length;
                                 var pEl = document.createElement('p');
                                 pEl.className = 'small text-muted';
-                                pEl.textContent = String(cnt) + ' Einträge ausgewählt.';
+                                pEl.textContent = String(cnt) + ' entries selected.';
                                 while (modalBody.firstChild) {
                                     modalBody.removeChild(modalBody.firstChild);
                                 }
@@ -463,9 +467,15 @@ define(
                                 fail: function(err) {
                                     modalApplyBtn.disabled = false;
                                     modalApplyBtn.addEventListener('click', applyOnce);
+                                    var applyModal = modalApplyBtn
+                                        ? modalApplyBtn.closest('[data-lbl-err-apply]')
+                                        : null;
+                                    var errApplyFallback = applyModal
+                                        ? (applyModal.getAttribute('data-lbl-err-apply') || '')
+                                        : '';
                                     var em = err && err.message
                                         ? err.message
-                                        : 'Fehler beim Anwenden.';
+                                        : errApplyFallback;
                                     var mb = document.getElementById(
                                         'coursectrl-textreview-modal-body'
                                     );

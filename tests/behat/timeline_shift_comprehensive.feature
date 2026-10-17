@@ -36,7 +36,7 @@ Feature: Timeline date shift – slot, following, and entry modes
     And the following "activities" exist:
       | activity | course   | name    | intro                                     |
       | forum    | SHIFTCRS | Forum-C | Diskussion startet am 15.06.2026 um 10:00 |
-    And the completionexpected of forum Forum-C in course SHIFTCRS is 1781481600
+    And the completionexpected of forum "Forum-C" in course "SHIFTCRS" is 1781481600
 
   # ══════════════════════════════════════════════════════════════════════════
   # MUSTER 1 — Modal öffnen, Steuerelemente prüfen, Abbrechen
@@ -51,7 +51,7 @@ Feature: Timeline date shift – slot, following, and entry modes
     # Slot-Button klicken → Modal öffnet sich.
     When I click the first slot shift button on the timeline
     Then the shift modal should be visible
-    And I should see "Vorschau"
+    And I should see "Preview"
     # Alle Pflicht-Steuerelemente sind vorhanden.
     And "coursectrl-shift-delta-days" "field" should exist
     And "coursectrl-shift-delta-hours" "field" should exist
@@ -60,13 +60,13 @@ Feature: Timeline date shift – slot, following, and entry modes
     And "[data-ccwf-action='preview']" "css_element" should exist
     And "[data-action='close-dialog']" "css_element" should exist
     # Eintragszahl ist in der Beschriftung sichtbar (≥1 Einträge).
-    And I should see "Einträge"
+    And I should see "entries"
     # Abbrechen → Modal schließt sich.
     When I click on "[data-action='close-dialog']" "css_element"
     Then the shift modal should be closed
     # Seite ist wieder frei — Navigation funktioniert.
-    When I am on the "Dashboard" page
-    Then I should see "Dashboard"
+    When I am on the coursectrl dashboard for course "SHIFTCRS"
+    Then I should see "Upcoming dates"
 
   @javascript
   Scenario: M1-Entry – Shift-Entry-Modal öffnet sich und schließt sich wieder sauber
@@ -78,8 +78,8 @@ Feature: Timeline date shift – slot, following, and entry modes
     # Abbrechen
     When I click on "[data-action='close-dialog']" "css_element"
     Then the shift modal should be closed
-    When I am on the "Dashboard" page
-    Then I should see "Dashboard"
+    When I am on the coursectrl dashboard for course "SHIFTCRS"
+    Then I should see "Upcoming dates"
 
   # ══════════════════════════════════════════════════════════════════════════
   # MUSTER 2 — Vollständiger Shift-Workflow ohne Textprüfung
@@ -97,7 +97,7 @@ Feature: Timeline date shift – slot, following, and entry modes
     And I set the shift minutes to 0
     And I click the shift preview button and wait
     # Vorschau: Anzahl der Änderungen und Aktivitätsname prüfen.
-    Then the shift preview summary should contain "Felder in"
+    Then the shift preview summary should contain "field(s) in"
     And the shift preview should contain a assign activity icon
     And I should see "Aufgabe-A" in the "[data-ccwf-preview-body]" "css_element"
     # (i)-Button zeigt Detailzeile.
@@ -105,7 +105,7 @@ Feature: Timeline date shift – slot, following, and entry modes
     Then I should see "→" in the "[data-ccwf-preview-body]" "css_element"
     # Verschiebung anwenden.
     When I apply the shift and wait
-    Then the shift modal should show 1 shifted entry message
+    Then the shift modal should show 2 shifted entry message
     # "Schließen" — der Back-Button ist jetzt zum Schließen umgebaut.
     When I click on "[data-ccwf-action='back']" "css_element"
     And I wait "3" seconds
@@ -120,9 +120,9 @@ Feature: Timeline date shift – slot, following, and entry modes
     Then the shift modal should be visible
     When I set the shift days to 1
     And I click the shift preview button and wait
-    Then the shift preview summary should contain "Felder in"
+    Then the shift preview summary should contain "field(s) in"
     When I apply the shift and wait
-    Then the shift modal should show 1 shifted entry message
+    Then the shift modal should show 4 shifted entry message
     When I click on "[data-ccwf-action='back']" "css_element"
     And I wait "3" seconds
     Then the duedate of assign Aufgabe-A in course SHIFTCRS should be shifted by 1 day(s) from 1781481600
@@ -137,7 +137,7 @@ Feature: Timeline date shift – slot, following, and entry modes
     And I should see "Aufgabe-A"
     When I set the shift days to 1
     And I click the shift preview button and wait
-    Then the shift preview summary should contain "1 Felder in 1 Aktivität"
+    Then the shift preview summary should contain "1 field(s) in 1 activit(y/ies)"
     And the shift preview should contain a assign activity icon
     And I should see "Aufgabe-A" in the "[data-ccwf-preview-body]" "css_element"
     When I click the preview info button 1
@@ -159,7 +159,7 @@ Feature: Timeline date shift – slot, following, and entry modes
     And I should see "Forum-C"
     When I set the shift days to 1
     And I click the shift preview button and wait
-    Then the shift preview summary should contain "1 Felder in 1 Aktivität"
+    Then the shift preview summary should contain "1 field(s) in 1 activit(y/ies)"
     And the shift preview should contain a forum activity icon
     # Feldname "completionexpected" wird als lokalisierter Label angezeigt.
     When I click the preview info button 1
@@ -168,7 +168,7 @@ Feature: Timeline date shift – slot, following, and entry modes
     Then the shift modal should show 1 shifted entry message
     When I click on "[data-ccwf-action='back']" "css_element"
     And I wait "3" seconds
-    Then the completionexpected of forum Forum-C in course SHIFTCRS should be shifted by 1 day(s) from 1781481600
+    Then the completionexpected of forum "Forum-C" in course "SHIFTCRS" should be shifted by 1 day(s) from 1781481600
 
   @javascript
   Scenario: M2-Slot-mit-Followdeps – Checkbox aktivieren und Shift ausführen
@@ -180,9 +180,9 @@ Feature: Timeline date shift – slot, following, and entry modes
     When I enable the followdeps checkbox in the shift modal
     And I set the shift days to 1
     And I click the shift preview button and wait
-    Then the shift preview summary should contain "Felder in"
+    Then the shift preview summary should contain "field(s) in"
     When I apply the shift and wait
-    Then the shift modal should show 1 shifted entry message
+    Then the shift modal should show 2 shifted entry message
     When I click on "[data-ccwf-action='back']" "css_element"
     And I wait "3" seconds
     Then the duedate of assign Aufgabe-A in course SHIFTCRS should be shifted by 1 day(s) from 1781481600
@@ -196,7 +196,7 @@ Feature: Timeline date shift – slot, following, and entry modes
     When I enable the followdeps checkbox in the shift modal
     And I set the shift days to 1
     And I click the shift preview button and wait
-    Then the shift preview summary should contain "Felder in"
+    Then the shift preview summary should contain "field(s) in"
     When I apply the shift and wait
     Then the shift modal should show 1 shifted entry message
     When I click on "[data-ccwf-action='back']" "css_element"
@@ -215,7 +215,7 @@ Feature: Timeline date shift – slot, following, and entry modes
     Then the shift modal should be visible
     When I set the shift days to 1
     And I click the shift preview button and wait
-    Then the shift preview summary should contain "1 Felder in 1 Aktivität"
+    Then the shift preview summary should contain "1 field(s) in 1 activit(y/ies)"
     # Textprüfung aktivieren.
     When I enable the text review checkbox in the shift preview
     And I apply the shift and wait
@@ -237,8 +237,8 @@ Feature: Timeline date shift – slot, following, and entry modes
     And I wait "3" seconds
     # Zum Textprüfungs-Tab navigieren und prüfen, ob Ergebnisse neu gescannt wurden.
     When I am on the textreview tab for course "SHIFTCRS"
-    Then I should see "Textprüfung"
-    And I should not see "Fehler"
+    Then I should see "Text Review"
+    And I should not see "Error applying changes"
 
   @javascript
   Scenario: M3-Slot-mit-Followdeps-und-Textprüfung
@@ -249,7 +249,7 @@ Feature: Timeline date shift – slot, following, and entry modes
     When I enable the followdeps checkbox in the shift modal
     And I set the shift days to 1
     And I click the shift preview button and wait
-    Then the shift preview summary should contain "Felder in"
+    Then the shift preview summary should contain "field(s) in"
     When I enable the text review checkbox in the shift preview
     And I apply the shift and wait
     Then the text review step should be visible in the shift modal
@@ -257,7 +257,7 @@ Feature: Timeline date shift – slot, following, and entry modes
     When I apply the selected text changes and wait
     And I wait "3" seconds
     When I am on the textreview tab for course "SHIFTCRS"
-    Then I should see "Textprüfung"
+    Then I should see "Text Review"
 
   @javascript
   Scenario: M3-Following-mit-Textprüfung
@@ -267,14 +267,14 @@ Feature: Timeline date shift – slot, following, and entry modes
     Then the shift modal should be visible
     When I set the shift days to 1
     And I click the shift preview button and wait
-    Then the shift preview summary should contain "Felder in"
+    Then the shift preview summary should contain "field(s) in"
     When I enable the text review checkbox in the shift preview
     And I apply the shift and wait
     Then the text review step should be visible in the shift modal
     When I apply the selected text changes and wait
     And I wait "3" seconds
     When I am on the textreview tab for course "SHIFTCRS"
-    Then I should see "Textprüfung"
+    Then I should see "Text Review"
 
   # ══════════════════════════════════════════════════════════════════════════
   # MUSTER 4 — Textprüfungs-Reiter: Inhalt, Steuerelemente, Anwenden
@@ -286,7 +286,7 @@ Feature: Timeline date shift – slot, following, and entry modes
     # Textprüfungs-Reiter löst Auto-Scan aus, da noch keine Ergebnisse vorliegen.
     And I am on the textreview tab for course "SHIFTCRS"
     And I wait "4" seconds
-    Then I should see "Textprüfung"
+    Then I should see "Text Review"
     # Aktivitäts-Icons und -namen in der Tabelle prüfen.
     And the textreview table should contain a assign icon
     And I should see "Aufgabe-A" in the "#coursectrl-textreview-table" "css_element"
@@ -304,7 +304,7 @@ Feature: Timeline date shift – slot, following, and entry modes
     And I apply text changes from the textreview tab and wait
     And I wait "3" seconds
     # Nach Reload: Tab ist wieder sichtbar.
-    Then I should see "Textprüfung"
+    Then I should see "Text Review"
 
   # ══════════════════════════════════════════════════════════════════════════
   # EDGE CASES & NEGATIVE TESTS
@@ -332,14 +332,14 @@ Feature: Timeline date shift – slot, following, and entry modes
     Then the shift modal should be visible
     When I set the shift days to 1
     And I click the shift preview button and wait
-    Then the shift preview summary should contain "1 Felder in 1 Aktivität"
+    Then the shift preview summary should contain "1 field(s) in 1 activit(y/ies)"
     When I apply the shift and wait
     And I click on "[data-ccwf-action='back']" "css_element"
     And I wait "3" seconds
     # Aufgabe-A wurde verschoben.
     Then the duedate of assign Aufgabe-A in course SHIFTCRS should be shifted by 1 day(s) from 1781481600
     # Forum-C completionexpected wurde NICHT verändert.
-    And the completionexpected of forum Forum-C in course SHIFTCRS should still be 1781481600
+    And the completionexpected of forum "Forum-C" in course "SHIFTCRS" should still be 1781481600
 
   @javascript
   Scenario: M2-Entry-Followdeps-mit-echter-Abhaengigkeit – dependente Aktivität wird mit verschoben

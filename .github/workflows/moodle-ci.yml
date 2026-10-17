@@ -2,9 +2,9 @@
 # GitHub Actions CI – local_coursectrl (Course Control Hub)
 #
 # Matrix:
-#   Moodle:  4.5, 5.0, 5.1, 5.2
-#   PHP:     8.2, 8.3, 8.4  (8.4 excluded for Moodle < 5.1)
-#   DB:      MariaDB 10.11  |  PostgreSQL 16
+#   Moodle:  4.5, 5.0, 5.1, 5.2, 5.3
+#   PHP:     8.2, 8.3, 8.4  (8.4 excluded for Moodle < 5.1, 8.2 for Moodle >= 5.2)
+#   DB:      MariaDB 11.4  |  PostgreSQL 17  (minimum versions of Moodle 5.3)
 #
 # Third-party plugins (not in Moodle core, required by coursectrl adapters):
 #   mod_questionnaire  github.com/PoetOS/moodle-mod_questionnaire
@@ -73,7 +73,7 @@ jobs:
 
     services:
       mariadb:
-        image: mariadb:10.11
+        image: mariadb:11.4
         env:
           MYSQL_ROOT_PASSWORD: root
         ports: ['3306:3306']
@@ -178,6 +178,7 @@ jobs:
           - MOODLE_500_STABLE
           - MOODLE_501_STABLE
           - MOODLE_502_STABLE
+          - MOODLE_503_STABLE
         php: ['8.2', '8.3', '8.4']
         db:
           - { engine: mariadb, type: mariadb, port: 3306, user: root,   pass: root   }
@@ -186,10 +187,11 @@ jobs:
           - { moodle: MOODLE_405_STABLE, php: '8.4' }
           - { moodle: MOODLE_500_STABLE, php: '8.4' }
           - { moodle: MOODLE_502_STABLE, php: '8.2' }
+          - { moodle: MOODLE_503_STABLE, php: '8.2' }
 
     services:
       mariadb:
-        image: mariadb:10.11
+        image: mariadb:11.4
         env:
           MYSQL_ROOT_PASSWORD: root
         ports: ['3306:3306']
@@ -200,7 +202,7 @@ jobs:
           --health-retries=10
 
       pgsql:
-        image: postgres:16
+        image: postgres:17
         env:
           POSTGRES_USER:     moodle
           POSTGRES_PASSWORD: moodle
@@ -283,7 +285,8 @@ jobs:
           fi
           # capquiz master requires Moodle 5.0.8 — only safe for 5.1+.
           if [ "${{ matrix.moodle }}" = "MOODLE_501_STABLE" ] || \
-             [ "${{ matrix.moodle }}" = "MOODLE_502_STABLE" ]; then
+             [ "${{ matrix.moodle }}" = "MOODLE_502_STABLE" ] || \
+             [ "${{ matrix.moodle }}" = "MOODLE_503_STABLE" ]; then
             clone_p https://github.com/KQMATH/moodle-mod_capquiz master \
               "$MOODLE_DIR/mod/capquiz"
           fi
@@ -292,12 +295,24 @@ jobs:
           cd "$MOODLE_DIR"
           $PHP admin/tool/phpunit/cli/init.php
 
-      - name: PHPUnit – all tests
-        run: moodle-plugin-ci phpunit
+      - name: PHPUnit – all tests (plugin + subplugin testsuites)
+        run: |
+          # moodle-plugin-ci only picks local_coursectrl_testsuite by default.
+          # Subplugins (coursectrlmod_*, coursectrlcal_*) register their own
+          # testsuites, which must be listed explicitly.
+          suites=local_coursectrl_testsuite
+          for dir in plugin/mod/*/tests plugin/cal/*/tests; do
+            [ -d "$dir" ] || continue
+            sub=$(basename "$(dirname "$dir")")
+            type=$(basename "$(dirname "$(dirname "$dir")")")
+            suites="$suites,coursectrl${type}_${sub}_testsuite"
+          done
+          echo "Testsuites: $suites"
+          moodle-plugin-ci phpunit --testsuite "$suites"
 
   # ── 3. Behat ─────────────────────────────────────────────────────────────
   behat:
-    name: "Behat (${{ matrix.moodle }} / PHP 8.2 / Chrome)"
+    name: "Behat (${{ matrix.moodle }} / PHP 8.3 / Chrome)"
     runs-on: ubuntu-24.04
     needs: [lint-php, lint-js]
     strategy:
@@ -307,10 +322,12 @@ jobs:
           - MOODLE_405_STABLE
           - MOODLE_500_STABLE
           - MOODLE_501_STABLE
+          - MOODLE_502_STABLE
+          - MOODLE_503_STABLE
 
     services:
       mariadb:
-        image: mariadb:10.11
+        image: mariadb:11.4
         env:
           MYSQL_ROOT_PASSWORD: root
         ports: ['3306:3306']
@@ -326,7 +343,7 @@ jobs:
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.3'
           extensions: mbstring, pdo, pdo_mysql, gd, xml, zip, intl
           ini-values: max_input_vars=5000
           coverage: none
@@ -389,7 +406,8 @@ jobs:
           fi
           # capquiz master requires Moodle 5.0.8 — only safe for 5.1+.
           if [ "${{ matrix.moodle }}" = "MOODLE_501_STABLE" ] || \
-             [ "${{ matrix.moodle }}" = "MOODLE_502_STABLE" ]; then
+             [ "${{ matrix.moodle }}" = "MOODLE_502_STABLE" ] || \
+             [ "${{ matrix.moodle }}" = "MOODLE_503_STABLE" ]; then
             clone_p https://github.com/KQMATH/moodle-mod_capquiz master \
               "$MOODLE_DIR/mod/capquiz"
           fi

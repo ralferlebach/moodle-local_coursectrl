@@ -23,7 +23,7 @@ Feature: Timeline date shift for availability-condition dates
     And I log in as "teacher1"
     When I am on the timeline page for course "SHIFTCRS"
     Then I should see "Homework 1"
-    And I should see "Terminuebersicht"
+    And I should see "Schedule"
 
   @javascript
   Scenario: Timeline shows shift dialog when the slot button is clicked
@@ -33,7 +33,7 @@ Feature: Timeline date shift for availability-condition dates
     And I log in as "teacher1"
     When I am on the timeline page for course "SHIFTCRS"
     And I click on "[data-action='shift-slot']" "css_element"
-    Then I should see "Termine verschieben"
+    Then I should see "Shift dates"
 
   @javascript
   Scenario: Text review tab is accessible and shows activity intro hits after scan

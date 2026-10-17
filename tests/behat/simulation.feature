@@ -49,5 +49,4 @@ Feature: Simulation tab functionality
       | activity | course  | name    |
       | assign   | SIMTEST | Task C1 |
     And I log in as "student1"
-    When I am on the checks page for course "SIMTEST"
-    Then I should not see "Simulation"
+    Then I should be denied access to the "checks" page for course "SIMTEST"

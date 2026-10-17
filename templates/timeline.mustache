@@ -41,8 +41,9 @@
 <div class="local_coursectrl_timeline" data-region="local_coursectrl-timeline"
   {{#hasfocusdaykey}}data-focusdaykey="{{focusdaykey}}"{{/hasfocusdaykey}}
      data-courseid="{{courseid}}" data-shifturl="{{shifturl}}"
-     data-lbl-slot="{{#str}} shift_lbl_slot, local_coursectrl {{/str}}"
-     data-lbl-following="{{#str}} shift_lbl_following, local_coursectrl {{/str}}">
+     data-lbl-slot="{{#str}} shift_lbl_slot, local_coursectrl, {$a} {{/str}}"
+     data-lbl-following="{{#str}} shift_lbl_following, local_coursectrl, {$a} {{/str}}"
+     data-lbl-entries-selected="{{#str}} textreview_entries_selected, local_coursectrl, {$a} {{/str}}">
 
   {{! ── Tab navigation ──────────────────────────────────────────────────── }}
   <ul class="nav nav-tabs mb-3" role="tablist">
@@ -145,7 +146,7 @@
       <label class="form-label mb-0 small text-nowrap">
         {{#str}} timeline_filter_group, local_coursectrl {{/str}}
       </label>
-      <select name="groupid" class="form-select form-select-sm" style="width:auto"
+      <select name="groupid" class="custom-select custom-select-sm form-select form-select-sm" style="width:auto"
               onchange="this.form.submit()">
         <option value="0"{{^activegroupid}} selected{{/activegroupid}}>
           {{#str}} timeline_filter_group_none, local_coursectrl {{/str}}
@@ -272,19 +273,28 @@
        data-err-nodelta="{{#str}} shift_err_nodelta, local_coursectrl {{/str}}"
        data-err-generic="{{#str}} shift_err_generic, local_coursectrl {{/str}}"
        data-msg-nohits="{{#str}} shift_msg_nohits, local_coursectrl {{/str}}"
+       data-msg-nochanges="{{#str}} shift_msg_nochanges, local_coursectrl {{/str}}"
        data-msg-loading="{{#str}} shift_msg_loading, local_coursectrl {{/str}}"
        data-msg-shifted="{{#str}} shift_msg_shifted, local_coursectrl {{/str}}"
        data-msg-errors="{{#str}} shift_msg_errors, local_coursectrl {{/str}}"
        data-lbl-mark="{{#str}} shift_lbl_mark, local_coursectrl {{/str}}"
        data-lbl-deselect="{{#str}} shift_lbl_deselect, local_coursectrl {{/str}}"
-       data-lbl-yearassumed="{{#str}} shift_lbl_yearassumed, local_coursectrl {{/str}}"
-       data-lbl-yearlabel="{{#str}} shift_lbl_yearlabel, local_coursectrl {{/str}}"
+       data-lbl-yearassumed="{{#str}} shift_lbl_yearassumed, local_coursectrl, {$a} {{/str}}"
+       data-lbl-yearlabel="{{#str}} shift_lbl_yearlabel, local_coursectrl, {$a} {{/str}}"
        data-lbl-ambiguous-notice="{{#str}} shift_lbl_ambiguous_notice, local_coursectrl {{/str}}"
        data-lbl-errtitle="{{#str}} shift_lbl_errtitle, local_coursectrl {{/str}}"
        data-lbl-err-apply="{{#str}} shift_lbl_err_apply, local_coursectrl {{/str}}"
        data-lbl-avail-shift="{{#str}} shift_lbl_avail_shift, local_coursectrl {{/str}}"
-       data-lbl-fields-changed="{{#str}} shift_lbl_fields_changed, local_coursectrl {{/str}}"
+       data-lbl-fields-changed="{{#str}} shift_lbl_fields_changed, local_coursectrl, {$a} {{/str}}"
        data-lbl-activities="{{#str}} shift_lbl_activities, local_coursectrl {{/str}}"
+       data-lbl-nodates="{{#str}} shift_lbl_nodates, local_coursectrl {{/str}}"
+       data-lbl-show-fields="{{#str}} shift_lbl_show_fields, local_coursectrl {{/str}}"
+       data-lbl-full-context="{{#str}} shift_lbl_full_context, local_coursectrl {{/str}}"
+       data-lbl-hits-found="{{#str}} shift_lbl_hits_found, local_coursectrl, {$a} {{/str}}"
+       data-lbl-col-location="{{#str}} textreview_col_location, local_coursectrl {{/str}}"
+       data-lbl-col-match="{{#str}} textreview_col_match, local_coursectrl {{/str}}"
+       data-lbl-col-normalized="{{#str}} textreview_col_normalized, local_coursectrl {{/str}}"
+       data-lbl-col-rewrite="{{#str}} textreview_col_rewrite, local_coursectrl {{/str}}"
        data-lbl-scanning="{{#str}} shift_lbl_scanning, local_coursectrl {{/str}}"
        data-lbl-scan-failed="{{#str}} shift_lbl_scan_failed, local_coursectrl {{/str}}">
     <div class="modal-dialog modal-lg" role="document">
@@ -295,7 +305,7 @@
             {{#str}} timeline_shift_heading, local_coursectrl {{/str}}
           </h6>
           <button type="button" class="close btn-close"
-                  data-action="close-dialog" aria-label="Close"></button>
+                  data-action="close-dialog" aria-label="{{#str}} closebuttontitle {{/str}}"></button>
         </div>
 
         {{! Step 1: shift configuration }}
@@ -410,7 +420,7 @@
             {{#str}} timeline_delete_heading, local_coursectrl {{/str}}
           </h6>
           <button type="button" class="close btn-close"
-                  data-action="close-dialog" aria-label="Close"></button>
+                  data-action="close-dialog" aria-label="{{#str}} closebuttontitle {{/str}}"></button>
         </div>
         <form method="post" action="{{shifturl}}">
           <input type="hidden" name="sesskey" value="{{sesskey}}">
@@ -576,21 +586,21 @@
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div class="d-flex gap-3" style="width:25rem">
               <div class="input-group input-group-sm" style="white-space:nowrap">
-                <input type="number" name="delta_days" class="form-control"
+                <input type="number" name="delta_days" id="coursectrl-textreview-delta-days" class="form-control"
                        style="width:4rem" value="{{textreview_delta_days}}">
                 <div class="input-group-append">
                   <span class="input-group-text">{{#str}} days {{/str}}</span>
                 </div>
               </div>
               <div class="input-group input-group-sm" style="white-space:nowrap">
-                <input type="number" name="delta_hours" class="form-control"
+                <input type="number" name="delta_hours" id="coursectrl-textreview-delta-hours" class="form-control"
                        style="width:3.5rem" value="{{textreview_delta_hours}}">
                 <div class="input-group-append">
                   <span class="input-group-text">{{#str}} hours {{/str}}</span>
                 </div>
               </div>
               <div class="input-group input-group-sm" style="white-space:nowrap">
-                <input type="number" name="delta_minutes" class="form-control"
+                <input type="number" name="delta_minutes" id="coursectrl-textreview-delta-minutes" class="form-control"
                        style="width:3.5rem" value="{{textreview_delta_minutes}}" min="0" max="59">
                 <div class="input-group-append">
                   <span class="input-group-text">{{#str}} minutes, core {{/str}}</span>
@@ -618,6 +628,9 @@
       var nextBtn = document.getElementById('cctr-next');
       var label   = document.getElementById('cctr-page-label');
       var allBtn  = document.getElementById('cctr-showall');
+      var lblCount = {{#quote}}{{#str}} textreview_entries_count, local_coursectrl, {$a} {{/str}}{{/quote}};
+      var lblPaged = {{#quote}}{{#str}} textreview_paginate, local_coursectrl {{/str}}{{/quote}};
+      var lblShowAll = {{#quote}}{{#str}} textreview_show_all, local_coursectrl {{/str}}{{/quote}};
 
       var allRows = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
       var totalPages = Math.max(1, Math.ceil(allRows.length / PER_PAGE));
@@ -633,13 +646,13 @@
         });
         if (label) {
           label.textContent = showAll
-            ? (allRows.length + ' Einträge')
+            ? lblCount.replace('{$a}', String(allRows.length))
             : ((currentPage + 1) + ' / ' + totalPages);
         }
         if (prevBtn) { prevBtn.disabled = showAll || currentPage === 0; }
         if (nextBtn) { nextBtn.disabled = showAll || currentPage >= totalPages - 1; }
         if (allBtn) {
-          allBtn.textContent = showAll ? 'Seitenweise' : 'Alle anzeigen';
+          allBtn.textContent = showAll ? lblPaged : lblShowAll;
         }
       }
 
@@ -750,7 +763,7 @@
               {{#str}} textreview_modal_title, local_coursectrl {{/str}}
             </h6>
             <button type="button" class="close btn-close"
-                    data-action="close-textreview-modal" aria-label="Close"></button>
+                    data-action="close-textreview-modal" aria-label="{{#str}} closebuttontitle {{/str}}"></button>
           </div>
           <div class="modal-body py-2" id="coursectrl-textreview-modal-body">
           </div>

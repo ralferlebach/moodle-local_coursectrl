@@ -617,9 +617,9 @@ require(['local_coursectrl/simulation'], function(S) {
         }
 
         var remaining = realLi.length - LIMIT;
-        var lblMore = simRoot.getAttribute('data-lbl-more-cond') || 'more condition(s)';
+        var lblMore = simRoot.getAttribute('data-lbl-more-cond') || '';
         var lblShow = '+ ' + remaining + ' ' + lblMore;
-        var lblHide = simRoot.getAttribute('data-lbl-less-cond') || '\u2212 show less';
+        var lblHide = simRoot.getAttribute('data-lbl-less-cond') || '';
 
         var btn = document.createElement('button');
         btn.type = 'button';

@@ -32,7 +32,7 @@ $page     = optional_param('page', 0, PARAM_INT);
 
 $resolved = \local_coursectrl\local\page\course_context_resolver::resolve($courseid);
 if (!$resolved) {
-    \local_coursectrl\local\page\course_context_resolver::render_invalid_course_page($PAGE, $OUTPUT);
+    \local_coursectrl\local\page\course_context_resolver::render_invalid_course_page();
 }
 $course  = $resolved['course'];
 $context = $resolved['context'];

@@ -171,6 +171,10 @@ trait shift_dates_executor {
      * @return array
      */
     public function execute_action(string $action, array $payload, array $cmids, int $userid): array {
+        // Unsupported actions yield an empty result, mirroring preview_action().
+        if ($action !== 'shift_dates' && $action !== 'unset_dates') {
+            return [];
+        }
         $validation = $this->validate_action($action, $payload, $cmids);
         if (empty($validation['valid'])) {
             return [

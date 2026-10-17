@@ -51,7 +51,7 @@ Feature: Timeline shift – field-precise assertions and data-attribute verifica
     Then the shift modal should be visible
     When I set the shift days to 1
     And I click the shift preview button and wait
-    Then the shift preview summary should contain "Feld(er)"
+    Then the shift preview summary should contain "field(s) in"
     When I apply the shift and wait
     And I click on "[data-ccwf-action='back']" "css_element"
     And I wait "3" seconds
@@ -66,7 +66,7 @@ Feature: Timeline shift – field-precise assertions and data-attribute verifica
     Then the shift modal should be visible
     When I set the shift days to 1
     And I click the shift preview button and wait
-    Then the shift preview summary should contain "Feld(er)"
+    Then the shift preview summary should contain "field(s) in"
     When I apply the shift and wait
     And I click on "[data-ccwf-action='back']" "css_element"
     And I wait "3" seconds
@@ -83,7 +83,7 @@ Feature: Timeline shift – field-precise assertions and data-attribute verifica
     Then the shift modal should be visible
     When I set the shift days to 1
     And I click the shift preview button and wait
-    Then the shift preview summary should contain "Feld(er)"
+    Then the shift preview summary should contain "field(s) in"
     When I apply the shift and wait
     And I click on "[data-ccwf-action='back']" "css_element"
     And I wait "3" seconds
@@ -101,7 +101,7 @@ Feature: Timeline shift – field-precise assertions and data-attribute verifica
     Then the shift modal should be visible
     When I set the shift days to 1
     And I click the shift preview button and wait
-    Then the shift preview summary should contain "Feld(er)"
+    Then the shift preview summary should contain "field(s) in"
     When I apply the shift and wait
     And I click on "[data-ccwf-action='back']" "css_element"
     And I wait "3" seconds
@@ -119,6 +119,6 @@ Feature: Timeline shift – field-precise assertions and data-attribute verifica
     Then the shift modal should be visible
     When I set the shift days to 1
     And I click the shift preview button and wait
-    Then the shift preview summary should contain "1 Feld(er) in 1 Aktivität(en)"
+    Then the shift preview summary should contain "1 field(s) in 1 activit(y/ies)"
     When I apply the shift and wait
     Then the shift modal should show 1 shifted entry message

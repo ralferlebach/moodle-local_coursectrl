@@ -64,13 +64,12 @@ class course_context_resolver {
      * Outputs a complete Moodle HTML page with a warning notification and
      * then calls exit. Use this in HTML-view entry points.
      *
-     * @param \moodle_page   $PAGE   The global PAGE object.
-     * @param \core_renderer $OUTPUT The global OUTPUT object.
+     * The global $PAGE and $OUTPUT objects are used directly: before
+     * header() is printed, $OUTPUT is still a bootstrap_renderer proxy,
+     * which must not be passed around as a typed core_renderer.
      */
-    public static function render_invalid_course_page(
-        \moodle_page $PAGE,
-        \core_renderer $OUTPUT
-    ): never {
+    public static function render_invalid_course_page(): never {
+        global $PAGE, $OUTPUT;
         require_login();
         $PAGE->set_context(\context_system::instance());
         $PAGE->set_url(new \moodle_url('/local/coursectrl/index.php'));

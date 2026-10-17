@@ -224,6 +224,57 @@ define(['core/templates'], function(Templates) {
     };
 
     /**
+     * Read all UI label strings from the data-attributes of an element.
+     *
+     * The strings are rendered server-side via get_string() into the modal
+     * markup, so the JS source contains no hard-coded language strings.
+     *
+     * @param {HTMLElement|null} el Element carrying the data-lbl-* attributes.
+     * @return {object} Map of label identifiers to localised strings.
+     */
+    var readLabels = function(el) {
+        var attr = function(name) {
+            return (el && el.getAttribute(name)) || '';
+        };
+        return {
+            confSafe: attr('data-lbl-conf-safe'),
+            confAmbiguous: attr('data-lbl-conf-ambiguous'),
+            confInfo: attr('data-lbl-conf-info'),
+            btnPreview: attr('data-label-preview'),
+            btnClose: attr('data-lbl-close'),
+            errNoselect: attr('data-err-noselect'),
+            errNodelta: attr('data-err-nodelta'),
+            errGeneric: attr('data-err-generic'),
+            msgNohits: attr('data-msg-nohits'),
+            msgNochanges: attr('data-msg-nochanges'),
+            msgLoading: attr('data-msg-loading'),
+            msgShifted: attr('data-msg-shifted'),
+            msgErrors: attr('data-msg-errors'),
+            lblMark: attr('data-lbl-mark'),
+            lblDeselect: attr('data-lbl-deselect'),
+            lblYearAssumed: attr('data-lbl-yearassumed'),
+            lblYearLabel: attr('data-lbl-yearlabel'),
+            lblAmbiguousNotice: attr('data-lbl-ambiguous-notice'),
+            lblErrTitle: attr('data-lbl-errtitle'),
+            lblErrApply: attr('data-lbl-err-apply'),
+            lblAvailShift: attr('data-lbl-avail-shift'),
+            lblFieldsChanged: attr('data-lbl-fields-changed'),
+            lblActivities: attr('data-lbl-activities'),
+            lblNodates: attr('data-lbl-nodates'),
+            lblShowFields: attr('data-lbl-show-fields'),
+            lblFullContext: attr('data-lbl-full-context'),
+            lblHitsFound: attr('data-lbl-hits-found'),
+            lblScanning: attr('data-lbl-scanning'),
+            lblScanFailed: attr('data-lbl-scan-failed'),
+            lblScanText: attr('data-label-scantext'),
+            colLocation: attr('data-lbl-col-location'),
+            colMatch: attr('data-lbl-col-match'),
+            colNormalized: attr('data-lbl-col-normalized'),
+            colRewrite: attr('data-lbl-col-rewrite'),
+        };
+    };
+
+    /**
      * Render the preview activity list for the given preview result.
      *
      * Uses a flex-container layout: each activity gets one row (icon + name +
@@ -235,28 +286,26 @@ define(['core/templates'], function(Templates) {
      * @return {string} HTML string.
      */
     var renderPreviewHtml = function(preview, labels) {
+        var lbl = labels || {};
         var s = preview.summary;
         if (s.changes === 0 && (s.skipped || 0) === 0) {
             return '<div class="alert alert-warning py-2 small mb-0">' +
-                (labels && labels.errNodelta ? labels.errNodelta : 'No date fields to shift.') +
+                escHtml(lbl.msgNochanges || '') +
                 '</div>';
         }
         if (s.changes === 0 && (s.skipped || 0) > 0) {
-            var availMsg = (labels && labels.lblAvailShift)
-                ? (s.skipped + ' ' + labels.lblAvailShift)
-                : (s.skipped + ' activit(y/ies) shifted via availability conditions.');
+            var availMsg = s.skipped + ' ' + escHtml(lbl.lblAvailShift || '');
             return '<div class="alert alert-info py-2 small mb-0">' + availMsg + '</div>';
         }
         var fieldcount = s.fieldcount || s.changes;
-        var changedLbl = (labels && labels.lblFieldsChanged)
-            ? labels.lblFieldsChanged.replace('{$changes}', s.changes)
-            : ('field(s) in ' + s.changes + ' activit(y/ies) will be changed');
+        var changedLbl = escHtml((lbl.lblFieldsChanged || '').replace('{$a}', s.changes));
         var summaryHtml =
             '<p class="small mb-2">' +
             '<strong>' + fieldcount + '</strong> ' + changedLbl +
-            (s.skipped > 0 ? ', <span class="text-muted">' + s.skipped + ' no dates</span>' : '') +
+            (s.skipped > 0 ? ', <span class="text-muted">' + s.skipped + ' ' +
+                escHtml(lbl.lblNodates || '') + '</span>' : '') +
             (s.errors > 0 ? ', <span class="text-danger">' + s.errors + ' ' +
-                escHtml((labels && labels.msgErrors) || 'error(s)') + '</span>' : '') +
+                escHtml(lbl.msgErrors || '') + '</span>' : '') +
             '.</p>';
 
         var changes = (preview.changes || []).filter(function(c) {
@@ -300,7 +349,7 @@ define(['core/templates'], function(Templates) {
                 '<span class="fw-semibold small flex-fill">' + escHtml(change.name) + '</span>' +
                 '<span class="badge bg-light text-dark border small">' + fieldNames.length + '</span>' +
                 '<button type="button" class="btn btn-link btn-sm p-0 ms-1 ccwf-preview-toggle"' +
-                ' data-target="' + detailId + '" title="Felder einblenden">' +
+                ' data-target="' + detailId + '" title="' + escHtml(lbl.lblShowFields || '') + '">' +
                 '<i class="fa fa-info-circle"></i></button>' +
                 '</div>' +
                 '<div id="' + detailId + '" class="ccwf-preview-detail d-none mt-1">' +
@@ -469,7 +518,7 @@ define(['core/templates'], function(Templates) {
                 '</span>' +
                 '<button type="button" class="btn btn-link btn-sm p-0 ms-1 ccwf-ctx-btn"' +
                 ' data-before="' + beforeFull + '" data-match="' + matched + '" data-after="' + afterFull + '"' +
-                ' title="Vollst\u00e4ndiger Kontext">' +
+                ' title="' + escHtml(lbl.lblFullContext || '') + '">' +
                 '<i class="fa fa-info-circle"></i></button>' +
                 '<span class="ccwf-ctx-long text-muted d-none">' +
                 '\u2026' + beforeFull +
@@ -508,7 +557,7 @@ define(['core/templates'], function(Templates) {
 
         return '<div class="d-flex justify-content-between align-items-center mb-2">' +
             '<div>' +
-            '<strong class="small">' + hits.length + ' Datumsangaben gefunden</strong>' +
+            '<strong class="small">' + escHtml((lbl.lblHitsFound || '').replace('{$a}', hits.length)) + '</strong>' +
             '<span class="text-muted small ms-2" title="' +
             escHtml(lbl.lblAmbiguousNotice) + '">' +
             '\u24d8 ' + escHtml(lbl.lblAmbiguousNotice) + '</span>' +
@@ -517,8 +566,11 @@ define(['core/templates'], function(Templates) {
             '<div class="table-responsive" style="max-height:35vh;overflow-y:auto">' +
             '<table class="table table-sm table-striped mb-0 ccwf-hit-table" style="font-size:.85em">' +
             '<thead><tr>' +
-            (readOnly ? '' : '<th style="width:34px"></th>') + '<th>Ort</th>' +
-            '<th>Gefunden</th><th>Termin</th><th>Textstelle zu \u00e4ndern in \u2026</th>' +
+            (readOnly ? '' : '<th style="width:34px"></th>') +
+            '<th>' + escHtml(lbl.colLocation || '') + '</th>' +
+            '<th>' + escHtml(lbl.colMatch || '') + '</th>' +
+            '<th>' + escHtml(lbl.colNormalized || '') + '</th>' +
+            '<th>' + escHtml(lbl.colRewrite || '') + '</th>' +
             '</tr></thead>' +
             '<tbody>' + rows + '</tbody></table></div>';
     };
@@ -633,34 +685,7 @@ define(['core/templates'], function(Templates) {
 
         // Extract all UI labels from modal data-attributes so no
         // hardcoded language strings remain in the JS source.
-        var lbl = {
-            confSafe: modal.getAttribute('data-lbl-conf-safe') || 'Safe',
-            confAmbiguous: modal.getAttribute('data-lbl-conf-ambiguous') || 'Ambiguous',
-            confInfo: modal.getAttribute('data-lbl-conf-info') || 'Informational',
-            btnPreview: modal.getAttribute('data-label-preview') || 'Preview',
-            btnClose: modal.getAttribute('data-lbl-close') || 'Close',
-            errNoselect: modal.getAttribute('data-err-noselect') || 'Please select at least one activity.',
-            errNodelta: modal.getAttribute('data-err-nodelta') || 'Please enter a number of days or hours.',
-            errGeneric: modal.getAttribute('data-err-generic') || 'An error occurred.',
-            msgNohits: modal.getAttribute('data-msg-nohits') || 'No date references found.',
-            msgLoading: modal.getAttribute('data-msg-loading') || 'Shifting dates…',
-            msgShifted: modal.getAttribute('data-msg-shifted') || 'date(s) shifted.',
-            msgErrors: modal.getAttribute('data-msg-errors') || 'error(s).',
-            lblMark: modal.getAttribute('data-lbl-mark') || 'Mark affected',
-            lblDeselect: modal.getAttribute('data-lbl-deselect') || 'Deselect all',
-            lblYearAssumed: modal.getAttribute('data-lbl-yearassumed') || 'Year {$a} assumed.',
-            lblYearLabel: modal.getAttribute('data-lbl-yearlabel') || 'Year missing – {$a}',
-            lblAmbiguousNotice: modal.getAttribute('data-lbl-ambiguous-notice') || 'Some dates shown for manual review.',
-            lblErrTitle: modal.getAttribute('data-lbl-errtitle') || 'Unknown error',
-            lblErrApply: modal.getAttribute('data-lbl-err-apply') || 'Error applying changes.',
-            lblAvailShift: modal.getAttribute('data-lbl-avail-shift') ||
-                'activit(y/ies) shifted via availability conditions.',
-            lblFieldsChanged: modal.getAttribute('data-lbl-fields-changed') ||
-                'field(s) in {$changes} activit(y/ies) will be changed',
-            lblActivities: modal.getAttribute('data-lbl-activities') || 'activit(y/ies)',
-            lblScanning: modal.getAttribute('data-lbl-scanning') || 'Analysing text…',
-            lblScanFailed: modal.getAttribute('data-lbl-scan-failed') || 'Text analysis unavailable.',
-        };
+        var lbl = readLabels(modal);
 
         var step1 = modal.querySelector('[data-ccwf-step="1"]');
         var step2 = modal.querySelector('[data-ccwf-step="2"]');
@@ -743,7 +768,7 @@ define(['core/templates'], function(Templates) {
                             previewBtn.textContent = lbl.btnPreview;
                     var canExec = (preview.summary.changes || 0) > 0
                         || (preview.summary.skipped || 0) > 0;
-                            var html = renderPreviewHtml(preview);
+                            var html = renderPreviewHtml(preview, lbl);
 
                             // Scantext checkbox — only shown when changes exist.
                             var scantextRow = (opts.getScanText !== undefined && canExec)
@@ -752,7 +777,7 @@ define(['core/templates'], function(Templates) {
                                   ' style="margin:0;float:none;margin-top:0.15rem">' +
                                   '<label class="form-check-label small" for="ccwf-scantext-cb"' +
                                   ' style="margin-left:1.25rem">' +
-                                  (modal.getAttribute('data-label-scantext') || 'Check texts for date references') +
+                                  escHtml(lbl.lblScanText) +
                                   '</label></div>'
                                 : '';
 
@@ -1025,6 +1050,13 @@ define(['core/templates'], function(Templates) {
          * @return {string} HTML string.
          */
         renderHits: renderHitsHtml,
+        /**
+         * Read the localised UI labels from an element's data-attributes.
+         *
+         * @param {HTMLElement|null} el Element carrying the data-lbl-* attributes.
+         * @return {object} Label map accepted by renderHits().
+         */
+        readLabels: readLabels,
         /**
          * Wire context-expand toggle buttons inside a panel.
          *

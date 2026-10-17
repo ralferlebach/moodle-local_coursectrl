@@ -60,7 +60,7 @@ $autoshiftfield = optional_param('shift_field', '', PARAM_ALPHANUMEXT);
 
 $resolved = \local_coursectrl\local\page\course_context_resolver::resolve($courseid);
 if (!$resolved) {
-    \local_coursectrl\local\page\course_context_resolver::render_invalid_course_page($PAGE, $OUTPUT);
+    \local_coursectrl\local\page\course_context_resolver::render_invalid_course_page();
 }
 $course  = $resolved['course'];
 $context = $resolved['context'];

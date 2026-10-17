@@ -21,16 +21,17 @@ Feature: Checks page tab navigation and basic findings
   Scenario: Checks page loads on the consistency tab by default
     Given I log in as "teacher1"
     When I am on the checks page for course "FXCOURSE"
-    Then I should see "Consistency"
-    And I should see "Risk Assessment"
+    Then I should see "Problems"
+    And I should see "Solutions"
     And I should see "Simulation"
+    And I should see "No consistency issues found."
 
   @javascript
   Scenario: Switching to the risks tab shows risk assessment section
     Given I log in as "teacher1"
     When I am on the checks page for course "FXCOURSE" tab "risks"
-    Then I should see "Risk Assessment"
-    And I should see "Run assessment now"
+    Then I should see "Deep analysis & problem solving"
+    And I should see "The risk assessment has not yet been run."
 
   @javascript
   Scenario: Switching to the simulation tab shows simulation section
@@ -56,7 +57,7 @@ Feature: Checks page tab navigation and basic findings
     And I log in as "teacher1"
     When I am on the checks page for course "FXCOURSE"
     Then I should see "BadAssign"
-    And I should see "error" in the ".local-coursectrl-checks-consistency" "css_element"
+    And I should see "Date conflict" in the "[data-region='panel-consistency']" "css_element"
 
   # ── Risks tab: run assessment ─────────────────────────────────────────────
 
@@ -75,13 +76,13 @@ Feature: Checks page tab navigation and basic findings
       | activity | course   | name   | completion |
       | assign   | FXCOURSE | AssA   | 2          |
       | assign   | FXCOURSE | AssB   | 2          |
-    And the following "activity restrictions" exist:
-      | activity | restriction                                         |
-      | AssA     | {"op":"&","c":[{"type":"completion","cm":"AssB","e":1}],"showc":[true]} |
-      | AssB     | {"op":"&","c":[{"type":"completion","cm":"AssA","e":1}],"showc":[true]} |
+    And the availability of assign "AssA" in course "FXCOURSE" depends on completion of assign "AssB"
+    And the availability of assign "AssB" in course "FXCOURSE" depends on completion of assign "AssA"
     And I log in as "teacher1"
     When I run the risk assessment for course "FXCOURSE"
-    Then I should see "Risk Assessment"
+    Then I should see "Last assessment"
+    And I should see "AssA" in the "[data-region='panel-risks']" "css_element"
+    And I should see "AssB" in the "[data-region='panel-risks']" "css_element"
 
   # ── Simulation tab: basic output ─────────────────────────────────────────
 

@@ -265,7 +265,7 @@ define(
             btn.addEventListener('click', function() {
                 var slotBody = btn.closest('.card-body');
                 var targets = slotBody ? targetsForSlotBody(slotBody) : [];
-                var slotLbl = (root.getAttribute('data-lbl-slot') || 'Time slot: {$a} entries')
+                var slotLbl = (root.getAttribute('data-lbl-slot') || '')
                     .replace('{$a}', String(targets.length));
                 openShiftDialog(targets, 'slot', slotLbl, false);
             });
@@ -289,7 +289,7 @@ define(
                     seen[key] = true;
                     targets.push(targetFromBtn(b));
                 });
-                var followLbl = (root.getAttribute('data-lbl-following') || 'From here: {$a} entries')
+                var followLbl = (root.getAttribute('data-lbl-following') || '')
                     .replace('{$a}', String(targets.length));
                 openShiftDialog(targets, 'slot', followLbl, true);
             });
@@ -430,7 +430,8 @@ define(
                             });
                             if (modalBody) {
                                 var hitsHtml = ShiftWorkflow.renderHits(
-                                    selected, deltaSec, true
+                                    selected, deltaSec, true,
+                                    ShiftWorkflow.readLabels(document.getElementById('coursectrl-shift-dialog'))
                                 );
                                 Templates.replaceNodeContents(modalBody, hitsHtml, '');
                                 ShiftWorkflow.wireCtx(modalBody);
@@ -441,7 +442,8 @@ define(
                                 var cnt = hitids.length;
                                 var pEl = document.createElement('p');
                                 pEl.className = 'small text-muted';
-                                pEl.textContent = String(cnt) + ' entries selected.';
+                                pEl.textContent = (root.getAttribute('data-lbl-entries-selected') || '')
+                                    .replace('{$a}', String(cnt));
                                 while (modalBody.firstChild) {
                                     modalBody.removeChild(modalBody.firstChild);
                                 }

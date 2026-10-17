@@ -21,4 +21,5 @@ Feature: Text-hit scanning and date replacement in free-text fields
   Scenario: The manage page shows the text review option for a teacher
     Given I log in as "teacher1"
     When I am on the manage page for course "TEXTCRS"
-    Then I should see "Textprüfung"
+    Then I should see "Shift dates"
+    And "[data-ccwf-step='3']" "css_element" should exist

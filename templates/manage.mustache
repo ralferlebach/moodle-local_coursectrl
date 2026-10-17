@@ -208,7 +208,39 @@
        data-label-config="{{#str}} manage_shift_title, local_coursectrl {{/str}}"
        data-label-preview="{{#str}} preview_title, local_coursectrl {{/str}}"
        data-label-textreview="{{#str}} tab_textreview, local_coursectrl {{/str}}"
-       data-label-scantext="{{#str}} shift_scan_text, local_coursectrl {{/str}}">
+       data-label-scantext="{{#str}} shift_scan_text, local_coursectrl {{/str}}"
+       data-lbl-close="{{#str}} shift_lbl_close, local_coursectrl {{/str}}"
+       data-lbl-conf-safe="{{#str}} shift_lbl_conf_safe, local_coursectrl {{/str}}"
+       data-lbl-conf-ambiguous="{{#str}} shift_lbl_conf_ambiguous, local_coursectrl {{/str}}"
+       data-lbl-conf-info="{{#str}} shift_lbl_conf_informational, local_coursectrl {{/str}}"
+       data-err-noselect="{{#str}} shift_err_noselect, local_coursectrl {{/str}}"
+       data-err-nodelta="{{#str}} shift_err_nodelta, local_coursectrl {{/str}}"
+       data-err-generic="{{#str}} shift_err_generic, local_coursectrl {{/str}}"
+       data-msg-nohits="{{#str}} shift_msg_nohits, local_coursectrl {{/str}}"
+       data-msg-nochanges="{{#str}} shift_msg_nochanges, local_coursectrl {{/str}}"
+       data-msg-loading="{{#str}} shift_msg_loading, local_coursectrl {{/str}}"
+       data-msg-shifted="{{#str}} shift_msg_shifted, local_coursectrl {{/str}}"
+       data-msg-errors="{{#str}} shift_msg_errors, local_coursectrl {{/str}}"
+       data-lbl-mark="{{#str}} shift_lbl_mark, local_coursectrl {{/str}}"
+       data-lbl-deselect="{{#str}} shift_lbl_deselect, local_coursectrl {{/str}}"
+       data-lbl-yearassumed="{{#str}} shift_lbl_yearassumed, local_coursectrl, {$a} {{/str}}"
+       data-lbl-yearlabel="{{#str}} shift_lbl_yearlabel, local_coursectrl, {$a} {{/str}}"
+       data-lbl-ambiguous-notice="{{#str}} shift_lbl_ambiguous_notice, local_coursectrl {{/str}}"
+       data-lbl-errtitle="{{#str}} shift_lbl_errtitle, local_coursectrl {{/str}}"
+       data-lbl-err-apply="{{#str}} shift_lbl_err_apply, local_coursectrl {{/str}}"
+       data-lbl-avail-shift="{{#str}} shift_lbl_avail_shift, local_coursectrl {{/str}}"
+       data-lbl-fields-changed="{{#str}} shift_lbl_fields_changed, local_coursectrl, {$a} {{/str}}"
+       data-lbl-activities="{{#str}} shift_lbl_activities, local_coursectrl {{/str}}"
+       data-lbl-nodates="{{#str}} shift_lbl_nodates, local_coursectrl {{/str}}"
+       data-lbl-show-fields="{{#str}} shift_lbl_show_fields, local_coursectrl {{/str}}"
+       data-lbl-full-context="{{#str}} shift_lbl_full_context, local_coursectrl {{/str}}"
+       data-lbl-hits-found="{{#str}} shift_lbl_hits_found, local_coursectrl, {$a} {{/str}}"
+       data-lbl-col-location="{{#str}} textreview_col_location, local_coursectrl {{/str}}"
+       data-lbl-col-match="{{#str}} textreview_col_match, local_coursectrl {{/str}}"
+       data-lbl-col-normalized="{{#str}} textreview_col_normalized, local_coursectrl {{/str}}"
+       data-lbl-col-rewrite="{{#str}} textreview_col_rewrite, local_coursectrl {{/str}}"
+       data-lbl-scanning="{{#str}} shift_lbl_scanning, local_coursectrl {{/str}}"
+       data-lbl-scan-failed="{{#str}} shift_lbl_scan_failed, local_coursectrl {{/str}}">
     <div class="modal-dialog modal-lg" role="document">
       <div class="modal-content">
         <div class="modal-header py-2">
@@ -216,7 +248,7 @@
             {{#str}} manage_shift_title, local_coursectrl {{/str}}
           </h6>
           <button type="button" class="close btn-close"
-                  data-action="close-manage-dialog" aria-label="Close"></button>
+                  data-action="close-manage-dialog" aria-label="{{#str}} closebuttontitle {{/str}}"></button>
         </div>
         {{! Step 1: placeholder — config lives on the page }}
         <div data-ccwf-step="1" class="d-none">

@@ -241,8 +241,7 @@ define([], function() {
     var ganttCollapsed = {};
 
     var renderGantt = function(canvas) {
-        var lblOutsection = canvas.getAttribute('data-lbl-outsection')
-            || '\u26a0 Outside section availability window';
+        var lblOutsection = canvas.getAttribute('data-lbl-outsection') || '';
         var raw = canvas.getAttribute('data-gantt');
         if (!raw) {
             return;

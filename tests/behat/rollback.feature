@@ -26,21 +26,22 @@ Feature: Rollback of executed bulk actions in the history page
   Scenario: A teacher can open the history page
     Given I log in as "teacher1"
     When I am on the history page for course "ROLLBACK"
-    Then I should see "Letzte" in the page
+    Then I should see "Logs & History"
+    And I should see "No actions recorded yet."
 
-  # Rollback capability gate.
-
-  @javascript
-  Scenario: A student without rollback capability cannot see rollback buttons
-    Given I log in as "noperms"
-    When I am on the history page for course "ROLLBACK"
-    Then I should not see "Rückgängig"
-
-  # Direct URL access without rollback capability.
+  # Rollback capability gate: editing teachers may view the history,
+  # but local/coursectrl:rollback is granted to managers only.
 
   @javascript
-  Scenario: A student without rollback capability sees no rollback buttons
-    Given I log in as "noperms"
+  Scenario: An editing teacher without rollback capability sees no rollback buttons
+    Given I log in as "teacher1"
     When I am on the history page for course "ROLLBACK"
-    Then I should not see "Rückgängig"
-    And I should not see "rollback"
+    Then I should see "Logs & History"
+    And I should not see "Undo"
+
+  # Direct URL access without view capability.
+
+  @javascript
+  Scenario: A student without view capability cannot open the history page
+    Given I log in as "noperms"
+    Then I should be denied access to the "history" page for course "ROLLBACK"

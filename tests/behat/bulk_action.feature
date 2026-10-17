@@ -27,7 +27,7 @@ Feature: Bulk action selection, preview, and execution
     Given I log in as "teacher1"
     When I am on the manage page for course "BULK"
     Then I should see "Task 1"
-    And I should see "Datumsverschiebung" in the page
+    And I should see "Shift dates"
 
   @javascript
   Scenario: A teacher can navigate from manage to preview with selected activities
@@ -40,10 +40,9 @@ Feature: Bulk action selection, preview, and execution
   @javascript
   Scenario: A student without bulkaction capability cannot access manage.php
     Given I log in as "viewer1"
-    When I navigate to "/local/coursectrl/manage.php?courseid=1" in Moodle
-    Then I should see "Zugriff verweigert" in the page
+    Then I should be denied access to the "manage" page for course "BULK"
 
   @javascript
   Scenario: An unauthenticated user is redirected to login for manage.php
-    Given I am on the "manage" page for course "BULK" without logging in
-    Then I should be redirected to the login page
+    Given I am on the manage page for course "BULK"
+    Then the url should match "/login/index\.php"

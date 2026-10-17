@@ -23,7 +23,7 @@
 #   make amd            — rebuild AMD minified files
 #
 # Tests:
-#   make phpunit        — PHPUnit testsuite for this plugin
+#   make phpunit        — PHPUnit testsuites for this plugin and its subplugins
 
 MOODLE_ROOT   ?= /var/www/html/moodle45_aliseadele
 PLUGIN_DIR    ?= $(MOODLE_ROOT)/local/coursectrl
@@ -181,7 +181,15 @@ phpunit:
 		echo "SKIP: phpunit_dataroot not set in config.php."; \
 		echo "      Add to config.php and run: php admin/tool/phpunit/cli/init.php"; \
 	else \
+		suites=local_coursectrl_testsuite; \
+		for d in $(PLUGIN_DIR)/mod/*/tests $(PLUGIN_DIR)/cal/*/tests; do \
+			[ -d "$$d" ] || continue; \
+			sub=$$(basename "$$(dirname "$$d")"); \
+			type=$$(basename "$$(dirname "$$(dirname "$$d")")"); \
+			suites="$$suites,coursectrl$${type}_$${sub}_testsuite"; \
+		done; \
+		printf '%s\n' "Testsuites: $$suites"; \
 		cd $(MOODLE_ROOT) && $(PHP) vendor/bin/phpunit \
-			--testsuite local_coursectrl_testsuite \
+			--testsuite "$$suites" \
 			--testdox 2>&1 | grep -vE '^ ✔ |^$$' || true; \
 	fi

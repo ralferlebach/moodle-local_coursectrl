@@ -203,20 +203,17 @@ class behat_local_coursectrl extends behat_base {
      * @return void
      */
     public function i_click_entry_shift_button_for_modtype(string $modtype): void {
-        // Find a shift-entry button whose parent li contains a pix element for this module.
-        $selector = 'li:has(img[src*="mod_' . $modtype . '"]) [data-action="shift-entry"]';
-        $btn = $this->find('css', $selector);
-        if ($btn === null) {
-            // Fallback: first shift-entry button on page.
-            $btn = $this->find('css', '[data-action="shift-entry"]');
-        }
-        if ($btn === null) {
+        // The entry row renders the module monologo icon; its image URL contains "/mod_<modname>/".
+        $modtype = clean_param($modtype, PARAM_PLUGIN);
+        $xpath = "//li[.//img[contains(@src, '/mod_{$modtype}/')]]//button[@data-action='shift-entry']";
+        $buttons = $this->getSession()->getPage()->findAll('xpath', $xpath);
+        if (empty($buttons)) {
             throw new ExpectationException(
                 'No shift-entry button found for module type \'' . $modtype . '\'',
                 $this->getSession()
             );
         }
-        $btn->click();
+        reset($buttons)->click();
         $this->wait_for_pending_js();
     }
 
@@ -565,8 +562,8 @@ class behat_local_coursectrl extends behat_base {
         $this->getSession()->wait(1000); // Confirmation modal opens.
         $this->wait_for_pending_js();
         // Confirm in the modal if it appears.
-        $confirmbtn = $this->find('css', '[data-action="confirm-apply-text"]');
-        if ($confirmbtn !== null) {
+        $confirmbtn = $this->getSession()->getPage()->find('css', '#coursectrl-textreview-modal-apply');
+        if ($confirmbtn !== null && $confirmbtn->isVisible()) {
             $confirmbtn->click();
             $this->getSession()->wait(5000);
             $this->wait_for_pending_js();
@@ -726,10 +723,6 @@ class behat_local_coursectrl extends behat_base {
         );
     }
 
-
-
-
-
     /**
      * Assert that the entry shift button for a given activity + field carries
      * the correct data-source and data-field attributes (not a localized label).
@@ -746,7 +739,7 @@ class behat_local_coursectrl extends behat_base {
         $buttons = $this->find_all('css', '[data-action="shift-entry"][data-field="' . $fieldkey . '"]');
         $btn = null;
         foreach ($buttons as $candidate) {
-            $li = $candidate->getParent();
+            $li = $candidate->find('xpath', 'ancestor::li[1]');
             if ($li && strpos($li->getText(), $name) !== false) {
                 $btn = $candidate;
                 break;
@@ -773,31 +766,6 @@ class behat_local_coursectrl extends behat_base {
                 $this->getSession()
             );
         }
-    }
-
-    /**
-     * Set completionexpected in course_modules for a named activity.
-     *
-     * Used in Behat Background sections to prepare fixtures.
-     *
-     * @Given the completionexpected of :modtype :name in course :shortname is :ts
-     * @param string $modtype   Module type (e.g. "assign", "forum").
-     * @param string $name      Activity name.
-     * @param string $shortname Course shortname.
-     * @param int    $ts        Unix timestamp to set.
-     * @return void
-     */
-    public function set_completionexpected_for_activity(
-        string $modtype,
-        string $name,
-        string $shortname,
-        int $ts
-    ): void {
-        global $DB;
-        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
-        $mod    = $DB->get_record($modtype, ['course' => $course->id, 'name' => $name], 'id', MUST_EXIST);
-        $cm     = get_coursemodule_from_instance($modtype, $mod->id, $course->id, false, MUST_EXIST);
-        $DB->set_field('course_modules', 'completionexpected', $ts, ['id' => $cm->id]);
     }
 
     /**
@@ -1013,6 +981,65 @@ class behat_local_coursectrl extends behat_base {
         if (abs($actual - $expected) > 60) {
             throw new \Behat\Mink\Exception\ExpectationException(
                 'completionexpected: expected ~' . $expected . ', got ' . $actual,
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Assert that completionexpected of a course module has not changed.
+     *
+     * @Then the completionexpected of :modtype :name in course :shortname should still be :originalts
+     * @param string $modtype    Module type (e.g. "forum").
+     * @param string $name       Activity name.
+     * @param string $shortname  Course shortname.
+     * @param int    $originalts Expected unchanged timestamp.
+     * @return void
+     */
+    public function completionexpected_should_still_be(
+        string $modtype,
+        string $name,
+        string $shortname,
+        int $originalts
+    ): void {
+        global $DB;
+        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $mod = $DB->get_record($modtype, ['course' => $course->id, 'name' => $name], 'id', MUST_EXIST);
+        $cm = get_coursemodule_from_instance($modtype, $mod->id, $course->id, false, MUST_EXIST);
+        $actual = (int) $DB->get_field('course_modules', 'completionexpected', ['id' => $cm->id]);
+        if (abs($actual - $originalts) > 60) {
+            throw new ExpectationException(
+                "Expected completionexpected to remain {$originalts}, but got {$actual}",
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Assert that the current user is refused access to a plugin page.
+     *
+     * Opens the page, checks that Moodle rendered the "no permissions" error
+     * and then returns to the site home page, so that the expected error
+     * page is not reported as an unexpected exception after the step.
+     *
+     * @Then I should be denied access to the :page page for course :shortname
+     * @param string $page      Entry point name without ".php", e.g. "history".
+     * @param string $shortname Course short name.
+     * @return void
+     */
+    public function i_should_be_denied_access_to_page(string $page, string $shortname): void {
+        global $DB;
+        $course = $DB->get_record('course', ['shortname' => $shortname], 'id', MUST_EXIST);
+        $url = new moodle_url('/local/coursectrl/' . clean_param($page, PARAM_ALPHANUMEXT) . '.php', [
+            'courseid' => $course->id,
+        ]);
+        $this->getSession()->visit($this->locate_path($url->out_as_local_url(false)));
+        $expected = explode(' (', get_string('nopermissions', 'error', ''))[0];
+        $text = $this->getSession()->getPage()->getText();
+        $this->getSession()->visit($this->locate_path('/'));
+        if (strpos($text, $expected) === false) {
+            throw new ExpectationException(
+                "Expected access to '{$page}' to be denied, but the page did not show the permission error.",
                 $this->getSession()
             );
         }

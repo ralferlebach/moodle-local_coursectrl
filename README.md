@@ -1,105 +1,90 @@
-# Moodle Plugin: Course Control Hub (`local_coursectrl`)
+# Course Control Hub · `local_coursectrl`
 
-## Description
+[![Moodle Plugin CI](https://github.com/ralferlebach/moodle-local_coursectrl/actions/workflows/moodle-ci.yml/badge.svg?branch=development)](https://github.com/ralferlebach/moodle-local_coursectrl/actions/workflows/moodle-ci.yml?query=branch%3Adevelopment) [![Moodle 4.5–5.3](https://img.shields.io/badge/Moodle-4.5%E2%80%935.3-informational)](version.php)
 
-Course Control Hub is a Moodle local plugin that gives teachers and course managers a
-single, integrated workspace for inspecting, correcting, and future-proofing their course
-configurations. It detects problems that are otherwise invisible — date inversions,
-circular completion dependencies, unreachable activities, ambiguous date references in
-free-text fields — and provides safe, preview-first bulk-editing tools to fix them.
+[![CourseCtrl Hub](https://img.shields.io/badge/Plugin%20family-CourseCtrl%20Hub-3867d6)](https://github.com/ralferlebach/moodle-local_coursectrl) [![CourseCtrl Dates](https://img.shields.io/badge/Companion-CourseCtrl%20Dates-16a085)](https://github.com/ralferlebach/moodle-block_coursectrldates) [![Learn Tip](https://img.shields.io/badge/Companion-Learn%20Tip-8e44ad)](https://github.com/ralferlebach/moodle-block_coursectrllearntip)
 
-Every action requires an explicit preview and confirmation step. No data is changed
-automatically. All bulk operations are fully logged and can be rolled back.
+Course Control Hub is a Moodle local plugin for teachers and course managers to inspect course dates, availability and completion dependencies, analyse learner pathways, preview and apply date changes, and review/rollback changes.
 
-## Features
+## Requirements
 
-* **Dashboard**: at-a-glance view of upcoming activity dates, open issues, and
-  recent bulk actions for the current course.
-* **Timeline**: shifting single dates or as batches by calendar, including information tokens in free texts, as well as a visual overview of all activity dates and availability windows.
-* **Dependency**: interactive graph of completion and availability dependencies.
-* **Manage**: shifting dates for one or multiple activities.
-* **Checks**: rule-based surface scan and simulation-based deep scanning for problems in course design and dependencies, solutions and simulation for specific course progress trajectories.
-* **Checks — Solutions**: prioritised fix suggestions linked directly to each detected
-* **History & Rollback**: full audit log of all executed bulk actions.
-* supporting all standard activities of MOODLE as well as multiple foreign activity types via subplugins.
-* support for open calendar APIs for holidays and term breaks.
+- **Moodle:** 4.5–5.3 (declared in `version.php`; verify CI before production release).
+- **PHP / database:** use the version-compatible requirements of the selected Moodle release; the project CI covers multiple PHP/database combinations.
+- **Install path:** `local/coursectrl`.
+- **Current development version:** `1.2.1` (`2026101701`) on `development`. The published `main` branch can lag.
+- Optional activity adapters live under [`mod/`](mod/README.md); optional calendar providers under `cal/`.
+
+## Motivation
+
+Course configurations can contain conflicting dates, impossible completion chains and conditional access requirements that are difficult to review consistently. Course Control Hub provides a course-oriented review and an auditable change workflow.
 
 ## Installation
 
-1. Copy the `coursectrl` directory into `<moodleroot>/local/`.
-   The directory **must** be named exactly `coursectrl`.
+1. Install the plugin as `<moodle-root>/local/coursectrl`.
+2. Install any required third-party activity plugins before enabling their adapters.
+3. Visit **Site administration → Notifications**.
+4. Assign the `local/coursectrl:*` capabilities according to your course-administration policy.
 
-2. Log in as administrator and navigate to
-   **Site administration → Notifications**.
-   Moodle detects the new plugin and runs the database installer automatically.
+See [Moodle plugin installation](https://docs.moodle.org/en/Installing_plugins).
 
-3. Navigate to **Site administration → Users → Permissions → Define roles** and assign
-   the plugin capabilities to the appropriate roles (see *Settings* below).
+## Usage & settings
 
-4. Optionally install the companion **Course Control Hub Block** (`block_coursectrldates`)
-   to give teachers a one-click entry point directly inside each course page. (new with vers. 1.1)
+The plugin provides a **Dashboard**, **Timeline**, **Manage** date-change workflow, **Checks** (consistency, risk analysis and learner-state simulation), a dependency graph, and **History / rollback**.
 
+Changes are previewed before execution. Do not assume every batch can be safely rolled back: ongoing rollback/preview correctness improvements are tracked in [GitHub Issues](https://github.com/ralferlebach/moodle-local_coursectrl/issues).
 
-### Requirements
+Settings are under **Site administration → Plugins → Local plugins → Course Control Hub**. See the [User Guide](docs/user-guide.md) for the current configuration options.
 
-| Component | Minimum | Tested up to |
-|---|---|---|
-| Moodle | 4.5 | 5.2 |
-| PHP | 8.2 | 8.4 |
-| Database | MariaDB 10.6 / PostgreSQL 14 | MariaDB 10.11 / PostgreSQL 16 |
+## Capabilities
 
-### Included subplugin adapters (1.1.0)
+Core capability definitions are in [`db/access.php`](db/access.php). In particular:
+- `local/coursectrl:view` and `local/coursectrl:viewreports`: inspect reports.
+- `local/coursectrl:simulate`: run hypothetical learner-state simulations.
+- `local/coursectrl:bulkaction`: apply bulk changes.
+- `local/coursectrl:rollback`: restore saved batch snapshots where supported.
+- `local/coursectrl:managepresets`: manage shared presets.
 
-| Subplugin | Activity type |
-|---|---|
-| `coursectrlmod_assign` | Assignment |
-| `coursectrlmod_capquiz` | CAPQuiz |
-| `coursectrlmod_choice` | Choice |
-| `coursectrlmod_choicegroup` | Group Choice |
-| `coursectrlmod_feedback` | Feedback |
-| `coursectrlmod_forum` | Forum |
-| `coursectrlmod_glossary` | Glossary |
-| `coursectrlmod_h5pactivity` | H5P Activity |
-| `coursectrlmod_lesson` | Lesson |
-| `coursectrlmod_page` | Page |
-| `coursectrlmod_questionnaire` | Questionnaire |
-| `coursectrlmod_quiz` | Quiz |
-| `coursectrlmod_scorm` | SCORM Package |
-| `coursectrlmod_studentquiz` | StudentQuiz |
-| `coursectrlmod_workshop` | Workshop |
+These are designed for authorised teachers/managers; do not expose simulated user grades as real learner data.
 
-## Settings
+## Scheduled tasks
 
-Navigate to **Site administration → Plugins → Local plugins → Course Control Hub**.
+See [`db/tasks.php`](db/tasks.php) if present in the deployed version and Moodle's **Scheduled tasks** administration for installed tasks. No task schedule is promised by this README.
 
-### Capabilities
+## How this plugin works / pitfalls
 
-| Capability | Suggested role | Purpose |
-|---|---|---|
-| `local/coursectrl:view` | `editingteacher`, `manager` | Access all read-only analysis pages |
-| `local/coursectrl:bulkaction` | `editingteacher` | Execute bulk date shifts and text changes |
-| `local/coursectrl:rollback` | `manager` | Roll back a previously executed bulk action |
-| `local/coursectrl:simulate` | `editingteacher`, `manager` | Run the learner journey simulation |
+- Moodle Core provides authoritative visibility, completion and grade state; the plugin's *hypothetical* simulations are not personal learner records.
+- Activity and calendar adapters support additional modules/providers. All analysis and simulation paths must share consistent group/grouping and access semantics; see [#63–#66](https://github.com/ralferlebach/moodle-local_coursectrl/issues/63).
+- A shared evidence/availability graph for both deep analysis and the future Learn Tip block is planned in [#70](https://github.com/ralferlebach/moodle-local_coursectrl/issues/70) and [#71](https://github.com/ralferlebach/moodle-local_coursectrl/issues/71); this is **not yet an implemented API**.
+- Simulation input/replay problems remain tracked in [#67](https://github.com/ralferlebach/moodle-local_coursectrl/issues/67)–[#69](https://github.com/ralferlebach/moodle-local_coursectrl/issues/69).
+- The plugin's external/homepage website has **not** been set up; GitHub is the authoritative project location.
 
-### Key admin settings
+## Theme support
 
-| Setting | Default | Purpose |
-|---|---|---|
-| `history_maxcount` | 100 | Maximum batch records retained per course |
-| `history_maxdays` | 365 | Maximum age of batch records in days |
-| Risk rules R0–R7 | `warning` | Severity level for each consistency-check rule |
-| `risk_max_group_combinations` | 32 | Maximum group combinations simulated per run |
+Developed with Moodle's Boost/Classic ecosystem in mind. Browser, accessibility and Bootstrap 4/5 compatibility require version-specific checks; see [#49](https://github.com/ralferlebach/moodle-local_coursectrl/issues/49).
 
-Full documentation of all settings and pages is in the [User Guide](docs/user-guide.md).
+## Plugin repositories / related projects
 
-## Contributors
+- **Source:** https://github.com/ralferlebach/moodle-local_coursectrl
+- **Dates block:** https://github.com/ralferlebach/moodle-block_coursectrldates
+- **Planned learner-facing block:** https://github.com/ralferlebach/moodle-block_coursectrllearntip
+- **Development template:** https://github.com/ralferlebach/moodle-plugintemplate
 
-* **Ralf Erlebach** — author and developer
+## Bug reports, support & feature proposals
 
-## License
+Submit defects or feature proposals at [GitHub Issues](https://github.com/ralferlebach/moodle-local_coursectrl/issues); contributions via [Pull requests](https://github.com/ralferlebach/moodle-local_coursectrl/pulls). Include Moodle version, PHP/DB combination, course/activity types, reproducible steps and sanitised logs.
 
-This plugin is free software: you can redistribute it and/or modify it under the terms of
-the **GNU General Public License** as published by the Free Software Foundation, either
-version 3 of the License, or (at your option) any later version.
+## Moodle release support
 
-See <https://www.gnu.org/licenses/> for details.
+`version.php` declares support for Moodle 4.5–5.3. Compatibility claims are conditional on successful integration testing; CI and release gates are tracked in [#40](https://github.com/ralferlebach/moodle-local_coursectrl/issues/40) and [#62](https://github.com/ralferlebach/moodle-local_coursectrl/issues/62).
+
+## Translating this plugin
+
+English and German strings are maintained in `lang/en/` and `lang/de/`. For further translations, use Moodle's [AMOS](https://lang.moodle.org/).
+
+## Right-to-left support
+
+RTL languages have not been comprehensively validated; contributions and test reports are welcome.
+
+## Maintainer, copyright & licence
+
+Maintainer: **Ralf Erlebach**. Copyright © 2026 contributors as credited in source files. Licensed under the **GNU GPL v3 or later**; see https://www.gnu.org/licenses/gpl-3.0.html.
